@@ -120,7 +120,7 @@ public class ConnConvert implements AutoCloseable {
                                         "ON CREATE SET s.location = $location," +
                                         " s.confidence = $confidence," +
                                         " s.type = $type",
-                                parameters("location", synapse.getLocation(),
+                                parameters("location", synapse.getLocationString(),
                                         "confidence", synapse.getConfidence(),
                                         "type", synapse.getType()));
                         tx.success();
@@ -129,7 +129,7 @@ public class ConnConvert implements AutoCloseable {
                                     "ON CREATE SET s.location = $location," +
                                     " s.confidence = $confidence," +
                                     " s.type = $type",
-                                    parameters("location", synapse.getLocation(),
+                                    parameters("location", synapse.getLocationString(),
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType()));
                             tx.success();
@@ -180,13 +180,16 @@ public class ConnConvert implements AutoCloseable {
         //create a new hashmap for storing: body>pre, pre>post; post>body
         HashMap<String, Integer> preToBody = new HashMap<>();
         HashMap<String, Integer> postToBody = new HashMap<>();
+        HashMap<String,List<String>> preToPost = new HashMap<>();
 
         for (BodyWithSynapses bws : bodies) {
             List<String> preLocs = bws.getPreLocations();
             List<String> postLocs = bws.getPostLocations();
+
             if (!preLocs.isEmpty()) {
                 for (String loc : preLocs) {
                     preToBody.put(loc, bws.getBodyId());
+
                 }
             }
             if (!postLocs.isEmpty()) {
@@ -199,10 +202,13 @@ public class ConnConvert implements AutoCloseable {
             bws.setConnectsTo(postToBody);
             bws.setConnectsFrom(preToBody);
             bws.setSynapseCounts();
+            preToPost.putAll(bws.getPreToPostForBody());
         }
 
         //System.out.println(bodies[3].connectsTo);
         //System.out.println(bodies[3].connectsFrom);
+        //System.out.println(preToPost.get("4657:2648:1509"));
+        //System.out.println(preToPost.keySet());
 
         // start upload to database
 
@@ -210,10 +216,13 @@ public class ConnConvert implements AutoCloseable {
         String user = "neo4j";
         String password = "n304j";
 
+
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
-            //connConvert.addNeurons();
-            //connConvert.addConnectsTo();
-            connConvert.addSynapses();
+            // uncomment to add different features to database
+            // connConvert.addNeurons();
+            // connConvert.addConnectsTo();
+            // connConvert.addSynapses();
+
         }
 
     }
