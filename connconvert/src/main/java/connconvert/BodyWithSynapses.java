@@ -8,6 +8,7 @@ public class BodyWithSynapses {
     public Integer bodyId;
     public List<Synapse> synapseSet;
     public HashMap<Integer,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
+    public HashMap<Integer,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
     public int pre; //number of presyn terminals
     public int post; //number of postsyn terminals
     //public List<Label> labels = new ArrayList<>();
@@ -52,6 +53,20 @@ public class BodyWithSynapses {
                 for (Integer partnerId : postsynapticPartnerIds) {
                     int count = this.connectsTo.containsKey(partnerId) ? this.connectsTo.get(partnerId) : 0;
                     this.connectsTo.put(partnerId, count+1);
+
+                }
+            }
+        }
+    }
+
+    public void setConnectsFrom(HashMap<String,Integer> preToBody) {
+        for (Synapse synapse: this.synapseSet) {
+            if (synapse.getType().equals("post")) {
+                List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
+                List<Integer> postsynapticPartnerIds = postLocsToBodyIds(postsynapticPartners, preToBody);
+                for (Integer partnerId : postsynapticPartnerIds) {
+                    int count = this.connectsFrom.containsKey(partnerId) ? this.connectsFrom.get(partnerId) : 0;
+                    this.connectsFrom.put(partnerId, count+1);
 
                 }
             }

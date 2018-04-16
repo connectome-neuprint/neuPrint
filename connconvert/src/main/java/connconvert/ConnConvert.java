@@ -93,6 +93,18 @@ public class ConnConvert implements AutoCloseable {
                     }
 
                 }
+
+                for (Integer presynapticBodyId : bws.connectsFrom.keySet()) {
+                    try (Transaction tx = session.beginTransaction()) {
+                        tx.run("MATCH (n:Neuron {bodyId:$bodyId1} ) SET n.pre = $pre, n.post = $post",
+                                parameters("bodyId1", bws.getBodyId(),
+                                        "pre", bws.getPre(),
+                                        "post", bws.getPost()));
+                        tx.success();
+
+                    }
+
+                }
             }
 
 
@@ -154,10 +166,12 @@ public class ConnConvert implements AutoCloseable {
         }
         for (BodyWithSynapses bws : bodies) {
             bws.setConnectsTo(postToBody);
+            bws.setConnectsFrom(preToBody);
             bws.setSynapseCounts();
         }
 
         //System.out.println(bodies[3].connectsTo);
+        //System.out.println(bodies[3].connectsFrom);
 
         // start upload to database
 
