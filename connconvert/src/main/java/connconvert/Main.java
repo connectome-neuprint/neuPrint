@@ -127,11 +127,11 @@ public class Main implements AutoCloseable {
 
 
                     tx.success();
-                    System.out.print("Added neurons.");
+
                 }
 
             }
-
+            System.out.println("Added neurons.");
 
 
             for (BodyWithSynapses bws : bodies) {
@@ -141,18 +141,18 @@ public class Main implements AutoCloseable {
                         // have already set
                         // CREATE CONSTRAINT ON (n:Neuron) ASSERT n.bodyId IS UNIQUE
                         // CREATE INDEX ON :Neuron(bodyId)
-                        //tx.run("MERGE (n:Neuron {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n:fib25, n:notinneurons \n" +
-                        //               "MERGE (m:Neuron {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, n:fib25, n:notinneurons \n" +
-                        //                "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n",
-                        tx.run("MATCH (n:Neuron),(m:Neuron)\n" +
-                                        "WHERE n.bodyId = $bodyId1 AND m.bodyId = $bodyId2 \n" +
-                                        "CREATE (n)-[:ConnectsTo{weight:$weight}]->(m)",
+                        tx.run("MERGE (n:Neuron {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n:fib25, n:notinneurons \n" +
+                                       "MERGE (m:Neuron {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m:fib25, m:notinneurons \n" +
+                                        "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n",
+                        //tx.run("MATCH (n:Neuron),(m:Neuron)\n" +
+                        //                "WHERE n.bodyId = $bodyId1 AND m.bodyId = $bodyId2 \n" +
+                         //               "CREATE (n)-[:ConnectsTo{weight:$weight}]->(m)",
                                 parameters("bodyId1", bws.getBodyId(),
                                         "bodyId2", postsynapticBodyId,
                                         "weight", bws.connectsTo.get(postsynapticBodyId)));
 
                         tx.success();
-                        System.out.println("Added ConnectsTo relations.");
+
                     }
                     try (Transaction tx = session.beginTransaction()) {
                         tx.run("MATCH (n:Neuron {bodyId:$bodyId1} ) SET n.pre = $pre, n.post = $post",
@@ -160,7 +160,7 @@ public class Main implements AutoCloseable {
                                         "pre", bws.getPre(),
                                         "post", bws.getPost()));
                         tx.success();
-                        System.out.println("Added pre and post counts.");
+
                     }
 
                 }
@@ -168,6 +168,8 @@ public class Main implements AutoCloseable {
 
 
         }
+        System.out.println("Added ConnectsTo relations.");
+        System.out.println("Added pre and post counts.");
         driver.close();
     }
 }
