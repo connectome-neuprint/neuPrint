@@ -36,7 +36,7 @@ public class ConnConvert implements AutoCloseable {
         try (Session session = driver.session()) {
             for (Neuron neuron : neurons) {
                 try (Transaction tx = session.beginTransaction()) {
-
+                    // TODO: Index name and status
                     // have already set
                     // CREATE CONSTRAINT ON (n:Neuron) ASSERT n.bodyId IS UNIQUE
                     // CREATE INDEX ON :Neuron(bodyId)
@@ -108,6 +108,41 @@ public class ConnConvert implements AutoCloseable {
         }
     }
 
+    public void addSynapses() throws Exception {
+        try (Session session = driver.session()) {
+            for (BodyWithSynapses bws : bodies) {
+                for (Synapse synapse : bws.getSynapseSet()) {
+                    try (Transaction tx = session.beginTransaction()) {
+                        // have already set
+                        // CREATE CONSTRAINT ON (s:Synapse) ASSERT s.location IS UNIQUE
+                        if (synapse.getType().equals("pre")) {
+                        tx.run("MERGE (s:Synapse:PreSyn {location:$location}) " +
+                                        "ON CREATE SET s.location = $location," +
+                                        " s.confidence = $confidence," +
+                                        " s.type = $type",
+                                parameters("location", synapse.getLocation(),
+                                        "confidence", synapse.getConfidence(),
+                                        "type", synapse.getType()));
+                        tx.success();
+                        } else if (synapse.getType().equals("post")) {
+                            tx.run("MERGE (s:Synapse:PostSyn {location:$location}) " +
+                                    "ON CREATE SET s.location = $location," +
+                                    " s.confidence = $confidence," +
+                                    " s.type = $type",
+                                    parameters("location", synapse.getLocation(),
+                                            "confidence", synapse.getConfidence(),
+                                            "type", synapse.getType()));
+                            tx.success();
+
+                        }
+                    }
+                }
+            }
+            System.out.println("Synapse nodes added.");
+        }
+
+    }
+
 
     public static Neuron[] readNeuronsJson(String filepath) throws Exception{
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
@@ -176,8 +211,9 @@ public class ConnConvert implements AutoCloseable {
         String password = "n304j";
 
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
-            connConvert.addNeurons();
-            connConvert.addConnectsTo();
+            //connConvert.addNeurons();
+            //connConvert.addConnectsTo();
+            connConvert.addSynapses();
         }
 
     }

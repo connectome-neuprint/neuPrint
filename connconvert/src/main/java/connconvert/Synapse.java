@@ -49,6 +49,14 @@ public class Synapse {
         return locationToStringKey(this.location);
     }
 
+    public List<Integer> getLocation() {
+        return this.location;
+    }
+
+    public float getConfidence() {
+        return this.confidence;
+    }
+
     public List<String> getConnectionLocationStrings() {
         List<String> connections = new ArrayList<>();
         switch (this.type) {
@@ -67,7 +75,7 @@ public class Synapse {
     }
 
     public String getType() {
-        return type;
+        return this.type;
     }
 
 

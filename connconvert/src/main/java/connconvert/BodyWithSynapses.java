@@ -114,5 +114,9 @@ public class BodyWithSynapses {
         return this.post;
     }
 
+    public List<Synapse> getSynapseSet() {
+        return this.synapseSet;
+    }
+
 
 }
