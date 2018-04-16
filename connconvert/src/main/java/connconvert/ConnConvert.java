@@ -143,6 +143,26 @@ public class ConnConvert implements AutoCloseable {
 
     }
 
+    public void addSynapsesTo(HashMap<String,List<String>> preToPost) throws Exception {
+        try (Session session = driver.session()) {
+            for (String preLoc : preToPost.keySet()) {
+                for (String postLoc : preToPost.get(preLoc)) {
+                    try (Transaction tx = session.beginTransaction()) {
+                        tx.run("MERGE (s:Synapse {location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto \n" +
+                                        "MERGE (t:Synapse {location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto \n" +
+                                        "MERGE (s)-[:SynapsesTo]->(t) \n",
+                                parameters("prelocation", preLoc,
+                                        "postlocation", postLoc));
+
+                        }
+                    }
+                }
+            }
+            System.out.println("SynapsesTo relations added.");
+        }
+
+    }
+
 
     public static Neuron[] readNeuronsJson(String filepath) throws Exception{
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
@@ -222,6 +242,7 @@ public class ConnConvert implements AutoCloseable {
             // connConvert.addNeurons();
             // connConvert.addConnectsTo();
             // connConvert.addSynapses();
+            connConvert.addSynapsesTo(preToPost);
 
         }
 
