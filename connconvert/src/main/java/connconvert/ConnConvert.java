@@ -31,8 +31,7 @@ public class ConnConvert implements AutoCloseable {
         System.out.println("Driver closed.");
     }
 
-    public void start() throws Exception {
-        //System.out.printf("Input file name is: %s \n", filename);
+    public void addNeurons() throws Exception {
 
         try (Session session = driver.session()) {
             for (Neuron neuron : neurons) {
@@ -61,21 +60,19 @@ public class ConnConvert implements AutoCloseable {
 
             }
             System.out.println("Added neurons.");
+        }
 
+    }
 
+    public void addConnectsTo() throws Exception {
+        try (Session session = driver.session()) {
             for (BodyWithSynapses bws : bodies) {
                 for (Integer postsynapticBodyId : bws.connectsTo.keySet()) {
                     try (Transaction tx = session.beginTransaction()) {
-
-                        // have already set
-                        // CREATE CONSTRAINT ON (n:Neuron) ASSERT n.bodyId IS UNIQUE
-                        // CREATE INDEX ON :Neuron(bodyId)
+                        // TODO: Incorporate confidence values for ConnectsTo
                         tx.run("MERGE (n:Neuron {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n:fib25, n:notinneurons \n" +
                                         "MERGE (m:Neuron {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m:fib25, m:notinneurons \n" +
                                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n",
-                                //tx.run("MATCH (n:Neuron),(m:Neuron)\n" +
-                                //                "WHERE n.bodyId = $bodyId1 AND m.bodyId = $bodyId2 \n" +
-                                //               "CREATE (n)-[:ConnectsTo{weight:$weight}]->(m)",
                                 parameters("bodyId1", bws.getBodyId(),
                                         "bodyId2", postsynapticBodyId,
                                         "weight", bws.connectsTo.get(postsynapticBodyId)));
@@ -106,12 +103,11 @@ public class ConnConvert implements AutoCloseable {
 
                 }
             }
-
-
+            System.out.println("Added ConnectsTo relations.");
+            System.out.println("Added pre and post counts.");
         }
-        System.out.println("Added ConnectsTo relations.");
-        System.out.println("Added pre and post counts.");
     }
+
 
     public static Neuron[] readNeuronsJson(String filepath) throws Exception{
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
@@ -180,7 +176,8 @@ public class ConnConvert implements AutoCloseable {
         String password = "n304j";
 
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
-            connConvert.start();
+            connConvert.addNeurons();
+            connConvert.addConnectsTo();
         }
 
     }
