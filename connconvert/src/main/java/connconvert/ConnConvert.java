@@ -15,7 +15,8 @@ import java.util.HashMap;
 import org.neo4j.driver.v1.*;
 import static org.neo4j.driver.v1.Values.parameters;
 
-
+// TODO: Add ROI information from synapses.json. using column names from neurons file? how? Also, rostral vs. caudal rois? what z divides distal vs. prox medulla
+// FIB25 names often include column info (7 columns)  - pnas paper.
 public class ConnConvert implements AutoCloseable {
     private final Driver driver;
     public static Neuron[] neurons;
@@ -120,7 +121,7 @@ public class ConnConvert implements AutoCloseable {
                                         "ON CREATE SET s.location = $location," +
                                         " s.confidence = $confidence," +
                                         " s.type = $type",
-                                parameters("location", synapse.getLocationString(),
+                                parameters("location", synapse.getLocation(),
                                         "confidence", synapse.getConfidence(),
                                         "type", synapse.getType()));
                         tx.success();
@@ -129,7 +130,7 @@ public class ConnConvert implements AutoCloseable {
                                     "ON CREATE SET s.location = $location," +
                                     " s.confidence = $confidence," +
                                     " s.type = $type",
-                                    parameters("location", synapse.getLocationString(),
+                                    parameters("location", synapse.getLocation(),
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType()));
                             tx.success();
