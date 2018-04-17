@@ -117,33 +117,63 @@ public class ConnConvert implements AutoCloseable {
                     try (Transaction tx = session.beginTransaction()) {
                         // have already set
                         // CREATE CONSTRAINT ON (s:Synapse) ASSERT s.location IS UNIQUE
+                        // requires APOC: need to add apoc to neo4j plugins
                         if (synapse.getType().equals("pre")) {
-                        tx.run("MERGE (s:Synapse:PreSyn {location:$location}) " +
-                                        "ON CREATE SET s.location = $location," +
-                                        " s.confidence = $confidence," +
-                                        " s.type = $type",
-                                parameters("location", synapse.getLocation(),
-                                        "confidence", synapse.getConfidence(),
-                                        "type", synapse.getType()));
-                        tx.success();
-                        } else if (synapse.getType().equals("post")) {
-                            tx.run("MERGE (s:Synapse:PostSyn {location:$location}) " +
-                                    "ON CREATE SET s.location = $location," +
-                                    " s.confidence = $confidence," +
-                                    " s.type = $type",
+                            tx.run("MERGE (s:Synapse:PreSyn {location:$location}) " +
+                                            "ON CREATE SET s.location = $location," +
+                                            " s.confidence = $confidence," +
+                                            " s.type = $type \n",
+//                                            " WITH s \n" +
+//                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
+//                                            " RETURN node",
                                     parameters("location", synapse.getLocation(),
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType()));
                             tx.success();
+                        } else if (synapse.getType().equals("post")) {
+                            tx.run("MERGE (s:Synapse:PostSyn {location:$location}) " +
+                                            "ON CREATE SET s.location = $location," +
+                                            " s.confidence = $confidence," +
+                                            " s.type = $type",
+//                                            " WITH s \n" +
+//                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
+//                                            " RETURN node",
+                                    parameters("location", synapse.getLocation(),
+                                            "confidence", synapse.getConfidence(),
+                                            "type", synapse.getType()));
 
+                            tx.success();
                         }
                     }
+
+                    }
+
                 }
-            }
+
             System.out.println("Synapse nodes added.");
         }
 
     }
+
+    public void addRois() {
+        try (Session session = driver.session()) {
+            for (BodyWithSynapses bws : bodies) {
+                for (Synapse synapse : bws.getSynapseSet()) {
+                    try (Transaction tx = session.beginTransaction()) {
+                        tx.run("MERGE (s:Synapse {location:$location}) ON CREATE SET s.location = $location \n" +
+                                "WITH s \n" +
+                                        "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
+                                        "RETURN node",
+                                parameters("location", synapse.getLocation(),
+                                        "rois", synapse.getRois()));
+                        tx.success();
+                    }
+                }
+            }
+        }
+    }
+
+
 
     public void addSynapsesTo(HashMap<List<Integer>,List<List<Integer>>> preToPost) throws Exception {
         try (Session session = driver.session()) {
@@ -237,7 +267,7 @@ public class ConnConvert implements AutoCloseable {
         //}};
         //System.out.println(preToPost.get(temploc));
         //System.out.println(preToPost.keySet());
-
+        //System.out.println(bodies[0].getSynapseSet().get(0));
         // start upload to database
 
         String uri = "bolt://localhost:7687";
@@ -249,8 +279,9 @@ public class ConnConvert implements AutoCloseable {
             // uncomment to add different features to database
             // connConvert.addNeurons();
             // connConvert.addConnectsTo();
-            // connConvert.addSynapses();
-            connConvert.addSynapsesTo(preToPost);
+             // connConvert.addSynapses();
+            // connConvert.addSynapsesTo(preToPost);
+            connConvert.addRois();
 
         }
 

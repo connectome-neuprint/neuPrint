@@ -2,6 +2,7 @@ package connconvert;
 
 import java.util.List;
 import java.util.ArrayList;
+import com.google.gson.annotations.SerializedName;
 
 public class Synapse {
     public String type;
@@ -9,6 +10,7 @@ public class Synapse {
     public List<Integer> location;
     public List<List<Integer>> connectsTo;
     public List<List<Integer>> connectsFrom;
+    @SerializedName("rois")
     public List<String> rois;
 
 
@@ -99,6 +101,10 @@ public class Synapse {
 
     public String getType() {
         return this.type;
+    }
+
+    public List<String> getRois() {
+        return this.rois;
     }
 
 
