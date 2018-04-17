@@ -155,6 +155,7 @@ public class ConnConvert implements AutoCloseable {
                                         "MERGE (s)-[:SynapsesTo]->(t) \n",
                                 parameters("prelocation", preLoc,
                                         "postlocation", postLoc));
+                        tx.success();
 
                         }
                     }
@@ -248,7 +249,7 @@ public class ConnConvert implements AutoCloseable {
             // uncomment to add different features to database
             // connConvert.addNeurons();
             // connConvert.addConnectsTo();
-            connConvert.addSynapses();
+            // connConvert.addSynapses();
             connConvert.addSynapsesTo(preToPost);
 
         }
