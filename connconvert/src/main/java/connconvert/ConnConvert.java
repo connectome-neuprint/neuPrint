@@ -161,14 +161,24 @@ public class ConnConvert implements AutoCloseable {
                 for (Synapse synapse : bws.getSynapseSet()) {
                     try (Transaction tx = session.beginTransaction()) {
                         tx.run("MERGE (s:Synapse {location:$location}) ON CREATE SET s.location = $location \n" +
-                                "WITH s \n" +
+                                        "WITH s \n" +
                                         "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
                                         "RETURN node",
                                 parameters("location", synapse.getLocation(),
                                         "rois", synapse.getRois()));
                         tx.success();
                     }
+                    try (Transaction tx = session.beginTransaction()) {
+                        tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId = $bodyId \n" +
+                                        "WITH n \n" +
+                                        "CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
+                                        "RETURN node",
+                                parameters("bodyId", bws.getBodyId(),
+                                        "rois", synapse.getRois()));
+                        tx.success();
+                    }
                 }
+
             }
         }
     }
