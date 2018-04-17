@@ -84,7 +84,7 @@ public class Synapse {
                 connections = this.connectsTo;
                 break;
             default:
-                List<Integer> defaultLoc = new ArrayList<>() {{
+                List<Integer> defaultLoc = new ArrayList<Integer>() {{
                     add(-1);
                     add(-1);
                     add(-1);

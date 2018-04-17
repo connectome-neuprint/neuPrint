@@ -10,6 +10,7 @@ import com.google.gson.FieldNamingPolicy;
 
 import java.util.List;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 
 import org.neo4j.driver.v1.*;
@@ -162,7 +163,7 @@ public class ConnConvert implements AutoCloseable {
             System.out.println("SynapsesTo relations added.");
         }
 
-    }
+
 
 
     public static Neuron[] readNeuronsJson(String filepath) throws Exception{
@@ -201,7 +202,7 @@ public class ConnConvert implements AutoCloseable {
         //create a new hashmap for storing: body>pre, pre>post; post>body
         HashMap<String, Integer> preToBody = new HashMap<>();
         HashMap<String, Integer> postToBody = new HashMap<>();
-        HashMap<String,List<String>> preToPost = new HashMap<>();
+        HashMap<List<Integer>,List<List<Integer>>> preToPost = new HashMap<>();
 
         for (BodyWithSynapses bws : bodies) {
             List<String> preLocs = bws.getPreLocations();
@@ -228,7 +229,12 @@ public class ConnConvert implements AutoCloseable {
 
         //System.out.println(bodies[3].connectsTo);
         //System.out.println(bodies[3].connectsFrom);
-        //System.out.println(preToPost.get("4657:2648:1509"));
+        //List<Integer> temploc = new ArrayList<Integer>() {{
+        //    add(4657);
+        //    add(2648);
+        //    add(1509);
+        //}};
+        //System.out.println(preToPost.get(temploc));
         //System.out.println(preToPost.keySet());
 
         // start upload to database
@@ -243,7 +249,7 @@ public class ConnConvert implements AutoCloseable {
             // connConvert.addNeurons();
             // connConvert.addConnectsTo();
             // connConvert.addSynapses();
-            connConvert.addSynapsesTo(preToPost);
+            //connConvert.addSynapsesTo(preToPost);
 
         }
 
