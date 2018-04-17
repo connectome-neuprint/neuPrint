@@ -74,6 +74,29 @@ public class Synapse {
 
     }
 
+    public List<List<Integer>> getConnectionLocations() {
+        List<List<Integer>> connections = new ArrayList<>();
+        switch (this.type) {
+            case ("post"):
+                connections = this.connectsFrom;
+                break;
+            case ("pre"):
+                connections = this.connectsTo;
+                break;
+            default:
+                List<Integer> defaultLoc = new ArrayList<>() {{
+                    add(-1);
+                    add(-1);
+                    add(-1);
+                }};
+
+                connections.add(defaultLoc);
+                break;
+        }
+        return connections;
+
+    }
+
     public String getType() {
         return this.type;
     }
