@@ -3,9 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="aee7c5b5-cd48-4f1c-a463-aa05d77579dc" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/connconvert/BodyWithSynapses.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/connconvert/ConnConvert.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/connconvert/Synapse.class" beforeDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
@@ -30,8 +27,8 @@
       <file leaf-file-name="ConnConvert.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="356">
-              <caret line="243" column="34" lean-forward="true" selection-start-line="243" selection-start-column="34" selection-end-line="243" selection-end-column="34" />
+            <state relative-caret-position="274">
+              <caret line="250" column="12" selection-start-line="250" selection-start-column="12" selection-end-line="250" selection-end-column="12" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -65,8 +62,8 @@
       <file leaf-file-name="Synapse.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/Synapse.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="179">
-              <caret line="80" column="48" lean-forward="true" selection-start-line="80" selection-start-column="48" selection-end-line="80" selection-end-column="48" />
+            <state relative-caret-position="56">
+              <caret line="78" column="28" lean-forward="true" selection-start-line="78" selection-start-column="28" selection-end-line="78" selection-end-column="28" />
               <folding>
                 <element signature="imports" expanded="true" />
                 <element signature="e#1327#1328#0" expanded="true" />
@@ -107,8 +104,8 @@
         <option value="$PROJECT_DIR$/src/main/java/Neuron.java" />
         <option value="$PROJECT_DIR$/src/main/java/Synapse.java" />
         <option value="$PROJECT_DIR$/src/main/java/connconvert/Main.java" />
-        <option value="$PROJECT_DIR$/src/main/java/connconvert/Synapse.java" />
         <option value="$PROJECT_DIR$/src/main/java/connconvert/BodyWithSynapses.java" />
+        <option value="$PROJECT_DIR$/src/main/java/connconvert/Synapse.java" />
         <option value="$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java" />
       </list>
     </option>
@@ -121,8 +118,8 @@
     </option>
   </component>
   <component name="ProjectFrameBounds">
-    <option name="x" value="711" />
-    <option name="y" value="-1269" />
+    <option name="x" value="94" />
+    <option name="y" value="-1251" />
     <option name="width" value="1741" />
     <option name="height" value="934" />
   </component>
@@ -270,13 +267,13 @@
     <layout>
       <window_info anchor="right" id="Palette" />
       <window_info anchor="bottom" id="TODO" order="6" />
-      <window_info active="true" anchor="bottom" id="Messages" sideWeight="0.4933946" visible="true" weight="0.32906976" />
+      <window_info anchor="bottom" id="Messages" sideWeight="0.49282023" weight="0.32906976" />
       <window_info anchor="right" id="Palette&#9;" />
       <window_info id="Image Layers" />
       <window_info anchor="right" id="Capture Analysis" />
-      <window_info anchor="bottom" id="Event Log" sideWeight="0.5066054" side_tool="true" visible="true" weight="0.32906976" />
+      <window_info anchor="bottom" id="Event Log" sideWeight="0.37105113" side_tool="true" visible="true" weight="0.32906976" />
       <window_info anchor="right" id="Maven Projects" />
-      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.6295233" weight="0.32906976" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.62894887" visible="true" weight="0.32906976" />
       <window_info anchor="bottom" id="Version Control" />
       <window_info anchor="bottom" id="Terminal" />
       <window_info id="Capture Tool" />
@@ -333,22 +330,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/Synapse.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="179">
-          <caret line="80" column="48" lean-forward="true" selection-start-line="80" selection-start-column="48" selection-end-line="80" selection-end-column="48" />
-          <folding>
-            <element signature="imports" expanded="true" />
-            <element signature="e#1327#1328#0" expanded="true" />
-            <element signature="e#1348#1349#0" expanded="true" />
-            <element signature="e#1409#1410#0" expanded="true" />
-            <element signature="e#1445#1446#0" expanded="true" />
-            <element signature="e#1842#1843#0" expanded="true" />
-            <element signature="e#1869#1870#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/BodyWithSynapses.java">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="194">
@@ -361,10 +342,26 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/Synapse.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="56">
+          <caret line="78" column="28" lean-forward="true" selection-start-line="78" selection-start-column="28" selection-end-line="78" selection-end-column="28" />
+          <folding>
+            <element signature="imports" expanded="true" />
+            <element signature="e#1327#1328#0" expanded="true" />
+            <element signature="e#1348#1349#0" expanded="true" />
+            <element signature="e#1409#1410#0" expanded="true" />
+            <element signature="e#1445#1446#0" expanded="true" />
+            <element signature="e#1842#1843#0" expanded="true" />
+            <element signature="e#1869#1870#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="356">
-          <caret line="243" column="34" lean-forward="true" selection-start-line="243" selection-start-column="34" selection-end-line="243" selection-end-column="34" />
+        <state relative-caret-position="274">
+          <caret line="250" column="12" selection-start-line="250" selection-start-column="12" selection-end-line="250" selection-end-column="12" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>
@@ -388,7 +385,7 @@
       </state>
       <state key="FacetStructureConfigurable.UI">
         <settings>
-          <last-edited>No facets are configured</last-edited>
+          <last-edited />
           <splitter-proportions>
             <option name="proportions">
               <list>
@@ -448,7 +445,7 @@
       </state>
       <state key="ProjectLibrariesConfigurable.UI">
         <settings>
-          <last-edited>Maven: com.github.ben-manes.caffeine:caffeine:2.3.3</last-edited>
+          <last-edited />
           <splitter-proportions>
             <option name="proportions">
               <list>

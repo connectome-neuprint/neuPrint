@@ -145,10 +145,10 @@ public class ConnConvert implements AutoCloseable {
 
     }
 
-    public void addSynapsesTo(HashMap<String,List<String>> preToPost) throws Exception {
+    public void addSynapsesTo(HashMap<List<Integer>,List<List<Integer>>> preToPost) throws Exception {
         try (Session session = driver.session()) {
-            for (String preLoc : preToPost.keySet()) {
-                for (String postLoc : preToPost.get(preLoc)) {
+            for (List<Integer> preLoc : preToPost.keySet()) {
+                for (List<Integer> postLoc : preToPost.get(preLoc)) {
                     try (Transaction tx = session.beginTransaction()) {
                         tx.run("MERGE (s:Synapse {location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto \n" +
                                         "MERGE (t:Synapse {location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto \n" +
@@ -248,8 +248,8 @@ public class ConnConvert implements AutoCloseable {
             // uncomment to add different features to database
             // connConvert.addNeurons();
             // connConvert.addConnectsTo();
-            // connConvert.addSynapses();
-            //connConvert.addSynapsesTo(preToPost);
+            connConvert.addSynapses();
+            connConvert.addSynapsesTo(preToPost);
 
         }
 
