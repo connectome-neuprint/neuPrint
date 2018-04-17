@@ -10,6 +10,7 @@ public class Synapse {
     public List<Integer> location;
     public List<List<Integer>> connectsTo;
     public List<List<Integer>> connectsFrom;
+
     @SerializedName("rois")
     public List<String> rois;
 

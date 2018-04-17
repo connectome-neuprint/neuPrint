@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import org.neo4j.driver.v1.*;
 import static org.neo4j.driver.v1.Values.parameters;
 
-// TODO: Add ROI information from synapses.json. using column names from neurons file? how? Also, rostral vs. caudal rois? what z divides distal vs. prox medulla
+// TODO: Add ROI information using column names from neurons file? how? Also, rostral vs. caudal rois? what z divides distal vs. prox medulla
 // FIB25 names often include column info (7 columns)  - pnas paper.
 public class ConnConvert implements AutoCloseable {
     private final Driver driver;
@@ -126,7 +126,7 @@ public class ConnConvert implements AutoCloseable {
 //                                            " WITH s \n" +
 //                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
 //                                            " RETURN node",
-                                    parameters("location", synapse.getLocation(),
+                                    parameters("location", synapse.getLocationString(),
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType()));
                             tx.success();
@@ -138,7 +138,7 @@ public class ConnConvert implements AutoCloseable {
 //                                            " WITH s \n" +
 //                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
 //                                            " RETURN node",
-                                    parameters("location", synapse.getLocation(),
+                                    parameters("location", synapse.getLocationString(),
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType()));
 
@@ -164,7 +164,7 @@ public class ConnConvert implements AutoCloseable {
                                         "WITH s \n" +
                                         "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
                                         "RETURN node",
-                                parameters("location", synapse.getLocation(),
+                                parameters("location", synapse.getLocationString(),
                                         "rois", synapse.getRois()));
                         tx.success();
                     }
@@ -185,10 +185,10 @@ public class ConnConvert implements AutoCloseable {
 
 
 
-    public void addSynapsesTo(HashMap<List<Integer>,List<List<Integer>>> preToPost) throws Exception {
+    public void addSynapsesTo(HashMap<String,List<String>> preToPost) throws Exception {
         try (Session session = driver.session()) {
-            for (List<Integer> preLoc : preToPost.keySet()) {
-                for (List<Integer> postLoc : preToPost.get(preLoc)) {
+            for (String preLoc : preToPost.keySet()) {
+                for (String postLoc : preToPost.get(preLoc)) {
                     try (Transaction tx = session.beginTransaction()) {
                         tx.run("MERGE (s:Synapse {location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto \n" +
                                         "MERGE (t:Synapse {location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto \n" +
@@ -197,12 +197,21 @@ public class ConnConvert implements AutoCloseable {
                                         "postlocation", postLoc));
                         tx.success();
 
-                        }
                     }
                 }
             }
-            System.out.println("SynapsesTo relations added.");
         }
+            System.out.println("SynapsesTo relations added.");
+    }
+
+    public void addNeuronParts() throws Exception {
+        try (Session session = driver.session()) {
+            try(Transaction tx = session.beginTransaction()) {
+
+            }
+        }
+    }
+
 
 
 
@@ -243,7 +252,7 @@ public class ConnConvert implements AutoCloseable {
         //create a new hashmap for storing: body>pre, pre>post; post>body
         HashMap<String, Integer> preToBody = new HashMap<>();
         HashMap<String, Integer> postToBody = new HashMap<>();
-        HashMap<List<Integer>,List<List<Integer>>> preToPost = new HashMap<>();
+        HashMap<String,List<String>> preToPost = new HashMap<>();
 
         for (BodyWithSynapses bws : bodies) {
             List<String> preLocs = bws.getPreLocations();
@@ -276,7 +285,7 @@ public class ConnConvert implements AutoCloseable {
         //    add(1509);
         //}};
         //System.out.println(preToPost.get(temploc));
-        //System.out.println(preToPost.keySet());
+        System.out.println(preToPost.keySet());
         //System.out.println(bodies[0].getSynapseSet().get(0));
         // start upload to database
 
@@ -290,8 +299,8 @@ public class ConnConvert implements AutoCloseable {
             // connConvert.addNeurons();
             // connConvert.addConnectsTo();
              // connConvert.addSynapses();
-            // connConvert.addSynapsesTo(preToPost);
-            connConvert.addRois();
+             connConvert.addSynapsesTo(preToPost);
+            // connConvert.addRois();
 
         }
 

@@ -11,6 +11,8 @@ public class BodyWithSynapses {
     public HashMap<Integer,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
     public int pre; //number of presyn terminals
     public int post; //number of postsyn terminals
+    public List<NeuronPart> neuronParts;
+
     //public List<Label> labels = new ArrayList<>();
 
 
@@ -59,12 +61,12 @@ public class BodyWithSynapses {
         }
     }
 
-    public HashMap<List<Integer>,List<List<Integer>>> getPreToPostForBody() {
-        HashMap<List<Integer>,List<List<Integer>>> preToPost = new HashMap<>();
+    public HashMap<String,List<String>> getPreToPostForBody() {
+        HashMap<String,List<String>> preToPost = new HashMap<>();
         for (Synapse synapse: this.synapseSet) {
             if (synapse.getType().equals("pre")) {
-                List<List<Integer>> postsynapticPartners = synapse.getConnectionLocations();
-                preToPost.put(synapse.getLocation(), postsynapticPartners);
+                List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
+                preToPost.put(synapse.getLocationString(), postsynapticPartners);
             }
         }
         return preToPost;
