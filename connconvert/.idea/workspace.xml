@@ -3,7 +3,6 @@
   <component name="ChangeListManager">
     <list default="true" id="aee7c5b5-cd48-4f1c-a463-aa05d77579dc" name="Default" comment="">
       <change beforePath="$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/connconvert/NeuronPart.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/connconvert/NeuronPart.java" afterDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
@@ -28,8 +27,8 @@
       <file leaf-file-name="ConnConvert.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="248">
-              <caret line="318" column="41" selection-start-line="318" selection-start-column="41" selection-end-line="318" selection-end-column="41" />
+            <state relative-caret-position="313">
+              <caret line="212" column="30" lean-forward="true" selection-start-line="212" selection-start-column="30" selection-end-line="212" selection-end-column="97" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -309,10 +308,10 @@
       <window_info anchor="right" id="Palette&#9;" order="3" />
       <window_info id="Image Layers" order="2" />
       <window_info anchor="right" id="Capture Analysis" order="3" />
-      <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.37578616" side_tool="true" visible="true" weight="0.3284055" />
+      <window_info active="true" anchor="bottom" id="Event Log" order="7" sideWeight="0.37657234" side_tool="true" visible="true" weight="0.3284055" />
       <window_info anchor="right" id="Maven Projects" order="3" />
       <window_info anchor="bottom" id="Version Control" order="7" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.6242138" visible="true" weight="0.3284055" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.6234277" weight="0.3284055" />
       <window_info anchor="bottom" id="Terminal" order="7" />
       <window_info id="Capture Tool" order="2" />
       <window_info id="Designer" order="2" />
@@ -473,8 +472,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="248">
-          <caret line="318" column="41" selection-start-line="318" selection-start-column="41" selection-end-line="318" selection-end-column="41" />
+        <state relative-caret-position="313">
+          <caret line="212" column="30" lean-forward="true" selection-start-line="212" selection-start-column="30" selection-end-line="212" selection-end-column="97" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

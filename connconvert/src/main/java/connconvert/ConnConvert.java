@@ -210,14 +210,17 @@ public class ConnConvert implements AutoCloseable {
                     for (NeuronPart np : bws.getNeuronParts()) {
                         try(Transaction tx = session.beginTransaction()) {
                         // create neuronpart node that points to neuron with partof relation
+                            //CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE
+                            String neuronPartId = bws.getBodyId()+np.getRoi();
                         tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforneuronpart \n"+
-                                        "MERGE (p:NeuronPart {roi:$roi,bodyId:$bodyId}) ON CREATE SET p.roi=$roi, p.bodyId=$bodyId, p.pre=$pre, p.post=$post, p.size=$size \n"+
+                                        "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
                                         "MERGE (p)-[:PartOf]->(n) \n" +
                                         "WITH p \n" +
                                         "CALL apoc.create.addLabels(id(p),[$roi]) YIELD node \n" +
                                         "RETURN node",
                                 parameters("bodyId",bws.getBodyId(),
                                         "roi",np.getRoi(),
+                                        "neuronPartId",neuronPartId,
                                         "pre",np.getPre(),
                                         "post",np.getPost(),
                                         "size",np.getPre()+np.getPost()));
@@ -227,7 +230,6 @@ public class ConnConvert implements AutoCloseable {
             }
         }
     }
-
 
 
     public static Neuron[] readNeuronsJson(String filepath) throws Exception{
