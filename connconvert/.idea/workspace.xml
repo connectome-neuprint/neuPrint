@@ -2,14 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="aee7c5b5-cd48-4f1c-a463-aa05d77579dc" name="Default" comment="">
-      <change afterPath="$PROJECT_DIR$/src/main/java/connconvert/SynapseCounter.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/connconvert/BodyWithSynapses.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/connconvert/BodyWithSynapses.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/connconvert/NeuronPart.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/connconvert/NeuronPart.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/connconvert/BodyWithSynapses.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/connconvert/ConnConvert.class" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/target/classes/connconvert/NeuronPart.class" beforeDir="false" />
     </list>
     <ignored path="$PROJECT_DIR$/out/" />
     <ignored path="$PROJECT_DIR$/target/" />
@@ -34,8 +28,8 @@
       <file leaf-file-name="ConnConvert.java" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="94">
-              <caret line="276" column="37" selection-start-line="276" selection-start-column="37" selection-end-line="276" selection-end-column="37" />
+            <state relative-caret-position="248">
+              <caret line="318" column="41" selection-start-line="318" selection-start-column="41" selection-end-line="318" selection-end-column="41" />
               <folding>
                 <element signature="imports" expanded="true" />
               </folding>
@@ -46,8 +40,8 @@
       <file leaf-file-name="BodyWithSynapses.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/BodyWithSynapses.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="503">
-              <caret line="159" column="9" lean-forward="true" selection-start-line="159" selection-start-column="9" selection-end-line="159" selection-end-column="9" />
+            <state relative-caret-position="232">
+              <caret line="135" column="39" selection-start-line="135" selection-start-column="39" selection-end-line="135" selection-end-column="39" />
               <folding>
                 <element signature="imports" expanded="true" />
                 <element signature="e#5813#5814#0" expanded="true" />
@@ -80,11 +74,17 @@
       <file leaf-file-name="NeuronPart.java" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/NeuronPart.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state>
-              <caret column="20" lean-forward="true" selection-start-column="20" selection-end-column="20" />
+            <state relative-caret-position="255">
+              <caret line="17" column="5" lean-forward="true" selection-start-line="17" selection-start-column="5" selection-end-line="17" selection-end-column="5" />
               <folding>
                 <element signature="e#351#352#0" expanded="true" />
                 <element signature="e#413#414#0" expanded="true" />
+                <element signature="e#438#439#0" expanded="true" />
+                <element signature="e#459#460#0" expanded="true" />
+                <element signature="e#500#501#0" expanded="true" />
+                <element signature="e#531#532#0" expanded="true" />
+                <element signature="e#559#560#0" expanded="true" />
+                <element signature="e#588#589#0" expanded="true" />
               </folding>
             </state>
           </provider>
@@ -142,9 +142,9 @@
         <option value="$PROJECT_DIR$/src/main/java/connconvert/Neuron.java" />
         <option value="$PROJECT_DIR$/src/main/java/connconvert/Synapse.java" />
         <option value="$PROJECT_DIR$/src/main/java/connconvert/SynapseCounter.java" />
+        <option value="$PROJECT_DIR$/src/main/java/connconvert/BodyWithSynapses.java" />
         <option value="$PROJECT_DIR$/src/main/java/connconvert/NeuronPart.java" />
         <option value="$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java" />
-        <option value="$PROJECT_DIR$/src/main/java/connconvert/BodyWithSynapses.java" />
       </list>
     </option>
   </component>
@@ -305,14 +305,14 @@
     <layout>
       <window_info anchor="right" id="Palette" order="3" />
       <window_info anchor="bottom" id="TODO" order="6" />
-      <window_info anchor="bottom" id="Messages" order="7" sideWeight="0.4866352" weight="0.3062302" />
+      <window_info anchor="bottom" id="Messages" order="7" sideWeight="0.48584905" weight="0.3062302" />
       <window_info anchor="right" id="Palette&#9;" order="3" />
       <window_info id="Image Layers" order="2" />
       <window_info anchor="right" id="Capture Analysis" order="3" />
-      <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.375" side_tool="true" visible="true" weight="0.3284055" />
+      <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.37578616" side_tool="true" visible="true" weight="0.3284055" />
       <window_info anchor="right" id="Maven Projects" order="3" />
       <window_info anchor="bottom" id="Version Control" order="7" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.625" visible="true" weight="0.3284055" />
+      <window_info active="true" anchor="bottom" id="Run" order="2" sideWeight="0.6242138" visible="true" weight="0.3284055" />
       <window_info anchor="bottom" id="Terminal" order="7" />
       <window_info id="Capture Tool" order="2" />
       <window_info id="Designer" order="2" />
@@ -442,21 +442,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/NeuronPart.java">
-      <provider selected="true" editor-type-id="text-editor">
-        <state>
-          <caret column="20" lean-forward="true" selection-start-column="20" selection-end-column="20" />
-          <folding>
-            <element signature="e#351#352#0" expanded="true" />
-            <element signature="e#413#414#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/BodyWithSynapses.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="503">
-          <caret line="159" column="9" lean-forward="true" selection-start-line="159" selection-start-column="9" selection-end-line="159" selection-end-column="9" />
+        <state relative-caret-position="232">
+          <caret line="135" column="39" selection-start-line="135" selection-start-column="39" selection-end-line="135" selection-end-column="39" />
           <folding>
             <element signature="imports" expanded="true" />
             <element signature="e#5813#5814#0" expanded="true" />
@@ -465,10 +454,27 @@
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/NeuronPart.java">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="255">
+          <caret line="17" column="5" lean-forward="true" selection-start-line="17" selection-start-column="5" selection-end-line="17" selection-end-column="5" />
+          <folding>
+            <element signature="e#351#352#0" expanded="true" />
+            <element signature="e#413#414#0" expanded="true" />
+            <element signature="e#438#439#0" expanded="true" />
+            <element signature="e#459#460#0" expanded="true" />
+            <element signature="e#500#501#0" expanded="true" />
+            <element signature="e#531#532#0" expanded="true" />
+            <element signature="e#559#560#0" expanded="true" />
+            <element signature="e#588#589#0" expanded="true" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/src/main/java/connconvert/ConnConvert.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="94">
-          <caret line="276" column="37" selection-start-line="276" selection-start-column="37" selection-end-line="276" selection-end-column="37" />
+        <state relative-caret-position="248">
+          <caret line="318" column="41" selection-start-line="318" selection-start-column="41" selection-end-line="318" selection-end-column="41" />
           <folding>
             <element signature="imports" expanded="true" />
           </folding>

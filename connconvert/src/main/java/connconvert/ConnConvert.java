@@ -206,13 +206,27 @@ public class ConnConvert implements AutoCloseable {
 
     public void addNeuronParts() throws Exception {
         try (Session session = driver.session()) {
-            try(Transaction tx = session.beginTransaction()) {
-
+                for (BodyWithSynapses bws: bodies) {
+                    for (NeuronPart np : bws.getNeuronParts()) {
+                        try(Transaction tx = session.beginTransaction()) {
+                        // create neuronpart node that points to neuron with partof relation
+                        tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforneuronpart \n"+
+                                        "MERGE (p:NeuronPart {roi:$roi,bodyId:$bodyId}) ON CREATE SET p.roi=$roi, p.bodyId=$bodyId, p.pre=$pre, p.post=$post, p.size=$size \n"+
+                                        "MERGE (p)-[:PartOf]->(n) \n" +
+                                        "WITH p \n" +
+                                        "CALL apoc.create.addLabels(id(p),[$roi]) YIELD node \n" +
+                                        "RETURN node",
+                                parameters("bodyId",bws.getBodyId(),
+                                        "roi",np.getRoi(),
+                                        "pre",np.getPre(),
+                                        "post",np.getPost(),
+                                        "size",np.getPre()+np.getPost()));
+                        tx.success();
+                    }
+                }
             }
         }
     }
-
-
 
 
 
@@ -271,6 +285,7 @@ public class ConnConvert implements AutoCloseable {
             }
         }
         for (BodyWithSynapses bws : bodies) {
+            bws.setNeuronParts();
             bws.setConnectsTo(postToBody);
             bws.setConnectsFrom(preToBody);
             bws.setSynapseCounts();
@@ -285,8 +300,6 @@ public class ConnConvert implements AutoCloseable {
         //    add(1509);
         //}};
         //System.out.println(preToPost.get(temploc));
-        bodies[0].setNeuronParts();
-        System.out.println(bodies[0].getNeuronParts());
         //System.out.println(preToPost.keySet());
         //System.out.println(bodies[0].getSynapseSet().get(0));
         // start upload to database
@@ -303,6 +316,7 @@ public class ConnConvert implements AutoCloseable {
              // connConvert.addSynapses();
              //connConvert.addSynapsesTo(preToPost);
             // connConvert.addRois();
+            connConvert.addNeuronParts();
 
         }
 
