@@ -9,8 +9,9 @@ public class BodyWithSynapses {
     public List<Synapse> synapseSet;
     public HashMap<Integer,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
     public HashMap<Integer,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
-    public int pre; //number of presyn terminals
-    public int post; //number of postsyn terminals
+    public Integer pre; //number of presyn terminals
+    public Integer post; //number of postsyn terminals
+    // body divided into multiple neuron parts based on roi
     public List<NeuronPart> neuronParts;
 
     //public List<Label> labels = new ArrayList<>();
@@ -130,6 +131,42 @@ public class BodyWithSynapses {
     public List<Synapse> getSynapseSet() {
         return this.synapseSet;
     }
+
+    public void setNeuronParts() {
+        neuronParts = new ArrayList<>();
+        HashMap<String,SynapseCounter> roiToPrePostCount = new HashMap<>();
+        for (Synapse synapse : this.synapseSet) {
+            for (String roi : synapse.getRois()) {
+                if (synapse.getType().equals("pre")) {
+                    if (roiToPrePostCount.containsKey(roi)) {
+                        roiToPrePostCount.get(roi).incrementPreCount();
+                    } else {
+                        roiToPrePostCount.put(roi,new SynapseCounter());
+                        roiToPrePostCount.get(roi).incrementPreCount();
+                    }
+                } else if (synapse.getType().equals("post")) {
+                    if (roiToPrePostCount.containsKey(roi)) {
+                        roiToPrePostCount.get(roi).incrementPostCount();
+                    } else {
+                        roiToPrePostCount.put(roi,new SynapseCounter());
+                        roiToPrePostCount.get(roi).incrementPostCount();
+                    }
+                }
+            }
+        }
+
+        for (String roi : roiToPrePostCount.keySet()) {
+            neuronParts.add(new NeuronPart(roi,roiToPrePostCount.get(roi).getPreCount(), roiToPrePostCount.get(roi).getPostCount()));
+        }
+
+
+    }
+
+    public List<NeuronPart> getNeuronParts() {
+        return this.neuronParts;
+    }
+
+
 
 
 }

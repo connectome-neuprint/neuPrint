@@ -285,7 +285,9 @@ public class ConnConvert implements AutoCloseable {
         //    add(1509);
         //}};
         //System.out.println(preToPost.get(temploc));
-        System.out.println(preToPost.keySet());
+        bodies[0].setNeuronParts();
+        System.out.println(bodies[0].getNeuronParts());
+        //System.out.println(preToPost.keySet());
         //System.out.println(bodies[0].getSynapseSet().get(0));
         // start upload to database
 
@@ -299,7 +301,7 @@ public class ConnConvert implements AutoCloseable {
             // connConvert.addNeurons();
             // connConvert.addConnectsTo();
              // connConvert.addSynapses();
-             connConvert.addSynapsesTo(preToPost);
+             //connConvert.addSynapsesTo(preToPost);
             // connConvert.addRois();
 
         }
