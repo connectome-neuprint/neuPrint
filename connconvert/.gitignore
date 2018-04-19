@@ -2,7 +2,7 @@ target/
 pom.xml.tag
 pom.xml.releaseBackup
 pom.xml.next
-release.properties
+connconvert.properties
 
 
 # IntelliJ user specific files

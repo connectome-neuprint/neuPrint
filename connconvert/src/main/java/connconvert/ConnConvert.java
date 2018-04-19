@@ -11,6 +11,9 @@ import com.google.gson.FieldNamingPolicy;
 import java.util.List;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.Properties;
+import java.io.FileInputStream;
+import java.io.File;
 
 
 import org.neo4j.driver.v1.*;
@@ -22,6 +25,7 @@ public class ConnConvert implements AutoCloseable {
     private final Driver driver;
     public static Neuron[] neurons;
     public static BodyWithSynapses[] bodies;
+    final static Properties properties = new Properties();
 
     public ConnConvert (String uri, String user, String password) {
         driver = GraphDatabase.driver(uri,AuthTokens.basic(user, password));
@@ -267,6 +271,8 @@ public class ConnConvert implements AutoCloseable {
     }
 
 
+
+
     public static Neuron[] readNeuronsJson(String filepath) throws Exception{
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
@@ -341,14 +347,17 @@ public class ConnConvert implements AutoCloseable {
         //System.out.println(bodies[0].getSynapseSet().get(0));
         // start upload to database
 
-        String uri = "bolt://localhost:7687";
-        String user = "neo4j";
-        String password = "n304j";
+        String configPath = new File("").getAbsolutePath();
+        configPath = configPath.concat("/connconvert.properties");
+        properties.load(new FileInputStream(configPath));
 
+        String uri = "bolt://localhost:7687";
+        String user = properties.getProperty("username");
+        String password = properties.getProperty("password");
 
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
             // uncomment to add different features to database
-            //connConvert.prepDatabase();
+            connConvert.prepDatabase();
             //connConvert.addNeurons();
             //connConvert.addConnectsTo();
             // connConvert.addSynapses();
