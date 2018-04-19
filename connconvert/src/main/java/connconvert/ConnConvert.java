@@ -33,6 +33,27 @@ public class ConnConvert implements AutoCloseable {
         System.out.println("Driver closed.");
     }
 
+    public void prepDatabase() throws Exception {
+        try (Session session = driver.session()) {
+            try (Transaction tx = session.beginTransaction()) {
+                tx.run("CREATE CONSTRAINT ON (n:Neuron) ASSERT n.bodyId IS UNIQUE");
+                tx.success();
+
+            }
+            try(Transaction tx= session.beginTransaction()) {
+                tx.run("CREATE CONSTRAINT ON (s:Synapse) ASSERT s.location IS UNIQUE");
+                tx.success();
+            }
+
+            try(Transaction tx=session.beginTransaction()) {
+                tx.run("CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE");
+                tx.success();
+            }
+
+        }
+
+    }
+
     public void addNeurons() throws Exception {
 
         try (Session session = driver.session()) {
@@ -122,25 +143,37 @@ public class ConnConvert implements AutoCloseable {
                             tx.run("MERGE (s:Synapse:PreSyn {location:$location}) " +
                                             "ON CREATE SET s.location = $location," +
                                             " s.confidence = $confidence," +
-                                            " s.type = $type \n",
+                                            " s.type = $type," +
+                                            " s.x=$x," +
+                                            " s.y=$y," +
+                                            " s.z=$z" ,
 //                                            " WITH s \n" +
 //                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
 //                                            " RETURN node",
                                     parameters("location", synapse.getLocationString(),
                                             "confidence", synapse.getConfidence(),
-                                            "type", synapse.getType()));
+                                            "type", synapse.getType(),
+                                            "x",synapse.getLocation().get(0),
+                                            "y",synapse.getLocation().get(1),
+                                            "z",synapse.getLocation().get(2)));
                             tx.success();
                         } else if (synapse.getType().equals("post")) {
                             tx.run("MERGE (s:Synapse:PostSyn {location:$location}) " +
                                             "ON CREATE SET s.location = $location," +
                                             " s.confidence = $confidence," +
-                                            " s.type = $type",
+                                            " s.type = $type," +
+                                            " s.x=$x," +
+                                            " s.y=$y," +
+                                            " s.z=$z" ,
 //                                            " WITH s \n" +
 //                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
 //                                            " RETURN node",
                                     parameters("location", synapse.getLocationString(),
                                             "confidence", synapse.getConfidence(),
-                                            "type", synapse.getType()));
+                                            "type", synapse.getType(),
+                                            "x",synapse.getLocation().get(0),
+                                            "y",synapse.getLocation().get(1),
+                                            "z",synapse.getLocation().get(2)));
 
                             tx.success();
                         }
@@ -181,6 +214,7 @@ public class ConnConvert implements AutoCloseable {
 
             }
         }
+        System.out.println("ROI labels added to Synapses and Neurons.");
     }
 
 
@@ -211,7 +245,7 @@ public class ConnConvert implements AutoCloseable {
                         try(Transaction tx = session.beginTransaction()) {
                         // create neuronpart node that points to neuron with partof relation
                             //CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE
-                            String neuronPartId = bws.getBodyId()+np.getRoi();
+                            String neuronPartId = bws.getBodyId()+":"+np.getRoi();
                         tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforneuronpart \n"+
                                         "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
                                         "MERGE (p)-[:PartOf]->(n) \n" +
@@ -229,6 +263,7 @@ public class ConnConvert implements AutoCloseable {
                 }
             }
         }
+        System.out.println("NeuronPart nodes added with PartOf relationships.");
     }
 
 
@@ -313,12 +348,13 @@ public class ConnConvert implements AutoCloseable {
 
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
             // uncomment to add different features to database
-            // connConvert.addNeurons();
-            // connConvert.addConnectsTo();
-             // connConvert.addSynapses();
-             //connConvert.addSynapsesTo(preToPost);
-            // connConvert.addRois();
-            connConvert.addNeuronParts();
+            //connConvert.prepDatabase();
+            //connConvert.addNeurons();
+            //connConvert.addConnectsTo();
+            // connConvert.addSynapses();
+            //connConvert.addSynapsesTo(preToPost);
+            //connConvert.addRois();
+            //connConvert.addNeuronParts();
 
         }
 
