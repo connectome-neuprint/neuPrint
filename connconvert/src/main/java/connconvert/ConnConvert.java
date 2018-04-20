@@ -195,7 +195,7 @@ public class ConnConvert implements AutoCloseable {
 
                                 tx.run("MERGE (s:Synapse:PreSyn {location:$location}) " +
                                                 "ON CREATE SET s.location = $location," +
-                                                " s.datasetLocation = $datasetLocation" +
+                                                " s.datasetLocation = $datasetLocation," +
                                                 " s.confidence = $confidence," +
                                                 " s.type = $type," +
                                                 " s.x=$x," +
@@ -217,7 +217,7 @@ public class ConnConvert implements AutoCloseable {
 
                                 tx.run("MERGE (s:Synapse:PostSyn {location:$location}) " +
                                                 "ON CREATE SET s.location = $location," +
-                                                " s.datasetLocation = $datasetLocation" +
+                                                " s.datasetLocation = $datasetLocation," +
                                                 " s.confidence = $confidence," +
                                                 " s.type = $type," +
                                                 " s.x=$x," +
@@ -455,10 +455,12 @@ public class ConnConvert implements AutoCloseable {
             System.out.println("Check input file names.");
             return;
         }
+
         System.out.println("Dataset is: " + dataset);
-
-
-
+        if (dataset.equals("mb6")) {
+            dataset = "mb6v2";
+        }
+        
 
         neurons = readNeuronsJson(filepath);
         bodies = readSynapsesJson(filepath2);
@@ -532,8 +534,8 @@ public class ConnConvert implements AutoCloseable {
             //connConvert.prepDatabase();
             //connConvert.addNeurons();
             //connConvert.addConnectsTo();
-             //connConvert.addSynapses();
-            //connConvert.addSynapsesTo(preToPost);
+            connConvert.addSynapses();
+            connConvert.addSynapsesTo(preToPost);
             //connConvert.addRois();
             //connConvert.addNeuronParts();
             //connConvert.addSizeId();
