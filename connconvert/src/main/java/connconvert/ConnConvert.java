@@ -52,6 +52,12 @@ public class ConnConvert implements AutoCloseable {
                 tx.success();
 
             }
+            try (Transaction tx = session.beginTransaction()) {
+                //TODO: fix this to reflect the fact that bodyId is only unique per dataset. can't create constraints based on multiple labels.
+                tx.run("CREATE CONSTRAINT ON (s:SynapseSet) ASSERT s.bodyId IS UNIQUE");
+                tx.success();
+
+            }
 //            try (Transaction tx = session.beginTransaction()) {
 //                tx.run("CREATE INDEX ON :fib25(bodyId)");
 //                tx.success();
@@ -314,7 +320,7 @@ public class ConnConvert implements AutoCloseable {
             for (BodyWithSynapses bws : bodies) {
                 try (Transaction tx = session.beginTransaction()) {
                     // bodies should be sorted in descending order by number of synapses, so can create id starting at 0
-                    // id contains dataset name (e.g. fib25-0)
+
 
                     tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
                                     "SET n.sId=$sId",
@@ -323,6 +329,33 @@ public class ConnConvert implements AutoCloseable {
                     sId++;
                     tx.success();
 
+                }
+            }
+        }
+    }
+
+
+    public void addSynapseSets() throws Exception {
+        try (Session session = driver.session()) {
+            for (BodyWithSynapses bws : bodies) {
+
+                try (Transaction tx = session.beginTransaction()) {
+                    tx.run("MERGE n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
+                            "MERGE s:SynapseSet {bodyId:$bodyId}) ON CREATE SET s.bodyId=$bodyId \n" +
+                            "MERGE (n)-[:Contains]->(s) \n",
+                            parameters("bodyId",bws.getBodyId()));
+                    tx.success();
+                }
+                for (Synapse synapse : bws.getSynapseSet()) {
+                    try (Transaction tx = session.beginTransaction()) {
+                        tx.run("MERGE s:Synapse {location:$location} ON CREATE SET s.location=$location \n"+
+                                "MERGE t:SynapseSet {bodyId:$bodyId} ON CREATE SET t.bodyId=$bodyId \n" +
+                                "MERGE (t)-[:Contains]->(s)",
+                                parameters("location", synapse.getLocationString(),
+                                        "bodyId", bws.getBodyId())
+                                        );
+                        tx.success();
+                    }
                 }
             }
         }
@@ -361,10 +394,10 @@ public class ConnConvert implements AutoCloseable {
 
 
     public static void main(String[] args) throws Exception {
-        //String filepath = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json";
-        //String filepath2 = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Synapses.json";
-        String filepath = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Neurons.json";
-        String filepath2 = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Synapses.json";
+        String filepath = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json";
+        String filepath2 = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Synapses.json";
+        //String filepath = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Neurons.json";
+        //String filepath2 = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Synapses.json";
 
         //read dataset name
         String patternNeurons = ".*inputs/(.*?)_Neurons.*";
@@ -457,14 +490,14 @@ public class ConnConvert implements AutoCloseable {
 
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
             // uncomment to add different features to database
-            //connConvert.prepDatabase();
-            //connConvert.addNeurons();
-            //connConvert.addConnectsTo();
-             //connConvert.addSynapses();
+            connConvert.prepDatabase();
+            connConvert.addNeurons();
+            connConvert.addConnectsTo();
+             connConvert.addSynapses();
             connConvert.addSynapsesTo(preToPost);
-            //connConvert.addRois();
-            //connConvert.addNeuronParts();
-            //connConvert.addSizeId();
+            connConvert.addRois();
+            connConvert.addNeuronParts();
+            connConvert.addSizeId();
             //TODO: create synapse set nodes. neuron points to its synapse set
 
         }
