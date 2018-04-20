@@ -47,7 +47,7 @@ public class ConnConvert implements AutoCloseable {
     public void prepDatabase() throws Exception {
         try (Session session = driver.session()) {
             try (Transaction tx = session.beginTransaction()) {
-                //TODO: fix this to reflect the fact that bodyId is only unique per dataset. can't create constraints based on multiple labels.
+                //TODO: fix this to reflect the fact that synapse location is only unique per dataset. can't create constraints based on multiple labels.
                 tx.run("CREATE CONSTRAINT ON (n:Neuron) ASSERT n.datasetBodyId IS UNIQUE");
                 tx.success();
             }
@@ -59,13 +59,18 @@ public class ConnConvert implements AutoCloseable {
                    tx.run("CREATE INDEX ON :Neuron(bodyId)");
                    tx.success();
             }
-//            try (Transaction tx = session.beginTransaction()) {
-//
-//                // can't create constraint on multiple labels
-//                tx.run("CREATE CONSTRAINT ON (n:mb6) ASSERT n.sId IS UNIQUE");
-//                tx.success();
-//
-//            }
+            try (Transaction tx = session.beginTransaction()) {
+                tx.run("CREATE INDEX ON :Synapse(x)");
+                tx.success();
+            }
+            try (Transaction tx = session.beginTransaction()) {
+                tx.run("CREATE INDEX ON :Synapse(y)");
+                tx.success();
+            }
+            try (Transaction tx = session.beginTransaction()) {
+                tx.run("CREATE INDEX ON :Synapse(z)");
+                tx.success();
+            }
             try (Transaction tx = session.beginTransaction()) {
                 tx.run("CREATE INDEX ON :Neuron(status)");
                 tx.success();
@@ -126,8 +131,8 @@ public class ConnConvert implements AutoCloseable {
                     try (Transaction tx = session.beginTransaction()) {
                         // TODO: Incorporate confidence values for ConnectsTo
 
-                        tx.run("MERGE (n:Neuron {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.datasetBodyId=$datasetBodyId1, n:notinneurons \n" +
-                                        "MERGE (m:Neuron {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.datasetBodyId=$datasetBodyId2, m:notinneurons \n" +
+                        tx.run("MERGE (n:Neuron {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.datasetBodyId=$datasetBodyId1 \n" +
+                                        "MERGE (m:Neuron {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.datasetBodyId=$datasetBodyId2 \n" +
                                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n" +
                                         "WITH n,m \n" +
                                         "CALL apoc.create.addLabels([id(n),id(m)],[$dataset]) YIELD node \n" +
@@ -240,13 +245,22 @@ public class ConnConvert implements AutoCloseable {
         try (Session session = driver.session()) {
             for (BodyWithSynapses bws : bodies) {
                 for (Synapse synapse : bws.getSynapseSet()) {
+                    List<String> roiList = synapse.getRois();
+                    //define distal vs. proximal medulla roi for the fib25 dataset
+                    if (dataset.equals("fib25")){
+                        if (synapse.getLocation().get(2)>=4600) {
+                            roiList.add("prox_medulla");
+                        } else {
+                            roiList.add("dist_medulla");
+                        }
+                    }
                     try (Transaction tx = session.beginTransaction()) {
                         tx.run("MERGE (s:Synapse {location:$location}) ON CREATE SET s.location = $location \n" +
                                         "WITH s \n" +
                                         "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
                                         "RETURN node",
                                 parameters("location", synapse.getLocationString(),
-                                        "rois", synapse.getRois()));
+                                        "rois", roiList));
                         tx.success();
                     }
                     try (Transaction tx = session.beginTransaction()) {
@@ -256,7 +270,7 @@ public class ConnConvert implements AutoCloseable {
                                         "RETURN node",
                                 parameters("bodyId", bws.getBodyId(),
                                         "datasetBodyId",dataset+":"+bws.getBodyId(),
-                                        "rois", synapse.getRois()));
+                                        "rois", roiList));
                         tx.success();
                     }
                 }
@@ -368,7 +382,6 @@ public class ConnConvert implements AutoCloseable {
         }
         System.out.println("SynapseSet nodes with Contains relations added.");
     }
-
 
 
 
@@ -504,15 +517,15 @@ public class ConnConvert implements AutoCloseable {
 
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
             // uncomment to add different features to database
-            connConvert.prepDatabase();
-            connConvert.addNeurons();
-            connConvert.addConnectsTo();
-             connConvert.addSynapses();
-            connConvert.addSynapsesTo(preToPost);
+            //connConvert.prepDatabase();
+            //connConvert.addNeurons();
+            //connConvert.addConnectsTo();
+             //connConvert.addSynapses();
+            //connConvert.addSynapsesTo(preToPost);
             connConvert.addRois();
-            connConvert.addNeuronParts();
-            connConvert.addSizeId();
-            connConvert.addSynapseSets();
+            //connConvert.addNeuronParts();
+            //connConvert.addSizeId();
+            //connConvert.addSynapseSets();
 
 
         }
