@@ -121,4 +121,6 @@ public class Neuron {
                 ", size= " + size
                 + "}";
     }
+
+
 }

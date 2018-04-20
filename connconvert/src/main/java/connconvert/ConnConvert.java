@@ -14,6 +14,10 @@ import java.util.ArrayList;
 import java.util.Properties;
 import java.io.FileInputStream;
 import java.io.File;
+import java.util.Collections;
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 import org.neo4j.driver.v1.*;
@@ -23,9 +27,12 @@ import static org.neo4j.driver.v1.Values.parameters;
 // FIB25 names often include column info (7 columns)  - pnas paper.
 public class ConnConvert implements AutoCloseable {
     private final Driver driver;
-    public static Neuron[] neurons;
-    public static BodyWithSynapses[] bodies;
+    public static Neuron[] neuronsArray;
+    public static List<Neuron> neurons;
+    public static BodyWithSynapses[] bodiesArray;
+    public static List<BodyWithSynapses> bodies;
     final static Properties properties = new Properties();
+    public static String dataset;
 
     public ConnConvert (String uri, String user, String password) {
         driver = GraphDatabase.driver(uri,AuthTokens.basic(user, password));
@@ -40,10 +47,26 @@ public class ConnConvert implements AutoCloseable {
     public void prepDatabase() throws Exception {
         try (Session session = driver.session()) {
             try (Transaction tx = session.beginTransaction()) {
+                //TODO: might need to change with more datasets
                 tx.run("CREATE CONSTRAINT ON (n:Neuron) ASSERT n.bodyId IS UNIQUE");
                 tx.success();
 
             }
+//            try (Transaction tx = session.beginTransaction()) {
+//                tx.run("CREATE INDEX ON :fib25(bodyId)");
+//                tx.success();
+//            }
+//            try (Transaction tx = session.beginTransaction()) {
+//
+//                // can't create constraint on multiple labels
+//                tx.run("CREATE CONSTRAINT ON (n:mb6) ASSERT n.sId IS UNIQUE");
+//                tx.success();
+//
+//            }
+//            try (Transaction tx = session.beginTransaction()) {
+//                tx.run("CREATE INDEX ON :mb6(bodyId)");
+//                tx.success();
+//            }
             try(Transaction tx= session.beginTransaction()) {
                 tx.run("CREATE CONSTRAINT ON (s:Synapse) ASSERT s.location IS UNIQUE");
                 tx.success();
@@ -59,26 +82,26 @@ public class ConnConvert implements AutoCloseable {
     }
 
     public void addNeurons() throws Exception {
-
         try (Session session = driver.session()) {
             for (Neuron neuron : neurons) {
                 try (Transaction tx = session.beginTransaction()) {
                     // TODO: Index name and status
-                    // have already set
-                    // CREATE CONSTRAINT ON (n:Neuron) ASSERT n.bodyId IS UNIQUE
-                    // CREATE INDEX ON :Neuron(bodyId)
+
                     tx.run("MERGE (n:Neuron {bodyId:$bodyId}) " +
                                     "ON CREATE SET n.bodyId = $bodyId," +
                                     " n.name = $name," +
                                     " n.type = $type," +
                                     " n.status = $status," +
-                                    " n.size = $size, " +
-                                    "n:fib25",
+                                    " n.size = $size \n " +
+                                    "WITH n \n" +
+                                    "CALL apoc.create.addLabels(id(n),[$dataset]) YIELD node \n" +
+                                    "RETURN node",
                             parameters("bodyId", neuron.getId(),
                                     "name", neuron.getName(),
                                     "type", neuron.getType(),
                                     "status", neuron.getStatus(),
-                                    "size", neuron.getSize()));
+                                    "size", neuron.getSize(),
+                                    "dataset", dataset));
 
 
                     tx.success();
@@ -97,15 +120,24 @@ public class ConnConvert implements AutoCloseable {
                 for (Integer postsynapticBodyId : bws.connectsTo.keySet()) {
                     try (Transaction tx = session.beginTransaction()) {
                         // TODO: Incorporate confidence values for ConnectsTo
-                        tx.run("MERGE (n:Neuron {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n:fib25, n:notinneurons \n" +
-                                        "MERGE (m:Neuron {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m:fib25, m:notinneurons \n" +
-                                        "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n",
+
+                        tx.run("MERGE (n:Neuron {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n:notinneurons \n" +
+                                        "MERGE (m:Neuron {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m:notinneurons \n" +
+                                        "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n" +
+                                        "WITH n,m \n" +
+                                        "CALL apoc.create.addLabels([id(n),id(m)],[$dataset]) YIELD node \n" +
+                                        "RETURN node",
                                 parameters("bodyId1", bws.getBodyId(),
                                         "bodyId2", postsynapticBodyId,
-                                        "weight", bws.connectsTo.get(postsynapticBodyId)));
+                                        "weight", bws.connectsTo.get(postsynapticBodyId),
+                                        "dataset",dataset));
 
                         tx.success();
 
+                    } catch (Exception e) {
+                        System.out.println(bws);
+                        System.out.println(postsynapticBodyId);
+                        System.out.println(bws.connectsTo.keySet());
                     }
                     try (Transaction tx = session.beginTransaction()) {
                         tx.run("MATCH (n:Neuron {bodyId:$bodyId1} ) SET n.pre = $pre, n.post = $post",
@@ -140,8 +172,6 @@ public class ConnConvert implements AutoCloseable {
             for (BodyWithSynapses bws : bodies) {
                 for (Synapse synapse : bws.getSynapseSet()) {
                     try (Transaction tx = session.beginTransaction()) {
-                        // have already set
-                        // CREATE CONSTRAINT ON (s:Synapse) ASSERT s.location IS UNIQUE
                         // requires APOC: need to add apoc to neo4j plugins
                         if (synapse.getType().equals("pre")) {
                             tx.run("MERGE (s:Synapse:PreSyn {location:$location}) " +
@@ -248,7 +278,6 @@ public class ConnConvert implements AutoCloseable {
                     for (NeuronPart np : bws.getNeuronParts()) {
                         try(Transaction tx = session.beginTransaction()) {
                         // create neuronpart node that points to neuron with partof relation
-                            //CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE
                             String neuronPartId = bws.getBodyId()+":"+np.getRoi();
                         tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforneuronpart \n"+
                                         "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
@@ -270,27 +299,50 @@ public class ConnConvert implements AutoCloseable {
         System.out.println("NeuronPart nodes added with PartOf relationships.");
     }
 
+    public void addSizeId() throws Exception {
+        int sId = 0;
+        try (Session session = driver.session()) {
+            for (BodyWithSynapses bws : bodies) {
+                try (Transaction tx = session.beginTransaction()) {
+                    // bodies should be sorted in descending order by number of synapses, so can create id starting at 0
+                    // id contains dataset name (e.g. fib25-0)
+
+                    tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
+                                    "SET n.sId=$sId",
+                            parameters("bodyId", bws.getBodyId(),
+                                    "sId", sId));
+                    sId++;
+                    tx.success();
+
+                }
+            }
+        }
+    }
 
 
 
-    public static Neuron[] readNeuronsJson(String filepath) throws Exception{
+
+
+    public static List<Neuron> readNeuronsJson(String filepath) throws Exception{
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
-            neurons = gson.fromJson(reader, Neuron[].class);
+            neuronsArray = gson.fromJson(reader, Neuron[].class);
+            neurons = Arrays.asList(neuronsArray);
             //System.out.println("Object mode: " + neurons[0]);
-            System.out.println("Number of neurons: " + neurons.length);
+            System.out.println("Number of neurons: " + neurons.size());
         } catch (Exception e) {
             e.printStackTrace();
         }
         return neurons;
     }
 
-    public static BodyWithSynapses[] readSynapsesJson(String filepath) throws Exception{
+    public static List<BodyWithSynapses> readSynapsesJson(String filepath) throws Exception{
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
-            bodies = gson.fromJson(reader, BodyWithSynapses[].class);
+            bodiesArray = gson.fromJson(reader, BodyWithSynapses[].class);
+            bodies = Arrays.asList(bodiesArray);
             //System.out.println("Object mode: " + bodies[0]);
-            System.out.println("Number of bodies with synapses: " + bodies.length);
+            System.out.println("Number of bodies with synapses: " + bodies.size());
             //System.out.println(bodies[0].synapseSet.get(2).getConnectionLocationStrings().get(0));
         } catch (Exception e) {
             e.printStackTrace();
@@ -300,11 +352,41 @@ public class ConnConvert implements AutoCloseable {
 
 
     public static void main(String[] args) throws Exception {
-        String filepath = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json";
-        String filepath2 = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Synapses.json";
+        //String filepath = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json";
+        //String filepath2 = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Synapses.json";
+        String filepath = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Neurons.json";
+        String filepath2 = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Synapses.json";
 
-        Neuron[] neurons = readNeuronsJson(filepath);
-        BodyWithSynapses[] bodies = readSynapsesJson(filepath2);
+        //read dataset name
+        String patternNeurons = ".*inputs/(.*?)_Neurons.*";
+        Pattern rN = Pattern.compile(patternNeurons);
+        Matcher mN = rN.matcher(filepath);
+        String patternSynapses = ".*inputs/(.*?)_Synapses.*";
+        Pattern rS = Pattern.compile(patternSynapses);
+        Matcher mS = rS.matcher(filepath2);
+        mN.matches();
+        mS.matches();
+
+        try {
+            if (mS.group(1).equals(mN.group(1))) {
+                dataset = mS.group(1);
+            };
+        } catch (IllegalStateException ise) {
+            System.out.println("Check input file names.");
+            return;
+        }
+        System.out.println("Dataset is: " + dataset);
+
+
+
+
+        neurons = readNeuronsJson(filepath);
+        bodies = readSynapsesJson(filepath2);
+
+
+        //sorting the neurons by size
+        //Collections.sort(neurons,new SortNeuronBySize());
+        //System.out.println(neurons.get(0));
 
         //create a new hashmap for storing: body>pre, pre>post; post>body
         HashMap<String, Integer> preToBody = new HashMap<>();
@@ -333,7 +415,12 @@ public class ConnConvert implements AutoCloseable {
             bws.setConnectsFrom(preToBody);
             bws.setSynapseCounts();
             preToPost.putAll(bws.getPreToPostForBody());
+
         }
+
+        //can now sort bodies by synapse count
+        Collections.sort(bodies,new SortBodyByNumberOfSynapses());
+
 
         //System.out.println(bodies[3].connectsTo);
         //System.out.println(bodies[3].connectsFrom);
@@ -357,13 +444,14 @@ public class ConnConvert implements AutoCloseable {
 
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
             // uncomment to add different features to database
-            connConvert.prepDatabase();
+            //connConvert.prepDatabase();
             //connConvert.addNeurons();
-            //connConvert.addConnectsTo();
+            connConvert.addConnectsTo();
             // connConvert.addSynapses();
             //connConvert.addSynapsesTo(preToPost);
             //connConvert.addRois();
             //connConvert.addNeuronParts();
+            //connConvert.addSizeId();
 
         }
 

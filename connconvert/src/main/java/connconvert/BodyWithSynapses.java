@@ -54,9 +54,12 @@ public class BodyWithSynapses {
                 List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
                 List<Integer> postsynapticPartnerIds = postLocsToBodyIds(postsynapticPartners, postToBody);
                 for (Integer partnerId : postsynapticPartnerIds) {
-                    int count = this.connectsTo.containsKey(partnerId) ? this.connectsTo.get(partnerId) : 0;
-                    this.connectsTo.put(partnerId, count+1);
-
+                    if (partnerId!=null) {
+                        int count = this.connectsTo.containsKey(partnerId) ? this.connectsTo.get(partnerId) : 0;
+                        this.connectsTo.put(partnerId, count + 1);
+                    } else {
+                        System.out.println(synapse.getLocationString() + " on " + this.bodyId + " has no bodyId for postsynaptic partner.");
+                    }
                 }
             }
         }
