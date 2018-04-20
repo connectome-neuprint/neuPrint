@@ -59,6 +59,7 @@ public class BodyWithSynapses {
                         this.connectsTo.put(partnerId, count + 1);
                     } else {
                         System.out.println(synapse.getLocationString() + " on " + this.bodyId + " has no bodyId for postsynaptic partner.");
+
                     }
                 }
             }
@@ -94,6 +95,9 @@ public class BodyWithSynapses {
         List<Integer> postsynapticPartnerIds = new ArrayList<>();
         for (String psd : postsynapticPartners) {
             postsynapticPartnerIds.add(postToBody.get(psd));
+            if (postToBody.get(psd)==null){
+                System.out.println(psd + " not in postToBody.");
+            }
         }
         return postsynapticPartnerIds;
     }
