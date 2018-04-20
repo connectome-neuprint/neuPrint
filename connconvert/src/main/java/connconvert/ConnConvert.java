@@ -75,8 +75,12 @@ public class ConnConvert implements AutoCloseable {
                 tx.run("CREATE INDEX ON :Neuron(status)");
                 tx.success();
             }
+            try (Transaction tx = session.beginTransaction()) {
+                tx.run("CREATE INDEX ON :Synapse(location)");
+                tx.success();
+            }
             try(Transaction tx= session.beginTransaction()) {
-                tx.run("CREATE CONSTRAINT ON (s:Synapse) ASSERT s.location IS UNIQUE");
+                tx.run("CREATE CONSTRAINT ON (s:Synapse) ASSERT s.datasetLocation IS UNIQUE");
                 tx.success();
             }
 
@@ -191,6 +195,7 @@ public class ConnConvert implements AutoCloseable {
 
                                 tx.run("MERGE (s:Synapse:PreSyn {location:$location}) " +
                                                 "ON CREATE SET s.location = $location," +
+                                                " s.datasetLocation = $datasetLocation" +
                                                 " s.confidence = $confidence," +
                                                 " s.type = $type," +
                                                 " s.x=$x," +
@@ -200,6 +205,7 @@ public class ConnConvert implements AutoCloseable {
 //                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
 //                                            " RETURN node",
                                         parameters("location", synapse.getLocationString(),
+                                                "datasetLocation",dataset+":"+synapse.getLocationString(),
                                                 "confidence", synapse.getConfidence(),
                                                 "type", synapse.getType(),
                                                 "x", synapse.getLocation().get(0),
@@ -211,6 +217,7 @@ public class ConnConvert implements AutoCloseable {
 
                                 tx.run("MERGE (s:Synapse:PostSyn {location:$location}) " +
                                                 "ON CREATE SET s.location = $location," +
+                                                " s.datasetLocation = $datasetLocation" +
                                                 " s.confidence = $confidence," +
                                                 " s.type = $type," +
                                                 " s.x=$x," +
@@ -220,6 +227,7 @@ public class ConnConvert implements AutoCloseable {
 //                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
 //                                            " RETURN node",
                                         parameters("location", synapse.getLocationString(),
+                                                "datasetLocation",dataset+":"+synapse.getLocationString(),
                                                 "confidence", synapse.getConfidence(),
                                                 "type", synapse.getType(),
                                                 "x", synapse.getLocation().get(0),
@@ -255,11 +263,12 @@ public class ConnConvert implements AutoCloseable {
                         }
                     }
                     try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MERGE (s:Synapse {location:$location}) ON CREATE SET s.location = $location \n" +
+                        tx.run("MERGE (s:Synapse {location:$location}) ON CREATE SET s.location = $location, s.datasetLocation=$datasetLocation \n" +
                                         "WITH s \n" +
                                         "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
                                         "RETURN node",
                                 parameters("location", synapse.getLocationString(),
+                                        "datasetLocation",dataset+":"+synapse.getLocationString(),
                                         "rois", roiList));
                         tx.success();
                     }
@@ -288,10 +297,12 @@ public class ConnConvert implements AutoCloseable {
                 for (String postLoc : preToPost.get(preLoc)) {
                     try (Transaction tx = session.beginTransaction()) {
 
-                        tx.run("MERGE (s:Synapse {location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto \n" +
-                                        "MERGE (t:Synapse {location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto \n" +
+                        tx.run("MERGE (s:Synapse {location:$prelocation}) ON CREATE SET s.location = $prelocation, s.datasetLocation=$datasetPreLocation,s:createdforsynapsesto \n" +
+                                        "MERGE (t:Synapse {location:$postlocation}) ON CREATE SET t.location = $postlocation, t.datasetLocation=$datasetPostLocation, t:createdforsynapsesto \n" +
                                         "MERGE (s)-[:SynapsesTo]->(t) \n",
                                 parameters("prelocation", preLoc,
+                                        "datasetPreLocation",dataset+":"+preLoc,
+                                        "datasetPostLocation",dataset+":"+postLoc,
                                         "postlocation", postLoc));
                         tx.success();
 
@@ -368,10 +379,11 @@ public class ConnConvert implements AutoCloseable {
                 }
                 for (Synapse synapse : bws.getSynapseSet()) {
                     try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MERGE (s:Synapse {location:$location}) ON CREATE SET s.location=$location \n"+
+                        tx.run("MERGE (s:Synapse {location:$location}) ON CREATE SET s.location=$location, s.datasetLocation=$datasetLocation \n"+
                                 "MERGE (t:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET t.bodyId=$datasetBodyId \n" +
                                 "MERGE (t)-[:Contains]->(s)",
                                 parameters("location", synapse.getLocationString(),
+                                        "datasetLocation",dataset+":"+synapse.getLocationString(),
                                         "bodyId", bws.getBodyId(),
                                         "datasetBodyId",dataset+":"+bws.getBodyId())
                         );
@@ -415,15 +427,15 @@ public class ConnConvert implements AutoCloseable {
 
 
     public static void main(String[] args) throws Exception {
-        //String filepath = properties.getProperty("fib25neurons");
-        //String filepath2 = properties.getProperty("fib25synapses");
+
         String configPath = new File("").getAbsolutePath();
         configPath = configPath.concat("/connconvert.properties");
         properties.load(new FileInputStream(configPath));
 
-
-        String filepath = properties.getProperty("mb6neurons");
-        String filepath2 = properties.getProperty("mb6synapses");
+        String filepath = properties.getProperty("fib25neurons");
+        String filepath2 = properties.getProperty("fib25synapses");
+        //String filepath = properties.getProperty("mb6neurons");
+        //String filepath2 = properties.getProperty("mb6synapses");
         System.out.println(filepath2);
         //read dataset name
         String patternNeurons = ".*inputs/(.*?)_Neurons.*";
@@ -522,7 +534,7 @@ public class ConnConvert implements AutoCloseable {
             //connConvert.addConnectsTo();
              //connConvert.addSynapses();
             //connConvert.addSynapsesTo(preToPost);
-            connConvert.addRois();
+            //connConvert.addRois();
             //connConvert.addNeuronParts();
             //connConvert.addSizeId();
             //connConvert.addSynapseSets();
