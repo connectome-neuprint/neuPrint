@@ -47,7 +47,7 @@ public class ConnConvert implements AutoCloseable {
     public void prepDatabase() throws Exception {
         try (Session session = driver.session()) {
             try (Transaction tx = session.beginTransaction()) {
-                //TODO: might need to change with more datasets
+                //TODO: fix this to reflect the fact that bodyId is only unique per dataset. can't create constraints based on multiple labels.
                 tx.run("CREATE CONSTRAINT ON (n:Neuron) ASSERT n.bodyId IS UNIQUE");
                 tx.success();
 
@@ -170,50 +170,57 @@ public class ConnConvert implements AutoCloseable {
     public void addSynapses() throws Exception {
         try (Session session = driver.session()) {
             for (BodyWithSynapses bws : bodies) {
-                for (Synapse synapse : bws.getSynapseSet()) {
-                    try (Transaction tx = session.beginTransaction()) {
-                        // requires APOC: need to add apoc to neo4j plugins
-                        if (synapse.getType().equals("pre")) {
-                            tx.run("MERGE (s:Synapse:PreSyn {location:$location}) " +
-                                            "ON CREATE SET s.location = $location," +
-                                            " s.confidence = $confidence," +
-                                            " s.type = $type," +
-                                            " s.x=$x," +
-                                            " s.y=$y," +
-                                            " s.z=$z" ,
-//                                            " WITH s \n" +
-//                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
-//                                            " RETURN node",
-                                    parameters("location", synapse.getLocationString(),
-                                            "confidence", synapse.getConfidence(),
-                                            "type", synapse.getType(),
-                                            "x",synapse.getLocation().get(0),
-                                            "y",synapse.getLocation().get(1),
-                                            "z",synapse.getLocation().get(2)));
-                            tx.success();
-                        } else if (synapse.getType().equals("post")) {
-                            tx.run("MERGE (s:Synapse:PostSyn {location:$location}) " +
-                                            "ON CREATE SET s.location = $location," +
-                                            " s.confidence = $confidence," +
-                                            " s.type = $type," +
-                                            " s.x=$x," +
-                                            " s.y=$y," +
-                                            " s.z=$z" ,
-//                                            " WITH s \n" +
-//                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
-//                                            " RETURN node",
-                                    parameters("location", synapse.getLocationString(),
-                                            "confidence", synapse.getConfidence(),
-                                            "type", synapse.getType(),
-                                            "x",synapse.getLocation().get(0),
-                                            "y",synapse.getLocation().get(1),
-                                            "z",synapse.getLocation().get(2)));
+                if (bws.getBodyId()!=304654117 || !dataset.equals("mb6")) {
+                    for (Synapse synapse : bws.getSynapseSet()) {
+                        try (Transaction tx = session.beginTransaction()) {
+                            // requires APOC: need to add apoc to neo4j plugins
 
-                            tx.success();
+                            if (synapse.getType().equals("pre")) {
+
+                                tx.run("MERGE (s:Synapse:PreSyn {location:$location}) " +
+                                                "ON CREATE SET s.location = $location," +
+                                                " s.confidence = $confidence," +
+                                                " s.type = $type," +
+                                                " s.x=$x," +
+                                                " s.y=$y," +
+                                                " s.z=$z",
+//                                            " WITH s \n" +
+//                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
+//                                            " RETURN node",
+                                        parameters("location", synapse.getLocationString(),
+                                                "confidence", synapse.getConfidence(),
+                                                "type", synapse.getType(),
+                                                "x", synapse.getLocation().get(0),
+                                                "y", synapse.getLocation().get(1),
+                                                "z", synapse.getLocation().get(2)));
+                                tx.success();
+
+                            } else if (synapse.getType().equals("post")) {
+
+                                tx.run("MERGE (s:Synapse:PostSyn {location:$location}) " +
+                                                "ON CREATE SET s.location = $location," +
+                                                " s.confidence = $confidence," +
+                                                " s.type = $type," +
+                                                " s.x=$x," +
+                                                " s.y=$y," +
+                                                " s.z=$z",
+//                                            " WITH s \n" +
+//                                            " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
+//                                            " RETURN node",
+                                        parameters("location", synapse.getLocationString(),
+                                                "confidence", synapse.getConfidence(),
+                                                "type", synapse.getType(),
+                                                "x", synapse.getLocation().get(0),
+                                                "y", synapse.getLocation().get(1),
+                                                "z", synapse.getLocation().get(2)));
+
+                                tx.success();
+
+                            }
                         }
-                    }
 
                     }
+                }
 
                 }
 
@@ -258,6 +265,7 @@ public class ConnConvert implements AutoCloseable {
             for (String preLoc : preToPost.keySet()) {
                 for (String postLoc : preToPost.get(preLoc)) {
                     try (Transaction tx = session.beginTransaction()) {
+
                         tx.run("MERGE (s:Synapse {location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto \n" +
                                         "MERGE (t:Synapse {location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto \n" +
                                         "MERGE (s)-[:SynapsesTo]->(t) \n",
@@ -265,11 +273,12 @@ public class ConnConvert implements AutoCloseable {
                                         "postlocation", postLoc));
                         tx.success();
 
+
                     }
                 }
             }
-        }
             System.out.println("SynapsesTo relations added.");
+        }
     }
 
     public void addNeuronParts() throws Exception {
@@ -418,6 +427,10 @@ public class ConnConvert implements AutoCloseable {
 
         }
 
+        // in mb6 bodyId 304654117 has a synapse classified as both pre and post
+       // System.out.println(postToBody.get("4305:5400:11380"));
+        // System.out.println(preToBody.get("4305:5400:11380"));
+
         //can now sort bodies by synapse count
         Collections.sort(bodies,new SortBodyByNumberOfSynapses());
 
@@ -446,12 +459,13 @@ public class ConnConvert implements AutoCloseable {
             // uncomment to add different features to database
             //connConvert.prepDatabase();
             //connConvert.addNeurons();
-            connConvert.addConnectsTo();
-            // connConvert.addSynapses();
-            //connConvert.addSynapsesTo(preToPost);
+            //connConvert.addConnectsTo();
+             //connConvert.addSynapses();
+            connConvert.addSynapsesTo(preToPost);
             //connConvert.addRois();
             //connConvert.addNeuronParts();
             //connConvert.addSizeId();
+            //TODO: create synapse set nodes. neuron points to its synapse set
 
         }
 
