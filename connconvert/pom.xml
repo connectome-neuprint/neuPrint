@@ -47,7 +47,6 @@
             <scope>test</scope>
         </dependency>
 
-
         <!-- Other Dependencies -->
 
         <dependency>
@@ -63,15 +62,24 @@
             <version>1.2</version>
             <scope>compile</scope>
         </dependency>
+
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
             <version>1.5.1</version>
         </dependency>
 
+        <dependency>
+            <groupId>com.beust</groupId>
+            <artifactId>jcommander</artifactId>
+            <version>1.72</version>
+        </dependency>
 
-
-
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.3</version>
+        </dependency>
 
     </dependencies>
 
