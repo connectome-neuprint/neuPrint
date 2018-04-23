@@ -23,7 +23,7 @@ import java.util.regex.Pattern;
 import org.neo4j.driver.v1.*;
 import static org.neo4j.driver.v1.Values.parameters;
 
-// TODO: Add ROI information using column names from neurons file? how? Also, proximal vs. distal rois? what z divides distal vs. prox medulla
+// TODO: Add ROI information using column names from neurons file?
 // FIB25 names often include column info (7 columns)  - pnas paper.
 public class ConnConvert implements AutoCloseable {
     private final Driver driver;
@@ -47,7 +47,7 @@ public class ConnConvert implements AutoCloseable {
     public void prepDatabase() throws Exception {
         try (Session session = driver.session()) {
             try (Transaction tx = session.beginTransaction()) {
-                //TODO: fix this to reflect the fact that synapse location is only unique per dataset. can't create constraints based on multiple labels.
+                
                 tx.run("CREATE CONSTRAINT ON (n:Neuron) ASSERT n.datasetBodyId IS UNIQUE");
                 tx.success();
             }
@@ -255,13 +255,13 @@ public class ConnConvert implements AutoCloseable {
                 for (Synapse synapse : bws.getSynapseSet()) {
                     List<String> roiList = synapse.getRois();
                     //define distal vs. proximal medulla roi for the fib25 dataset
-                    if (dataset.equals("fib25")){
-                        if (synapse.getLocation().get(2)>=4600) {
-                            roiList.add("prox_medulla");
-                        } else {
-                            roiList.add("dist_medulla");
-                        }
-                    }
+//                    if (dataset.equals("fib25")){
+//                        if (synapse.getLocation().get(2)>=4600) {
+//                            roiList.add("prox_medulla");
+//                        } else {
+//                            roiList.add("dist_medulla");
+//                        }
+//                    }
                     try (Transaction tx = session.beginTransaction()) {
                         tx.run("MERGE (s:Synapse {location:$location}) ON CREATE SET s.location = $location, s.datasetLocation=$datasetLocation \n" +
                                         "WITH s \n" +
@@ -314,7 +314,6 @@ public class ConnConvert implements AutoCloseable {
         }
     }
 
-    // TODO: do I need to create neuron parts for prox vs distal medulla?
     public void addNeuronParts() throws Exception {
         try (Session session = driver.session()) {
                 for (BodyWithSynapses bws: bodies) {
@@ -493,7 +492,7 @@ public class ConnConvert implements AutoCloseable {
             }
         }
         for (BodyWithSynapses bws : bodies) {
-            bws.setNeuronParts(dataset);
+            bws.setNeuronParts();
             bws.setConnectsTo(postToBody);
             bws.setConnectsFrom(preToBody);
             bws.setSynapseCounts();
@@ -537,7 +536,7 @@ public class ConnConvert implements AutoCloseable {
             //connConvert.addConnectsTo();
             //connConvert.addSynapses();
             //connConvert.addSynapsesTo(preToPost);
-            //connConvert.addRois();
+            connConvert.addRois();
             connConvert.addNeuronParts();
             //connConvert.addSizeId();
             //connConvert.addSynapseSets();
