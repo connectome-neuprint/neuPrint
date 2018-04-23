@@ -186,7 +186,7 @@ public class ConnConvert implements AutoCloseable {
     public void addSynapses() throws Exception {
         try (Session session = driver.session()) {
             for (BodyWithSynapses bws : bodies) {
-                if (bws.getBodyId()!=304654117 || !dataset.equals("mb6")) {
+                if (bws.getBodyId()!=304654117 || !dataset.equals("mb6v2")) {
                     for (Synapse synapse : bws.getSynapseSet()) {
                         try (Transaction tx = session.beginTransaction()) {
                             // requires APOC: need to add apoc to neo4j plugins
@@ -314,6 +314,7 @@ public class ConnConvert implements AutoCloseable {
         }
     }
 
+    // TODO: do I need to create neuron parts for prox vs distal medulla?
     public void addNeuronParts() throws Exception {
         try (Session session = driver.session()) {
                 for (BodyWithSynapses bws: bodies) {
@@ -436,7 +437,7 @@ public class ConnConvert implements AutoCloseable {
         String filepath2 = properties.getProperty("fib25synapses");
         //String filepath = properties.getProperty("mb6neurons");
         //String filepath2 = properties.getProperty("mb6synapses");
-        System.out.println(filepath2);
+
         //read dataset name
         String patternNeurons = ".*inputs/(.*?)_Neurons.*";
         Pattern rN = Pattern.compile(patternNeurons);
@@ -460,7 +461,7 @@ public class ConnConvert implements AutoCloseable {
         if (dataset.equals("mb6")) {
             dataset = "mb6v2";
         }
-        
+
 
         neurons = readNeuronsJson(filepath);
         bodies = readSynapsesJson(filepath2);
@@ -492,7 +493,7 @@ public class ConnConvert implements AutoCloseable {
             }
         }
         for (BodyWithSynapses bws : bodies) {
-            bws.setNeuronParts();
+            bws.setNeuronParts(dataset);
             bws.setConnectsTo(postToBody);
             bws.setConnectsFrom(preToBody);
             bws.setSynapseCounts();
@@ -534,10 +535,10 @@ public class ConnConvert implements AutoCloseable {
             //connConvert.prepDatabase();
             //connConvert.addNeurons();
             //connConvert.addConnectsTo();
-            connConvert.addSynapses();
-            connConvert.addSynapsesTo(preToPost);
+            //connConvert.addSynapses();
+            //connConvert.addSynapsesTo(preToPost);
             //connConvert.addRois();
-            //connConvert.addNeuronParts();
+            connConvert.addNeuronParts();
             //connConvert.addSizeId();
             //connConvert.addSynapseSets();
 

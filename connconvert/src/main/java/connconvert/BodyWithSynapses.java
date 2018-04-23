@@ -139,10 +139,38 @@ public class BodyWithSynapses {
         return this.synapseSet;
     }
 
-    public void setNeuronParts() {
+    public void setNeuronParts(String dataset) {
         neuronParts = new ArrayList<>();
         HashMap<String,SynapseCounter> roiToPrePostCount = new HashMap<>();
         for (Synapse synapse : this.synapseSet) {
+
+            // set distal and proximal rois for fib25 dataset
+            if (dataset.equals("fib25")) {
+                String proxdistRoi;
+                if (synapse.getLocation().get(2)>=4600) {
+                    proxdistRoi = "prox_medulla";
+                } else { proxdistRoi = "dist_medulla"; }
+
+                if (synapse.getType().equals("pre")) {
+                    if (roiToPrePostCount.containsKey(proxdistRoi)) {
+                            roiToPrePostCount.get(proxdistRoi).incrementPreCount();
+                        } else {
+                            roiToPrePostCount.put(proxdistRoi, new SynapseCounter());
+                            roiToPrePostCount.get(proxdistRoi).incrementPreCount();
+                        }
+                    } else if (synapse.getType().equals("post")) {
+                        if (roiToPrePostCount.containsKey(proxdistRoi)) {
+                            roiToPrePostCount.get(proxdistRoi).incrementPostCount();
+                        } else {
+                            roiToPrePostCount.put(proxdistRoi,new SynapseCounter());
+                            roiToPrePostCount.get(proxdistRoi).incrementPostCount();
+                        }
+
+                        }
+            }
+
+
+            //add rest of rois.
             for (String roi : synapse.getRois()) {
                 if (synapse.getType().equals("pre")) {
                     if (roiToPrePostCount.containsKey(roi)) {
@@ -160,6 +188,8 @@ public class BodyWithSynapses {
                     }
                 }
             }
+
+
         }
 
         for (String roi : roiToPrePostCount.keySet()) {
@@ -168,6 +198,8 @@ public class BodyWithSynapses {
 
 
     }
+
+
 
     public List<NeuronPart> getNeuronParts() {
         return this.neuronParts;
