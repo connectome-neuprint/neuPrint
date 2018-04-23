@@ -169,7 +169,7 @@ public class ConnConvert implements AutoCloseable {
 
                 for (Integer presynapticBodyId : bws.connectsFrom.keySet()) {
                     try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MATCH (n:Neuron {datasetBodyId:$datasetBodyId1} ) SET n.pre = $pre, n.post = $post",
+                        tx.run("MATCH (n:Neuron {datasetBodyId:$datasetBodyId} ) SET n.pre = $pre, n.post = $post",
                                 parameters("bodyId1", bws.getBodyId(),
                                         "pre", bws.getPre(),
                                         "post", bws.getPost(),
