@@ -70,7 +70,7 @@ public abstract class Synapse {
 
     public abstract String getType();
 
-    public abstract String getNeoType();
+    public abstract String getLabelType();
 
     public abstract List<Location> getConnections();
 

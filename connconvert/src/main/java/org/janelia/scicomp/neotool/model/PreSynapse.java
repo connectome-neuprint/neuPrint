@@ -10,7 +10,7 @@ import java.util.List;
 public class PreSynapse extends Synapse {
 
     public static final String TYPE_VALUE = "pre";
-    public static final String NEO_TYPE_VALUE = "PreSyn";
+    public static final String LABEL_TYPE_VALUE = "PreSyn";
 
     @SerializedName("ConnectsTo")
     private List<Location> connectsTo;
@@ -30,8 +30,8 @@ public class PreSynapse extends Synapse {
     }
 
     @Override
-    public String getNeoType() {
-        return NEO_TYPE_VALUE;
+    public String getLabelType() {
+        return LABEL_TYPE_VALUE;
     }
 
     @Override

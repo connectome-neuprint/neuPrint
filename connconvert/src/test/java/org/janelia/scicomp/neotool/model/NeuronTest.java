@@ -16,7 +16,7 @@ public class NeuronTest {
 
         final List<Neuron> parsedList = Neuron.fromJsonArray(NEURON_JSON);
 
-        Assert.assertEquals("invalid number of synapses parsed",
+        Assert.assertEquals("invalid number of neurons parsed",
                             4, parsedList.size());
 
         final Neuron thirdNeuron = parsedList.get(2);

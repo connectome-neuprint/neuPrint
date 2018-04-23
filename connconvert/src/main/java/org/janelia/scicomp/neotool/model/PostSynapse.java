@@ -10,7 +10,7 @@ import java.util.List;
 public class PostSynapse extends Synapse {
 
     public static final String TYPE_VALUE = "post";
-    public static final String NEO_TYPE_VALUE = "PostSyn";
+    public static final String LABEL_TYPE_VALUE = "PostSyn";
 
     @SerializedName("ConnectsFrom")
     private List<Location> connectsFrom;
@@ -25,8 +25,8 @@ public class PostSynapse extends Synapse {
     }
 
     @Override
-    public String getNeoType() {
-        return NEO_TYPE_VALUE;
+    public String getLabelType() {
+        return LABEL_TYPE_VALUE;
     }
 
     @Override

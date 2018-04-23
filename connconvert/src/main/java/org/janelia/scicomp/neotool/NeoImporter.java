@@ -81,7 +81,7 @@ public class NeoImporter {
                 "n.datasetBodyId = $datasetBodyId, " +
                 "n.size = $size " +
                 "WITH n " +
-                "CALL apoc.create.addLabels(id(n),[$dataset]) YIELD node " +
+                "CALL apoc.create.addLabels(id(n),[$dataset]) YIELD node " + // TODO: look here inline dataSet
                 "RETURN node";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -164,7 +164,7 @@ public class NeoImporter {
         LOG.info("addSynapses: entry");
 
         final String synapseText =
-                "MERGE (s:Synapse:$neoType {location:$location}) " +
+                "MERGE (s:Synapse:$labelType {location:$location}) " +
                 "ON CREATE SET s.location=$location, " +
                 "s.confidence=$confidence, " +
                 "s.type=$type, " +
@@ -180,7 +180,7 @@ public class NeoImporter {
 
                     batch.addStatement(new Statement(
                             synapseText,
-                            parameters("neoType", synapse.getNeoType(), // TODO: find better name than 'neoType'
+                            parameters("labelType", synapse.getLabelType(),
                                        "location", location.getKey(),
                                        "confidence", synapse.getConfidence(),
                                        "type", synapse.getType(),
