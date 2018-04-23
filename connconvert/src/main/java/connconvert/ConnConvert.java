@@ -47,7 +47,7 @@ public class ConnConvert implements AutoCloseable {
     public void prepDatabase() throws Exception {
         try (Session session = driver.session()) {
             try (Transaction tx = session.beginTransaction()) {
-                
+
                 tx.run("CREATE CONSTRAINT ON (n:Neuron) ASSERT n.datasetBodyId IS UNIQUE");
                 tx.success();
             }
@@ -99,7 +99,7 @@ public class ConnConvert implements AutoCloseable {
                 try (Transaction tx = session.beginTransaction()) {
                     // TODO: Index name and status
 
-                    tx.run("MERGE (n:Neuron {bodyId:$bodyId}) " +
+                    tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) " +
                                     "ON CREATE SET n.bodyId = $bodyId," +
                                     " n.name = $name," +
                                     " n.type = $type," +
@@ -135,8 +135,8 @@ public class ConnConvert implements AutoCloseable {
                     try (Transaction tx = session.beginTransaction()) {
                         // TODO: Incorporate confidence values for ConnectsTo
 
-                        tx.run("MERGE (n:Neuron {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.datasetBodyId=$datasetBodyId1 \n" +
-                                        "MERGE (m:Neuron {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.datasetBodyId=$datasetBodyId2 \n" +
+                        tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.datasetBodyId=$datasetBodyId1 \n" +
+                                        "MERGE (m:Neuron {datasetBodyId:$datasetBodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.datasetBodyId=$datasetBodyId2 \n" +
                                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n" +
                                         "WITH n,m \n" +
                                         "CALL apoc.create.addLabels([id(n),id(m)],[$dataset]) YIELD node \n" +
@@ -156,10 +156,11 @@ public class ConnConvert implements AutoCloseable {
                         System.out.println(bws.connectsTo.keySet());
                     }
                     try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MATCH (n:Neuron {bodyId:$bodyId1} ) SET n.pre = $pre, n.post = $post",
+                        tx.run("MATCH (n:Neuron {datasetBodyId:$datasetBodyId} ) SET n.pre = $pre, n.post = $post",
                                 parameters("bodyId1", bws.getBodyId(),
                                         "pre", bws.getPre(),
-                                        "post", bws.getPost()));
+                                        "post", bws.getPost(),
+                                        "datasetBodyId", dataset+":"+bws.getBodyId()));
                         tx.success();
 
                     }
@@ -168,10 +169,11 @@ public class ConnConvert implements AutoCloseable {
 
                 for (Integer presynapticBodyId : bws.connectsFrom.keySet()) {
                     try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MATCH (n:Neuron {bodyId:$bodyId1} ) SET n.pre = $pre, n.post = $post",
+                        tx.run("MATCH (n:Neuron {datasetBodyId:$datasetBodyId1} ) SET n.pre = $pre, n.post = $post",
                                 parameters("bodyId1", bws.getBodyId(),
                                         "pre", bws.getPre(),
-                                        "post", bws.getPost()));
+                                        "post", bws.getPost(),
+                                        "datasetBodyId",dataset+":"+bws.getBodyId()));
                         tx.success();
 
                     }
@@ -193,7 +195,7 @@ public class ConnConvert implements AutoCloseable {
 
                             if (synapse.getType().equals("pre")) {
 
-                                tx.run("MERGE (s:Synapse:PreSyn {location:$location}) " +
+                                tx.run("MERGE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
                                                 "ON CREATE SET s.location = $location," +
                                                 " s.datasetLocation = $datasetLocation," +
                                                 " s.confidence = $confidence," +
@@ -215,7 +217,7 @@ public class ConnConvert implements AutoCloseable {
 
                             } else if (synapse.getType().equals("post")) {
 
-                                tx.run("MERGE (s:Synapse:PostSyn {location:$location}) " +
+                                tx.run("MERGE (s:Synapse:PostSyn {datasetLocation:$datasetLocation}) " +
                                                 "ON CREATE SET s.location = $location," +
                                                 " s.datasetLocation = $datasetLocation," +
                                                 " s.confidence = $confidence," +
@@ -263,7 +265,7 @@ public class ConnConvert implements AutoCloseable {
 //                        }
 //                    }
                     try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MERGE (s:Synapse {location:$location}) ON CREATE SET s.location = $location, s.datasetLocation=$datasetLocation \n" +
+                        tx.run("MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location = $location, s.datasetLocation=$datasetLocation \n" +
                                         "WITH s \n" +
                                         "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
                                         "RETURN node",
@@ -273,7 +275,7 @@ public class ConnConvert implements AutoCloseable {
                         tx.success();
                     }
                     try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId = $bodyId, n.datasetBodyId=$datasetBodyId \n" +
+                        tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId = $bodyId, n.datasetBodyId=$datasetBodyId \n" +
                                         "WITH n \n" +
                                         "CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
                                         "RETURN node",
@@ -297,8 +299,8 @@ public class ConnConvert implements AutoCloseable {
                 for (String postLoc : preToPost.get(preLoc)) {
                     try (Transaction tx = session.beginTransaction()) {
 
-                        tx.run("MERGE (s:Synapse {location:$prelocation}) ON CREATE SET s.location = $prelocation, s.datasetLocation=$datasetPreLocation,s:createdforsynapsesto \n" +
-                                        "MERGE (t:Synapse {location:$postlocation}) ON CREATE SET t.location = $postlocation, t.datasetLocation=$datasetPostLocation, t:createdforsynapsesto \n" +
+                        tx.run("MERGE (s:Synapse {datasetLocation:$datasetPreLocation}) ON CREATE SET s.location = $prelocation, s.datasetLocation=$datasetPreLocation,s:createdforsynapsesto \n" +
+                                        "MERGE (t:Synapse {datasetLocation:$datasetPostLocation}) ON CREATE SET t.location = $postlocation, t.datasetLocation=$datasetPostLocation, t:createdforsynapsesto \n" +
                                         "MERGE (s)-[:SynapsesTo]->(t) \n",
                                 parameters("prelocation", preLoc,
                                         "datasetPreLocation",dataset+":"+preLoc,
@@ -321,7 +323,7 @@ public class ConnConvert implements AutoCloseable {
                         try(Transaction tx = session.beginTransaction()) {
                         // create neuronpart node that points to neuron with partof relation
                             String neuronPartId = bws.getBodyId()+":"+np.getRoi();
-                        tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId, n:createdforneuronpart \n"+
+                        tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId, n:createdforneuronpart \n"+
                                         "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
                                         "MERGE (p)-[:PartOf]->(n) \n" +
                                         "WITH p \n" +
@@ -350,7 +352,7 @@ public class ConnConvert implements AutoCloseable {
                     // bodies should be sorted in descending order by number of synapses, so can create id starting at 0
 
 
-                    tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId \n" +
+                    tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId \n" +
                                     "SET n.sId=$sId",
                             parameters("bodyId", bws.getBodyId(),
                                     "datasetBodyId",dataset+":"+ bws.getBodyId(),
@@ -370,7 +372,7 @@ public class ConnConvert implements AutoCloseable {
             for (BodyWithSynapses bws : bodies) {
 
                 try (Transaction tx = session.beginTransaction()) {
-                    tx.run("MERGE (n:Neuron {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId \n" +
+                    tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId \n" +
                             "MERGE (s:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId \n" +
                             "MERGE (n)-[:Contains]->(s) \n",
                             parameters("bodyId",bws.getBodyId(),
@@ -379,7 +381,7 @@ public class ConnConvert implements AutoCloseable {
                 }
                 for (Synapse synapse : bws.getSynapseSet()) {
                     try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MERGE (s:Synapse {location:$location}) ON CREATE SET s.location=$location, s.datasetLocation=$datasetLocation \n"+
+                        tx.run("MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location=$location, s.datasetLocation=$datasetLocation \n"+
                                 "MERGE (t:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET t.bodyId=$datasetBodyId \n" +
                                 "MERGE (t)-[:Contains]->(s)",
                                 parameters("location", synapse.getLocationString(),
@@ -432,10 +434,10 @@ public class ConnConvert implements AutoCloseable {
         configPath = configPath.concat("/connconvert.properties");
         properties.load(new FileInputStream(configPath));
 
-        String filepath = properties.getProperty("fib25neurons");
-        String filepath2 = properties.getProperty("fib25synapses");
-        //String filepath = properties.getProperty("mb6neurons");
-        //String filepath2 = properties.getProperty("mb6synapses");
+        //String filepath = properties.getProperty("fib25neurons");
+        //String filepath2 = properties.getProperty("fib25synapses");
+        String filepath = properties.getProperty("mb6neurons");
+        String filepath2 = properties.getProperty("mb6synapses");
 
         //read dataset name
         String patternNeurons = ".*inputs/(.*?)_Neurons.*";
@@ -531,15 +533,15 @@ public class ConnConvert implements AutoCloseable {
 
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
             // uncomment to add different features to database
-            //connConvert.prepDatabase();
-            //connConvert.addNeurons();
-            //connConvert.addConnectsTo();
-            //connConvert.addSynapses();
-            //connConvert.addSynapsesTo(preToPost);
+            connConvert.prepDatabase();
+            connConvert.addNeurons();
+            connConvert.addConnectsTo();
+            connConvert.addSynapses();
+            connConvert.addSynapsesTo(preToPost);
             connConvert.addRois();
             connConvert.addNeuronParts();
-            //connConvert.addSizeId();
-            //connConvert.addSynapseSets();
+            connConvert.addSizeId();
+            connConvert.addSynapseSets();
 
 
         }
