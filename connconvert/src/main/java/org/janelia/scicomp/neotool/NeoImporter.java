@@ -78,10 +78,10 @@ public class NeoImporter {
                 "n.name=$name, " +
                 "n.type=$type, " +
                 "n.status=$status, " +
-                "n.datasetBodyId = $datasetBodyId, " +
-                "n.size = $size " +
+                "n.datasetBodyId=$datasetBodyId, " +
+                "n.size=$size " +
                 "WITH n " +
-                "CALL apoc.create.addLabels(id(n),[$dataset]) YIELD node " + // TODO: look here inline dataSet
+                "CALL apoc.create.addLabels(id(n),['" + dataSet +"']) YIELD node " +
                 "RETURN node";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -93,8 +93,7 @@ public class NeoImporter {
                                                  "type", neuron.getNeuronType(),
                                                  "status", neuron.getStatus(),
                                                  "datasetBodyId", dataSet + ":" + neuron.getId(),
-                                                 "size", neuron.getSize(),
-                                                 "dataset", dataSet))
+                                                 "size", neuron.getSize()))
                 );
             }
             batch.writeTransaction();
