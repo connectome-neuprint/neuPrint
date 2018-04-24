@@ -97,7 +97,7 @@ public class ConnConvert implements AutoCloseable {
         try (Session session = driver.session()) {
             for (Neuron neuron : neurons) {
                 try (Transaction tx = session.beginTransaction()) {
-                    // TODO: Index name and status
+
 
                     tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) " +
                                     "ON CREATE SET n.bodyId = $bodyId," +
@@ -143,10 +143,10 @@ public class ConnConvert implements AutoCloseable {
                                         "RETURN node",
                                 parameters("bodyId1", bws.getBodyId(),
                                         "bodyId2", postsynapticBodyId,
-                                        "datasetBodyId1",dataset+":"+bws.getBodyId(),
-                                        "datasetBodyId2",dataset+":"+postsynapticBodyId,
+                                        "datasetBodyId1", dataset + ":" + bws.getBodyId(),
+                                        "datasetBodyId2", dataset + ":" + postsynapticBodyId,
                                         "weight", bws.connectsTo.get(postsynapticBodyId),
-                                        "dataset",dataset));
+                                        "dataset", dataset));
 
                         tx.success();
 
@@ -155,35 +155,20 @@ public class ConnConvert implements AutoCloseable {
                         System.out.println(postsynapticBodyId);
                         System.out.println(bws.connectsTo.keySet());
                     }
-                    try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MATCH (n:Neuron {datasetBodyId:$datasetBodyId} ) SET n.pre = $pre, n.post = $post",
-                                parameters("bodyId1", bws.getBodyId(),
-                                        "pre", bws.getPre(),
-                                        "post", bws.getPost(),
-                                        "datasetBodyId", dataset+":"+bws.getBodyId()));
-                        tx.success();
-
-                    }
-
                 }
-
-                for (Integer presynapticBodyId : bws.connectsFrom.keySet()) {
-                    try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MATCH (n:Neuron {datasetBodyId:$datasetBodyId} ) SET n.pre = $pre, n.post = $post",
-                                parameters("bodyId1", bws.getBodyId(),
-                                        "pre", bws.getPre(),
-                                        "post", bws.getPost(),
-                                        "datasetBodyId",dataset+":"+bws.getBodyId()));
-                        tx.success();
-
+                try (Transaction tx = session.beginTransaction()) {
+                    tx.run("MATCH (n:Neuron {datasetBodyId:$datasetBodyId} ) SET n.pre = $pre, n.post = $post",
+                            parameters("pre", bws.getPre(),
+                                    "post", bws.getPost(),
+                                    "datasetBodyId", dataset+":"+bws.getBodyId()));
+                    tx.success();
                     }
-
                 }
             }
             System.out.println("Added ConnectsTo relations.");
             System.out.println("Added pre and post counts.");
         }
-    }
+
 
     public void addSynapses() throws Exception {
         try (Session session = driver.session()) {
@@ -434,10 +419,10 @@ public class ConnConvert implements AutoCloseable {
         configPath = configPath.concat("/connconvert.properties");
         properties.load(new FileInputStream(configPath));
 
-        //String filepath = properties.getProperty("fib25neurons");
-        //String filepath2 = properties.getProperty("fib25synapses");
-        String filepath = properties.getProperty("mb6neurons");
-        String filepath2 = properties.getProperty("mb6synapses");
+        String filepath = properties.getProperty("fib25neurons");
+        String filepath2 = properties.getProperty("fib25synapses");
+        //String filepath = properties.getProperty("mb6neurons");
+        //String filepath2 = properties.getProperty("mb6synapses");
 
         //read dataset name
         String patternNeurons = ".*inputs/(.*?)_Neurons.*";
@@ -533,15 +518,15 @@ public class ConnConvert implements AutoCloseable {
 
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
             // uncomment to add different features to database
-            connConvert.prepDatabase();
-            connConvert.addNeurons();
-            connConvert.addConnectsTo();
-            connConvert.addSynapses();
-            connConvert.addSynapsesTo(preToPost);
-            connConvert.addRois();
-            connConvert.addNeuronParts();
-            connConvert.addSizeId();
-            connConvert.addSynapseSets();
+            //connConvert.prepDatabase(); //ran 7:30
+            //connConvert.addNeurons(); //ran 7:30
+            connConvert.addConnectsTo(); //
+            //connConvert.addSynapses(); //
+            //connConvert.addSynapsesTo(preToPost); //
+            //connConvert.addRois(); //
+            //connConvert.addNeuronParts(); //
+            //connConvert.addSizeId(); //
+            //connConvert.addSynapseSets(); //
 
 
         }
