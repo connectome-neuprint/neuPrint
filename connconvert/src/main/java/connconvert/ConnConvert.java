@@ -22,8 +22,13 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 
-import org.neo4j.driver.v1.*;
+import org.neo4j.driver.v1.Driver;
 import static org.neo4j.driver.v1.Values.parameters;
+import org.neo4j.driver.v1.exceptions.ClientException;
+import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.AuthTokens;
+import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.Transaction;
 
 // TODO: Add ROI information using column names from neurons file?
 // FIB25 names often include column info (7 columns)  - pnas paper.
@@ -185,8 +190,8 @@ public class ConnConvert implements AutoCloseable {
 
                             if (synapse.getType().equals("pre")) {
 
-                                tx.run("MERGE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
-                                                "ON CREATE SET s.location = $location," +
+                                tx.run("CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
+                                                "SET s.location = $location," +
                                                 " s.datasetLocation = $datasetLocation," +
                                                 " s.confidence = $confidence," +
                                                 " s.type = $type," +
@@ -208,8 +213,8 @@ public class ConnConvert implements AutoCloseable {
 
                             } else if (synapse.getType().equals("post")) {
 
-                                tx.run("MERGE (s:Synapse:PostSyn {datasetLocation:$datasetLocation}) " +
-                                                "ON CREATE SET s.location = $location," +
+                                tx.run("CREATE (s:Synapse:PostSyn {datasetLocation:$datasetLocation}) " +
+                                                "SET s.location = $location," +
                                                 " s.datasetLocation = $datasetLocation," +
                                                 " s.confidence = $confidence," +
                                                 " s.type = $type," +
@@ -231,8 +236,11 @@ public class ConnConvert implements AutoCloseable {
                                 tx.success();
 
                             }
+                        } catch (ClientException ce) {
+                            LOG.info("Synapse " + dataset+":"+synapse.getLocationString() + " already loaded.");
                         }
-                        LOG.info("Loading Synapse node took: " + timer.stop());
+                        String stopwatch = timer.stop().toString();
+                        LOG.info("Loading Synapse node " + dataset+":"+synapse.getLocationString()+ " took: " + stopwatch);
 
                     }
                 }
@@ -243,6 +251,75 @@ public class ConnConvert implements AutoCloseable {
 
         }
 
+    }
+
+    public void testSynapseLoad() throws Exception {
+        try (Session session = driver.session()) {
+            for (int i=0 ; i <= 100 ; i++) {
+                if (bodies.get(i).getBodyId() != 304654117 || !dataset.equals("mb6v2")) {
+                    for (Synapse synapse : bodies.get(i).getSynapseSet()) {
+                        // Timer
+
+                        if (synapse.getType().equals("pre")) {
+                            Stopwatch timer = Stopwatch.createStarted();
+                            try (Transaction tx = session.beginTransaction()) {
+                                tx.run("CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
+                                                "SET s.location = $location," +
+                                                " s.datasetLocation = $datasetLocation," +
+                                                " s.confidence = $confidence," +
+                                                " s.type = $type," +
+                                                " s.x=$x," +
+                                                " s.y=$y," +
+                                                " s.z=$z \n" +
+                                                " WITH s \n" +
+                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
+                                                " RETURN node",
+                                        parameters("location", synapse.getLocationString(),
+                                                "datasetLocation", dataset + ":" + synapse.getLocationString(),
+                                                "confidence", synapse.getConfidence(),
+                                                "type", synapse.getType(),
+                                                "x", synapse.getLocation().get(0),
+                                                "y", synapse.getLocation().get(1),
+                                                "z", synapse.getLocation().get(2),
+                                                "dataset", dataset));
+                                tx.success();
+                            } catch (ClientException ce) {
+                                System.out.println("Synapse already present.");
+                            }
+                            LOG.info("Loading Synapse node with CREATE took: " + timer.stop());
+
+                            timer.start();
+                            try (Transaction tx = session.beginTransaction()) {
+                                tx.run("MERGE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
+                                                "ON CREATE SET s.location = $location," +
+                                                " s.datasetLocation = $datasetLocation," +
+                                                " s.confidence = $confidence," +
+                                                " s.type = $type," +
+                                                " s.x=$x," +
+                                                " s.y=$y," +
+                                                " s.z=$z \n" +
+                                                " WITH s \n" +
+                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
+                                                " RETURN node",
+                                        parameters("location", synapse.getLocationString(),
+                                                "datasetLocation", dataset + ":" + synapse.getLocationString(),
+                                                "confidence", synapse.getConfidence(),
+                                                "type", synapse.getType(),
+                                                "x", synapse.getLocation().get(0),
+                                                "y", synapse.getLocation().get(1),
+                                                "z", synapse.getLocation().get(2),
+                                                "dataset", dataset));
+                                tx.success();
+                            } catch (ClientException ce) {
+                                System.out.println("Synapse already present.");
+                            }
+                            LOG.info("Loading Synapse node with MERGE took: " + timer.stop());
+                        }
+
+                    }
+                }
+            }
+        }
     }
 
     public void addRois() {
@@ -553,7 +630,7 @@ public class ConnConvert implements AutoCloseable {
             //connConvert.addSizeId(); //
             //connConvert.addSynapseSets(); //
 
-
+            //connConvert.testSynapseLoad();
         }
 
     }
