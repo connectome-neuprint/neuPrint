@@ -49,21 +49,24 @@ public class NeoImporter {
 
         LOG.info("prepDatabase: entry");
 
-        final String prepText =
-                "CREATE CONSTRAINT ON (n:Neuron) ASSERT n.datasetBodyId IS UNIQUE\n" +
-                "CREATE CONSTRAINT ON (s:SynapseSet) ASSERT s.datasetBodyId IS UNIQUE\n" +
-                "CREATE INDEX ON :Neuron(bodyId)\n" +
-                "CREATE INDEX ON :Synapse(x)\n" +
-                "CREATE INDEX ON :Synapse(y)\n" +
-                "CREATE INDEX ON :Synapse(z)\n" +
-                "CREATE INDEX ON :Neuron(status)\n" +
-                "CREATE INDEX ON :Synapse(location)\n" +
-                "CREATE CONSTRAINT ON (s:Synapse) ASSERT s.datasetLocation IS UNIQUE\n" +
-                "CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE";
+        final String[] prepTextArray = {
+                "CREATE CONSTRAINT ON (n:Neuron) ASSERT n.datasetBodyId IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:SynapseSet) ASSERT s.datasetBodyId IS UNIQUE",
+                "CREATE INDEX ON :Neuron(bodyId)",
+                "CREATE INDEX ON :Synapse(x)",
+                "CREATE INDEX ON :Synapse(y)",
+                "CREATE INDEX ON :Synapse(z)",
+                "CREATE INDEX ON :Neuron(status)",
+                "CREATE INDEX ON :Synapse(location)",
+                "CREATE CONSTRAINT ON (s:Synapse) ASSERT s.datasetLocation IS UNIQUE",
+                "CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE"
+        };
 
-        try (final TransactionBatch batch = getBatch()) {
-            batch.addStatement(new Statement(prepText));
-            batch.writeTransaction();
+        for (final String prepText : prepTextArray) {
+            try (final TransactionBatch batch = getBatch()) {
+                batch.addStatement(new Statement(prepText));
+                batch.writeTransaction();
+            }
         }
 
         LOG.info("prepDatabase: exit");
