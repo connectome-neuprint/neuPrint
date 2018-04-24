@@ -2,14 +2,14 @@ package org.janelia.scicomp.neotool;
 
 import java.util.List;
 
-import org.janelia.scicomp.neotool.db.DbConfig;
-import org.janelia.scicomp.neotool.db.DbTransactionBatch;
-import org.janelia.scicomp.neotool.db.StdOutTransactionBatch;
-import org.janelia.scicomp.neotool.db.TransactionBatch;
-import org.janelia.scicomp.neotool.model.Body;
-import org.janelia.scicomp.neotool.model.Location;
-import org.janelia.scicomp.neotool.model.Neuron;
-import org.janelia.scicomp.neotool.model.Synapse;
+import connconvert.db.DbConfig;
+import connconvert.db.DbTransactionBatch;
+import connconvert.db.StdOutTransactionBatch;
+import connconvert.db.TransactionBatch;
+import connconvert.model.Body;
+import connconvert.model.Location;
+import connconvert.model.Neuron;
+import connconvert.model.Synapse;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;

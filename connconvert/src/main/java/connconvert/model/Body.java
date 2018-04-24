@@ -1,4 +1,4 @@
-package org.janelia.scicomp.neotool.model;
+package connconvert.model;
 
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;

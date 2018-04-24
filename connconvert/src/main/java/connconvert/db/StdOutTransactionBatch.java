@@ -1,4 +1,4 @@
-package org.janelia.scicomp.neotool.db;
+package connconvert.db;
 
 import org.neo4j.driver.v1.Statement;
 

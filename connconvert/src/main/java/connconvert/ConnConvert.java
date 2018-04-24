@@ -21,28 +21,39 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
-import org.neo4j.driver.v1.Driver;
-import static org.neo4j.driver.v1.Values.parameters;
-import org.neo4j.driver.v1.exceptions.ClientException;
-import org.neo4j.driver.v1.GraphDatabase;
+import connconvert.db.DbConfig;
 import org.neo4j.driver.v1.AuthTokens;
+import org.neo4j.driver.v1.exceptions.ClientException;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
+import static org.neo4j.driver.v1.Values.parameters;
 
 // TODO: Add ROI information using column names from neurons file?
 // FIB25 names often include column info (7 columns)  - pnas paper.
 public class ConnConvert implements AutoCloseable {
-    private final Driver driver;
+    private Driver driver;
     private static Neuron[] neuronsArray;
     private static List<Neuron> neurons;
     private static BodyWithSynapses[] bodiesArray;
     private static List<BodyWithSynapses> bodies;
-    final static Properties properties = new Properties();
     private static String dataset;
 
-    private ConnConvert (String uri, String user, String password) {
+
+
+    private ConnConvert () {
+    }
+
+    public void loadDriver(String uri, String user, String password) {
         driver = GraphDatabase.driver(uri,AuthTokens.basic(user, password));
+    }
+
+    public DbConfig getDbConfig() {
+        String configPath = new File("").getAbsolutePath();
+        configPath = configPath.concat("/connconvert.properties");
+        return (configPath == null) ? null : DbConfig.fromFile(new File(configPath));
     }
 
     @Override
@@ -51,54 +62,7 @@ public class ConnConvert implements AutoCloseable {
         System.out.println("Driver closed.");
     }
 
-    public void prepDatabase() throws Exception {
-        try (Session session = driver.session()) {
-            try (Transaction tx = session.beginTransaction()) {
 
-                tx.run("CREATE CONSTRAINT ON (n:Neuron) ASSERT n.datasetBodyId IS UNIQUE");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE CONSTRAINT ON (s:SynapseSet) ASSERT s.datasetBodyId IS UNIQUE");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                   tx.run("CREATE INDEX ON :Neuron(bodyId)");
-                   tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE INDEX ON :Synapse(x)");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE INDEX ON :Synapse(y)");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE INDEX ON :Synapse(z)");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE INDEX ON :Neuron(status)");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE INDEX ON :Synapse(location)");
-                tx.success();
-            }
-            try(Transaction tx= session.beginTransaction()) {
-                tx.run("CREATE CONSTRAINT ON (s:Synapse) ASSERT s.datasetLocation IS UNIQUE");
-                tx.success();
-            }
-
-            try(Transaction tx=session.beginTransaction()) {
-                tx.run("CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE");
-                tx.success();
-            }
-
-        }
-
-    }
 
     public void addNeurons() throws Exception {
         try (Session session = driver.session()) {
@@ -253,6 +217,22 @@ public class ConnConvert implements AutoCloseable {
 
     }
 
+    public void testLoadNeuronsWithJSON() throws Exception {
+        try (Session session = driver.session()) {
+            for (Neuron neuron : neurons) {
+                try (Transaction tx = session.beginTransaction()) {
+                    String stringQuery = "CALL apoc.load.json(\"/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json\") \n" +
+                            "YIELD value AS neurons \n" +
+                            //"UNWIND neurons AS test \n" +
+                            "RETURN neurons";
+                    tx.run(stringQuery);
+                    tx.success();
+
+                }
+            }
+        }
+    }
+
     public void testSynapseLoad() throws Exception {
         try (Session session = driver.session()) {
             for (int i=0 ; i <= 100 ; i++) {
@@ -262,6 +242,7 @@ public class ConnConvert implements AutoCloseable {
 
                         if (synapse.getType().equals("pre")) {
                             Stopwatch timer = Stopwatch.createStarted();
+                            //StatementResult test=null;
                             try (Transaction tx = session.beginTransaction()) {
                                 tx.run("CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
                                                 "SET s.location = $location," +
@@ -282,38 +263,37 @@ public class ConnConvert implements AutoCloseable {
                                                 "y", synapse.getLocation().get(1),
                                                 "z", synapse.getLocation().get(2),
                                                 "dataset", dataset));
+                                //LOG.info(test.summary().toString());
                                 tx.success();
                             } catch (ClientException ce) {
-                                System.out.println("Synapse already present.");
+                                ce.printStackTrace();
                             }
-                            LOG.info("Loading Synapse node with CREATE took: " + timer.stop());
+                            LOG.info("Loading Synapse node with CREATE+apoc.create.addLabels took: " + timer.stop());
 
                             timer.start();
                             try (Transaction tx = session.beginTransaction()) {
-                                tx.run("MERGE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
-                                                "ON CREATE SET s.location = $location," +
-                                                " s.datasetLocation = $datasetLocation," +
-                                                " s.confidence = $confidence," +
-                                                " s.type = $type," +
-                                                " s.x=$x," +
-                                                " s.y=$y," +
-                                                " s.z=$z \n" +
-                                                " WITH s \n" +
-                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-                                                " RETURN node",
+                                String stringQuery = "CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
+                                        "SET s.location = $location," +
+                                        " s.datasetLocation = $datasetLocation," +
+                                        " s.confidence = $confidence," +
+                                        " s.type = $type," +
+                                        " s.x=$x," +
+                                        " s.y=$y," +
+                                        " s.z=$z," +
+                                        " s:" + dataset ;
+                                tx.run(stringQuery,
                                         parameters("location", synapse.getLocationString(),
                                                 "datasetLocation", dataset + ":" + synapse.getLocationString(),
                                                 "confidence", synapse.getConfidence(),
                                                 "type", synapse.getType(),
                                                 "x", synapse.getLocation().get(0),
                                                 "y", synapse.getLocation().get(1),
-                                                "z", synapse.getLocation().get(2),
-                                                "dataset", dataset));
+                                                "z", synapse.getLocation().get(2)));
                                 tx.success();
                             } catch (ClientException ce) {
                                 System.out.println("Synapse already present.");
                             }
-                            LOG.info("Loading Synapse node with MERGE took: " + timer.stop());
+                            LOG.info("Loading Synapse node with just CREATE+stringbuild took: " + timer.stop());
                         }
 
                     }
@@ -501,14 +481,13 @@ public class ConnConvert implements AutoCloseable {
 
     public static void main(String[] args) throws Exception {
 
-        String configPath = new File("").getAbsolutePath();
-        configPath = configPath.concat("/connconvert.properties");
-        properties.load(new FileInputStream(configPath));
-
-        String filepath = properties.getProperty("fib25neurons");
-        String filepath2 = properties.getProperty("fib25synapses");
+        //String filepath = properties.getProperty("fib25neurons");
+        //String filepath2 = properties.getProperty("fib25synapses");
         //String filepath = properties.getProperty("mb6neurons");
         //String filepath2 = properties.getProperty("mb6synapses");
+
+        String filepath = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json";
+        String filepath2 = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Synapses_with_rois.json";
 
         //read dataset name
         String patternNeurons = ".*inputs/(.*?)_Neurons.*";
@@ -595,11 +574,6 @@ public class ConnConvert implements AutoCloseable {
 
 
 
-
-        String uri = properties.getProperty("uri_dolafit");
-        String user = properties.getProperty("username");
-        String password = properties.getProperty("password");
-
         //logging
         FileHandler fh;
         try {
@@ -609,7 +583,7 @@ public class ConnConvert implements AutoCloseable {
             fh.setFormatter(new SimpleFormatter());
             LOG.addHandler(fh);
 
-            LOG.setUseParentHandlers(false);
+            //LOG.setUseParentHandlers(false);
 
 
         } catch (SecurityException e) {
@@ -618,12 +592,12 @@ public class ConnConvert implements AutoCloseable {
 
 
 
-        try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
+        //try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
             // uncomment to add different features to database
             //connConvert.prepDatabase(); //ran 7:30
             //connConvert.addNeurons(); //ran 7:30
             //connConvert.addConnectsTo(); // ran 10PM
-            connConvert.addSynapses();
+            //connConvert.addSynapses();
             //connConvert.addSynapsesTo(preToPost);
             //connConvert.addRois();
             //connConvert.addNeuronParts();
@@ -631,7 +605,16 @@ public class ConnConvert implements AutoCloseable {
             //connConvert.addSynapseSets(); //
 
             //connConvert.testSynapseLoad();
+            //connConvert.testLoadNeuronsWithJSON();
+        //}
+
+        ConnConvert connConvert = new ConnConvert();
+        DbConfig dbConfig = connConvert.getDbConfig();
+
+        try(Neo4jImporter neo4jImporter = new Neo4jImporter(dbConfig)){
+            neo4jImporter.prepDatabase();
         }
+
 
     }
 

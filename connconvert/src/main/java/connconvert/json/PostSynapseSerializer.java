@@ -8,7 +8,7 @@ import com.google.gson.JsonSerializer;
 
 import java.lang.reflect.Type;
 
-import org.janelia.scicomp.neotool.model.PostSynapse;
+import connconvert.model.PostSynapse;
 
 /**
  * Serializes post-synapse objects into a generic JSON synapse form.

@@ -9,10 +9,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.util.List;
 
-import org.janelia.scicomp.neotool.db.DbConfig;
+import connconvert.db.DbConfig;
 import connconvert.json.JsonUtils;
-import org.janelia.scicomp.neotool.model.Body;
-import org.janelia.scicomp.neotool.model.Neuron;
+import connconvert.model.Body;
+import connconvert.model.Neuron;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
