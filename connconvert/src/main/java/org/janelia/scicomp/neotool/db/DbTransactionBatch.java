@@ -33,17 +33,23 @@ public class DbTransactionBatch implements TransactionBatch {
     }
 
     public void writeTransaction() {
-        // see https://neo4j.com/docs/developer-manual/current/drivers/sessions-transactions/#driver-transactions-transaction-functions
-        final TransactionWork<Void> work = tx -> {
-            statementsToWrite.forEach(tx::run);
-            return null;
-        };
-        session.writeTransaction(work);
 
         final int statementCount = statementsToWrite.size();
-        statementsToWrite.clear();
 
-        LOG.info("writeTransaction: exit, committed {} statements", statementCount);
+        if (statementCount > 0) {
+
+            // see https://neo4j.com/docs/developer-manual/current/drivers/sessions-transactions/#driver-transactions-transaction-functions
+            final TransactionWork<Void> work = tx -> {
+                statementsToWrite.forEach(tx::run);
+                return null;
+            };
+            session.writeTransaction(work);
+
+            statementsToWrite.clear();
+
+            LOG.info("writeTransaction: exit, committed {} statements", statementCount);
+        }
+
     }
 
     @Override
