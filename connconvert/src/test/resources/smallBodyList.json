@@ -1,0 +1,32 @@
+[
+  {
+    "BodyId": 8426959,
+    "SynapseSet": [
+      {
+        "Type": "pre", "Location": [ 4287, 2277, 1542 ], "Confidence": 1.0, "rois": [ "seven_column_roi" ],
+        "ConnectsTo": [
+          [ 4298, 2294, 1542 ], [ 4301, 2276, 1535 ], [ 4292, 2261, 1542 ]
+        ]
+      },
+      { "Type": "post", "Location": [ 4222, 2402, 1688 ], "ConnectsFrom": [ [ 4236, 2394, 1700 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi" ] }
+    ]
+  },
+  {
+    "BodyId": 26311,
+    "SynapseSet": [
+      { "Type": "post", "Location": [ 4301, 2276, 1535 ], "ConnectsFrom": [ [ 4287, 2277, 1542 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi" ] }
+    ]
+  },
+  {
+    "BodyId": 2589725,
+    "SynapseSet": [
+      { "Type": "post", "Location": [ 4298, 2294, 1542 ], "ConnectsFrom": [ [ 4287, 2277, 1542 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi" ] }
+    ]
+  },
+  {
+    "BodyId": 831744,
+    "SynapseSet": [
+      { "Type": "post", "Location": [ 4292, 2261, 1542 ], "ConnectsFrom": [ [ 4287, 2277, 1542 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi" ] }
+    ]
+  }
+]
