@@ -83,7 +83,7 @@ public class Neuron {
         return name;
     }
 
-    public String getType() {
+    public String getNeuronType() {
         return neuronType;
     }
 

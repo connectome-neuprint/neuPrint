@@ -11,8 +11,6 @@ import com.google.gson.FieldNamingPolicy;
 
 import java.util.List;
 import java.util.HashMap;
-import java.util.Properties;
-import java.io.FileInputStream;
 import java.io.File;
 import java.util.Collections;
 import java.util.Arrays;
@@ -27,7 +25,6 @@ import org.neo4j.driver.v1.exceptions.ClientException;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -82,7 +79,7 @@ public class ConnConvert implements AutoCloseable {
                                     "RETURN node",
                             parameters("bodyId", neuron.getId(),
                                     "name", neuron.getName(),
-                                    "type", neuron.getType(),
+                                    "type", neuron.getNeuronType(),
                                     "status", neuron.getStatus(),
                                     "datasetBodyId", dataset+":"+neuron.getId(),
                                     "size", neuron.getSize(),
@@ -203,8 +200,7 @@ public class ConnConvert implements AutoCloseable {
                         } catch (ClientException ce) {
                             LOG.info("Synapse " + dataset+":"+synapse.getLocationString() + " already loaded.");
                         }
-                        String stopwatch = timer.stop().toString();
-                        LOG.info("Loading Synapse node " + dataset+":"+synapse.getLocationString()+ " took: " + stopwatch);
+
 
                     }
                 }
@@ -238,10 +234,10 @@ public class ConnConvert implements AutoCloseable {
             for (int i=0 ; i <= 100 ; i++) {
                 if (bodies.get(i).getBodyId() != 304654117 || !dataset.equals("mb6v2")) {
                     for (Synapse synapse : bodies.get(i).getSynapseSet()) {
-                        // Timer
+
 
                         if (synapse.getType().equals("pre")) {
-                            Stopwatch timer = Stopwatch.createStarted();
+
                             //StatementResult test=null;
                             try (Transaction tx = session.beginTransaction()) {
                                 tx.run("CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
@@ -268,9 +264,9 @@ public class ConnConvert implements AutoCloseable {
                             } catch (ClientException ce) {
                                 ce.printStackTrace();
                             }
-                            LOG.info("Loading Synapse node with CREATE+apoc.create.addLabels took: " + timer.stop());
+                            //LOG.info("Loading Synapse node with CREATE+apoc.create.addLabels took: " + timer.stop());
 
-                            timer.start();
+                            //timer.start();
                             try (Transaction tx = session.beginTransaction()) {
                                 String stringQuery = "CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
                                         "SET s.location = $location," +
@@ -293,7 +289,7 @@ public class ConnConvert implements AutoCloseable {
                             } catch (ClientException ce) {
                                 System.out.println("Synapse already present.");
                             }
-                            LOG.info("Loading Synapse node with just CREATE+stringbuild took: " + timer.stop());
+                            //LOG.info("Loading Synapse node with just CREATE+stringbuild took: " + timer.stop());
                         }
 
                     }
@@ -579,7 +575,7 @@ public class ConnConvert implements AutoCloseable {
         try {
 
 
-            fh = new FileHandler("/Users/neubarthn/Documents/GitHub/ConnectomeJSONtoNeo4j/logs/neo4jload.log");
+            fh = new FileHandler("/Users/neubarthn/Documents/GitHub/ConnectomeJSONtoNeo4j/connconvert/logs/neo4jload.log");
             fh.setFormatter(new SimpleFormatter());
             LOG.addHandler(fh);
 
@@ -613,7 +609,12 @@ public class ConnConvert implements AutoCloseable {
 
         try(Neo4jImporter neo4jImporter = new Neo4jImporter(dbConfig)){
             neo4jImporter.prepDatabase();
+            Stopwatch timer = Stopwatch.createStarted();
+            String testLabel = "speedtest";
+            neo4jImporter.addNeurons(testLabel,neurons);
+            LOG.info("Loading all Neuron nodes took: " + timer.stop());
         }
+
 
 
     }

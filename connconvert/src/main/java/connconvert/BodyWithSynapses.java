@@ -151,14 +151,14 @@ public class BodyWithSynapses {
 //                    proxdistRoi = "prox_medulla";
 //                } else { proxdistRoi = "dist_medulla"; }
 //
-//                if (synapse.getType().equals("pre")) {
+//                if (synapse.getNeuronType().equals("pre")) {
 //                    if (roiToPrePostCount.containsKey(proxdistRoi)) {
 //                            roiToPrePostCount.get(proxdistRoi).incrementPreCount();
 //                        } else {
 //                            roiToPrePostCount.put(proxdistRoi, new SynapseCounter());
 //                            roiToPrePostCount.get(proxdistRoi).incrementPreCount();
 //                        }
-//                    } else if (synapse.getType().equals("post")) {
+//                    } else if (synapse.getNeuronType().equals("post")) {
 //                        if (roiToPrePostCount.containsKey(proxdistRoi)) {
 //                            roiToPrePostCount.get(proxdistRoi).incrementPostCount();
 //                        } else {

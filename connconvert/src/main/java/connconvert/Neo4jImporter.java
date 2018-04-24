@@ -10,6 +10,8 @@ import org.neo4j.driver.v1.exceptions.ClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 import static org.neo4j.driver.v1.Values.parameters;
 
 public class Neo4jImporter implements AutoCloseable {
@@ -78,6 +80,37 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("prepDatabase: exit");
 
         }
+
+    public void addNeurons(final String dataset,
+                           final List<Neuron> neuronList) throws Exception {
+
+        final String neuronText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) " +
+                "ON CREATE SET n.bodyId = $bodyId," +
+                " n.name = $name," +
+                " n.type = $type," +
+                " n.status = $status," +
+                " n.datasetBodyId = $datasetBodyId," +
+                " n.size = $size" +
+                " WITH n" +
+                " CALL apoc.create.addLabels(id(n),['" + dataset + "']) YIELD node" +
+                " RETURN node";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (final Neuron neuron : neuronList) {
+                batch.addStatement(
+                        new Statement(neuronText,
+                                parameters("bodyId", neuron.getId(),
+                                        "name", neuron.getName(),
+                                        "type", neuron.getNeuronType(),
+                                        "status", neuron.getStatus(),
+                                        "datasetBodyId", dataset + ":" + neuron.getId(),
+                                        "size", neuron.getSize()))
+                );
+            }
+            batch.writeTransaction();
+        }
+
+    }
 
 
 
