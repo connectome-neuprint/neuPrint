@@ -112,6 +112,51 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
+    public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+
+        LOG.info("addConnectsTo: entry");
+
+        final String connectsToText =
+                "MERGE (n:Neuron {datasetBodyId:$datasetBodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.datasetBodyId=$datasetBodyId1 \n" +
+                        "MERGE (m:Neuron {datasetBodyId:$datasetBodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.datasetBodyId=$datasetBodyId2 \n" +
+                        "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n" +
+                        "WITH n,m \n" +
+                        "CALL apoc.create.addLabels([id(n),id(m)],['" + dataset + "']) YIELD node \n" +
+                        "RETURN node";
+
+        final String terminalCountText = "MATCH (n:Neuron {datasetBodyId:$datasetBodyId} ) SET n.pre = $pre, n.post = $post";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (final BodyWithSynapses bws : bodyList) {
+                for (final Integer postsynapticBodyId : bws.connectsTo.keySet()) {
+                    batch.addStatement(
+                            new Statement(connectsToText,
+                                    parameters("bodyId1", bws.getBodyId(),
+                                            "bodyId2", postsynapticBodyId,
+                                            "datasetBodyId1", dataset + ":" + bws.getBodyId(),
+                                            "datasetBodyId2", dataset + ":" + postsynapticBodyId,
+                                            "weight", bws.connectsTo.get(postsynapticBodyId)))
+                    );
+                }
+                batch.addStatement(
+                        new Statement(terminalCountText,
+                                parameters("pre", bws.getPre(),
+                                        "post", bws.getPost(),
+                                        "datasetBodyId", dataset+":"+bws.getBodyId()))
+                );
+
+            }
+            batch.writeTransaction();
+        }
+
+        LOG.info("addConnectsTo: exit");
+
+        }
+
+
+
+
+
 
 
     private static final Logger LOG = LoggerFactory.getLogger(Neo4jImporter.class);
