@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.janelia.scicomp.neotool.json.JsonUtils;
+import connconvert.json.JsonUtils;
 
 /**
  * Source attributes for a neuronal body along with methods

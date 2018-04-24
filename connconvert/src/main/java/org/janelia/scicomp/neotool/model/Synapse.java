@@ -7,7 +7,7 @@ import java.lang.reflect.Type;
 import java.util.List;
 import java.util.Objects;
 
-import org.janelia.scicomp.neotool.json.JsonUtils;
+import connconvert.json.JsonUtils;
 
 /**
  * Common attributes and methods for all synapses.

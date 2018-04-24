@@ -2,7 +2,7 @@ package org.janelia.scicomp.neotool.model;
 
 import java.util.List;
 
-import org.janelia.scicomp.neotool.json.JsonUtils;
+import connconvert.json.JsonUtils;
 import org.junit.Assert;
 import org.junit.Test;
 

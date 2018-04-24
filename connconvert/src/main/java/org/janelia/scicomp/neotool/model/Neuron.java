@@ -7,7 +7,7 @@ import java.io.Reader;
 import java.lang.reflect.Type;
 import java.util.List;
 
-import org.janelia.scicomp.neotool.json.JsonUtils;
+import connconvert.json.JsonUtils;
 
 /**
  * Neuron data.

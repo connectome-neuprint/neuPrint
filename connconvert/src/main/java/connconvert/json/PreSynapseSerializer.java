@@ -1,4 +1,4 @@
-package org.janelia.scicomp.neotool.json;
+package connconvert.json;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

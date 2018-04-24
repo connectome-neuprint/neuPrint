@@ -4,6 +4,7 @@ package connconvert;
 import java.io.BufferedReader;
 import java.io.FileReader;
 
+import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.FieldNamingPolicy;
@@ -15,6 +16,8 @@ import java.io.FileInputStream;
 import java.io.File;
 import java.util.Collections;
 import java.util.Arrays;
+import java.util.logging.*;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -174,6 +177,9 @@ public class ConnConvert implements AutoCloseable {
             for (BodyWithSynapses bws : bodies) {
                 if (bws.getBodyId()!=304654117 || !dataset.equals("mb6v2")) {
                     for (Synapse synapse : bws.getSynapseSet()) {
+                        // Timer
+                        Stopwatch timer = Stopwatch.createStarted();
+
                         try (Transaction tx = session.beginTransaction()) {
                             // requires APOC: need to add apoc to neo4j plugins
 
@@ -226,6 +232,7 @@ public class ConnConvert implements AutoCloseable {
 
                             }
                         }
+                        LOG.info("Loading Synapse node took: " + timer.stop());
 
                     }
                 }
@@ -233,6 +240,7 @@ public class ConnConvert implements AutoCloseable {
                 }
 
             System.out.println("Synapse nodes added.");
+
         }
 
     }
@@ -515,17 +523,33 @@ public class ConnConvert implements AutoCloseable {
         String user = properties.getProperty("username");
         String password = properties.getProperty("password");
 
+        //logging
+        FileHandler fh;
+        try {
+
+
+            fh = new FileHandler("/Users/neubarthn/Documents/GitHub/ConnectomeJSONtoNeo4j/logs/neo4jload.log");
+            fh.setFormatter(new SimpleFormatter());
+            LOG.addHandler(fh);
+
+            LOG.setUseParentHandlers(false);
+
+
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
+
 
 
         try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
             // uncomment to add different features to database
             //connConvert.prepDatabase(); //ran 7:30
             //connConvert.addNeurons(); //ran 7:30
-            connConvert.addConnectsTo(); // ran 10PM
+            //connConvert.addConnectsTo(); // ran 10PM
             connConvert.addSynapses();
-            connConvert.addSynapsesTo(preToPost);
-            connConvert.addRois();
-            connConvert.addNeuronParts();
+            //connConvert.addSynapsesTo(preToPost);
+            //connConvert.addRois();
+            //connConvert.addNeuronParts();
             //connConvert.addSizeId(); //
             //connConvert.addSynapseSets(); //
 
@@ -534,7 +558,7 @@ public class ConnConvert implements AutoCloseable {
 
     }
 
-
+    private static final Logger LOG = Logger.getLogger("ConnConvert.class");
 
 
 

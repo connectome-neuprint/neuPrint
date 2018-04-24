@@ -10,7 +10,7 @@ import java.io.FileReader;
 import java.util.List;
 
 import org.janelia.scicomp.neotool.db.DbConfig;
-import org.janelia.scicomp.neotool.json.JsonUtils;
+import connconvert.json.JsonUtils;
 import org.janelia.scicomp.neotool.model.Body;
 import org.janelia.scicomp.neotool.model.Neuron;
 import org.slf4j.Logger;
