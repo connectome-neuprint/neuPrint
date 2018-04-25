@@ -48,80 +48,7 @@ public class ConnConvert {
     }
 
 
-//    public void addSynapses() throws Exception {
-//        try (Session session = driver.session()) {
-//            for (BodyWithSynapses bws : bodies) {
-//                if (bws.getBodyId()!=304654117 || !dataset.equals("mb6v2")) {
-//                    for (Synapse synapse : bws.getSynapseSet()) {
-//                        // Timer
-//                        Stopwatch timer = Stopwatch.createStarted();
-//
-//                        try (Transaction tx = session.beginTransaction()) {
-//                            // requires APOC: need to add apoc to neo4j plugins
-//
-//                            if (synapse.getType().equals("pre")) {
-//
-//                                tx.run("CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
-//                                                "SET s.location = $location," +
-//                                                " s.datasetLocation = $datasetLocation," +
-//                                                " s.confidence = $confidence," +
-//                                                " s.type = $type," +
-//                                                " s.x=$x," +
-//                                                " s.y=$y," +
-//                                                " s.z=$z \n" +
-//                                                " WITH s \n" +
-//                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-//                                                " RETURN node",
-//                                        parameters("location", synapse.getLocationString(),
-//                                                "datasetLocation",dataset+":"+synapse.getLocationString(),
-//                                                "confidence", synapse.getConfidence(),
-//                                                "type", synapse.getType(),
-//                                                "x", synapse.getLocation().get(0),
-//                                                "y", synapse.getLocation().get(1),
-//                                                "z", synapse.getLocation().get(2),
-//                                                "dataset",dataset));
-//                                tx.success();
-//
-//                            } else if (synapse.getType().equals("post")) {
-//
-//                                tx.run("CREATE (s:Synapse:PostSyn {datasetLocation:$datasetLocation}) " +
-//                                                "SET s.location = $location," +
-//                                                " s.datasetLocation = $datasetLocation," +
-//                                                " s.confidence = $confidence," +
-//                                                " s.type = $type," +
-//                                                " s.x=$x," +
-//                                                " s.y=$y," +
-//                                                " s.z=$z \n" +
-//                                                " WITH s \n" +
-//                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-//                                                " RETURN node",
-//                                        parameters("location", synapse.getLocationString(),
-//                                                "datasetLocation",dataset+":"+synapse.getLocationString(),
-//                                                "confidence", synapse.getConfidence(),
-//                                                "type", synapse.getType(),
-//                                                "x", synapse.getLocation().get(0),
-//                                                "y", synapse.getLocation().get(1),
-//                                                "z", synapse.getLocation().get(2),
-//                                                "dataset",dataset));
-//
-//                                tx.success();
-//
-//                            }
-//                        } catch (ClientException ce) {
-//                            LOG.info("Synapse " + dataset+":"+synapse.getLocationString() + " already loaded.");
-//                        }
-//
-//
-//                    }
-//                }
-//
-//                }
-//
-//            System.out.println("Synapse nodes added.");
-//
-//        }
-//
-//    }
+
 //
 //    public void testLoadNeuronsWithJSON() throws Exception {
 //        try (Session session = driver.session()) {
@@ -264,7 +191,7 @@ public class ConnConvert {
 //            System.out.println("SynapsesTo relations added.");
 //        }
 //    }
-//
+////
 //    public void addNeuronParts() throws Exception {
 //        try (Session session = driver.session()) {
 //                for (BodyWithSynapses bws: bodies) {
@@ -522,16 +449,20 @@ public class ConnConvert {
 
             Stopwatch timer = Stopwatch.createStarted();
             String testLabel = "speedtest";
-            //neo4jImporter.addNeurons(testLabel,neurons);
+            //neo4jImporter.addNeurons(dataset,neurons);
             LOG.info("Loading all Neuron nodes took: " + timer.stop());
 
             timer.start();
-            //neo4jImporter.addConnectsTo(testLabel,bodies);
+            //neo4jImporter.addConnectsTo(dataset,bodies);
             LOG.info("Loading all ConnectsTo took: " + timer.stop());
 
             timer.start();
-            neo4jImporter.addSynapses(dataset,bodies);
+            //neo4jImporter.addSynapses(dataset,bodies);
             LOG.info("Loading all Synapses took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addSynapsesTo(dataset,preToPost);
+            LOG.info("Loading all SynapsesTo took: " + timer.stop());
 
         }
 

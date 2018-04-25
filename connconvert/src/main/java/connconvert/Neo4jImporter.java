@@ -10,6 +10,7 @@ import org.neo4j.driver.v1.exceptions.ClientException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.List;
 
 import static org.neo4j.driver.v1.Values.parameters;
@@ -221,9 +222,32 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSynapses: exit");
     }
 
-    public void addSynapsesTo(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addSynapsesTo(final String dataset,  HashMap<String,List<String>> preToPost) throws Exception {
 
+        LOG.info("addSynapsesTo: entry");
+
+        final String synapseRelationsText = "MERGE (s:Synapse {datasetLocation:$datasetPreLocation}) ON CREATE SET s.location = $prelocation, s.datasetLocation=$datasetPreLocation, s:createdforsynapsesto \n" +
+                "MERGE (t:Synapse {datasetLocation:$datasetPostLocation}) ON CREATE SET t.location = $postlocation, t.datasetLocation=$datasetPostLocation, t:createdforsynapsesto \n" +
+                "MERGE (s)-[:SynapsesTo]->(t)";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (String preLoc: preToPost.keySet()) {
+                for (String postLoc : preToPost.get(preLoc)) {
+                    batch.addStatement(new Statement(synapseRelationsText,
+                        parameters("prelocation", preLoc,
+                                "datasetPreLocation", dataset+ ":" +preLoc,
+                                "datasetPostLocation", dataset+ ":" +postLoc,
+                                "postlocation", postLoc))
+                );
+                }
+            }
+            batch.writeTransaction();
+        }
+        LOG.info("addSynapsesTo: exit");
     }
+
+
+
 
 
 
