@@ -1,4 +1,4 @@
-package org.janelia.scicomp.neotool.model;
+package connconvert.model;
 
 import java.io.File;
 import java.util.List;

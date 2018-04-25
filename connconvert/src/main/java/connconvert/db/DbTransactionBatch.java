@@ -1,4 +1,4 @@
-package org.janelia.scicomp.neotool.db;
+package connconvert.db;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -9,7 +9,7 @@ import com.google.gson.JsonSerializer;
 
 import java.lang.reflect.Type;
 
-import org.janelia.scicomp.neotool.model.Location;
+import connconvert.model.Location;
 
 /**
  * Serializes and deserializes synapse locations.

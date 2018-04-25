@@ -1,4 +1,4 @@
-package org.janelia.scicomp.neotool.db;
+package connconvert.db;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -57,8 +57,8 @@ public class DbConfig {
             in = new FileInputStream(file);
             properties.load(in);
 
-            final String uri = properties.getProperty("uri");
-            final String user = properties.getProperty("user");
+            final String uri = properties.getProperty("uri_dolafit");
+            final String user = properties.getProperty("username");
             final String password = properties.getProperty("password");
 
             final String statementsPerTransactionString = properties.getProperty("statementsPerTransaction");

@@ -11,8 +11,6 @@ import com.google.gson.FieldNamingPolicy;
 
 import java.util.List;
 import java.util.HashMap;
-import java.util.Properties;
-import java.io.FileInputStream;
 import java.io.File;
 import java.util.Collections;
 import java.util.Arrays;
@@ -21,452 +19,122 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-
-import org.neo4j.driver.v1.Driver;
-import static org.neo4j.driver.v1.Values.parameters;
-import org.neo4j.driver.v1.exceptions.ClientException;
-import org.neo4j.driver.v1.GraphDatabase;
+import connconvert.db.DbConfig;
 import org.neo4j.driver.v1.AuthTokens;
+import org.neo4j.driver.v1.exceptions.ClientException;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Transaction;
+import static org.neo4j.driver.v1.Values.parameters;
 
 // TODO: Add ROI information using column names from neurons file?
 // FIB25 names often include column info (7 columns)  - pnas paper.
-public class ConnConvert implements AutoCloseable {
-    private final Driver driver;
+public class ConnConvert {
+
     private static Neuron[] neuronsArray;
     private static List<Neuron> neurons;
     private static BodyWithSynapses[] bodiesArray;
     private static List<BodyWithSynapses> bodies;
-    final static Properties properties = new Properties();
     private static String dataset;
 
-    private ConnConvert (String uri, String user, String password) {
-        driver = GraphDatabase.driver(uri,AuthTokens.basic(user, password));
+    private ConnConvert () {
     }
 
-    @Override
-    public void close() throws Exception {
-        driver.close();
-        System.out.println("Driver closed.");
-    }
-
-    public void prepDatabase() throws Exception {
-        try (Session session = driver.session()) {
-            try (Transaction tx = session.beginTransaction()) {
-
-                tx.run("CREATE CONSTRAINT ON (n:Neuron) ASSERT n.datasetBodyId IS UNIQUE");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE CONSTRAINT ON (s:SynapseSet) ASSERT s.datasetBodyId IS UNIQUE");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                   tx.run("CREATE INDEX ON :Neuron(bodyId)");
-                   tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE INDEX ON :Synapse(x)");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE INDEX ON :Synapse(y)");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE INDEX ON :Synapse(z)");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE INDEX ON :Neuron(status)");
-                tx.success();
-            }
-            try (Transaction tx = session.beginTransaction()) {
-                tx.run("CREATE INDEX ON :Synapse(location)");
-                tx.success();
-            }
-            try(Transaction tx= session.beginTransaction()) {
-                tx.run("CREATE CONSTRAINT ON (s:Synapse) ASSERT s.datasetLocation IS UNIQUE");
-                tx.success();
-            }
-
-            try(Transaction tx=session.beginTransaction()) {
-                tx.run("CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE");
-                tx.success();
-            }
-
-        }
-
-    }
-
-    public void addNeurons() throws Exception {
-        try (Session session = driver.session()) {
-            for (Neuron neuron : neurons) {
-                try (Transaction tx = session.beginTransaction()) {
-
-
-                    tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) " +
-                                    "ON CREATE SET n.bodyId = $bodyId," +
-                                    " n.name = $name," +
-                                    " n.type = $type," +
-                                    " n.status = $status," +
-                                    " n.datasetBodyId = $datasetBodyId," +
-                                    " n.size = $size \n " +
-                                    "WITH n \n" +
-                                    "CALL apoc.create.addLabels(id(n),[$dataset]) YIELD node \n" +
-                                    "RETURN node",
-                            parameters("bodyId", neuron.getId(),
-                                    "name", neuron.getName(),
-                                    "type", neuron.getType(),
-                                    "status", neuron.getStatus(),
-                                    "datasetBodyId", dataset+":"+neuron.getId(),
-                                    "size", neuron.getSize(),
-                                    "dataset", dataset));
-
-
-                    tx.success();
-
-                }
-
-            }
-            System.out.println("Added neurons.");
-        }
-
-    }
-
-    public void addConnectsTo() throws Exception {
-        try (Session session = driver.session()) {
-            for (BodyWithSynapses bws : bodies) {
-                for (Integer postsynapticBodyId : bws.connectsTo.keySet()) {
-                    try (Transaction tx = session.beginTransaction()) {
-                        // TODO: Incorporate confidence values for ConnectsTo
-
-                        tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.datasetBodyId=$datasetBodyId1 \n" +
-                                        "MERGE (m:Neuron {datasetBodyId:$datasetBodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.datasetBodyId=$datasetBodyId2 \n" +
-                                        "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n" +
-                                        "WITH n,m \n" +
-                                        "CALL apoc.create.addLabels([id(n),id(m)],[$dataset]) YIELD node \n" +
-                                        "RETURN node",
-                                parameters("bodyId1", bws.getBodyId(),
-                                        "bodyId2", postsynapticBodyId,
-                                        "datasetBodyId1", dataset + ":" + bws.getBodyId(),
-                                        "datasetBodyId2", dataset + ":" + postsynapticBodyId,
-                                        "weight", bws.connectsTo.get(postsynapticBodyId),
-                                        "dataset", dataset));
-
-                        tx.success();
-
-                    } catch (Exception e) {
-                        System.out.println(bws);
-                        System.out.println(postsynapticBodyId);
-                        System.out.println(bws.connectsTo.keySet());
-                    }
-                }
-                try (Transaction tx = session.beginTransaction()) {
-                    tx.run("MATCH (n:Neuron {datasetBodyId:$datasetBodyId} ) SET n.pre = $pre, n.post = $post",
-                            parameters("pre", bws.getPre(),
-                                    "post", bws.getPost(),
-                                    "datasetBodyId", dataset+":"+bws.getBodyId()));
-                    tx.success();
-                    }
-                }
-            }
-            System.out.println("Added ConnectsTo relations.");
-            System.out.println("Added pre and post counts.");
-        }
-
-
-    public void addSynapses() throws Exception {
-        try (Session session = driver.session()) {
-            for (BodyWithSynapses bws : bodies) {
-                if (bws.getBodyId()!=304654117 || !dataset.equals("mb6v2")) {
-                    for (Synapse synapse : bws.getSynapseSet()) {
-                        // Timer
-                        Stopwatch timer = Stopwatch.createStarted();
-
-                        try (Transaction tx = session.beginTransaction()) {
-                            // requires APOC: need to add apoc to neo4j plugins
-
-                            if (synapse.getType().equals("pre")) {
-
-                                tx.run("CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
-                                                "SET s.location = $location," +
-                                                " s.datasetLocation = $datasetLocation," +
-                                                " s.confidence = $confidence," +
-                                                " s.type = $type," +
-                                                " s.x=$x," +
-                                                " s.y=$y," +
-                                                " s.z=$z \n" +
-                                                " WITH s \n" +
-                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-                                                " RETURN node",
-                                        parameters("location", synapse.getLocationString(),
-                                                "datasetLocation",dataset+":"+synapse.getLocationString(),
-                                                "confidence", synapse.getConfidence(),
-                                                "type", synapse.getType(),
-                                                "x", synapse.getLocation().get(0),
-                                                "y", synapse.getLocation().get(1),
-                                                "z", synapse.getLocation().get(2),
-                                                "dataset",dataset));
-                                tx.success();
-
-                            } else if (synapse.getType().equals("post")) {
-
-                                tx.run("CREATE (s:Synapse:PostSyn {datasetLocation:$datasetLocation}) " +
-                                                "SET s.location = $location," +
-                                                " s.datasetLocation = $datasetLocation," +
-                                                " s.confidence = $confidence," +
-                                                " s.type = $type," +
-                                                " s.x=$x," +
-                                                " s.y=$y," +
-                                                " s.z=$z \n" +
-                                                " WITH s \n" +
-                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-                                                " RETURN node",
-                                        parameters("location", synapse.getLocationString(),
-                                                "datasetLocation",dataset+":"+synapse.getLocationString(),
-                                                "confidence", synapse.getConfidence(),
-                                                "type", synapse.getType(),
-                                                "x", synapse.getLocation().get(0),
-                                                "y", synapse.getLocation().get(1),
-                                                "z", synapse.getLocation().get(2),
-                                                "dataset",dataset));
-
-                                tx.success();
-
-                            }
-                        } catch (ClientException ce) {
-                            LOG.info("Synapse " + dataset+":"+synapse.getLocationString() + " already loaded.");
-                        }
-                        String stopwatch = timer.stop().toString();
-                        LOG.info("Loading Synapse node " + dataset+":"+synapse.getLocationString()+ " took: " + stopwatch);
-
-                    }
-                }
-
-                }
-
-            System.out.println("Synapse nodes added.");
-
-        }
-
-    }
-
-    public void testSynapseLoad() throws Exception {
-        try (Session session = driver.session()) {
-            for (int i=0 ; i <= 100 ; i++) {
-                if (bodies.get(i).getBodyId() != 304654117 || !dataset.equals("mb6v2")) {
-                    for (Synapse synapse : bodies.get(i).getSynapseSet()) {
-                        // Timer
-
-                        if (synapse.getType().equals("pre")) {
-                            Stopwatch timer = Stopwatch.createStarted();
-                            try (Transaction tx = session.beginTransaction()) {
-                                tx.run("CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
-                                                "SET s.location = $location," +
-                                                " s.datasetLocation = $datasetLocation," +
-                                                " s.confidence = $confidence," +
-                                                " s.type = $type," +
-                                                " s.x=$x," +
-                                                " s.y=$y," +
-                                                " s.z=$z \n" +
-                                                " WITH s \n" +
-                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-                                                " RETURN node",
-                                        parameters("location", synapse.getLocationString(),
-                                                "datasetLocation", dataset + ":" + synapse.getLocationString(),
-                                                "confidence", synapse.getConfidence(),
-                                                "type", synapse.getType(),
-                                                "x", synapse.getLocation().get(0),
-                                                "y", synapse.getLocation().get(1),
-                                                "z", synapse.getLocation().get(2),
-                                                "dataset", dataset));
-                                tx.success();
-                            } catch (ClientException ce) {
-                                System.out.println("Synapse already present.");
-                            }
-                            LOG.info("Loading Synapse node with CREATE took: " + timer.stop());
-
-                            timer.start();
-                            try (Transaction tx = session.beginTransaction()) {
-                                tx.run("MERGE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
-                                                "ON CREATE SET s.location = $location," +
-                                                " s.datasetLocation = $datasetLocation," +
-                                                " s.confidence = $confidence," +
-                                                " s.type = $type," +
-                                                " s.x=$x," +
-                                                " s.y=$y," +
-                                                " s.z=$z \n" +
-                                                " WITH s \n" +
-                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-                                                " RETURN node",
-                                        parameters("location", synapse.getLocationString(),
-                                                "datasetLocation", dataset + ":" + synapse.getLocationString(),
-                                                "confidence", synapse.getConfidence(),
-                                                "type", synapse.getType(),
-                                                "x", synapse.getLocation().get(0),
-                                                "y", synapse.getLocation().get(1),
-                                                "z", synapse.getLocation().get(2),
-                                                "dataset", dataset));
-                                tx.success();
-                            } catch (ClientException ce) {
-                                System.out.println("Synapse already present.");
-                            }
-                            LOG.info("Loading Synapse node with MERGE took: " + timer.stop());
-                        }
-
-                    }
-                }
-            }
-        }
-    }
-
-    public void addRois() {
-        try (Session session = driver.session()) {
-            for (BodyWithSynapses bws : bodies) {
-                for (Synapse synapse : bws.getSynapseSet()) {
-                    List<String> roiList = synapse.getRois();
-                    try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location = $location, s.datasetLocation=$datasetLocation \n" +
-                                        "WITH s \n" +
-                                        "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
-                                        "RETURN node",
-                                parameters("location", synapse.getLocationString(),
-                                        "datasetLocation",dataset+":"+synapse.getLocationString(),
-                                        "rois", roiList));
-                        tx.success();
-                    }
-                    try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId = $bodyId, n.datasetBodyId=$datasetBodyId \n" +
-                                        "WITH n \n" +
-                                        "CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
-                                        "RETURN node",
-                                parameters("bodyId", bws.getBodyId(),
-                                        "datasetBodyId",dataset+":"+bws.getBodyId(),
-                                        "rois", roiList));
-                        tx.success();
-                    }
-                }
-
-            }
-        }
-        System.out.println("ROI labels added to Synapses and Neurons.");
+    public DbConfig getDbConfig() {
+        String configPath = new File("").getAbsolutePath();
+        configPath = configPath.concat("/connconvert.properties");
+        return (configPath == null) ? null : DbConfig.fromFile(new File(configPath));
     }
 
 
 
-    public void addSynapsesTo(HashMap<String,List<String>> preToPost) throws Exception {
-        try (Session session = driver.session()) {
-            for (String preLoc : preToPost.keySet()) {
-                for (String postLoc : preToPost.get(preLoc)) {
-                    try (Transaction tx = session.beginTransaction()) {
-
-                        tx.run("MERGE (s:Synapse {datasetLocation:$datasetPreLocation}) ON CREATE SET s.location = $prelocation, s.datasetLocation=$datasetPreLocation,s:createdforsynapsesto \n" +
-                                        "MERGE (t:Synapse {datasetLocation:$datasetPostLocation}) ON CREATE SET t.location = $postlocation, t.datasetLocation=$datasetPostLocation, t:createdforsynapsesto \n" +
-                                        "MERGE (s)-[:SynapsesTo]->(t) \n",
-                                parameters("prelocation", preLoc,
-                                        "datasetPreLocation",dataset+":"+preLoc,
-                                        "datasetPostLocation",dataset+":"+postLoc,
-                                        "postlocation", postLoc));
-                        tx.success();
-
-
-                    }
-                }
-            }
-            System.out.println("SynapsesTo relations added.");
-        }
-    }
-
-    public void addNeuronParts() throws Exception {
-        try (Session session = driver.session()) {
-                for (BodyWithSynapses bws: bodies) {
-                    for (NeuronPart np : bws.getNeuronParts()) {
-                        try(Transaction tx = session.beginTransaction()) {
-                        // create neuronpart node that points to neuron with partof relation
-                            String neuronPartId = dataset+":"+bws.getBodyId()+":"+np.getRoi();
-                        tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId, n:createdforneuronpart \n"+
-                                        "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
-                                        "MERGE (p)-[:PartOf]->(n) \n" +
-                                        "WITH p \n" +
-                                        "CALL apoc.create.addLabels(id(p),[$roi, $dataset]) YIELD node \n" +
-                                        "RETURN node",
-                                parameters("bodyId",bws.getBodyId(),
-                                        "roi",np.getRoi(),
-                                        "dataset",dataset,
-                                        "neuronPartId",neuronPartId,
-                                        "datasetBodyId",dataset+":"+bws.getBodyId(),
-                                        "pre",np.getPre(),
-                                        "post",np.getPost(),
-                                        "size",np.getPre()+np.getPost()));
-                        tx.success();
-                    }
-                }
-            }
-        }
-        System.out.println("NeuronPart nodes added with PartOf relationships.");
-    }
-
-    public void addSizeId() throws Exception {
-        int sId = 0;
-        try (Session session = driver.session()) {
-            for (BodyWithSynapses bws : bodies) {
-                try (Transaction tx = session.beginTransaction()) {
-                    // bodies should be sorted in descending order by number of synapses, so can create id starting at 0
-
-
-                    tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId, n:createdforsid \n" +
-                                    "SET n.sId=$sId",
-                            parameters("bodyId", bws.getBodyId(),
-                                    "datasetBodyId",dataset+":"+ bws.getBodyId(),
-                                    "sId", sId));
-                    sId++;
-                    tx.success();
-
-                }
-            }
-        }
-        System.out.println("Added sId to neurons in this dataset.");
-    }
-
-
-    public void addSynapseSets() throws Exception {
-        try (Session session = driver.session()) {
-            for (BodyWithSynapses bws : bodies) {
-
-                try (Transaction tx = session.beginTransaction()) {
-                    tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId \n" +
-                            "MERGE (s:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId \n" +
-                            "MERGE (n)-[:Contains]->(s) \n" +
-                                    "WITH s \n" +
-                                    "CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-                                    "RETURN node",
-                            parameters("bodyId",bws.getBodyId(),
-                                    "datasetBodyId",dataset+":"+bws.getBodyId(),
-                                    "dataset",dataset));
-                    tx.success();
-                }
-                for (Synapse synapse : bws.getSynapseSet()) {
-                    try (Transaction tx = session.beginTransaction()) {
-                        tx.run("MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location=$location, s.datasetLocation=$datasetLocation \n"+
-                                "MERGE (t:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET t.bodyId=$datasetBodyId \n" +
-                                "MERGE (t)-[:Contains]->(s) \n" +
-                                        "WITH t \n" +
-                                        "CALL apoc.create.addLabels(id(t),[$dataset]) YIELD node \n" +
-                                        "RETURN node",
-                                parameters("location", synapse.getLocationString(),
-                                        "datasetLocation",dataset+":"+synapse.getLocationString(),
-                                        "bodyId", bws.getBodyId(),
-                                        "datasetBodyId",dataset+":"+bws.getBodyId(),
-                                        "dataset",dataset));
-                        tx.success();
-                    }
-                }
-            }
-        }
-        System.out.println("SynapseSet nodes with Contains relations added.");
-    }
+//
+//    public void testLoadNeuronsWithJSON() throws Exception {
+//        try (Session session = driver.session()) {
+//            for (Neuron neuron : neurons) {
+//                try (Transaction tx = session.beginTransaction()) {
+//                    String stringQuery = "CALL apoc.load.json(\"/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json\") \n" +
+//                            "YIELD value AS neurons \n" +
+//                            //"UNWIND neurons AS test \n" +
+//                            "RETURN neurons";
+//                    tx.run(stringQuery);
+//                    tx.success();
+//
+//                }
+//            }
+//        }
+//    }
+//
+//    public void testSynapseLoad() throws Exception {
+//        try (Session session = driver.session()) {
+//            for (int i=0 ; i <= 100 ; i++) {
+//                if (bodies.get(i).getBodyId() != 304654117 || !dataset.equals("mb6v2")) {
+//                    for (Synapse synapse : bodies.get(i).getSynapseSet()) {
+//
+//
+//                        if (synapse.getType().equals("pre")) {
+//
+//                            //StatementResult test=null;
+//                            try (Transaction tx = session.beginTransaction()) {
+//                                tx.run("CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
+//                                                "SET s.location = $location," +
+//                                                " s.datasetLocation = $datasetLocation," +
+//                                                " s.confidence = $confidence," +
+//                                                " s.type = $type," +
+//                                                " s.x=$x," +
+//                                                " s.y=$y," +
+//                                                " s.z=$z \n" +
+//                                                " WITH s \n" +
+//                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
+//                                                " RETURN node",
+//                                        parameters("location", synapse.getLocationString(),
+//                                                "datasetLocation", dataset + ":" + synapse.getLocationString(),
+//                                                "confidence", synapse.getConfidence(),
+//                                                "type", synapse.getType(),
+//                                                "x", synapse.getLocation().get(0),
+//                                                "y", synapse.getLocation().get(1),
+//                                                "z", synapse.getLocation().get(2),
+//                                                "dataset", dataset));
+//                                //LOG.info(test.summary().toString());
+//                                tx.success();
+//                            } catch (ClientException ce) {
+//                                ce.printStackTrace();
+//                            }
+//                            //LOG.info("Loading Synapse node with CREATE+apoc.create.addLabels took: " + timer.stop());
+//
+//                            //timer.start();
+//                            try (Transaction tx = session.beginTransaction()) {
+//                                String stringQuery = "CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
+//                                        "SET s.location = $location," +
+//                                        " s.datasetLocation = $datasetLocation," +
+//                                        " s.confidence = $confidence," +
+//                                        " s.type = $type," +
+//                                        " s.x=$x," +
+//                                        " s.y=$y," +
+//                                        " s.z=$z," +
+//                                        " s:" + dataset ;
+//                                tx.run(stringQuery,
+//                                        parameters("location", synapse.getLocationString(),
+//                                                "datasetLocation", dataset + ":" + synapse.getLocationString(),
+//                                                "confidence", synapse.getConfidence(),
+//                                                "type", synapse.getType(),
+//                                                "x", synapse.getLocation().get(0),
+//                                                "y", synapse.getLocation().get(1),
+//                                                "z", synapse.getLocation().get(2)));
+//                                tx.success();
+//                            } catch (ClientException ce) {
+//                                System.out.println("Synapse already present.");
+//                            }
+//                            //LOG.info("Loading Synapse node with just CREATE+stringbuild took: " + timer.stop());
+//                        }
+//
+//                    }
+//                }
+//            }
+//        }
+//    }
+//
 
 
 
@@ -501,14 +169,16 @@ public class ConnConvert implements AutoCloseable {
 
     public static void main(String[] args) throws Exception {
 
-        String configPath = new File("").getAbsolutePath();
-        configPath = configPath.concat("/connconvert.properties");
-        properties.load(new FileInputStream(configPath));
-
-        String filepath = properties.getProperty("fib25neurons");
-        String filepath2 = properties.getProperty("fib25synapses");
+        //String filepath = properties.getProperty("fib25neurons");
+        //String filepath2 = properties.getProperty("fib25synapses");
         //String filepath = properties.getProperty("mb6neurons");
         //String filepath2 = properties.getProperty("mb6synapses");
+
+        //String filepath = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json";
+        //String filepath2 = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Synapses_with_rois.json";
+
+        String filepath = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Neurons.json";
+        String filepath2 = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Synapses.json";
 
         //read dataset name
         String patternNeurons = ".*inputs/(.*?)_Neurons.*";
@@ -595,21 +265,16 @@ public class ConnConvert implements AutoCloseable {
 
 
 
-
-        String uri = properties.getProperty("uri_dolafit");
-        String user = properties.getProperty("username");
-        String password = properties.getProperty("password");
-
         //logging
         FileHandler fh;
         try {
 
 
-            fh = new FileHandler("/Users/neubarthn/Documents/GitHub/ConnectomeJSONtoNeo4j/logs/neo4jload.log");
+            fh = new FileHandler("/Users/neubarthn/Documents/GitHub/ConnectomeJSONtoNeo4j/connconvert/logs/neo4jload.log");
             fh.setFormatter(new SimpleFormatter());
             LOG.addHandler(fh);
 
-            LOG.setUseParentHandlers(false);
+            //LOG.setUseParentHandlers(false);
 
 
         } catch (SecurityException e) {
@@ -618,12 +283,12 @@ public class ConnConvert implements AutoCloseable {
 
 
 
-        try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
+        //try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
             // uncomment to add different features to database
             //connConvert.prepDatabase(); //ran 7:30
             //connConvert.addNeurons(); //ran 7:30
             //connConvert.addConnectsTo(); // ran 10PM
-            connConvert.addSynapses();
+            //connConvert.addSynapses();
             //connConvert.addSynapsesTo(preToPost);
             //connConvert.addRois();
             //connConvert.addNeuronParts();
@@ -631,7 +296,52 @@ public class ConnConvert implements AutoCloseable {
             //connConvert.addSynapseSets(); //
 
             //connConvert.testSynapseLoad();
+            //connConvert.testLoadNeuronsWithJSON();
+        //}
+
+        ConnConvert connConvert = new ConnConvert();
+        DbConfig dbConfig = connConvert.getDbConfig();
+
+        try(Neo4jImporter neo4jImporter = new Neo4jImporter(dbConfig)){
+            neo4jImporter.prepDatabase();
+
+            Stopwatch timer = Stopwatch.createStarted();
+            neo4jImporter.addNeurons(dataset,neurons);
+            LOG.info("Loading all Neuron nodes took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addConnectsTo(dataset,bodies);
+            LOG.info("Loading all ConnectsTo took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addSynapses(dataset,bodies);
+            LOG.info("Loading all Synapses took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addSynapsesTo(dataset,preToPost);
+            LOG.info("Loading all SynapsesTo took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addRois(dataset,bodies);
+            LOG.info("Loading all ROI labels took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addNeuronParts(dataset,bodies);
+            LOG.info("Loading all NeuronParts took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addSizeId(dataset,bodies);
+            LOG.info("Adding all sIds took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addSynapseSets(dataset,bodies);
+            LOG.info("Loading SynapseSets took: " + timer.stop());
+
+
+
         }
+
+
 
     }
 

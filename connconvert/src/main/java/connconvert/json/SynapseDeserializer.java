@@ -8,9 +8,9 @@ import com.google.gson.JsonParseException;
 
 import java.lang.reflect.Type;
 
-import org.janelia.scicomp.neotool.model.PostSynapse;
-import org.janelia.scicomp.neotool.model.PreSynapse;
-import org.janelia.scicomp.neotool.model.Synapse;
+import connconvert.model.PostSynapse;
+import connconvert.model.PreSynapse;
+import connconvert.model.Synapse;
 
 /**
  * Deserializes generic JSON synapses into pre or post synapse objects.

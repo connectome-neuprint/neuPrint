@@ -3,10 +3,10 @@ package connconvert.json;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import org.janelia.scicomp.neotool.model.Location;
-import org.janelia.scicomp.neotool.model.PostSynapse;
-import org.janelia.scicomp.neotool.model.PreSynapse;
-import org.janelia.scicomp.neotool.model.Synapse;
+import connconvert.model.Location;
+import connconvert.model.PostSynapse;
+import connconvert.model.PreSynapse;
+import connconvert.model.Synapse;
 
 /**
  * Shared utilities for working with JSON.
