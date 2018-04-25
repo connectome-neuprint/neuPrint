@@ -243,8 +243,49 @@ public class Neo4jImporter implements AutoCloseable {
             }
             batch.writeTransaction();
         }
+
+
         LOG.info("addSynapsesTo: exit");
     }
+
+
+    public void addRois(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+
+        LOG.info("addRois: entry");
+
+        final String roiSynapseText = "MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location = $location, s.datasetLocation=$datasetLocation \n" +
+                                        "WITH s \n" +
+                                        "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
+                                        "RETURN node";
+
+        final String roiNeuronText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId = $bodyId, n.datasetBodyId=$datasetBodyId \n" +
+                                        "WITH n \n" +
+                                        "CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
+                                        "RETURN node";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (BodyWithSynapses bws : bodyList) {
+                for (Synapse synapse: bws.getSynapseSet()) {
+                    List<String> roiList = synapse.getRois();
+                    batch.addStatement(new Statement(roiSynapseText,parameters("location", synapse.getLocationString(),
+                                                                                "datasetLocation",dataset+":"+synapse.getLocationString(),
+                                                                                "rois", roiList)));
+                    batch.addStatement(new Statement(roiNeuronText,parameters("bodyId", bws.getBodyId(),
+                            "datasetBodyId",dataset+":"+bws.getBodyId(),
+                            "rois", roiList)));
+                }
+            }
+        }
+
+        LOG.info("addRois: exit");
+
+
+    }
+
+
+
+
+
 
 
 

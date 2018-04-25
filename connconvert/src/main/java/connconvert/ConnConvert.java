@@ -135,61 +135,10 @@ public class ConnConvert {
 //        }
 //    }
 //
-//    public void addRois() {
-//        try (Session session = driver.session()) {
-//            for (BodyWithSynapses bws : bodies) {
-//                for (Synapse synapse : bws.getSynapseSet()) {
-//                    List<String> roiList = synapse.getRois();
-//                    try (Transaction tx = session.beginTransaction()) {
-//                        tx.run("MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location = $location, s.datasetLocation=$datasetLocation \n" +
-//                                        "WITH s \n" +
-//                                        "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
-//                                        "RETURN node",
-//                                parameters("location", synapse.getLocationString(),
-//                                        "datasetLocation",dataset+":"+synapse.getLocationString(),
-//                                        "rois", roiList));
-//                        tx.success();
-//                    }
-//                    try (Transaction tx = session.beginTransaction()) {
-//                        tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId = $bodyId, n.datasetBodyId=$datasetBodyId \n" +
-//                                        "WITH n \n" +
-//                                        "CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
-//                                        "RETURN node",
-//                                parameters("bodyId", bws.getBodyId(),
-//                                        "datasetBodyId",dataset+":"+bws.getBodyId(),
-//                                        "rois", roiList));
-//                        tx.success();
-//                    }
-//                }
-//
-//            }
-//        }
-//        System.out.println("ROI labels added to Synapses and Neurons.");
-//    }
-//
-//
-//
-//    public void addSynapsesTo(HashMap<String,List<String>> preToPost) throws Exception {
-//        try (Session session = driver.session()) {
-//            for (String preLoc : preToPost.keySet()) {
-//                for (String postLoc : preToPost.get(preLoc)) {
-//                    try (Transaction tx = session.beginTransaction()) {
-//
-//                        tx.run("MERGE (s:Synapse {datasetLocation:$datasetPreLocation}) ON CREATE SET s.location = $prelocation, s.datasetLocation=$datasetPreLocation,s:createdforsynapsesto \n" +
-//                                        "MERGE (t:Synapse {datasetLocation:$datasetPostLocation}) ON CREATE SET t.location = $postlocation, t.datasetLocation=$datasetPostLocation, t:createdforsynapsesto \n" +
-//                                        "MERGE (s)-[:SynapsesTo]->(t) \n",
-//                                parameters("prelocation", preLoc,
-//                                        "datasetPreLocation",dataset+":"+preLoc,
-//                                        "datasetPostLocation",dataset+":"+postLoc,
-//                                        "postlocation", postLoc));
-//                        tx.success();
-//
-//
-//                    }
-//                }
-//            }
-//            System.out.println("SynapsesTo relations added.");
-//        }
+
+
+
+
 //    }
 ////
 //    public void addNeuronParts() throws Exception {
@@ -461,8 +410,14 @@ public class ConnConvert {
             LOG.info("Loading all Synapses took: " + timer.stop());
 
             timer.start();
-            neo4jImporter.addSynapsesTo(dataset,preToPost);
+            //neo4jImporter.addSynapsesTo(dataset,preToPost);
             LOG.info("Loading all SynapsesTo took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addRois(dataset,bodies);
+            LOG.info("Loading all ROI labels took: " + timer.stop());
+
+
 
         }
 
