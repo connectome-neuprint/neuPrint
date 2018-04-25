@@ -153,9 +153,77 @@ public class Neo4jImporter implements AutoCloseable {
 
         }
 
+    public void addSynapses(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
 
+        LOG.info("addSynapses: entry");
 
+        final String preSynapseText =
+                "MERGE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
+                        " ON CREATE SET s.location=$location, " +
+                        " s.datasetLocation = $datasetLocation," +
+                        " s.confidence=$confidence, " +
+                        " s.type=$type, " +
+                        " s.x=$x, " +
+                        " s.y=$y, " +
+                        " s.z=$z \n" +
+                        " WITH s \n" +
+                        " CALL apoc.create.addLabels(id(s),['" + dataset + "']) YIELD node \n" +
+                        " RETURN node";
 
+        final String postSynapseText =
+                "MERGE (s:Synapse:PostSyn {datasetLocation:$datasetLocation}) " +
+                        " ON CREATE SET s.location=$location, " +
+                        " s.datasetLocation = $datasetLocation," +
+                        " s.confidence=$confidence, " +
+                        " s.type=$type, " +
+                        " s.x=$x, " +
+                        " s.y=$y, " +
+                        " s.z=$z \n" +
+                        " WITH s \n" +
+                        " CALL apoc.create.addLabels(id(s),['" + dataset + "']) YIELD node \n" +
+                        " RETURN node";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (final BodyWithSynapses bws : bodyList) {
+                if (bws.getBodyId()!=304654117 || !dataset.equals("mb6v2")) {
+                    for (final Synapse synapse : bws.getSynapseSet()) {
+                        if (synapse.getType().equals("pre")) {
+
+                            batch.addStatement(new Statement(
+                                    preSynapseText,
+                                    parameters("location", synapse.getLocationString(),
+                                            "datasetLocation", dataset + ":" + synapse.getLocationString(),
+                                            "confidence", synapse.getConfidence(),
+                                            "type", synapse.getType(),
+                                            "x", synapse.getLocation().get(0),
+                                            "y", synapse.getLocation().get(1),
+                                            "z", synapse.getLocation().get(2)))
+                            );
+                        } else if (synapse.getType().equals("post")) {
+                            batch.addStatement(new Statement(
+                                    postSynapseText,
+                                    parameters("location", synapse.getLocationString(),
+                                            "datasetLocation", dataset + ":" + synapse.getLocationString(),
+                                            "confidence", synapse.getConfidence(),
+                                            "type", synapse.getType(),
+                                            "x", synapse.getLocation().get(0),
+                                            "y", synapse.getLocation().get(1),
+                                            "z", synapse.getLocation().get(2)))
+                            );
+
+                        }
+                    }
+                }
+            }
+            batch.writeTransaction();
+        }
+
+        LOG.info("addSynapses: exit");
+    }
+
+    public void addSynapsesTo(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+
+    }
 
 
 

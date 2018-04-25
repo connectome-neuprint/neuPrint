@@ -48,7 +48,6 @@ public class ConnConvert {
     }
 
 
-
 //    public void addSynapses() throws Exception {
 //        try (Session session = driver.session()) {
 //            for (BodyWithSynapses bws : bodies) {
@@ -523,12 +522,17 @@ public class ConnConvert {
 
             Stopwatch timer = Stopwatch.createStarted();
             String testLabel = "speedtest";
-            neo4jImporter.addNeurons(testLabel,neurons);
+            //neo4jImporter.addNeurons(testLabel,neurons);
             LOG.info("Loading all Neuron nodes took: " + timer.stop());
 
             timer.start();
-            neo4jImporter.addConnectsTo(testLabel,bodies);
+            //neo4jImporter.addConnectsTo(testLabel,bodies);
             LOG.info("Loading all ConnectsTo took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addSynapses(dataset,bodies);
+            LOG.info("Loading all Synapses took: " + timer.stop());
+
         }
 
 
