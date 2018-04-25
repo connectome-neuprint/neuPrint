@@ -139,69 +139,6 @@ public class ConnConvert {
 
 
 
-//    public void addSizeId() throws Exception {
-//        int sId = 0;
-//        try (Session session = driver.session()) {
-//            for (BodyWithSynapses bws : bodies) {
-//                try (Transaction tx = session.beginTransaction()) {
-//                    // bodies should be sorted in descending order by number of synapses, so can create id starting at 0
-//
-//
-//                    tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId, n:createdforsid \n" +
-//                                    "SET n.sId=$sId",
-//                            parameters("bodyId", bws.getBodyId(),
-//                                    "datasetBodyId",dataset+":"+ bws.getBodyId(),
-//                                    "sId", sId));
-//                    sId++;
-//                    tx.success();
-//
-//                }
-//            }
-//        }
-//        System.out.println("Added sId to neurons in this dataset.");
-//    }
-//
-//
-//    public void addSynapseSets() throws Exception {
-//        try (Session session = driver.session()) {
-//            for (BodyWithSynapses bws : bodies) {
-//
-//                try (Transaction tx = session.beginTransaction()) {
-//                    tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId \n" +
-//                            "MERGE (s:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId \n" +
-//                            "MERGE (n)-[:Contains]->(s) \n" +
-//                                    "WITH s \n" +
-//                                    "CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-//                                    "RETURN node",
-//                            parameters("bodyId",bws.getBodyId(),
-//                                    "datasetBodyId",dataset+":"+bws.getBodyId(),
-//                                    "dataset",dataset));
-//                    tx.success();
-//                }
-//                for (Synapse synapse : bws.getSynapseSet()) {
-//                    try (Transaction tx = session.beginTransaction()) {
-//                        tx.run("MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location=$location, s.datasetLocation=$datasetLocation \n"+
-//                                "MERGE (t:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET t.bodyId=$datasetBodyId \n" +
-//                                "MERGE (t)-[:Contains]->(s) \n" +
-//                                        "WITH t \n" +
-//                                        "CALL apoc.create.addLabels(id(t),[$dataset]) YIELD node \n" +
-//                                        "RETURN node",
-//                                parameters("location", synapse.getLocationString(),
-//                                        "datasetLocation",dataset+":"+synapse.getLocationString(),
-//                                        "bodyId", bws.getBodyId(),
-//                                        "datasetBodyId",dataset+":"+bws.getBodyId(),
-//                                        "dataset",dataset));
-//                        tx.success();
-//                    }
-//                }
-//            }
-//        }
-//        System.out.println("SynapseSet nodes with Contains relations added.");
-//    }
-//
-
-
-
     public static List<Neuron> readNeuronsJson(String filepath) throws Exception{
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
@@ -391,7 +328,11 @@ public class ConnConvert {
             LOG.info("Loading all NeuronParts took: " + timer.stop());
 
             timer.start();
-            neo4jImporter.addSizeId(dataset,bodies);
+            //neo4jImporter.addSizeId(dataset,bodies);
+            LOG.info("Adding all sIds took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addSynapseSets(dataset,bodies);
             LOG.info("Adding all sIds took: " + timer.stop());
 
 

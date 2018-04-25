@@ -341,21 +341,43 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
 
+    public void addSynapseSets(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
 
+        LOG.info("addSynapseSets: entry");
 
+        final String neuronContainsSSText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId \n" +
+                "MERGE (s:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId \n" +
+                "MERGE (n)-[:Contains]->(s) \n" +
+                "WITH s \n" +
+                "CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
+                "RETURN node";
 
+        final String ssContainsSynapseText = "MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location=$location, s.datasetLocation=$datasetLocation \n"+
+                "MERGE (t:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET t.bodyId=$datasetBodyId \n" +
+                "MERGE (t)-[:Contains]->(s) \n" +
+                "WITH t \n" +
+                "CALL apoc.create.addLabels(id(t),[$dataset]) YIELD node \n" +
+                "RETURN node";
 
+        try (final TransactionBatch batch = getBatch()) {
+            for (BodyWithSynapses bws : bodyList) {
+                batch.addStatement(new Statement(neuronContainsSSText,parameters("bodyId",bws.getBodyId(),
+                        "datasetBodyId",dataset+":"+bws.getBodyId(),
+                        "dataset",dataset)));
 
+                for (Synapse synapse : bws.getSynapseSet()) {
+                    batch.addStatement(new Statement(ssContainsSynapseText, parameters("location", synapse.getLocationString(),
+                            "datasetLocation",dataset+":"+synapse.getLocationString(),
+                            "bodyId", bws.getBodyId(),
+                            "datasetBodyId",dataset+":"+bws.getBodyId(),
+                            "dataset",dataset)));
+                }
+            }
+            batch.writeTransaction();
+        }
 
-
-
-
-
-
-
-
-
-
+        LOG.info("addSynapseSets: exit");
+    }
 
 
 
