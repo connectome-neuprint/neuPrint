@@ -275,12 +275,49 @@ public class Neo4jImporter implements AutoCloseable {
                             "rois", roiList)));
                 }
             }
+            batch.writeTransaction();
         }
 
         LOG.info("addRois: exit");
 
 
     }
+
+
+    public void addNeuronParts(final String dataset, final List<BodyWithSynapses> bodyList) {
+
+        LOG.info("addNeuronParts: entry");
+
+        final String neuronPartText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId, n:createdforneuronpart \n"+
+                "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
+                "MERGE (p)-[:PartOf]->(n) \n" +
+                "WITH p \n" +
+                "CALL apoc.create.addLabels(id(p),[$roi, $dataset]) YIELD node \n" +
+                "RETURN node";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (BodyWithSynapses bws : bodyList) {
+                for (NeuronPart np : bws.getNeuronParts()) {
+                    String neuronPartId = dataset+":"+bws.getBodyId()+":"+np.getRoi();
+                    batch.addStatement(new Statement(neuronPartText,parameters("bodyId",bws.getBodyId(),
+                            "roi",np.getRoi(),
+                            "dataset",dataset,
+                            "neuronPartId",neuronPartId,
+                            "datasetBodyId",dataset+":"+bws.getBodyId(),
+                            "pre",np.getPre(),
+                            "post",np.getPost(),
+                            "size",np.getPre()+np.getPost())));
+
+                }
+            }
+            batch.writeTransaction();
+        }
+        LOG.info("addNeuronParts: exit");
+    }
+
+
+
+
 
 
 

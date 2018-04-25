@@ -417,6 +417,10 @@ public class ConnConvert {
             neo4jImporter.addRois(dataset,bodies);
             LOG.info("Loading all ROI labels took: " + timer.stop());
 
+            timer.start();
+            neo4jImporter.addNeuronParts(dataset,bodies);
+            LOG.info("Loading all NeuronParts took: " + timer.stop());
+
 
 
         }
