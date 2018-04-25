@@ -139,37 +139,6 @@ public class ConnConvert {
 
 
 
-//    }
-////
-//    public void addNeuronParts() throws Exception {
-//        try (Session session = driver.session()) {
-//                for (BodyWithSynapses bws: bodies) {
-//                    for (NeuronPart np : bws.getNeuronParts()) {
-//                        try(Transaction tx = session.beginTransaction()) {
-//                        // create neuronpart node that points to neuron with partof relation
-//                            String neuronPartId = dataset+":"+bws.getBodyId()+":"+np.getRoi();
-//                        tx.run("MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId, n:createdforneuronpart \n"+
-//                                        "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
-//                                        "MERGE (p)-[:PartOf]->(n) \n" +
-//                                        "WITH p \n" +
-//                                        "CALL apoc.create.addLabels(id(p),[$roi, $dataset]) YIELD node \n" +
-//                                        "RETURN node",
-//                                parameters("bodyId",bws.getBodyId(),
-//                                        "roi",np.getRoi(),
-//                                        "dataset",dataset,
-//                                        "neuronPartId",neuronPartId,
-//                                        "datasetBodyId",dataset+":"+bws.getBodyId(),
-//                                        "pre",np.getPre(),
-//                                        "post",np.getPost(),
-//                                        "size",np.getPre()+np.getPost()));
-//                        tx.success();
-//                    }
-//                }
-//            }
-//        }
-//        System.out.println("NeuronPart nodes added with PartOf relationships.");
-//    }
-//
 //    public void addSizeId() throws Exception {
 //        int sId = 0;
 //        try (Session session = driver.session()) {
@@ -414,12 +383,16 @@ public class ConnConvert {
             LOG.info("Loading all SynapsesTo took: " + timer.stop());
 
             timer.start();
-            neo4jImporter.addRois(dataset,bodies);
+            //neo4jImporter.addRois(dataset,bodies);
             LOG.info("Loading all ROI labels took: " + timer.stop());
 
             timer.start();
-            neo4jImporter.addNeuronParts(dataset,bodies);
+            //neo4jImporter.addNeuronParts(dataset,bodies);
             LOG.info("Loading all NeuronParts took: " + timer.stop());
+
+            timer.start();
+            neo4jImporter.addSizeId(dataset,bodies);
+            LOG.info("Adding all sIds took: " + timer.stop());
 
 
 
