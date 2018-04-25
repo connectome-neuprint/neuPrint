@@ -174,8 +174,11 @@ public class ConnConvert {
         //String filepath = properties.getProperty("mb6neurons");
         //String filepath2 = properties.getProperty("mb6synapses");
 
-        String filepath = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json";
-        String filepath2 = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Synapses_with_rois.json";
+        //String filepath = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json";
+        //String filepath2 = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Synapses_with_rois.json";
+
+        String filepath = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Neurons.json";
+        String filepath2 = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Synapses.json";
 
         //read dataset name
         String patternNeurons = ".*inputs/(.*?)_Neurons.*";
@@ -303,37 +306,36 @@ public class ConnConvert {
             neo4jImporter.prepDatabase();
 
             Stopwatch timer = Stopwatch.createStarted();
-            String testLabel = "speedtest";
-            //neo4jImporter.addNeurons(dataset,neurons);
+            neo4jImporter.addNeurons(dataset,neurons);
             LOG.info("Loading all Neuron nodes took: " + timer.stop());
 
             timer.start();
-            //neo4jImporter.addConnectsTo(dataset,bodies);
+            neo4jImporter.addConnectsTo(dataset,bodies);
             LOG.info("Loading all ConnectsTo took: " + timer.stop());
 
             timer.start();
-            //neo4jImporter.addSynapses(dataset,bodies);
+            neo4jImporter.addSynapses(dataset,bodies);
             LOG.info("Loading all Synapses took: " + timer.stop());
 
             timer.start();
-            //neo4jImporter.addSynapsesTo(dataset,preToPost);
+            neo4jImporter.addSynapsesTo(dataset,preToPost);
             LOG.info("Loading all SynapsesTo took: " + timer.stop());
 
             timer.start();
-            //neo4jImporter.addRois(dataset,bodies);
+            neo4jImporter.addRois(dataset,bodies);
             LOG.info("Loading all ROI labels took: " + timer.stop());
 
             timer.start();
-            //neo4jImporter.addNeuronParts(dataset,bodies);
+            neo4jImporter.addNeuronParts(dataset,bodies);
             LOG.info("Loading all NeuronParts took: " + timer.stop());
 
             timer.start();
-            //neo4jImporter.addSizeId(dataset,bodies);
+            neo4jImporter.addSizeId(dataset,bodies);
             LOG.info("Adding all sIds took: " + timer.stop());
 
             timer.start();
             neo4jImporter.addSynapseSets(dataset,bodies);
-            LOG.info("Adding all sIds took: " + timer.stop());
+            LOG.info("Loading SynapseSets took: " + timer.stop());
 
 
 
