@@ -129,7 +129,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         try (final TransactionBatch batch = getBatch()) {
             for (final BodyWithSynapses bws : bodyList) {
-                for (final Integer postsynapticBodyId : bws.connectsTo.keySet()) {
+                for (final Long postsynapticBodyId : bws.connectsTo.keySet()) {
                     batch.addStatement(
                             new Statement(connectsToText,
                                     parameters("bodyId1", bws.getBodyId(),

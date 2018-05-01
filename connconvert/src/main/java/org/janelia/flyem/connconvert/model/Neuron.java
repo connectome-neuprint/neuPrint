@@ -11,7 +11,7 @@ import java.util.List;
 public class Neuron {
 
     @SerializedName("Id")
-    private final Integer id;
+    private final Long id;
 
     @SerializedName("Status")
     private final String status;
@@ -25,7 +25,7 @@ public class Neuron {
     @SerializedName("Size")
     private final Integer size;
 
-    public Neuron(final Integer id,
+    public Neuron(final Long id,
                   final String status,
                   final String name,
                   final String neuronType,
@@ -38,7 +38,7 @@ public class Neuron {
     }
 
 
-    public Integer getId() {
+    public Long getId() {
         return id;
     }
 

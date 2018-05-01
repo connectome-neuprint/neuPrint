@@ -287,8 +287,8 @@ public class ConnConvert {
         //System.out.println(neurons.get(0));
 
         //create a new hashmap for storing: body>pre, pre>post; post>body
-        HashMap<String, Integer> preToBody = new HashMap<>();
-        HashMap<String, Integer> postToBody = new HashMap<>();
+        HashMap<String, Long> preToBody = new HashMap<>();
+        HashMap<String, Long> postToBody = new HashMap<>();
         HashMap<String, List<String>> preToPost = new HashMap<>();
 
         for (BodyWithSynapses bws : bodyList) {
