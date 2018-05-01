@@ -52,10 +52,10 @@ public class ConnConvert {
         public String neuronJson;
 
         @Parameter(
-                names = "--neuronDataSet",
-                description = "Data set value for all neurons",
+                names = "--neuronDataset",
+                description = "Dataset value for all neurons (if not specified will read from file name)",
                 required = false)
-        public String neuronDataSet;
+        public String neuronDataset;
 
         @Parameter(
                 names = "--synapseJson",
@@ -72,7 +72,6 @@ public class ConnConvert {
             return (dbProperties == null) ? null : DbConfig.fromFile(new File(dbProperties));
         }
 
-        //TODO: what is this for?
         @Override
         public String toString() {
             return JsonUtils.GSON.toJson(this);
@@ -205,6 +204,29 @@ public class ConnConvert {
         return bodies;
     }
 
+    private static void setDatasetName(String neuronFilePath,String synapseFilePath) {
+        String patternNeurons = ".*inputs/(.*?)_Neurons.*";
+        Pattern rN = Pattern.compile(patternNeurons);
+        Matcher mN = rN.matcher(neuronFilePath);
+        String patternSynapses = ".*inputs/(.*?)_Synapses.*";
+        Pattern rS = Pattern.compile(patternSynapses);
+        Matcher mS = rS.matcher(synapseFilePath);
+        mN.matches();
+        mS.matches();
+
+        try {
+            if (mS.group(1).equals(mN.group(1))) {
+                dataset = mS.group(1);
+            } else {
+                LOG.log(Level.INFO,"Check that input files are from the same dataset.");
+                System.exit(1);
+            }
+        } catch (IllegalStateException ise) {
+            LOG.log(Level.INFO,"Check input file names.",ise);
+            System.exit(1);
+        }
+    }
+
 
     public static void main(String[] args) throws Exception {
         final ConverterParameters parameters = new ConverterParameters();
@@ -230,41 +252,27 @@ public class ConnConvert {
         LOG.info("running with parameters: " + parameters);
 
 
-
-        //String filepath = properties.getProperty("fib25neurons");
-        //String filepath2 = properties.getProperty("fib25synapses");
-        //String filepath = properties.getProperty("mb6neurons");
-        //String filepath2 = properties.getProperty("mb6synapses");
-
-        //String filepath = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json";
-        //String filepath2 = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Synapses_with_rois.json";
-
-//        String filepath = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Neurons.json";
-//        String filepath2 = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Synapses.json";
-
-        //read dataset name
-        String patternNeurons = ".*inputs/(.*?)_Neurons.*";
-        Pattern rN = Pattern.compile(patternNeurons);
-        Matcher mN = rN.matcher(parameters.neuronJson);
-        String patternSynapses = ".*inputs/(.*?)_Synapses.*";
-        Pattern rS = Pattern.compile(patternSynapses);
-        Matcher mS = rS.matcher(parameters.synapseJson);
-        mN.matches();
-        mS.matches();
-
-        try {
-            if (mS.group(1).equals(mN.group(1))) {
-                dataset = mS.group(1);
+        if ((parameters.neuronDataset != null)) {
+            String patternNeurons = ".*inputs/(.*?)_Neurons.*";
+            Pattern rN = Pattern.compile(patternNeurons);
+            Matcher mN = rN.matcher(parameters.neuronJson);
+            String patternSynapses = ".*inputs/(.*?)_Synapses.*";
+            Pattern rS = Pattern.compile(patternSynapses);
+            Matcher mS = rS.matcher(parameters.synapseJson);
+            mN.matches();
+            mS.matches();
+            if (mN.group(1).equals(mS.group(1))) {
+                dataset = parameters.neuronDataset;
+            } else {
+                LOG.log(Level.INFO,"Check that input files are from the same dataset.");
+                System.exit(1);
             }
-        } catch (IllegalStateException ise) {
-            System.out.println("Check input file names.");
-            return;
+        } else {
+            setDatasetName(parameters.neuronJson, parameters.synapseJson);
         }
 
         System.out.println("Dataset is: " + dataset);
-        if (dataset.equals("mb6")) {
-            dataset = "mb6v2";
-        }
+
 
         neurons = readNeuronsJson(parameters.neuronJson);
         bodies = readSynapsesJson(parameters.synapseJson);
