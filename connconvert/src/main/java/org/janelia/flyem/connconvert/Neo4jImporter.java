@@ -79,7 +79,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("prepDatabase: exit");
 
-        }
+    }
 
     public void addNeurons(final String dataset,
                            final List<Neuron> neuronList) throws Exception {
@@ -142,7 +142,7 @@ public class Neo4jImporter implements AutoCloseable {
                         new Statement(terminalCountText,
                                 parameters("pre", bws.getPre(),
                                         "post", bws.getPost(),
-                                        "datasetBodyId", dataset+":"+bws.getBodyId()))
+                                        "datasetBodyId", dataset + ":" + bws.getBodyId()))
                 );
 
             }
@@ -151,7 +151,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addConnectsTo: exit");
 
-        }
+    }
 
     public void addSynapses(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
 
@@ -185,7 +185,8 @@ public class Neo4jImporter implements AutoCloseable {
 
         try (final TransactionBatch batch = getBatch()) {
             for (final BodyWithSynapses bws : bodyList) {
-                if (bws.getBodyId()!=304654117 || !dataset.equals("mb6v2")) {
+                // issue with this body id in mb6
+                if (bws.getBodyId() != 304654117 || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
                     for (final Synapse synapse : bws.getSynapseSet()) {
                         if (synapse.getType().equals("pre")) {
 
@@ -217,9 +218,11 @@ public class Neo4jImporter implements AutoCloseable {
             }
             batch.writeTransaction();
         }
-
         LOG.info("addSynapses: exit");
     }
+
+
+
 
     public void addSynapsesTo(final String dataset,  HashMap<String,List<String>> preToPost) throws Exception {
 

@@ -317,19 +317,6 @@ public class ConnConvert {
         //can now sort bodies by synapse count
         bodies.sort(new SortBodyByNumberOfSynapses());
 
-        //System.out.println(bodies[3].connectsTo);
-        //System.out.println(bodies[3].connectsFrom);
-        //List<Integer> temploc = new ArrayList<Integer>() {{
-        //    add(4657);
-        //    add(2648);
-        //    add(1509);
-        //}};
-        //System.out.println(preToPost.get(temploc));
-        //System.out.println(preToPost.keySet());
-        //System.out.println(bodies[0].getSynapseSet().get(0));
-        // start upload to database
-
-
         //logging
         FileHandler fh;
         try {
@@ -345,58 +332,41 @@ public class ConnConvert {
         }
 
 
-        //try(ConnConvert connConvert = new ConnConvert(uri,user,password)) {
-        // uncomment to add different features to database
-        //connConvert.prepDatabase(); //ran 7:30
-        //connConvert.addNeurons(); //ran 7:30
-        //connConvert.addConnectsTo(); // ran 10PM
-        //connConvert.addSynapses();
-        //connConvert.addSynapsesTo(preToPost);
-        //connConvert.addRois();
-        //connConvert.addNeuronParts();
-        //connConvert.addSizeId(); //
-        //connConvert.addSynapseSets(); //
-
-        //connConvert.testSynapseLoad();
-        //connConvert.testLoadNeuronsWithJSON();
-        //}
-
-
 
         try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
             neo4jImporter.prepDatabase();
 
             Stopwatch timer = Stopwatch.createStarted();
             neo4jImporter.addNeurons(dataset, neurons);
-            LOG.info("Loading all Neuron nodes took: " + timer.stop());
+            LOG.info("Loading all Neuron nodes took: " + timer.reset());
 
             timer.start();
             neo4jImporter.addConnectsTo(dataset, bodies);
-            LOG.info("Loading all ConnectsTo took: " + timer.stop());
+            LOG.info("Loading all ConnectsTo took: " + timer.reset());
 
             timer.start();
             neo4jImporter.addSynapses(dataset, bodies);
-            LOG.info("Loading all Synapses took: " + timer.stop());
+            LOG.info("Loading all Synapses took: " + timer.reset());
 
             timer.start();
             neo4jImporter.addSynapsesTo(dataset, preToPost);
-            LOG.info("Loading all SynapsesTo took: " + timer.stop());
+            LOG.info("Loading all SynapsesTo took: " + timer.reset());
 
             timer.start();
             neo4jImporter.addRois(dataset, bodies);
-            LOG.info("Loading all ROI labels took: " + timer.stop());
+            LOG.info("Loading all ROI labels took: " + timer.reset());
 
             timer.start();
             neo4jImporter.addNeuronParts(dataset, bodies);
-            LOG.info("Loading all NeuronParts took: " + timer.stop());
+            LOG.info("Loading all NeuronParts took: " + timer.reset());
 
             timer.start();
             neo4jImporter.addSizeId(dataset, bodies);
-            LOG.info("Adding all sIds took: " + timer.stop());
+            LOG.info("Adding all sIds took: " + timer.reset());
 
             timer.start();
             neo4jImporter.addSynapseSets(dataset, bodies);
-            LOG.info("Loading SynapseSets took: " + timer.stop());
+            LOG.info("Loading SynapseSets took: " + timer.reset());
 
 
         }
