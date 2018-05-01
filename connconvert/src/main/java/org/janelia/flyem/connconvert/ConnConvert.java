@@ -83,8 +83,6 @@ public class ConnConvert {
     private static List<BodyWithSynapses> bodies;
     private static String dataset;
 
-    private ConnConvert() {
-    }
 
 
 //
@@ -336,13 +334,11 @@ public class ConnConvert {
         FileHandler fh;
         try {
 
-
             fh = new FileHandler("/Users/neubarthn/Documents/GitHub/ConnectomeJSONtoNeo4j/connconvert/logs/neo4jload.log");
             fh.setFormatter(new SimpleFormatter());
             LOG.addHandler(fh);
 
             //LOG.setUseParentHandlers(false);
-
 
         } catch (SecurityException e) {
             e.printStackTrace();
@@ -365,7 +361,6 @@ public class ConnConvert {
         //connConvert.testLoadNeuronsWithJSON();
         //}
 
-        ConnConvert connConvert = new ConnConvert();
 
 
         try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
