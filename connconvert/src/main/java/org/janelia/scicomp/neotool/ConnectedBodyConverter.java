@@ -9,10 +9,10 @@
 //import java.io.FileReader;
 //import java.util.List;
 //
-//import connconvert.db.DbConfig;
-//import connconvert.json.JsonUtils;
-//import connconvert.model.Body;
-//import connconvert.model.Neuron;
+//import DbConfig;
+//import JsonUtils;
+//import Body;
+//import Neuron;
 //import org.slf4j.Logger;
 //import org.slf4j.LoggerFactory;
 //
