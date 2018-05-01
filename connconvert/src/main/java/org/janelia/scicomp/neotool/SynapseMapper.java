@@ -5,8 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.List;
 
-import connconvert.model.Body;
-import connconvert.model.SynapseLocationToBodyMap;
+import org.janelia.flyem.connconvert.model.Body;
+import org.janelia.flyem.connconvert.model.SynapseLocationToBodyMap;
 
 /**
  * Coordinates parsing and mapping JSON formatted connected body synapse data into an in-memory object model.

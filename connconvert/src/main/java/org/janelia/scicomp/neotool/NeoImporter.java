@@ -2,14 +2,14 @@
 //
 //import java.util.List;
 //
-//import connconvert.db.DbConfig;
-//import connconvert.db.DbTransactionBatch;
-//import connconvert.db.StdOutTransactionBatch;
-//import connconvert.db.TransactionBatch;
-//import connconvert.model.Body;
-//import connconvert.model.Location;
-//import connconvert.model.Neuron;
-//import connconvert.model.Synapse;
+//import DbConfig;
+//import DbTransactionBatch;
+//import StdOutTransactionBatch;
+//import TransactionBatch;
+//import Body;
+//import Location;
+//import Neuron;
+//import Synapse;
 //import org.neo4j.driver.v1.AuthTokens;
 //import org.neo4j.driver.v1.Driver;
 //import org.neo4j.driver.v1.GraphDatabase;
