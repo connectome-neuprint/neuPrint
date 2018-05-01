@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 
 import org.janelia.flyem.connconvert.db.DbConfig;
 import org.janelia.flyem.connconvert.json.JsonUtils;
+import org.janelia.flyem.connconvert.model.Neuron;
 
 
 // TODO: Add ROI information using column names from neurons file?
@@ -277,6 +278,8 @@ public class ConnConvert {
 
         neuronList = readNeuronsJson(parameters.neuronJson);
         bodyList = readSynapsesJson(parameters.synapseJson);
+
+        System.out.println(neuronList);
 
 
         //sorting the neurons by size

@@ -5,6 +5,7 @@ import org.janelia.flyem.connconvert.db.DbConfig;
 import org.janelia.flyem.connconvert.db.DbTransactionBatch;
 import org.janelia.flyem.connconvert.db.StdOutTransactionBatch;
 import org.janelia.flyem.connconvert.db.TransactionBatch;
+import org.janelia.flyem.connconvert.model.Neuron;
 import org.neo4j.driver.v1.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
