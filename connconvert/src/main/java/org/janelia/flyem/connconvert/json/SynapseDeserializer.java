@@ -8,9 +8,9 @@ import com.google.gson.JsonParseException;
 
 import java.lang.reflect.Type;
 
-import org.janelia.flyem.connconvert.model.PostSynapse;
-import org.janelia.flyem.connconvert.model.PreSynapse;
-import org.janelia.flyem.connconvert.model.Synapse;
+import org.janelia.flyem.connconvert.model2.PostSynapse;
+import org.janelia.flyem.connconvert.model2.PreSynapse;
+import org.janelia.flyem.connconvert.model2.Synapse;
 
 /**
  * Deserializes generic JSON synapses into pre or post synapse objects.

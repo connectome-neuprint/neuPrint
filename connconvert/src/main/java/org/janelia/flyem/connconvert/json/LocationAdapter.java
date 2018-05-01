@@ -9,7 +9,7 @@ import com.google.gson.JsonSerializer;
 
 import java.lang.reflect.Type;
 
-import org.janelia.flyem.connconvert.model.Location;
+import org.janelia.flyem.connconvert.model2.Location;
 
 /**
  * Serializes and deserializes synapse locations.

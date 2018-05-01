@@ -1,5 +1,12 @@
 package org.janelia.flyem.connconvert;
 
+import com.google.gson.reflect.TypeToken;
+import org.janelia.flyem.connconvert.json.JsonUtils;
+
+import java.io.BufferedReader;
+import java.lang.reflect.Type;
+import java.util.List;
+
 public class Neuron {
     // for each neuron, create a node with properties:
     // bodyId (int)
@@ -121,6 +128,12 @@ public class Neuron {
                 ", size= " + size
                 + "}";
     }
+
+    public static List<Neuron> fromJson(final BufferedReader reader) {
+        return JsonUtils.GSON.fromJson(reader,NEURON_LIST_TYPE);
+    }
+
+    private static Type NEURON_LIST_TYPE = new TypeToken<List<Neuron>>(){}.getType();
 
 
 }

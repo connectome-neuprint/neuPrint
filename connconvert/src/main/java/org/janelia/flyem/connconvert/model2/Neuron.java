@@ -1,4 +1,4 @@
-package org.janelia.flyem.connconvert.model;
+package org.janelia.flyem.connconvert.model2;
 
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;

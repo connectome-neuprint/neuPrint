@@ -8,7 +8,7 @@ import com.google.gson.JsonSerializer;
 
 import java.lang.reflect.Type;
 
-import org.janelia.flyem.connconvert.model.PreSynapse;
+import org.janelia.flyem.connconvert.model2.PreSynapse;
 
 /**
  * Serializes pre-synapse objects into a generic JSON synapse form.

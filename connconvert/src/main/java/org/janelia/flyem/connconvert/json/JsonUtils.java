@@ -3,10 +3,10 @@ package org.janelia.flyem.connconvert.json;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import org.janelia.flyem.connconvert.model.Location;
-import org.janelia.flyem.connconvert.model.PostSynapse;
-import org.janelia.flyem.connconvert.model.PreSynapse;
-import org.janelia.flyem.connconvert.model.Synapse;
+import org.janelia.flyem.connconvert.model2.Location;
+import org.janelia.flyem.connconvert.model2.PostSynapse;
+import org.janelia.flyem.connconvert.model2.PreSynapse;
+import org.janelia.flyem.connconvert.model2.Synapse;
 
 /**
  * Shared utilities for working with JSON.

@@ -17,8 +17,8 @@
 //import org.slf4j.LoggerFactory;
 //
 ///**
-// * Converts JSON neuron and synapse data exported from DVID into a graph model
-// * and (optionally) imports that model into a neo4j database.
+// * Converts JSON neuron and synapse data exported from DVID into a graph model2
+// * and (optionally) imports that model2 into a neo4j database.
 // */
 //public class ConnectedBodyConverter {
 //

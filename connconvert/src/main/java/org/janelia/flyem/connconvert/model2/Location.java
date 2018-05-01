@@ -1,4 +1,4 @@
-package org.janelia.flyem.connconvert.model;
+package org.janelia.flyem.connconvert.model2;
 
 /**
  * Synapse location data.
