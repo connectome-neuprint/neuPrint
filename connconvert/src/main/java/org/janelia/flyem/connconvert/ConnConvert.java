@@ -334,7 +334,10 @@ public class ConnConvert {
 
 
         try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-            neo4jImporter.prepDatabase();
+
+            if (parameters.prepDatabase) {
+                neo4jImporter.prepDatabase();
+            }
 
             Stopwatch timer = Stopwatch.createStarted();
             neo4jImporter.addNeurons(dataset, neurons);
