@@ -6,6 +6,7 @@ import java.io.FileReader;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
+import com.beust.jcommander.Parameters;
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -28,7 +29,7 @@ import org.janelia.flyem.connconvert.json.JsonUtils;
 // FIB25 names often include column info (7 columns)  - pnas paper.
 public class ConnConvert {
 
-
+    @Parameters(separators = "=")
     public static class ConverterParameters {
 
         @Parameter(
@@ -238,16 +239,16 @@ public class ConnConvert {
         //String filepath = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json";
         //String filepath2 = "/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Synapses_with_rois.json";
 
-        String filepath = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Neurons.json";
-        String filepath2 = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Synapses.json";
+//        String filepath = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Neurons.json";
+//        String filepath2 = "/Users/neubarthn/Downloads/mb6_neo4j_inputs/mb6_Synapses.json";
 
         //read dataset name
         String patternNeurons = ".*inputs/(.*?)_Neurons.*";
         Pattern rN = Pattern.compile(patternNeurons);
-        Matcher mN = rN.matcher(filepath);
+        Matcher mN = rN.matcher(parameters.neuronJson);
         String patternSynapses = ".*inputs/(.*?)_Synapses.*";
         Pattern rS = Pattern.compile(patternSynapses);
-        Matcher mS = rS.matcher(filepath2);
+        Matcher mS = rS.matcher(parameters.synapseJson);
         mN.matches();
         mS.matches();
 
@@ -265,9 +266,8 @@ public class ConnConvert {
             dataset = "mb6v2";
         }
 
-
-        neurons = readNeuronsJson(filepath);
-        bodies = readSynapsesJson(filepath2);
+        neurons = readNeuronsJson(parameters.neuronJson);
+        bodies = readSynapsesJson(parameters.synapseJson);
 
 
         //sorting the neurons by size
