@@ -347,35 +347,43 @@ public class ConnConvert {
 
             Stopwatch timer = Stopwatch.createStarted();
             neo4jImporter.addNeurons(dataset, neuronList);
-            LOG.info("Loading all Neuron nodes took: " + timer.reset());
+            LOG.info("Loading all Neuron nodes took: " + timer.stop());
+            timer.reset();
 
             timer.start();
             neo4jImporter.addConnectsTo(dataset, bodyList);
-            LOG.info("Loading all ConnectsTo took: " + timer.reset());
+            LOG.info("Loading all ConnectsTo took: " + timer.stop());
+            timer.reset();
 
             timer.start();
             neo4jImporter.addSynapses(dataset, bodyList);
-            LOG.info("Loading all Synapses took: " + timer.reset());
+            LOG.info("Loading all Synapses took: " + timer.stop());
+            timer.reset();
 
             timer.start();
             neo4jImporter.addSynapsesTo(dataset, preToPost);
-            LOG.info("Loading all SynapsesTo took: " + timer.reset());
+            LOG.info("Loading all SynapsesTo took: " + timer.stop());
+            timer.reset();
 
             timer.start();
             neo4jImporter.addRois(dataset, bodyList);
-            LOG.info("Loading all ROI labels took: " + timer.reset());
+            LOG.info("Loading all ROI labels took: " + timer.stop());
+            timer.reset();
 
             timer.start();
             neo4jImporter.addNeuronParts(dataset, bodyList);
-            LOG.info("Loading all NeuronParts took: " + timer.reset());
+            LOG.info("Loading all NeuronParts took: " + timer.stop());
+            timer.reset();
 
             timer.start();
             neo4jImporter.addSizeId(dataset, bodyList);
-            LOG.info("Adding all sIds took: " + timer.reset());
+            LOG.info("Adding all sIds took: " + timer.stop());
+            timer.reset();
 
             timer.start();
             neo4jImporter.addSynapseSets(dataset, bodyList);
-            LOG.info("Loading SynapseSets took: " + timer.reset());
+            LOG.info("Loading SynapseSets took: " + timer.stop());
+            timer.reset();
 
 
         }
