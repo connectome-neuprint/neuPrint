@@ -263,6 +263,7 @@ public class ConnConvert {
             Matcher mS = rS.matcher(parameters.synapseJson);
             mN.matches();
             mS.matches();
+            // TODO: ask user if it's okay to continue if they dataset names seem different
             if (mN.group(1).equals(mS.group(1))) {
                 dataset = parameters.neuronDataset;
             } else {
@@ -279,7 +280,6 @@ public class ConnConvert {
         neuronList = readNeuronsJson(parameters.neuronJson);
         bodyList = readSynapsesJson(parameters.synapseJson);
 
-        System.out.println(neuronList);
 
 
         //sorting the neurons by size
@@ -341,49 +341,49 @@ public class ConnConvert {
 
         try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-            if (parameters.prepDatabase) {
-                neo4jImporter.prepDatabase();
-            }
-
-            Stopwatch timer = Stopwatch.createStarted();
-            neo4jImporter.addNeurons(dataset, neuronList);
-            LOG.info("Loading all Neuron nodes took: " + timer.stop());
-            timer.reset();
-
-            timer.start();
-            neo4jImporter.addConnectsTo(dataset, bodyList);
-            LOG.info("Loading all ConnectsTo took: " + timer.stop());
-            timer.reset();
-
-            timer.start();
-            neo4jImporter.addSynapses(dataset, bodyList);
-            LOG.info("Loading all Synapses took: " + timer.stop());
-            timer.reset();
-
-            timer.start();
-            neo4jImporter.addSynapsesTo(dataset, preToPost);
-            LOG.info("Loading all SynapsesTo took: " + timer.stop());
-            timer.reset();
-
-            timer.start();
-            neo4jImporter.addRois(dataset, bodyList);
-            LOG.info("Loading all ROI labels took: " + timer.stop());
-            timer.reset();
-
-            timer.start();
-            neo4jImporter.addNeuronParts(dataset, bodyList);
-            LOG.info("Loading all NeuronParts took: " + timer.stop());
-            timer.reset();
-
-            timer.start();
-            neo4jImporter.addSizeId(dataset, bodyList);
-            LOG.info("Adding all sIds took: " + timer.stop());
-            timer.reset();
-
-            timer.start();
-            neo4jImporter.addSynapseSets(dataset, bodyList);
-            LOG.info("Loading SynapseSets took: " + timer.stop());
-            timer.reset();
+//            if (parameters.prepDatabase) {
+//                neo4jImporter.prepDatabase();
+//            }
+//
+//            Stopwatch timer = Stopwatch.createStarted();
+//            neo4jImporter.addNeurons(dataset, neuronList);
+//            LOG.info("Loading all Neuron nodes took: " + timer.stop());
+//            timer.reset();
+//
+//            timer.start();
+//            neo4jImporter.addConnectsTo(dataset, bodyList);
+//            LOG.info("Loading all ConnectsTo took: " + timer.stop());
+//            timer.reset();
+//
+//            timer.start();
+//            neo4jImporter.addSynapses(dataset, bodyList);
+//            LOG.info("Loading all Synapses took: " + timer.stop());
+//            timer.reset();
+//
+//            timer.start();
+//            neo4jImporter.addSynapsesTo(dataset, preToPost);
+//            LOG.info("Loading all SynapsesTo took: " + timer.stop());
+//            timer.reset();
+//
+//            timer.start();
+//            neo4jImporter.addRois(dataset, bodyList);
+//            LOG.info("Loading all ROI labels took: " + timer.stop());
+//            timer.reset();
+//
+//            timer.start();
+//            neo4jImporter.addNeuronParts(dataset, bodyList);
+//            LOG.info("Loading all NeuronParts took: " + timer.stop());
+//            timer.reset();
+//
+//            timer.start();
+//            neo4jImporter.addSizeId(dataset, bodyList);
+//            LOG.info("Adding all sIds took: " + timer.stop());
+//            timer.reset();
+//
+//            timer.start();
+//            neo4jImporter.addSynapseSets(dataset, bodyList);
+//            LOG.info("Loading SynapseSets took: " + timer.stop());
+//            timer.reset();
 
 
         }

@@ -23,13 +23,13 @@ public class Neuron {
     private final String neuronType; // TODO: so far not in datasets, ask Lowell
 
     @SerializedName("Size")
-    private final Integer size;
+    private final Long size;
 
     public Neuron(final Long id,
                   final String status,
                   final String name,
                   final String neuronType,
-                  final Integer size) {
+                  final Long size) {
         this.id = id;
         this.status = status;
         this.name = name;
@@ -54,7 +54,7 @@ public class Neuron {
         return status;
     }
 
-    public Integer getSize() {
+    public Long getSize() {
         return size;
     }
 
