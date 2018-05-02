@@ -26,13 +26,7 @@ public class BodyWithSynapses {
         this.bodyId = null;
         this.synapseSet = new HashSet<>(); // LinkedHashSet ? if want to preserve order
     }
-
-/*//
-
-    private transient Map<Body, Integer> connectsToBodyCounts;
-
-
-    //*/
+    
     /**
      * @return the bodyId associated with this body.
      */
