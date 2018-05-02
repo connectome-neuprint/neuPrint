@@ -141,8 +141,8 @@ public class Neo4jImporter implements AutoCloseable {
                 }
                 batch.addStatement(
                         new Statement(terminalCountText,
-                                parameters("pre", bws.getPre(),
-                                        "post", bws.getPost(),
+                                parameters("pre", bws.getNumberOfPreSynapses(),
+                                        "post", bws.getNumberOfPostSynapses(),
                                         "datasetBodyId", dataset + ":" + bws.getBodyId()))
                 );
 
