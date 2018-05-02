@@ -14,12 +14,13 @@ public class BodyWithSynapses {
     private final Set<Synapse> synapseSet;
     // TODO: check for attempts to add duplicate synapses
 
-    public HashMap<Long,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
-    public HashMap<Long,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
+    public transient HashMap<Long,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
+    public transient HashMap<Long,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
     private transient Integer numberOfPreSynapses;
     private transient Integer numberOfPostSynapses;
+
     // body divided into multiple neuron parts based on roi
-    private List<NeuronPart> neuronParts;
+    private transient List<NeuronPart> neuronParts;
 
     public BodyWithSynapses() {
         this.bodyId = null;
@@ -28,23 +29,26 @@ public class BodyWithSynapses {
 
 /*//
 
-
-    private transient int totalNumberOfPreSynapticTerminals;
-    private transient int totalNumberOfPostSynapticTerminals;
-
     private transient Map<Body, Integer> connectsToBodyCounts;
 
 
     //*/
-
+    /**
+     * @return the bodyId associated with this body.
+     */
     public Long getBodyId(){
         return this.bodyId;
     }
 
+    /**
+     * @return the total number pre-synapses associated with this body.
+     */
     public Integer getNumberOfPreSynapses() {
         return this.numberOfPreSynapses;
     }
-
+    /**
+     * @return the total number post-synapses associated with this body.
+     */
     public Integer getNumberOfPostSynapses() {
         return this.numberOfPostSynapses;
     }
@@ -157,29 +161,20 @@ public class BodyWithSynapses {
         return postsynapticPartnerIds;
     }
 
-    private void setNumberOfPreSynapses(){
+
+    public void setSynapseCounts(){
         int countPre = 0;
+        int countPost = 0;
         for (Synapse synapse: this.synapseSet) {
             if (synapse.getType().equals("pre")) {
                 countPre++;
-            }
-        }
-        this.numberOfPreSynapses = countPre;
-    }
-
-    private void setNumberOfPostSynapses(){
-        int countPost = 0;
-        for (Synapse synapse: this.synapseSet) {
-            if (synapse.getType().equals("post")) {
+            } else if (synapse.getType().equals("post")) {
                 countPost++;
             }
         }
+        this.numberOfPreSynapses = countPre;
         this.numberOfPostSynapses = countPost;
-    }
 
-    public void setSynapseCounts(){
-        this.setNumberOfPostSynapses();
-        this.setNumberOfPreSynapses();
     }
 
 
