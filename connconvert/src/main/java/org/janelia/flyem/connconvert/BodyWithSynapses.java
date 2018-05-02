@@ -12,6 +12,7 @@ public class BodyWithSynapses {
 
     @SerializedName("SynapseSet")
     private final Set<Synapse> synapseSet;
+    // TODO: check for attempts to add duplicate synapses
 
     public HashMap<Long,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
     public HashMap<Long,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
@@ -61,6 +62,24 @@ public class BodyWithSynapses {
     public String toString() {
         return "BodyWithSynapses { " + "bodyid= " + this.bodyId +
                 ", SynapseSet= " + this.synapseSet + " }";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        boolean isEqual = false;
+        if (this == o) {
+            isEqual = true;
+        } else if (o instanceof BodyWithSynapses) {
+            final BodyWithSynapses that = (BodyWithSynapses) o;
+            isEqual = Objects.equals(this.bodyId, that.bodyId);
+        }
+        return isEqual;
+    }
+
+    @Override
+    public int hashCode() {
+        //noinspection ConstantConditions
+        return bodyId.hashCode();
     }
 
     public List<String> getPreLocations() {
