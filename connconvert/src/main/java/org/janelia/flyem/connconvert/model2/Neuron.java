@@ -1,13 +1,17 @@
-package org.janelia.flyem.connconvert.model;
+package org.janelia.flyem.connconvert.model2;
 
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
-import org.janelia.flyem.connconvert.json.JsonUtils;
 
-import java.io.BufferedReader;
+import java.io.Reader;
 import java.lang.reflect.Type;
 import java.util.List;
 
+import org.janelia.flyem.connconvert.json.JsonUtils;
+
+/**
+ * Neuron data.
+ */
 public class Neuron {
 
     @SerializedName("Id")
@@ -20,7 +24,7 @@ public class Neuron {
     private final String name;
 
     @SerializedName("Type")
-    private final String neuronType; // TODO: so far not in datasets, ask Lowell
+    private final String neuronType; // TODO: ask Nicole why this is missing from fib25 data
 
     @SerializedName("Size")
     private final Integer size;
@@ -37,7 +41,6 @@ public class Neuron {
         this.size = size;
     }
 
-
     public Long getId() {
         return id;
     }
@@ -50,12 +53,12 @@ public class Neuron {
         return neuronType;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
     public Integer getSize() {
         return size;
+    }
+
+    public String getStatus() {
+        return status;
     }
 
     @Override
@@ -77,19 +80,17 @@ public class Neuron {
 
     @Override
     public String toString() {
-        return "Neuron { " + "bodyid= " + id +
-                ", status= " + status +
-                ", name= " + name +
-                ", neuronType= " + neuronType +
-                ", size= " + size
-                + " }";
+        return "{ neuron: " + id + "} ";
     }
 
-    public static List<Neuron> fromJson(final BufferedReader reader) {
-        return JsonUtils.GSON.fromJson(reader,NEURON_LIST_TYPE);
+    public static List<Neuron> fromJsonArray(final String jsonString) {
+        return JsonUtils.GSON.fromJson(jsonString, NEURON_LIST_TYPE);
+    }
+
+    public static List<Neuron> fromJsonArray(final Reader jsonReader) {
+        return JsonUtils.GSON.fromJson(jsonReader, NEURON_LIST_TYPE);
     }
 
     private static Type NEURON_LIST_TYPE = new TypeToken<List<Neuron>>(){}.getType();
-
 
 }

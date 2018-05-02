@@ -1,26 +1,86 @@
 package org.janelia.flyem.connconvert;
 
-import java.util.List;
-import java.util.ArrayList;
-import java.util.HashMap;
+import com.google.gson.annotations.SerializedName;
+
+import java.util.*;
+
 
 public class BodyWithSynapses {
-    private Integer bodyId;
-    private List<Synapse> synapseSet;
-    public HashMap<Integer,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
-    public HashMap<Integer,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
+
+    @SerializedName("BodyId")
+    private final Long bodyId;
+
+    @SerializedName("SynapseSet")
+    private final Set<Synapse> synapseSet;
+    // TODO: check for attempts to add duplicate synapses
+
+    public HashMap<Long,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
+    public HashMap<Long,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
     private Integer pre; //number of presyn terminals
     private Integer post; //number of postsyn terminals
     // body divided into multiple neuron parts based on roi
     private List<NeuronPart> neuronParts;
 
+    public BodyWithSynapses() {
+        this.bodyId = null;
+        this.synapseSet = new HashSet<>(); // LinkedHashSet ? if want to preserve order
+    }
+
+/*//
+
+
+    private transient int totalNumberOfPreSynapticTerminals;
+    private transient int totalNumberOfPostSynapticTerminals;
+
+    private transient Map<Body, Integer> connectsToBodyCounts;
+
+
+    //*/
+
+    public Long getBodyId(){
+        return this.bodyId;
+    }
+
+    public Integer getPre() {
+        return this.pre;
+    }
+
+    public Integer getPost() {
+        return this.post;
+    }
+
+    public List<NeuronPart> getNeuronParts() {
+        return this.neuronParts;
+    }
+
+    public Set<Synapse> getSynapseSet() {
+        return synapseSet;
+    }
+
 
     @Override
     public String toString() {
-        return "BodyWithSynapses{" + "bodyid= " + this.bodyId +
-                ", SynapseSet= " + this.synapseSet + "}";
+        return "BodyWithSynapses { " + "bodyid= " + this.bodyId +
+                ", SynapseSet= " + this.synapseSet + " }";
     }
 
+    @Override
+    public boolean equals(final Object o) {
+        boolean isEqual = false;
+        if (this == o) {
+            isEqual = true;
+        } else if (o instanceof BodyWithSynapses) {
+            final BodyWithSynapses that = (BodyWithSynapses) o;
+            isEqual = Objects.equals(this.bodyId, that.bodyId);
+        }
+        return isEqual;
+    }
+
+    @Override
+    public int hashCode() {
+        //noinspection ConstantConditions
+        return bodyId.hashCode();
+    }
 
     public List<String> getPreLocations() {
         List<String> preLocations = new ArrayList<>();
@@ -42,16 +102,13 @@ public class BodyWithSynapses {
         return postLocations;
     }
 
-    public int getBodyId(){
-        return this.bodyId;
-    }
 
-    public void setConnectsTo(HashMap<String,Integer> postToBody) {
+    public void setConnectsTo(HashMap<String,Long> postToBody) {
         for (Synapse synapse: this.synapseSet) {
             if (synapse.getType().equals("pre")) {
                 List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
-                List<Integer> postsynapticPartnerIds = postLocsToBodyIds(postsynapticPartners, postToBody);
-                for (Integer partnerId : postsynapticPartnerIds) {
+                List<Long> postsynapticPartnerIds = postLocsToBodyIds(postsynapticPartners, postToBody);
+                for (Long partnerId : postsynapticPartnerIds) {
                     if (partnerId!=null) {
                         int count = this.connectsTo.containsKey(partnerId) ? this.connectsTo.get(partnerId) : 0;
                         this.connectsTo.put(partnerId, count + 1);
@@ -75,12 +132,12 @@ public class BodyWithSynapses {
         return preToPost;
     }
 
-    public void setConnectsFrom(HashMap<String,Integer> preToBody) {
+    public void setConnectsFrom(HashMap<String,Long> preToBody) {
         for (Synapse synapse: this.synapseSet) {
             if (synapse.getType().equals("post")) {
                 List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
-                List<Integer> postsynapticPartnerIds = postLocsToBodyIds(postsynapticPartners, preToBody);
-                for (Integer partnerId : postsynapticPartnerIds) {
+                List<Long> postsynapticPartnerIds = postLocsToBodyIds(postsynapticPartners, preToBody);
+                for (Long partnerId : postsynapticPartnerIds) {
                     int count = this.connectsFrom.containsKey(partnerId) ? this.connectsFrom.get(partnerId) : 0;
                     this.connectsFrom.put(partnerId, count+1);
 
@@ -89,8 +146,8 @@ public class BodyWithSynapses {
         }
     }
 
-    private List<Integer> postLocsToBodyIds (List<String> postsynapticPartners, HashMap<String,Integer> postToBody) {
-        List<Integer> postsynapticPartnerIds = new ArrayList<>();
+    private List<Long> postLocsToBodyIds (List<String> postsynapticPartners, HashMap<String,Long> postToBody) {
+        List<Long> postsynapticPartnerIds = new ArrayList<>();
         for (String psd : postsynapticPartners) {
             postsynapticPartnerIds.add(postToBody.get(psd));
             if (postToBody.get(psd)==null){
@@ -125,17 +182,6 @@ public class BodyWithSynapses {
         this.setPre();
     }
 
-    public int getPre() {
-        return this.pre;
-    }
-
-    public int getPost() {
-        return this.post;
-    }
-
-    public List<Synapse> getSynapseSet() {
-        return this.synapseSet;
-    }
 
     public void setNeuronParts() {
         neuronParts = new ArrayList<>();
@@ -172,9 +218,7 @@ public class BodyWithSynapses {
 
 
 
-    public List<NeuronPart> getNeuronParts() {
-        return this.neuronParts;
-    }
+
 
 
 

@@ -1,4 +1,4 @@
-package org.janelia.flyem.connconvert.model;
+package org.janelia.flyem.connconvert.model2;
 
 import java.util.HashMap;
 import java.util.Map;
