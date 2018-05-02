@@ -16,8 +16,8 @@ public class BodyWithSynapses {
 
     public HashMap<Long,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
     public HashMap<Long,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
-    private Integer pre; //number of presyn terminals
-    private Integer post; //number of postsyn terminals
+    private transient Integer numberOfPreSynapses;
+    private transient Integer numberOfPostSynapses;
     // body divided into multiple neuron parts based on roi
     private List<NeuronPart> neuronParts;
 
@@ -41,12 +41,12 @@ public class BodyWithSynapses {
         return this.bodyId;
     }
 
-    public Integer getPre() {
-        return this.pre;
+    public Integer getNumberOfPreSynapses() {
+        return this.numberOfPreSynapses;
     }
 
-    public Integer getPost() {
-        return this.post;
+    public Integer getNumberOfPostSynapses() {
+        return this.numberOfPostSynapses;
     }
 
     public List<NeuronPart> getNeuronParts() {
@@ -157,29 +157,29 @@ public class BodyWithSynapses {
         return postsynapticPartnerIds;
     }
 
-    private void setPre(){
+    private void setNumberOfPreSynapses(){
         int countPre = 0;
         for (Synapse synapse: this.synapseSet) {
             if (synapse.getType().equals("pre")) {
                 countPre++;
             }
         }
-        this.pre = countPre;
+        this.numberOfPreSynapses = countPre;
     }
 
-    private void setPost(){
+    private void setNumberOfPostSynapses(){
         int countPost = 0;
         for (Synapse synapse: this.synapseSet) {
             if (synapse.getType().equals("post")) {
                 countPost++;
             }
         }
-        this.post = countPost;
+        this.numberOfPostSynapses = countPost;
     }
 
     public void setSynapseCounts(){
-        this.setPost();
-        this.setPre();
+        this.setNumberOfPostSynapses();
+        this.setNumberOfPreSynapses();
     }
 
 
