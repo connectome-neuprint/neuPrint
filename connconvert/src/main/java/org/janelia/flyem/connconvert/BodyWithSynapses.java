@@ -107,6 +107,14 @@ public class BodyWithSynapses {
         return postLocations;
     }
 
+    public List<String> getBodyRois() {
+        List<String> bodyRois = new ArrayList<>();
+        for (Synapse synapse: this.synapseSet) {
+            bodyRois.addAll(synapse.getRois());
+        }
+        return bodyRois;
+    }
+
 
     public void setConnectsTo(HashMap<String,Long> postToBody) {
         for (Synapse synapse: this.synapseSet) {
