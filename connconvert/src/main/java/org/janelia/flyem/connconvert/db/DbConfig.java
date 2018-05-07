@@ -57,9 +57,9 @@ public class DbConfig {
             in = new FileInputStream(file);
             properties.load(in);
 
-            final String uri = properties.getProperty("uri");
+            final String uri = properties.getProperty("uri_hemi");
             final String user = properties.getProperty("username");
-            final String password = properties.getProperty("password");
+            final String password = properties.getProperty("password_hemi");
 
             final String statementsPerTransactionString = properties.getProperty("statementsPerTransaction");
             final int statementsPerTransaction;
