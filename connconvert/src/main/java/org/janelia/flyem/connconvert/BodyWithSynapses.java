@@ -14,8 +14,8 @@ public class BodyWithSynapses {
     private final Set<Synapse> synapseSet;
     // TODO: check for attempts to add duplicate synapses
 
-    public transient HashMap<Long,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
-    public transient HashMap<Long,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
+    private transient HashMap<Long,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
+    private transient HashMap<Long,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
     private transient Integer numberOfPreSynapses;
     private transient Integer numberOfPostSynapses;
 
@@ -55,6 +55,13 @@ public class BodyWithSynapses {
         return synapseSet;
     }
 
+    public HashMap<Long, Integer> getConnectsTo() {
+        return connectsTo;
+    }
+
+    public HashMap<Long, Integer> getConnectsFrom() {
+        return connectsFrom;
+    }
 
     @Override
     public String toString() {
@@ -204,6 +211,10 @@ public class BodyWithSynapses {
 
 
     }
+
+
+
+
 
 
 
