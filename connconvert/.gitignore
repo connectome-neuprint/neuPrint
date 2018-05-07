@@ -4,6 +4,7 @@ pom.xml.releaseBackup
 pom.xml.next
 connconvert.properties
 logs/
+hemitestload.log
 *~
 
 .DS_Store
@@ -62,4 +63,6 @@ fabric.properties
 
 # Editor-based Rest Client
 .idea/httpRequests
+
+
 
