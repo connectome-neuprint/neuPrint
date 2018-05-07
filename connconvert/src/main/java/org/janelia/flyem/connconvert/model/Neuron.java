@@ -2,6 +2,7 @@ package org.janelia.flyem.connconvert.model;
 
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
 import org.janelia.flyem.connconvert.json.JsonUtils;
 
 import java.io.BufferedReader;
@@ -19,7 +20,7 @@ public class Neuron {
     @SerializedName("Name")
     private final String name;
 
-    @SerializedName("Type")
+    @SerializedName("NeuronType")
     private final String neuronType; // TODO: so far not in datasets, ask Lowell
 
     @SerializedName("Size")
@@ -87,6 +88,10 @@ public class Neuron {
 
     public static List<Neuron> fromJson(final BufferedReader reader) {
         return JsonUtils.GSON.fromJson(reader,NEURON_LIST_TYPE);
+    }
+
+    public static Neuron fromJsonSingleObject(final JsonReader reader) {
+        return JsonUtils.GSON.fromJson(reader,Neuron.class);
     }
 
     private static Type NEURON_LIST_TYPE = new TypeToken<List<Neuron>>(){}.getType();

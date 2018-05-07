@@ -12,6 +12,8 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.FieldNamingPolicy;
 
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.io.File;
@@ -21,6 +23,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.google.gson.stream.JsonReader;
 import org.janelia.flyem.connconvert.db.DbConfig;
 import org.janelia.flyem.connconvert.json.JsonUtils;
 import org.janelia.flyem.connconvert.model.Neuron;
@@ -39,6 +42,42 @@ public class ConnConvert {
                 description = "Properties file containing database information (omit to print statements to stdout)",
                 required = false)
         public String dbProperties;
+
+        @Parameter(
+                names = "--loadNeurons",
+                description = "Indicates that data from neurons json should be loaded to database (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean loadNeurons;
+
+        @Parameter(
+                names = "--loadSynapses",
+                description = "Indicates that data from synapses json should be loaded to database (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean loadSynapses;
+
+        @Parameter(
+                names = "--addConnectsTo",
+                description = "Indicates that ConnectsTo relations should be added (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addConnectsTo;
+
+        @Parameter(
+                names = "--addSynapses",
+                description = "Indicates that synapse nodes should be added (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addSynapses;
+
+        @Parameter(
+                names = "--addSynapsesTo",
+                description = "Indicates that SynapsesTo relations should be added (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addSynapsesTo;
+
 
         @Parameter(
                 names = "--prepDatabase",
@@ -174,22 +213,38 @@ public class ConnConvert {
 //
 
 
-    private static List<Neuron> readNeuronsJson(String filepath) throws Exception {
-        Neuron[] neuronsArray;
-        try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
-            Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
+    private static List<Neuron> readNeuronsJson(String filepath) {
 
-            //final List<Neuron> neuronList = Neuron.fromJsonArray(new FileReader(neuronJsonFile));
+        try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             neuronList = Neuron.fromJson(reader);
-            //System.out.println("Object mode: " + neurons[0]);
             System.out.println("Number of neurons: " + neuronList.size());
+
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
+//        try (JsonReader reader = new JsonReader(new FileReader(filepath)) ) {
+//            neuronList = new ArrayList<>();
+//            reader.beginArray();
+//            int i = 0;
+//            while (reader.hasNext() && i < 50000) {
+//
+//                Neuron neuron = Neuron.fromJsonSingleObject(reader);
+//                //System.out.println("added neuron " + neuron.getId());
+//
+//                neuronList.add(neuron);
+//                i++;
+//            }
+//
+//
+//        }
+//
         return neuronList;
+
     }
 
-    private static List<BodyWithSynapses> readSynapsesJson(String filepath) throws Exception {
+    private static List<BodyWithSynapses> readSynapsesJson(String filepath) {
         BodyWithSynapses[] bodiesArray;
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
@@ -198,11 +253,32 @@ public class ConnConvert {
             bodiesArray = gson.fromJson(reader, BodyWithSynapses[].class);
             bodyList = Arrays.asList(bodiesArray);
             //System.out.println("Object mode: " + bodyList[0]);
-            System.out.println("Number of bodyList with synapses: " + bodyList.size());
+            System.out.println("Number of bodies with synapses: " + bodyList.size());
             //System.out.println(bodyList[0].synapseSet.get(2).getConnectionLocationStrings().get(0));
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
+//        try (JsonReader reader = new JsonReader(new FileReader(filepath)) ) {
+//            Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
+//            bodyList = new ArrayList<>();
+//            reader.beginArray();
+//            int i = 0;
+//            //Stopwatch timer_bws = Stopwatch.createStarted();
+//            while (reader.hasNext() && i < 2400000) {
+//
+//                BodyWithSynapses bws = gson.fromJson(reader, BodyWithSynapses.class);
+//                //System.out.println("added neuron " + neuron.getId());
+//
+//                bodyList.add(bws);
+//                i++;
+//                //System.out.println(timer_bws);
+//
+//            }
+//
+//
+//        }
         return bodyList;
     }
 
@@ -255,19 +331,20 @@ public class ConnConvert {
 
 
         if ((parameters.neuronDataset != null)) {
-            String patternNeurons = ".*inputs/(.*?)_Neurons.*";
+            String patternNeurons = ".*/(.*?)_Neurons.*";
             Pattern rN = Pattern.compile(patternNeurons);
             Matcher mN = rN.matcher(parameters.neuronJson);
-            String patternSynapses = ".*inputs/(.*?)_Synapses.*";
+            String patternSynapses = ".*/(.*?)_Synapses.*";
             Pattern rS = Pattern.compile(patternSynapses);
             Matcher mS = rS.matcher(parameters.synapseJson);
             mN.matches();
             mS.matches();
-            // TODO: ask user if it's okay to continue if they dataset names seem different
+            // TODO: ask user if it's okay to continue if the dataset names seem different
             if (mN.group(1).equals(mS.group(1))) {
                 dataset = parameters.neuronDataset;
+
             } else {
-                LOG.log(Level.INFO,"Check that input files are from the same dataset.");
+                LOG.log(Level.INFO, "Check that input files are from the same dataset.");
                 System.exit(1);
             }
         } else {
@@ -277,57 +354,85 @@ public class ConnConvert {
         System.out.println("Dataset is: " + dataset);
 
 
-        neuronList = readNeuronsJson(parameters.neuronJson);
-        bodyList = readSynapsesJson(parameters.synapseJson);
+        if (parameters.loadNeurons) {
 
+            // read in the neurons data
+            Stopwatch timer2 = Stopwatch.createStarted();
+            neuronList = readNeuronsJson(parameters.neuronJson);
+            System.out.println(timer2.stop());
+            timer2.reset();
+            //write it to the database
+            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-
-        //sorting the neurons by size
-        //Collections.sort(neurons,new SortNeuronBySize());
-        //System.out.println(neurons.get(0));
-
-        //create a new hashmap for storing: body>pre, pre>post; post>body
-        HashMap<String, Long> preToBody = new HashMap<>();
-        HashMap<String, Long> postToBody = new HashMap<>();
-        HashMap<String, List<String>> preToPost = new HashMap<>();
-
-        for (BodyWithSynapses bws : bodyList) {
-            List<String> preLocs = bws.getPreLocations();
-            List<String> postLocs = bws.getPostLocations();
-
-            if (!preLocs.isEmpty()) {
-                for (String loc : preLocs) {
-                    preToBody.put(loc, bws.getBodyId());
-
+                if (parameters.prepDatabase) {
+                    neo4jImporter.prepDatabase();
                 }
-            }
-            if (!postLocs.isEmpty()) {
-                for (String loc : postLocs) {
-                    postToBody.put(loc, bws.getBodyId());
-                }
+
+                Stopwatch timer = Stopwatch.createStarted();
+                neo4jImporter.addNeurons(dataset, neuronList);
+                LOG.info("Loading all Neuron nodes took: " + timer.stop());
+                timer.reset();
             }
         }
-        for (BodyWithSynapses bws : bodyList) {
-            bws.setNeuronParts();
-            bws.setConnectsTo(postToBody);
-            bws.setConnectsFrom(preToBody);
-            bws.setSynapseCounts();
-            preToPost.putAll(bws.getPreToPostForBody());
 
-        }
 
-        // in mb6 bodyId 304654117 has a synapse classified as both pre and post
-        // System.out.println(postToBody.get("4305:5400:11380"));
-        // System.out.println(preToBody.get("4305:5400:11380"));
+        if (parameters.loadSynapses) {
 
-        //can now sort bodyList by synapse count
-        bodyList.sort(new SortBodyByNumberOfSynapses());
+            Stopwatch timer = Stopwatch.createStarted();
+            bodyList = readSynapsesJson(parameters.synapseJson);
+            LOG.info("Loading all synapse data took: " + timer.stop());
+            timer.reset();
 
-        //logging
+            //create a new hashmap for storing: body>pre, pre>post; post>body
+            HashMap<String, Long> preToBody = new HashMap<>();
+            HashMap<String, Long> postToBody = new HashMap<>();
+            HashMap<String, List<String>> preToPost = new HashMap<>();
+            timer.start();
+            for (BodyWithSynapses bws : bodyList) {
+                List<String> preLocs = bws.getPreLocations();
+                List<String> postLocs = bws.getPostLocations();
+
+                if (!preLocs.isEmpty()) {
+                    for (String loc : preLocs) {
+                        preToBody.put(loc, bws.getBodyId());
+
+                    }
+                }
+                if (!postLocs.isEmpty()) {
+                    for (String loc : postLocs) {
+                        postToBody.put(loc, bws.getBodyId());
+                    }
+                }
+            }
+
+            LOG.info("hashmaps took : " + timer.stop());
+            timer.reset();
+            timer.start();
+            for (BodyWithSynapses bws : bodyList) {
+                bws.setConnectsTo(postToBody);
+                bws.setSynapseCounts();
+                preToPost.putAll(bws.getPreToPostForBody());
+            }
+
+            LOG.info("setting features took : " + timer.stop());
+            timer.reset();
+
+            // in mb6 bodyId 304654117 has a synapse classified as both pre and post
+            // System.out.println(postToBody.get("4305:5400:11380"));
+            // System.out.println(preToBody.get("4305:5400:11380"));
+
+            //can now sort bodyList by synapse count
+            timer.start();
+            bodyList.sort(new SortBodyByNumberOfSynapses());
+            LOG.info("sorting by synapses took : " + timer.stop());
+            timer.reset();
+
+
+            //logging
         FileHandler fh;
         try {
 
-            fh = new FileHandler("/Users/neubarthn/Documents/GitHub/ConnectomeJSONtoNeo4j/connconvert/logs/neo4jload.log");
+            fh = new FileHandler("hemitestload.log");
             fh.setFormatter(new SimpleFormatter());
             LOG.addHandler(fh);
 
@@ -338,61 +443,73 @@ public class ConnConvert {
         }
 
 
+            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-        try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                if (parameters.prepDatabase) {
+                    neo4jImporter.prepDatabase();
+                }
 
-//            if (parameters.prepDatabase) {
-//                neo4jImporter.prepDatabase();
-//            }
-//
-//            Stopwatch timer = Stopwatch.createStarted();
-//            neo4jImporter.addNeurons(dataset, neuronList);
-//            LOG.info("Loading all Neuron nodes took: " + timer.stop());
-//            timer.reset();
-//
-//            timer.start();
-//            neo4jImporter.addConnectsTo(dataset, bodyList);
-//            LOG.info("Loading all ConnectsTo took: " + timer.stop());
-//            timer.reset();
-//
-//            timer.start();
-//            neo4jImporter.addSynapses(dataset, bodyList);
-//            LOG.info("Loading all Synapses took: " + timer.stop());
-//            timer.reset();
-//
-//            timer.start();
-//            neo4jImporter.addSynapsesTo(dataset, preToPost);
-//            LOG.info("Loading all SynapsesTo took: " + timer.stop());
-//            timer.reset();
-//
-//            timer.start();
-//            neo4jImporter.addRois(dataset, bodyList);
-//            LOG.info("Loading all ROI labels took: " + timer.stop());
-//            timer.reset();
-//
-//            timer.start();
-//            neo4jImporter.addNeuronParts(dataset, bodyList);
-//            LOG.info("Loading all NeuronParts took: " + timer.stop());
-//            timer.reset();
-//
-//            timer.start();
-//            neo4jImporter.addSizeId(dataset, bodyList);
-//            LOG.info("Adding all sIds took: " + timer.stop());
-//            timer.reset();
-//
-//            timer.start();
-//            neo4jImporter.addSynapseSets(dataset, bodyList);
-//            LOG.info("Loading SynapseSets took: " + timer.stop());
-//            timer.reset();
+                if (parameters.addConnectsTo) {
+                    timer.start();
+                    neo4jImporter.addConnectsTo(dataset, bodyList);
+                    LOG.info("Loading all ConnectsTo took: " + timer.stop());
+                    timer.reset();
+                }
+
+                if (parameters.addSynapses) {
+                    timer.start();
+                    neo4jImporter.addSynapses(dataset, bodyList);
+                    LOG.info("Loading all Synapses took: " + timer.stop());
+                    timer.reset();
+                }
+
+                if (parameters.addSynapsesTo) {
+                    timer.start();
+                    neo4jImporter.addSynapsesTo(dataset, preToPost);
+                    LOG.info("Loading all SynapsesTo took: " + timer.stop());
+                    timer.reset();
+                }
+
+                timer.start();
+                neo4jImporter.addRois(dataset, bodyList);
+                LOG.info("Loading all ROI labels took: " + timer.stop());
+                timer.reset();
+
+
+                timer.start();
+                neo4jImporter.addSizeId(dataset, bodyList);
+                LOG.info("Adding all sIds took: " + timer.stop());
+                timer.reset();
+
+                timer.start();
+                neo4jImporter.addSynapseSets(dataset, bodyList);
+                LOG.info("Loading SynapseSets took: " + timer.stop());
+                timer.reset();
+
+
+            }
+
+            timer.start();
+            for (BodyWithSynapses bws : bodyList) {
+                bws.setNeuronParts();
+
+            }
+            LOG.info("Setting neuron parts took: " + timer.stop());
+
+
+            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+
+                timer.start();
+                neo4jImporter.addNeuronParts(dataset, bodyList);
+                LOG.info("Loading all NeuronParts took: " + timer.stop());
+                timer.reset();
+            }
 
 
         }
-
-
     }
 
     private static final Logger LOG = Logger.getLogger("ConnConvert.class");
-
 
 }
 

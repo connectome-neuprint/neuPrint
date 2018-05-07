@@ -10,7 +10,7 @@
 
 
     <packaging>jar</packaging>
-    <name>Neo4j Connectome Converter</name>
+    <name>converter</name>
     <description>Procedures for importing connectome data into neo4j</description>
 
     <!--<properties>-->

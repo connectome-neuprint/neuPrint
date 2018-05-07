@@ -39,7 +39,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         driver.close();
         System.out.println("Driver closed.");
     }
@@ -54,7 +54,7 @@ public class Neo4jImporter implements AutoCloseable {
         return batch;
     }
 
-    public void prepDatabase() throws Exception {
+    public void prepDatabase() {
 
         LOG.info("prepDatabase: entry");
 
@@ -83,7 +83,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     public void addNeurons(final String dataset,
-                           final List<Neuron> neuronList) throws Exception {
+                           final List<Neuron> neuronList) {
 
         final String neuronText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) " +
                 "ON CREATE SET n.bodyId = $bodyId," +
@@ -113,7 +113,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addConnectsTo: entry");
 
@@ -154,7 +154,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    public void addSynapses(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addSynapses(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addSynapses: entry");
 
@@ -225,7 +225,7 @@ public class Neo4jImporter implements AutoCloseable {
 
 
 
-    public void addSynapsesTo(final String dataset,  HashMap<String,List<String>> preToPost) throws Exception {
+    public void addSynapsesTo(final String dataset,  HashMap<String,List<String>> preToPost) {
 
         LOG.info("addSynapsesTo: entry");
 
@@ -252,7 +252,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
 
-    public void addRois(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addRois(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addRois: entry");
 
@@ -320,7 +320,7 @@ public class Neo4jImporter implements AutoCloseable {
 
 
 
-    public void addSizeId(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addSizeId(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addSizeId: entry");
 
@@ -344,7 +344,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
 
-    public void addSynapseSets(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addSynapseSets(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addSynapseSets: entry");
 
