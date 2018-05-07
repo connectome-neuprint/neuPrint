@@ -39,7 +39,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     @Override
-    public void close() throws Exception {
+    public void close() {
         driver.close();
         System.out.println("Driver closed.");
     }
@@ -54,7 +54,7 @@ public class Neo4jImporter implements AutoCloseable {
         return batch;
     }
 
-    public void prepDatabase() throws Exception {
+    public void prepDatabase() {
 
         LOG.info("prepDatabase: entry");
 
@@ -83,7 +83,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     public void addNeurons(final String dataset,
-                           final List<Neuron> neuronList) throws Exception {
+                           final List<Neuron> neuronList) {
 
         final String neuronText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) " +
                 "ON CREATE SET n.bodyId = $bodyId," +
@@ -113,7 +113,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addConnectsTo: entry");
 
@@ -154,7 +154,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    public void addSynapses(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addSynapses(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addSynapses: entry");
 
@@ -168,7 +168,7 @@ public class Neo4jImporter implements AutoCloseable {
                         " s.y=$y, " +
                         " s.z=$z \n" +
                         " WITH s \n" +
-                        " CALL apoc.create.addLabels(id(s),['" + dataset + "']) YIELD node \n" +
+                        " CALL apoc.create.addLabels(id(s),$datasetAndRois) YIELD node \n" +
                         " RETURN node";
 
         final String postSynapseText =
@@ -181,7 +181,7 @@ public class Neo4jImporter implements AutoCloseable {
                         " s.y=$y, " +
                         " s.z=$z \n" +
                         " WITH s \n" +
-                        " CALL apoc.create.addLabels(id(s),['" + dataset + "']) YIELD node \n" +
+                        " CALL apoc.create.addLabels(id(s),$datasetAndRois) YIELD node \n" +
                         " RETURN node";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -189,6 +189,8 @@ public class Neo4jImporter implements AutoCloseable {
                 // issue with this body id in mb6
                 if (bws.getBodyId() != 304654117 || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
                     for (final Synapse synapse : bws.getSynapseSet()) {
+                        List<String> datasetAndRois = synapse.getRois();
+                        datasetAndRois.add(dataset);
                         if (synapse.getType().equals("pre")) {
 
                             batch.addStatement(new Statement(
@@ -199,7 +201,8 @@ public class Neo4jImporter implements AutoCloseable {
                                             "type", synapse.getType(),
                                             "x", synapse.getLocation().get(0),
                                             "y", synapse.getLocation().get(1),
-                                            "z", synapse.getLocation().get(2)))
+                                            "z", synapse.getLocation().get(2),
+                                            "datasetAndRois", datasetAndRois))
                             );
                         } else if (synapse.getType().equals("post")) {
                             batch.addStatement(new Statement(
@@ -210,7 +213,8 @@ public class Neo4jImporter implements AutoCloseable {
                                             "type", synapse.getType(),
                                             "x", synapse.getLocation().get(0),
                                             "y", synapse.getLocation().get(1),
-                                            "z", synapse.getLocation().get(2)))
+                                            "z", synapse.getLocation().get(2),
+                                            "datasetAndRois", datasetAndRois))
                             );
 
                         }
@@ -225,7 +229,7 @@ public class Neo4jImporter implements AutoCloseable {
 
 
 
-    public void addSynapsesTo(final String dataset,  HashMap<String,List<String>> preToPost) throws Exception {
+    public void addSynapsesTo(final String dataset,  HashMap<String,List<String>> preToPost) {
 
         LOG.info("addSynapsesTo: entry");
 
@@ -252,14 +256,9 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
 
-    public void addRois(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addRois(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addRois: entry");
-
-        final String roiSynapseText = "MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location = $location, s.datasetLocation=$datasetLocation \n" +
-                                        "WITH s \n" +
-                                        "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
-                                        "RETURN node";
 
         final String roiNeuronText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId = $bodyId, n.datasetBodyId=$datasetBodyId \n" +
                                         "WITH n \n" +
@@ -270,9 +269,6 @@ public class Neo4jImporter implements AutoCloseable {
             for (BodyWithSynapses bws : bodyList) {
                 for (Synapse synapse: bws.getSynapseSet()) {
                     List<String> roiList = synapse.getRois();
-                    batch.addStatement(new Statement(roiSynapseText,parameters("location", synapse.getLocationString(),
-                                                                                "datasetLocation",dataset+":"+synapse.getLocationString(),
-                                                                                "rois", roiList)));
                     batch.addStatement(new Statement(roiNeuronText,parameters("bodyId", bws.getBodyId(),
                             "datasetBodyId",dataset+":"+bws.getBodyId(),
                             "rois", roiList)));
@@ -320,7 +316,7 @@ public class Neo4jImporter implements AutoCloseable {
 
 
 
-    public void addSizeId(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addSizeId(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addSizeId: entry");
 
@@ -344,7 +340,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
 
-    public void addSynapseSets(final String dataset, final List<BodyWithSynapses> bodyList) throws Exception {
+    public void addSynapseSets(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addSynapseSets: entry");
 
