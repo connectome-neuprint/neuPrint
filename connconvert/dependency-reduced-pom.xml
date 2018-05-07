@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.janelia.flyem</groupId>
   <artifactId>connconvert</artifactId>
-  <name>Neo4j Connectome Converter</name>
+  <name>converter</name>
   <version>1.0-SNAPSHOT</version>
   <description>Procedures for importing connectome data into neo4j</description>
   <build>
