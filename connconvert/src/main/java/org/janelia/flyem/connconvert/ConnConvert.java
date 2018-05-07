@@ -71,6 +71,13 @@ public class ConnConvert {
                 arity = 0)
         public boolean addSynapses;
 
+        @Parameter(
+                names = "--addSynapsesTo",
+                description = "Indicates that SynapsesTo relations should be added (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addSynapsesTo;
+
 
         @Parameter(
                 names = "--prepDatabase",
@@ -456,10 +463,12 @@ public class ConnConvert {
                     timer.reset();
                 }
 
-                timer.start();
-                neo4jImporter.addSynapsesTo(dataset, preToPost);
-                LOG.info("Loading all SynapsesTo took: " + timer.stop());
-                timer.reset();
+                if (parameters.addSynapsesTo) {
+                    timer.start();
+                    neo4jImporter.addSynapsesTo(dataset, preToPost);
+                    LOG.info("Loading all SynapsesTo took: " + timer.stop());
+                    timer.reset();
+                }
 
                 timer.start();
                 neo4jImporter.addRois(dataset, bodyList);
