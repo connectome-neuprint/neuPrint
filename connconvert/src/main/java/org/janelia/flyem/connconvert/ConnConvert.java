@@ -58,6 +58,13 @@ public class ConnConvert {
         public boolean loadSynapses;
 
         @Parameter(
+                names = "--prepDatabase",
+                description = "Indicates that database constraints and indexes should be setup (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean prepDatabase;
+
+        @Parameter(
                 names = "--addConnectsTo",
                 description = "Indicates that ConnectsTo relations should be added (omit to skip)",
                 required = false,
@@ -77,14 +84,6 @@ public class ConnConvert {
                 required = false,
                 arity = 0)
         public boolean addSynapsesTo;
-
-
-        @Parameter(
-                names = "--prepDatabase",
-                description = "Indicates that database constraints and indexes should be setup (omit to skip)",
-                required = false,
-                arity = 0)
-        public boolean prepDatabase;
 
         @Parameter(
                 names = "--neuronJson",
