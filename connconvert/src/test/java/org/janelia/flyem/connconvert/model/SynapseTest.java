@@ -1,20 +1,21 @@
-package org.janelia.flyem.connconvert.model2;
+package org.janelia.flyem.connconvert.model;
 
 import java.util.List;
 
 import org.janelia.flyem.connconvert.json.JsonUtils;
+import org.janelia.flyem.connconvert.model2.Synapse;
 import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * Tests the {@link Synapse} class.
+ * Tests the {@link org.janelia.flyem.connconvert.model2.Synapse} class.
  */
 public class SynapseTest {
 
     @Test
-    public void testJsonProcessing() throws Exception {
+    public void testJsonProcessing() {
 
-        final List<Synapse> parsedList = Synapse.fromJsonArray(SYNAPSE_JSON);
+        final List<org.janelia.flyem.connconvert.model2.Synapse> parsedList = org.janelia.flyem.connconvert.model2.Synapse.fromJsonArray(SYNAPSE_JSON);
 
         Assert.assertEquals("invalid number of synapses parsed",
                             3, parsedList.size());

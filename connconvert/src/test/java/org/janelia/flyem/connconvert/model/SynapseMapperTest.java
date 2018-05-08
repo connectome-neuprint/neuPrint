@@ -1,8 +1,9 @@
-package org.janelia.flyem.connconvert.model2;
+package org.janelia.flyem.connconvert.model;
 
 import java.io.File;
 import java.util.List;
 
+import org.janelia.flyem.connconvert.model2.Body;
 import org.janelia.scicomp.neotool.SynapseMapper;
 import org.junit.Assert;
 import org.junit.Test;
