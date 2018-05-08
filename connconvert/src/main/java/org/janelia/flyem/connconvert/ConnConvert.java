@@ -8,25 +8,20 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Stopwatch;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.FieldNamingPolicy;
 
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.io.File;
-import java.util.Arrays;
 import java.util.logging.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.google.gson.stream.JsonReader;
 import org.janelia.flyem.connconvert.db.DbConfig;
 import org.janelia.flyem.connconvert.json.JsonUtils;
 import org.janelia.flyem.connconvert.model.Neuron;
+import org.janelia.flyem.connconvert.model.SortBodyByNumberOfSynapses;
 
 
 // TODO: Add ROI information using column names from neurons file?

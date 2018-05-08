@@ -4,9 +4,11 @@ import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import org.janelia.flyem.connconvert.json.JsonUtils;
+import org.janelia.flyem.connconvert.model.NeuronPart;
+import org.janelia.flyem.connconvert.model.Synapse;
+import org.janelia.flyem.connconvert.model.SynapseCounter;
 
 import java.io.BufferedReader;
-import java.io.Reader;
 import java.lang.reflect.Type;
 import java.util.*;
 

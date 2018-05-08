@@ -1,7 +1,7 @@
 //package org.janelia.flyem.connconvert.json;
 //
 //import com.google.gson.*;
-//import org.janelia.flyem.connconvert.Synapse;
+//import org.janelia.flyem.connconvert.model.Synapse;
 //
 //import java.lang.reflect.Type;
 //

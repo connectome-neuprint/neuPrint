@@ -1,4 +1,4 @@
-package org.janelia.flyem.connconvert;
+package org.janelia.flyem.connconvert.model;
 
 public class NeuronPart {
     // number of pre and post terminals within roi
