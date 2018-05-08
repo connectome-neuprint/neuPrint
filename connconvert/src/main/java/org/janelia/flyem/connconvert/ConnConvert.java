@@ -469,10 +469,10 @@ public class ConnConvert {
                     timer.reset();
                 }
 
-                timer.start();
-                neo4jImporter.addRois(dataset, bodyList);
-                LOG.info("Loading all ROI labels took: " + timer.stop());
-                timer.reset();
+//                timer.start();
+//                neo4jImporter.addRois(dataset, bodyList);
+//                LOG.info("Loading all ROI labels took: " + timer.stop());
+//                timer.reset();
 
 
                 timer.start();
