@@ -457,7 +457,7 @@ public class ConnConvert {
 
                 if (parameters.addSynapses) {
                     timer.start();
-                    neo4jImporter.addSynapses(dataset, bodyList);
+                    neo4jImporter.addSynapsesWithRois(dataset, bodyList);
                     LOG.info("Loading all Synapses took: " + timer.stop());
                     timer.reset();
                 }
@@ -469,10 +469,10 @@ public class ConnConvert {
                     timer.reset();
                 }
 
-//                timer.start();
-//                neo4jImporter.addRois(dataset, bodyList);
-//                LOG.info("Loading all ROI labels took: " + timer.stop());
-//                timer.reset();
+                timer.start();
+                neo4jImporter.addNeuronRois(dataset, bodyList);
+                LOG.info("Loading all Neuron ROI labels took: " + timer.stop());
+                timer.reset();
 
 
                 timer.start();

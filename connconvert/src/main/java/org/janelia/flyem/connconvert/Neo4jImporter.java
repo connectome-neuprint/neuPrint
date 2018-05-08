@@ -155,7 +155,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    public void addSynapses(final String dataset, final List<BodyWithSynapses> bodyList) {
+    public void addSynapsesWithRois(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addSynapses: entry");
 
@@ -257,14 +257,14 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
 
-    public void addRois(final String dataset, final List<BodyWithSynapses> bodyList) {
+    public void addNeuronRois(final String dataset, final List<BodyWithSynapses> bodyList) {
 
-        LOG.info("addRois: entry");
+        LOG.info("addNeuronRois: entry");
 
-        final String roiSynapseText = "MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location = $location, s.datasetLocation=$datasetLocation \n" +
-                "WITH s \n" +
-                "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
-                "RETURN node";
+//        final String roiSynapseText = "MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location = $location, s.datasetLocation=$datasetLocation \n" +
+//                "WITH s \n" +
+//                "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
+//                "RETURN node";
 
         final String roiNeuronText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId = $bodyId, n.datasetBodyId=$datasetBodyId \n" +
                 "WITH n \n" +
@@ -275,9 +275,9 @@ public class Neo4jImporter implements AutoCloseable {
             for (BodyWithSynapses bws : bodyList) {
                 for (Synapse synapse: bws.getSynapseSet()) {
                     List<String> roiList = synapse.getRois();
-                    batch.addStatement(new Statement(roiSynapseText,parameters("location", synapse.getLocationString(),
-                            "datasetLocation",dataset+":"+synapse.getLocationString(),
-                            "rois", roiList)));
+//                    batch.addStatement(new Statement(roiSynapseText,parameters("location", synapse.getLocationString(),
+//                            "datasetLocation",dataset+":"+synapse.getLocationString(),
+//                            "rois", roiList)));
                     batch.addStatement(new Statement(roiNeuronText,parameters("bodyId", bws.getBodyId(),
                             "datasetBodyId",dataset+":"+bws.getBodyId(),
                             "rois", roiList)));
@@ -286,7 +286,7 @@ public class Neo4jImporter implements AutoCloseable {
             batch.writeTransaction();
         }
 
-        LOG.info("addRois: exit");
+        LOG.info("addNeuronRois: exit");
 
 
     }
