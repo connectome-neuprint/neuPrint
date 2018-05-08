@@ -11,11 +11,16 @@ import java.util.List;
 
 public class Neuron {
 
+    //TODO: figure out how to add optional properties
+
     @SerializedName("Id")
     private final Long id;
 
     @SerializedName("Status")
     private final String status;
+
+    @SerializedName("Size")
+    private final Long size;
 
     @SerializedName("Name")
     private final String name;
@@ -23,19 +28,26 @@ public class Neuron {
     @SerializedName("NeuronType")
     private final String neuronType; // TODO: so far not in datasets, ask Lowell
 
-    @SerializedName("Size")
-    private final Long size;
+    @SerializedName("rois")
+    private final List<String> rois;
+
+    @SerializedName("Soma")
+    private final Soma soma;
 
     public Neuron(final Long id,
                   final String status,
                   final String name,
                   final String neuronType,
-                  final Long size) {
+                  final Long size,
+                  final List<String> rois,
+                  final Soma soma) {
         this.id = id;
         this.status = status;
         this.name = name;
         this.neuronType = neuronType;
         this.size = size;
+        this.rois = rois;
+        this.soma = soma;
     }
 
 
@@ -57,6 +69,14 @@ public class Neuron {
 
     public Long getSize() {
         return size;
+    }
+
+    public List<String> getRois() {
+        return rois;
+    }
+
+    public Soma getSoma() {
+        return soma;
     }
 
     @Override
@@ -84,6 +104,10 @@ public class Neuron {
                 ", neuronType= " + neuronType +
                 ", size= " + size
                 + " }";
+    }
+
+    public static List<Neuron> fromJson(final String jsonString) {
+        return JsonUtils.GSON.fromJson(jsonString, NEURON_LIST_TYPE);
     }
 
     public static List<Neuron> fromJson(final BufferedReader reader) {

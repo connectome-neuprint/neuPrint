@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 import org.janelia.flyem.connconvert.db.DbConfig;
 import org.janelia.flyem.connconvert.json.JsonUtils;
+import org.janelia.flyem.connconvert.model.BodyWithSynapses;
 import org.janelia.flyem.connconvert.model.Neuron;
 import org.janelia.flyem.connconvert.model.SortBodyByNumberOfSynapses;
 
@@ -53,6 +54,13 @@ public class ConnConvert {
         public boolean loadSynapses;
 
         @Parameter(
+                names = "--doAll",
+                description = "Indicates that both Neurons and Synapses jsons should be loaded and all database features added",
+                required = false,
+                arity = 0)
+        public boolean doAll;
+
+        @Parameter(
                 names = "--prepDatabase",
                 description = "Indicates that database constraints and indexes should be setup (omit to skip)",
                 required = false,
@@ -79,6 +87,34 @@ public class ConnConvert {
                 required = false,
                 arity = 0)
         public boolean addSynapsesTo;
+
+        @Parameter(
+                names = "--addNeuronRois",
+                description = "Indicates that neuron ROI labels should be added (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addNeuronRois;
+
+        @Parameter(
+                names = "--addSizeId",
+                description = "Indicates that neuron size-based ID should be added (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addSizeId;
+
+        @Parameter(
+                names = "--addSynapseSets",
+                description = "Indicates that synapse set nodes should be added (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addSynapseSets;
+
+        @Parameter(
+                names = "--addNeuronParts",
+                description = "Indicates that neuron parts nodes should be added (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addNeuronParts;
 
         @Parameter(
                 names = "--neuronJson",
@@ -341,7 +377,7 @@ public class ConnConvert {
         System.out.println("Dataset is: " + dataset);
 
 
-        if (parameters.loadNeurons) {
+        if (parameters.loadNeurons || parameters.doAll) {
 
             // read in the neurons data
             Stopwatch timer2 = Stopwatch.createStarted();
@@ -351,7 +387,7 @@ public class ConnConvert {
             //write it to the database
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-                if (parameters.prepDatabase) {
+                if (parameters.prepDatabase || parameters.doAll) {
                     neo4jImporter.prepDatabase();
                 }
 
@@ -363,7 +399,7 @@ public class ConnConvert {
         }
 
 
-        if (parameters.loadSynapses) {
+        if (parameters.loadSynapses || parameters.doAll) {
 
             Stopwatch timer = Stopwatch.createStarted();
             bodyList = readSynapsesJson(parameters.synapseJson);
@@ -433,64 +469,71 @@ public class ConnConvert {
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-                if (parameters.prepDatabase) {
+                if ((parameters.prepDatabase || parameters.doAll) && !parameters.loadNeurons) {
                     neo4jImporter.prepDatabase();
                 }
 
-                if (parameters.addConnectsTo) {
+                if (parameters.addConnectsTo || parameters.doAll) {
                     timer.start();
                     neo4jImporter.addConnectsTo(dataset, bodyList);
                     LOG.info("Loading all ConnectsTo took: " + timer.stop());
                     timer.reset();
                 }
 
-                if (parameters.addSynapses) {
+                if (parameters.addSynapses || parameters.doAll) {
                     timer.start();
-                    neo4jImporter.addSynapses(dataset, bodyList);
+                    neo4jImporter.addSynapsesWithRois(dataset, bodyList);
                     LOG.info("Loading all Synapses took: " + timer.stop());
                     timer.reset();
                 }
 
-                if (parameters.addSynapsesTo) {
+                if (parameters.addSynapsesTo || parameters.doAll) {
                     timer.start();
                     neo4jImporter.addSynapsesTo(dataset, preToPost);
                     LOG.info("Loading all SynapsesTo took: " + timer.stop());
                     timer.reset();
                 }
 
-                timer.start();
-                neo4jImporter.addRois(dataset, bodyList);
-                LOG.info("Loading all ROI labels took: " + timer.stop());
-                timer.reset();
+                if (parameters.addNeuronRois || parameters.doAll) {
+                    timer.start();
+                    neo4jImporter.addNeuronRois(dataset, bodyList);
+                    LOG.info("Loading all Neuron ROI labels took: " + timer.stop());
+                    timer.reset();
+                }
 
+                if (parameters.addSizeId || parameters.doAll) {
+                    timer.start();
+                    neo4jImporter.addSizeId(dataset, bodyList);
+                    LOG.info("Adding all sIds took: " + timer.stop());
+                    timer.reset();
+                }
 
-                timer.start();
-                neo4jImporter.addSizeId(dataset, bodyList);
-                LOG.info("Adding all sIds took: " + timer.stop());
-                timer.reset();
-
-                timer.start();
-                neo4jImporter.addSynapseSets(dataset, bodyList);
-                LOG.info("Loading SynapseSets took: " + timer.stop());
-                timer.reset();
+                if (parameters.addSynapseSets || parameters.doAll) {
+                    timer.start();
+                    neo4jImporter.addSynapseSets(dataset, bodyList);
+                    LOG.info("Loading SynapseSets took: " + timer.stop());
+                    timer.reset();
+                }
 
 
             }
 
-            timer.start();
-            for (BodyWithSynapses bws : bodyList) {
-                bws.setNeuronParts();
-
-            }
-            LOG.info("Setting neuron parts took: " + timer.stop());
-
-
-            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
+            if (parameters.addNeuronParts || parameters.doAll) {
                 timer.start();
-                neo4jImporter.addNeuronParts(dataset, bodyList);
-                LOG.info("Loading all NeuronParts took: " + timer.stop());
-                timer.reset();
+                for (BodyWithSynapses bws : bodyList) {
+                    bws.setNeuronParts();
+
+                }
+                LOG.info("Setting neuron parts took: " + timer.stop());
+
+
+                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+
+                    timer.start();
+                    neo4jImporter.addNeuronParts(dataset, bodyList);
+                    LOG.info("Loading all NeuronParts took: " + timer.stop());
+                    timer.reset();
+                }
             }
 
 
