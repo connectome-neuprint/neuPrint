@@ -53,7 +53,7 @@ public class ConnConvert {
         public boolean loadSynapses;
 
         @Parameter(
-                names = "--doAll"
+                names = "--doAll",
                 description = "Indicates that both Neurons and Synapses jsons should be loaded and all database features added",
                 required = false,
                 arity = 0)
