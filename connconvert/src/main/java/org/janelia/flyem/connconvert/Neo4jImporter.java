@@ -60,6 +60,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         final String[] prepTextArray = {
                 "CREATE CONSTRAINT ON (n:Neuron) ASSERT n.datasetBodyId IS UNIQUE",
+                "CREATE CONSTRAINT ON (n:Neuron) ASSERT n.sId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:SynapseSet) ASSERT s.datasetBodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:Synapse) ASSERT s.datasetLocation IS UNIQUE",
                 "CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE",
