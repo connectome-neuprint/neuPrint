@@ -217,7 +217,6 @@ public class ConnConvert {
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             neuronList = Neuron.fromJson(reader);
             System.out.println("Number of neurons: " + neuronList.size());
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -244,16 +243,10 @@ public class ConnConvert {
     }
 
     private static List<BodyWithSynapses> readSynapsesJson(String filepath) {
-        BodyWithSynapses[] bodiesArray;
+
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
-            Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
-
-
-            bodiesArray = gson.fromJson(reader, BodyWithSynapses[].class);
-            bodyList = Arrays.asList(bodiesArray);
-            //System.out.println("Object mode: " + bodyList[0]);
+            bodyList = BodyWithSynapses.fromJson(reader);
             System.out.println("Number of bodies with synapses: " + bodyList.size());
-            //System.out.println(bodyList[0].synapseSet.get(2).getConnectionLocationStrings().get(0));
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -425,6 +418,7 @@ public class ConnConvert {
             bodyList.sort(new SortBodyByNumberOfSynapses());
             LOG.info("sorting by synapses took : " + timer.stop());
             timer.reset();
+
 
 
             //logging

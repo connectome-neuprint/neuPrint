@@ -5,18 +5,32 @@ import java.util.ArrayList;
 import com.google.gson.annotations.SerializedName;
 
 public class Synapse {
+
+    @SerializedName("Type")
     private String type;
+
+    @SerializedName("Confidence")
     private float confidence;
+
+    @SerializedName("Location")
     private List<Integer> location;
+
+    @SerializedName("ConnectsTo")
     private List<List<Integer>> connectsTo;
+
+    @SerializedName("ConnectsFrom")
     private List<List<Integer>> connectsFrom;
 
     @SerializedName("rois")
     public List<String> rois;
 
 
-    public Synapse () {
-
+    public Synapse (String type, float confidence, List<Integer> location, List<List<Integer>> connectsTo,  List<List<Integer>> connectsFrom ) {
+        this.type = type;
+        this.confidence = confidence;
+        this.location = location;
+        this.connectsTo = connectsTo;
+        this.connectsFrom = connectsFrom;
     }
 
 
@@ -31,7 +45,6 @@ public class Synapse {
                 "}";
 
     }
-
 
 
     public List<String> locationListToStringKeys(List<List<Integer>> locationList) {
