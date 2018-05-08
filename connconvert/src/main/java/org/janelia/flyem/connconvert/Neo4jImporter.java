@@ -123,9 +123,8 @@ public class Neo4jImporter implements AutoCloseable {
                         "MERGE (m:Neuron {datasetBodyId:$datasetBodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.datasetBodyId=$datasetBodyId2 \n" +
                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n" +
                         "WITH n,m \n" +
-                        "CALL apoc.create.addLabels([id(n),id(m)],['" + dataset + "']) YIELD node AS node1 \n" +
-                        "CALL apoc.create.addLabels(id(n),$rois) YIELD node AS node2 \n" +
-                        "RETURN node1,node2";
+                        "CALL apoc.create.addLabels([id(n),id(m)],['" + dataset + "']) YIELD node \n" +
+                        "RETURN node";
 
         final String terminalCountText = "MATCH (n:Neuron {datasetBodyId:$datasetBodyId} ) SET n.pre = $pre, n.post = $post";
 
@@ -138,8 +137,7 @@ public class Neo4jImporter implements AutoCloseable {
                                             "bodyId2", postsynapticBodyId,
                                             "datasetBodyId1", dataset + ":" + bws.getBodyId(),
                                             "datasetBodyId2", dataset + ":" + postsynapticBodyId,
-                                            "weight", bws.getConnectsTo().get(postsynapticBodyId),
-                                            "rois", bws.getBodyRois()))
+                                            "weight", bws.getConnectsTo().get(postsynapticBodyId)))
                     );
                 }
                 batch.addStatement(
