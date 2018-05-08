@@ -1,4 +1,4 @@
-package org.janelia.flyem.connconvert;
+package org.janelia.flyem.connconvert.model;
 
 public class SynapseCounter {
     private int preCount;

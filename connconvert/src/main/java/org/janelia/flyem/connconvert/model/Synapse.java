@@ -1,4 +1,4 @@
-package org.janelia.flyem.connconvert;
+package org.janelia.flyem.connconvert.model;
 
 import java.util.List;
 import java.util.ArrayList;
