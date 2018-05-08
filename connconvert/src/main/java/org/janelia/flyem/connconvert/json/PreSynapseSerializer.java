@@ -22,7 +22,7 @@ public class PreSynapseSerializer
                                  final JsonSerializationContext jsonSerializationContext) {
 
         final JsonObject jsonObject = JsonUtils.GSON_WITHOUT_SYNAPSE_ADAPTERS.toJsonTree(preSynapse).getAsJsonObject();
-        jsonObject.add(SynapseDeserializer.TYPE_KEY, PRE_PRIMITIVE);
+        jsonObject.add(SynapseDeserializer2.TYPE_KEY, PRE_PRIMITIVE);
         return jsonObject;
     }
 

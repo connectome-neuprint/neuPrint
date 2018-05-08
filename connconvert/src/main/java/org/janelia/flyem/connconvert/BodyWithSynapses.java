@@ -1,7 +1,13 @@
 package org.janelia.flyem.connconvert;
 
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
+import org.janelia.flyem.connconvert.json.JsonUtils;
 
+import java.io.BufferedReader;
+import java.io.Reader;
+import java.lang.reflect.Type;
 import java.util.*;
 
 
@@ -217,8 +223,19 @@ public class BodyWithSynapses {
             neuronParts.add(new NeuronPart(roi,roiToPrePostCount.get(roi).getPreCount(), roiToPrePostCount.get(roi).getPostCount()));
         }
 
-
     }
+
+
+    public static List<BodyWithSynapses> fromJson(final BufferedReader reader) {
+        return JsonUtils.GSON.fromJson(reader,BODY_LIST_TYPE);
+    }
+
+    public static BodyWithSynapses fromJsonSingleObject(final JsonReader reader) {
+        return JsonUtils.GSON.fromJson(reader, BodyWithSynapses.class);
+    }
+
+
+    private static Type BODY_LIST_TYPE = new TypeToken<List<BodyWithSynapses>>(){}.getType();
 
 
 
