@@ -1,7 +1,5 @@
 package org.janelia.flyem.connconvert.model;
 
-import org.janelia.flyem.connconvert.BodyWithSynapses;
-
 import java.util.Comparator;
 
 public class SortBodyByNumberOfSynapses implements Comparator<BodyWithSynapses> {

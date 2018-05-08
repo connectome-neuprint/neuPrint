@@ -1,4 +1,4 @@
-package org.janelia.flyem.connconvert.model2;
+package org.janelia.flyem.connconvert.model;
 
 import java.util.List;
 
@@ -7,14 +7,14 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
- * Tests the {@link Body} class.
+ * Tests the {@link BodyWithSynapses} class.
  */
-public class BodyTest {
+public class BodyWithSynapsesTest {
 
     @Test
-    public void testJsonProcessing() throws Exception {
+    public void testJsonProcessing() {
 
-        final List<Body> parsedBodyList = Body.fromJsonArray(BODY_LIST_JSON);
+        final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
 
         Assert.assertEquals("invalid number of bodies parsed",
                             4, parsedBodyList.size());
@@ -23,6 +23,10 @@ public class BodyTest {
 
         Assert.assertTrue("serialized result is empty",
                           serializedJson.length() > 0);
+
+
+        Assert.assertEquals("serialized result does not match original",
+                BODY_LIST_JSON.replaceAll("[\\n\\t\\r\\s+]+"," "), serializedJson.replaceAll("[\\n\\t\\r\\s+]+"," "));
 
         // TODO: improve this test
     }
@@ -62,4 +66,5 @@ public class BodyTest {
             "    ]\n" +
             "  }\n" +
             "]";
+
 }

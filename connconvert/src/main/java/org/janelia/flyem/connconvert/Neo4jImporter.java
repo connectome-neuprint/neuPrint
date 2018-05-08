@@ -5,6 +5,7 @@ import org.janelia.flyem.connconvert.db.DbConfig;
 import org.janelia.flyem.connconvert.db.DbTransactionBatch;
 import org.janelia.flyem.connconvert.db.StdOutTransactionBatch;
 import org.janelia.flyem.connconvert.db.TransactionBatch;
+import org.janelia.flyem.connconvert.model.BodyWithSynapses;
 import org.janelia.flyem.connconvert.model.Neuron;
 import org.janelia.flyem.connconvert.model.NeuronPart;
 import org.janelia.flyem.connconvert.model.Synapse;
@@ -85,6 +86,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
+    //TODO: add rois and somas here
     public void addNeurons(final String dataset,
                            final List<Neuron> neuronList) {
 

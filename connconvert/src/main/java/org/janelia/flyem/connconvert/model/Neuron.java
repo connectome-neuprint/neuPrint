@@ -11,6 +11,8 @@ import java.util.List;
 
 public class Neuron {
 
+    //TODO: figure out how to add optional properties
+
     @SerializedName("Id")
     private final Long id;
 

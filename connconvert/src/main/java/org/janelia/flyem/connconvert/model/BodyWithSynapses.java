@@ -1,12 +1,9 @@
-package org.janelia.flyem.connconvert;
+package org.janelia.flyem.connconvert.model;
 
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import org.janelia.flyem.connconvert.json.JsonUtils;
-import org.janelia.flyem.connconvert.model.NeuronPart;
-import org.janelia.flyem.connconvert.model.Synapse;
-import org.janelia.flyem.connconvert.model.SynapseCounter;
 
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
@@ -14,6 +11,8 @@ import java.util.*;
 
 
 public class BodyWithSynapses {
+
+    //TODO: figure out how to add optional properties
 
     @SerializedName("BodyId")
     private final Long bodyId;
@@ -227,6 +226,9 @@ public class BodyWithSynapses {
 
     }
 
+    public static List<BodyWithSynapses> fromJson(final String jsonString) {
+        return JsonUtils.GSON.fromJson(jsonString, BODY_LIST_TYPE);
+    }
 
     public static List<BodyWithSynapses> fromJson(final BufferedReader reader) {
         return JsonUtils.GSON.fromJson(reader,BODY_LIST_TYPE);

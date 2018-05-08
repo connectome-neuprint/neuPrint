@@ -20,6 +20,7 @@ import java.util.regex.Pattern;
 
 import org.janelia.flyem.connconvert.db.DbConfig;
 import org.janelia.flyem.connconvert.json.JsonUtils;
+import org.janelia.flyem.connconvert.model.BodyWithSynapses;
 import org.janelia.flyem.connconvert.model.Neuron;
 import org.janelia.flyem.connconvert.model.SortBodyByNumberOfSynapses;
 
