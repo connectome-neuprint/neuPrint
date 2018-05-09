@@ -26,7 +26,7 @@ public class Neuron {
     private final String name;
 
     @SerializedName("NeuronType")
-    private final String neuronType; // TODO: so far not in datasets, ask Lowell
+    private final String neuronType;
 
     @SerializedName("rois")
     private final List<String> rois;

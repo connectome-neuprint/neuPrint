@@ -96,7 +96,10 @@ public class Neo4jImporter implements AutoCloseable {
                 " n.status = $status," +
                 " n.size = $size," +
                 " n.somaLocation = $somaLocation," +
-                " n.somaRadius = $somaRadius";
+                " n.somaRadius = $somaRadius \n" +
+                " WITH n \n" +
+                " CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
+                " RETURN node";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
@@ -108,7 +111,8 @@ public class Neo4jImporter implements AutoCloseable {
                                         "status", neuron.getStatus(),
                                         "size", neuron.getSize(),
                                         "somaLocation", neuron.getSomaLocation(),
-                                        "somaRadius", neuron.getSomaRadius()))
+                                        "somaRadius", neuron.getSomaRadius(),
+                                        "rois", neuron.getRois()))
                 );
             }
             batch.writeTransaction();
