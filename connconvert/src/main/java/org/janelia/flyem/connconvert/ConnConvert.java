@@ -95,12 +95,6 @@ public class ConnConvert {
                 arity = 0)
         public boolean addNeuronRois;
 
-        @Parameter(
-                names = "--addSizeId",
-                description = "Indicates that neuron size-based ID should be added (omit to skip)",
-                required = false,
-                arity = 0)
-        public boolean addSizeId;
 
         @Parameter(
                 names = "--addSynapseSets",
@@ -469,7 +463,7 @@ public class ConnConvert {
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-                if ((parameters.prepDatabase || parameters.doAll) && !parameters.loadNeurons) {
+                if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll)) {
                     neo4jImporter.prepDatabase(dataset);
                 }
 
@@ -498,13 +492,6 @@ public class ConnConvert {
                     timer.start();
                     neo4jImporter.addNeuronRois(dataset, bodyList);
                     LOG.info("Loading all Neuron ROI labels took: " + timer.stop());
-                    timer.reset();
-                }
-
-                if (parameters.addSizeId || parameters.doAll) {
-                    timer.start();
-                    neo4jImporter.addSizeId(dataset, bodyList);
-                    LOG.info("Adding all sIds took: " + timer.stop());
                     timer.reset();
                 }
 

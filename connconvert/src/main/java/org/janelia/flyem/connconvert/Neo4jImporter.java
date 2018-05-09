@@ -85,7 +85,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    //TODO: add rois and somas here
+    //TODO: add rois and somas here, arbitrary properties
     public void addNeurons(final String dataset,
                            final List<Neuron> neuronList) {
 
@@ -120,8 +120,12 @@ public class Neo4jImporter implements AutoCloseable {
                 "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1 \n" +
                         "MERGE (m:Neuron:" + dataset + " {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2 \n" +
                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m)";
+        // TODO: rois added here?
+        final String terminalCountText = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.sId=$sId";
 
-        final String terminalCountText = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post";
+        final String terminalCountTextWithoutSId = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post";
+
+        int sId = 0;
 
         try (final TransactionBatch batch = getBatch()) {
             for (final BodyWithSynapses bws : bodyList) {
@@ -133,13 +137,23 @@ public class Neo4jImporter implements AutoCloseable {
                                             "weight", bws.getConnectsTo().get(postsynapticBodyId)))
                     );
                 }
-                batch.addStatement(
-                        new Statement(terminalCountText,
-                                parameters("pre", bws.getNumberOfPreSynapses(),
-                                        "post", bws.getNumberOfPostSynapses(),
-                                        "bodyId", bws.getBodyId()))
-                );
-
+                if (bws.getNumberOfPostSynapses()+bws.getNumberOfPreSynapses() > 10) {
+                    batch.addStatement(
+                            new Statement(terminalCountText,
+                                    parameters("pre", bws.getNumberOfPreSynapses(),
+                                            "post", bws.getNumberOfPostSynapses(),
+                                            "bodyId", bws.getBodyId(),
+                                            "sId", sId))
+                    );
+                    sId++;
+                } else {
+                    batch.addStatement(
+                            new Statement(terminalCountTextWithoutSId,
+                                    parameters("pre", bws.getNumberOfPreSynapses(),
+                                            "post", bws.getNumberOfPostSynapses(),
+                                            "bodyId", bws.getBodyId()))
+                    );
+                }
             }
             batch.writeTransaction();
         }
