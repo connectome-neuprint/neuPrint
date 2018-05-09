@@ -300,10 +300,10 @@ public class ConnConvert {
     }
 
     private static void setDatasetName(String neuronFilePath,String synapseFilePath) {
-        String patternNeurons = ".*inputs/(.*?)_Neurons.*";
+        String patternNeurons = ".*/(.*?)_Neurons.*";
         Pattern rN = Pattern.compile(patternNeurons);
         Matcher mN = rN.matcher(neuronFilePath);
-        String patternSynapses = ".*inputs/(.*?)_Synapses.*";
+        String patternSynapses = ".*/(.*?)_Synapses.*";
         Pattern rS = Pattern.compile(patternSynapses);
         Matcher mS = rS.matcher(synapseFilePath);
         mN.matches();
