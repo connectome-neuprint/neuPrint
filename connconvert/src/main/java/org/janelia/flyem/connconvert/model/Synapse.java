@@ -1,8 +1,11 @@
 package org.janelia.flyem.connconvert.model;
 
+import java.lang.reflect.Type;
 import java.util.List;
 import java.util.ArrayList;
 import com.google.gson.annotations.SerializedName;
+import com.google.gson.reflect.TypeToken;
+import org.janelia.flyem.connconvert.json.JsonUtils;
 
 public class Synapse {
 
@@ -123,6 +126,11 @@ public class Synapse {
         return this.rois;
     }
 
+    public static List<Synapse> fromJsonArray(final String jsonString) {
+        return JsonUtils.GSON.fromJson(jsonString, SYNAPSE_LIST_TYPE);
+    }
+
+    private static final Type SYNAPSE_LIST_TYPE = new TypeToken<List<Synapse>>(){}.getType();
 
 
 }
