@@ -10,7 +10,7 @@ public class Soma {
     private final List<Integer> location;
 
     @SerializedName("Radius")
-    private final float radius;
+    private final Float radius;
 
 
     public Soma(List<Integer> location, float radius) {
@@ -18,7 +18,7 @@ public class Soma {
         this.radius = radius;
     }
 
-    public float getRadius() {
+    public Float getRadius() {
         return radius;
     }
 

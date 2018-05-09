@@ -85,7 +85,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    //TODO: add rois and somas here, arbitrary properties
+    //TODO: add rois, arbitrary properties
     public void addNeurons(final String dataset,
                            final List<Neuron> neuronList) {
 
@@ -94,7 +94,9 @@ public class Neo4jImporter implements AutoCloseable {
                 " n.name = $name," +
                 " n.type = $type," +
                 " n.status = $status," +
-                " n.size = $size";
+                " n.size = $size," +
+                " n.somaLocation = $somaLocation," +
+                " n.somaRadius = $somaRadius";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
@@ -104,7 +106,9 @@ public class Neo4jImporter implements AutoCloseable {
                                         "name", neuron.getName(),
                                         "type", neuron.getNeuronType(),
                                         "status", neuron.getStatus(),
-                                        "size", neuron.getSize()))
+                                        "size", neuron.getSize(),
+                                        "somaLocation", neuron.getSomaLocation(),
+                                        "somaRadius", neuron.getSomaRadius()))
                 );
             }
             batch.writeTransaction();

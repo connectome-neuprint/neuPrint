@@ -79,6 +79,24 @@ public class Neuron {
         return soma;
     }
 
+    public List<Integer> getSomaLocation() {
+        if (soma != null) {
+            return soma.getLocation();
+        } else {
+            List<Integer> emptyList = null;
+            return emptyList;
+        }
+    }
+
+    public Float getSomaRadius() {
+        if (soma != null) {
+            return soma.getRadius();
+        } else {
+            Float nullFloat = null;
+            return nullFloat;
+        }
+    }
+
     @Override
     public boolean equals(Object o) {
         boolean isEqual = false;
