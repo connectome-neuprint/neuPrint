@@ -15,9 +15,6 @@ public class Synapse {
     @SerializedName("Location")
     private List<Integer> location;
 
-    @SerializedName("ConnectsFrom")
-    private List<List<Integer>> connectsFrom;
-
     @SerializedName("Confidence")
     private float confidence;
 
@@ -26,6 +23,9 @@ public class Synapse {
 
     @SerializedName("ConnectsTo")
     private List<List<Integer>> connectsTo;
+
+    @SerializedName("ConnectsFrom")
+    private List<List<Integer>> connectsFrom;
 
 
 
