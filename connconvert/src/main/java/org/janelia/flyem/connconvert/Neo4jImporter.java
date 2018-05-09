@@ -57,17 +57,16 @@ public class Neo4jImporter implements AutoCloseable {
         return batch;
     }
 
-    public void prepDatabase() {
+    public void prepDatabase(String dataset) {
 
         LOG.info("prepDatabase: entry");
 
         final String[] prepTextArray = {
-                "CREATE CONSTRAINT ON (n:Neuron) ASSERT n.datasetBodyId IS UNIQUE",
-                "CREATE CONSTRAINT ON (n:Neuron) ASSERT n.sId IS UNIQUE",
+                "CREATE CONSTRAINT ON (n:"+ dataset +") ASSERT n.bodyId IS UNIQUE",
+                "CREATE CONSTRAINT ON (n:" + dataset +") ASSERT n.sId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:SynapseSet) ASSERT s.datasetBodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:Synapse) ASSERT s.datasetLocation IS UNIQUE",
                 "CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE",
-                "CREATE INDEX ON :Neuron(bodyId)",
                 "CREATE INDEX ON :Neuron(status)",
                 "CREATE INDEX ON :Synapse(x)",
                 "CREATE INDEX ON :Synapse(y)",
@@ -90,16 +89,12 @@ public class Neo4jImporter implements AutoCloseable {
     public void addNeurons(final String dataset,
                            final List<Neuron> neuronList) {
 
-        final String neuronText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) " +
+        final String neuronText = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) " +
                 "ON CREATE SET n.bodyId = $bodyId," +
                 " n.name = $name," +
                 " n.type = $type," +
                 " n.status = $status," +
-                " n.datasetBodyId = $datasetBodyId," +
-                " n.size = $size" +
-                " WITH n" +
-                " CALL apoc.create.addLabels(id(n),['" + dataset + "']) YIELD node" +
-                " RETURN node";
+                " n.size = $size";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
@@ -109,7 +104,6 @@ public class Neo4jImporter implements AutoCloseable {
                                         "name", neuron.getName(),
                                         "type", neuron.getNeuronType(),
                                         "status", neuron.getStatus(),
-                                        "datasetBodyId", dataset + ":" + neuron.getId(),
                                         "size", neuron.getSize()))
                 );
             }
@@ -123,14 +117,11 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addConnectsTo: entry");
 
         final String connectsToText =
-                "MERGE (n:Neuron {datasetBodyId:$datasetBodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.datasetBodyId=$datasetBodyId1 \n" +
-                        "MERGE (m:Neuron {datasetBodyId:$datasetBodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.datasetBodyId=$datasetBodyId2 \n" +
-                        "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m) \n" +
-                        "WITH n,m \n" +
-                        "CALL apoc.create.addLabels([id(n),id(m)],['" + dataset + "']) YIELD node \n" +
-                        "RETURN node";
+                "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1 \n" +
+                        "MERGE (m:Neuron:" + dataset + " {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2 \n" +
+                        "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m)";
 
-        final String terminalCountText = "MATCH (n:Neuron {datasetBodyId:$datasetBodyId} ) SET n.pre = $pre, n.post = $post";
+        final String terminalCountText = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final BodyWithSynapses bws : bodyList) {
@@ -139,8 +130,6 @@ public class Neo4jImporter implements AutoCloseable {
                             new Statement(connectsToText,
                                     parameters("bodyId1", bws.getBodyId(),
                                             "bodyId2", postsynapticBodyId,
-                                            "datasetBodyId1", dataset + ":" + bws.getBodyId(),
-                                            "datasetBodyId2", dataset + ":" + postsynapticBodyId,
                                             "weight", bws.getConnectsTo().get(postsynapticBodyId)))
                     );
                 }
@@ -148,7 +137,7 @@ public class Neo4jImporter implements AutoCloseable {
                         new Statement(terminalCountText,
                                 parameters("pre", bws.getNumberOfPreSynapses(),
                                         "post", bws.getNumberOfPostSynapses(),
-                                        "datasetBodyId", dataset + ":" + bws.getBodyId()))
+                                        "bodyId", bws.getBodyId()))
                 );
 
             }
@@ -238,8 +227,8 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSynapsesTo: entry");
 
-        final String synapseRelationsText = "MERGE (s:Synapse {datasetLocation:$datasetPreLocation}) ON CREATE SET s.location = $prelocation, s.datasetLocation=$datasetPreLocation, s:createdforsynapsesto \n" +
-                "MERGE (t:Synapse {datasetLocation:$datasetPostLocation}) ON CREATE SET t.location = $postlocation, t.datasetLocation=$datasetPostLocation, t:createdforsynapsesto \n" +
+        final String synapseRelationsText = "MERGE (s:Synapse:" + dataset + " {datasetLocation:$datasetPreLocation}) ON CREATE SET s.location = $prelocation, s.datasetLocation=$datasetPreLocation, s:createdforsynapsesto \n" +
+                "MERGE (t:Synapse:" + dataset + " {datasetLocation:$datasetPostLocation}) ON CREATE SET t.location = $postlocation, t.datasetLocation=$datasetPostLocation, t:createdforsynapsesto \n" +
                 "MERGE (s)-[:SynapsesTo]->(t)";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -270,7 +259,7 @@ public class Neo4jImporter implements AutoCloseable {
 //                "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
 //                "RETURN node";
 
-        final String roiNeuronText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId = $bodyId, n.datasetBodyId=$datasetBodyId \n" +
+        final String roiNeuronText = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId = $bodyId\n" +
                 "WITH n \n" +
                 "CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
                 "RETURN node";
@@ -283,7 +272,6 @@ public class Neo4jImporter implements AutoCloseable {
 //                            "datasetLocation",dataset+":"+synapse.getLocationString(),
 //                            "rois", roiList)));
                     batch.addStatement(new Statement(roiNeuronText,parameters("bodyId", bws.getBodyId(),
-                            "datasetBodyId",dataset+":"+bws.getBodyId(),
                             "rois", roiList)));
                 }
             }
@@ -300,11 +288,11 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addNeuronParts: entry");
 
-        final String neuronPartText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId, n:createdforneuronpart \n"+
-                "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
+        final String neuronPartText = "MERGE (n:Neuron:" + dataset +  " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforneuronpart \n"+
+                "MERGE (p:NeuronPart:" + dataset + " {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
                 "MERGE (p)-[:PartOf]->(n) \n" +
                 "WITH p \n" +
-                "CALL apoc.create.addLabels(id(p),[$roi, $dataset]) YIELD node \n" +
+                "CALL apoc.create.addLabels(id(p),[$roi]) YIELD node \n" +
                 "RETURN node";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -313,9 +301,7 @@ public class Neo4jImporter implements AutoCloseable {
                     String neuronPartId = dataset+":"+bws.getBodyId()+":"+np.getRoi();
                     batch.addStatement(new Statement(neuronPartText,parameters("bodyId",bws.getBodyId(),
                             "roi",np.getRoi(),
-                            "dataset",dataset,
                             "neuronPartId",neuronPartId,
-                            "datasetBodyId",dataset+":"+bws.getBodyId(),
                             "pre",np.getPre(),
                             "post",np.getPost(),
                             "size",np.getPre()+np.getPost())));
@@ -333,7 +319,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSizeId: entry");
 
-        final String sizeIdText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId, n:createdforsid \n" +
+        final String sizeIdText = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforsid \n" +
                 "SET n.sId=$sId";
 
         int sId = 0;
@@ -342,7 +328,6 @@ public class Neo4jImporter implements AutoCloseable {
             for (BodyWithSynapses bws : bodyList) {
                 if (bws.getNumberOfPostSynapses()+bws.getNumberOfPreSynapses() > 10) {
                     batch.addStatement(new Statement(sizeIdText, parameters("bodyId", bws.getBodyId(),
-                            "datasetBodyId", dataset + ":" + bws.getBodyId(),
                             "sId", sId)));
                     sId++;
                 }
@@ -359,25 +344,19 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSynapseSets: entry");
 
-        final String neuronContainsSSText = "MERGE (n:Neuron {datasetBodyId:$datasetBodyId}) ON CREATE SET n.bodyId=$bodyId, n.datasetBodyId=$datasetBodyId \n" +
-                "MERGE (s:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId \n" +
-                "MERGE (n)-[:Contains]->(s) \n" +
-                "WITH s \n" +
-                "CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-                "RETURN node";
+        final String neuronContainsSSText = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
+                "MERGE (s:SynapseSet:" + dataset + " {datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId \n" +
+                "MERGE (n)-[:Contains]->(s)";
 
-        final String ssContainsSynapseText = "MERGE (s:Synapse {datasetLocation:$datasetLocation}) ON CREATE SET s.location=$location, s.datasetLocation=$datasetLocation \n"+
-                "MERGE (t:SynapseSet {datasetBodyId:$datasetBodyId}) ON CREATE SET t.bodyId=$datasetBodyId \n" +
-                "MERGE (t)-[:Contains]->(s) \n" +
-                "WITH t \n" +
-                "CALL apoc.create.addLabels(id(t),[$dataset]) YIELD node \n" +
-                "RETURN node";
+        final String ssContainsSynapseText = "MERGE (s:Synapse:" + dataset + " {datasetLocation:$datasetLocation}) ON CREATE SET s.location=$location, s.datasetLocation=$datasetLocation \n"+
+                "MERGE (t:SynapseSet:" + dataset + " {datasetBodyId:$datasetBodyId}) ON CREATE SET t.datasetBodyId=$datasetBodyId \n" +
+                "MERGE (t)-[:Contains]->(s) \n";
 
         try (final TransactionBatch batch = getBatch()) {
             for (BodyWithSynapses bws : bodyList) {
                 batch.addStatement(new Statement(neuronContainsSSText,parameters("bodyId",bws.getBodyId(),
-                        "datasetBodyId",dataset+":"+bws.getBodyId(),
-                        "dataset",dataset)));
+                        "datasetBodyId",dataset+":"+bws.getBodyId()))
+                );
 
                 for (Synapse synapse : bws.getSynapseSet()) {
                     batch.addStatement(new Statement(ssContainsSynapseText, parameters("location", synapse.getLocationString(),

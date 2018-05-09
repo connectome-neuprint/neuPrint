@@ -388,7 +388,7 @@ public class ConnConvert {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
                 if (parameters.prepDatabase || parameters.doAll) {
-                    neo4jImporter.prepDatabase();
+                    neo4jImporter.prepDatabase(dataset);
                 }
 
                 Stopwatch timer = Stopwatch.createStarted();
@@ -470,7 +470,7 @@ public class ConnConvert {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
                 if ((parameters.prepDatabase || parameters.doAll) && !parameters.loadNeurons) {
-                    neo4jImporter.prepDatabase();
+                    neo4jImporter.prepDatabase(dataset);
                 }
 
                 if (parameters.addConnectsTo || parameters.doAll) {
