@@ -36,6 +36,7 @@ public class NeuronTest {
                     "    \"Status\": \"anchor\",\n" +
                     "    \"Size\": 45757140129,\n" +
                     "    \"Name\": \"unknown\",\n" +
+                    "    \"NeuronType\": \"testtype\",\n" +
                     "    \"Soma\": {\n" +
                     "      \"Location\": [\n" +
                     "        32799,\n" +
