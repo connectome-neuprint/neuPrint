@@ -85,7 +85,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    //TODO: add rois, arbitrary properties
+    //TODO: arbitrary properties
     public void addNeurons(final String dataset,
                            final List<Neuron> neuronList) {
 
