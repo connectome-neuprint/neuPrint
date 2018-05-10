@@ -29,9 +29,9 @@ public class BodyWithSynapses {
     // body divided into multiple neuron parts based on roi
     private transient List<NeuronPart> neuronParts;
 
-    public BodyWithSynapses() {
-        this.bodyId = null;
-        this.synapseSet = new HashSet<>(); // LinkedHashSet ? if want to preserve order
+    public BodyWithSynapses(Long bodyId, Set<Synapse> synapseSet) {
+        this.bodyId = bodyId;
+        this.synapseSet = synapseSet; // LinkedHashSet ? if want to preserve order
     }
     
     /**
