@@ -51,6 +51,36 @@ public class SynapseTest {
                             SYNAPSE_JSON.replaceAll("[\\n\\t\\r\\s+]+"," "), serializedJson.replaceAll("[\\n\\t\\r\\s+]+"," "));
     }
 
+    @Test
+    public void testEqualsAndHashCode() {
+
+        final List<Synapse> parsedList = Synapse.fromJsonArray(SYNAPSE_JSON);
+
+        Synapse x = parsedList.get(0);
+        Synapse y = parsedList.get(1);
+        Synapse z = parsedList.get(2);
+
+        Synapse synapse1 = new Synapse(x.getType(), x.getConfidence(), x.getLocation(), x.getConnectionLocations());
+        Synapse synapse2 = new Synapse(y.getType(), y.getConfidence(), x.getLocation(), y.getConnectionLocations());
+        Synapse synapse3 = new Synapse(z.getType(), z.getConfidence(), x.getLocation(), z.getConnectionLocations());
+
+        //reflexive
+        Assert.assertTrue(synapse1.equals(synapse1));
+        //symmetric
+        Assert.assertTrue(synapse1.equals(synapse2) && synapse2.equals(synapse1));
+        //transitive
+        Assert.assertTrue(synapse1.equals(synapse2)  && synapse2.equals(synapse3) && synapse3.equals(synapse1));
+        //consistent
+        Assert.assertTrue(synapse2.equals(synapse1) && synapse2.equals(synapse1));
+        //not equal to null
+        Assert.assertTrue(!synapse2.equals(null));
+
+        Assert.assertNotSame(synapse1, synapse2);
+        Assert.assertTrue(synapse1.hashCode() == synapse2.hashCode());
+
+
+    }
+
     private static final String SYNAPSE_JSON =
             "[\n" +
                     "      {\n" +

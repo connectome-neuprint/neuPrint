@@ -30,12 +30,15 @@ public class Synapse {
 
 
 
-    public Synapse (String type, float confidence, List<Integer> location, List<List<Integer>> connectsTo,  List<List<Integer>> connectsFrom ) {
+    public Synapse (String type, float confidence, List<Integer> location, List<List<Integer>> connections) {
         this.type = type;
         this.confidence = confidence;
         this.location = location;
-        this.connectsTo = connectsTo;
-        this.connectsFrom = connectsFrom;
+        if (type.equals("pre")) {
+            this.connectsTo = connections;
+        } else if (type.equals("post")) {
+            this.connectsFrom = connections;
+        }
     }
 
 
@@ -49,6 +52,23 @@ public class Synapse {
                 ", connectsfrom= " + connectsFrom +
                 "}";
 
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        boolean isEqual = false;
+        if (this == o) {
+            isEqual = true;
+        } else if (o instanceof Synapse) {
+            final Synapse that = (Synapse) o;
+            isEqual = this.location.equals(that.location);
+        }
+        return isEqual;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.location.hashCode();
     }
 
 
