@@ -122,8 +122,77 @@ public class BodyWithSynapses {
         return bodyRois;
     }
 
+    public void addSynapseToBodyIdMap(String type, SynapseLocationToBodyIdMap synapseLocationToBodyIdMap ) throws IllegalArgumentException {
 
-    public void setConnectsTo(HashMap<String,Long> postToBody) {
+
+        List<String> preLocs = this.getPreLocations();
+        List<String> postLocs = this.getPostLocations();
+
+        switch (type) {
+            case "pre":
+                if (!preLocs.isEmpty()) {
+                    for (String loc : preLocs) {
+                        synapseLocationToBodyIdMap.mapLocationToBodyId(loc,this.bodyId);
+                    }
+                }
+
+                break;
+
+            case "post":
+                if (!postLocs.isEmpty()) {
+                    for (String loc : postLocs) {
+                        synapseLocationToBodyIdMap.mapLocationToBodyId(loc,this.bodyId);
+                    }
+                }
+
+                break;
+
+
+
+            default: throw new IllegalArgumentException("Incorrect input to function; use pre or post");
+        }
+
+
+
+
+
+//
+//
+//        HashMap<String, Long> preToBody = new HashMap<>();
+//        HashMap<String, Long> postToBody = new HashMap<>();
+//
+//        List<String> preLocs = this.getPreLocations();
+//        List<String> postLocs = this.getPostLocations();
+//
+//        switch (type) {
+//            case "pre":
+//                if (!preLocs.isEmpty()) {
+//                    for (String loc : preLocs) {
+//                        preToBody.put(loc, this.getBodyId());
+//
+//                    }
+//                }
+//
+//                return preToBody;
+//            case "post":
+//                if (!postLocs.isEmpty()) {
+//                    for (String loc : postLocs) {
+//                        postToBody.put(loc, this.getBodyId());
+//                    }
+//                }
+//
+//                return postToBody;
+//
+//            default: throw new IllegalArgumentException("Incorrect input to function; use pre or post");
+//        }
+
+
+
+    }
+
+
+
+    public void setConnectsTo(SynapseLocationToBodyIdMap postToBody) {
         for (Synapse synapse: this.synapseSet) {
             if (synapse.getType().equals("pre")) {
                 List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
@@ -152,7 +221,7 @@ public class BodyWithSynapses {
         return preToPost;
     }
 
-    public void setConnectsFrom(HashMap<String,Long> preToBody) {
+    public void setConnectsFrom(SynapseLocationToBodyIdMap preToBody) {
         for (Synapse synapse: this.synapseSet) {
             if (synapse.getType().equals("post")) {
                 List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
@@ -166,12 +235,12 @@ public class BodyWithSynapses {
         }
     }
 
-    private List<Long> postLocsToBodyIds (List<String> postsynapticPartners, HashMap<String,Long> postToBody) {
+    private List<Long> postLocsToBodyIds (List<String> postsynapticPartners, SynapseLocationToBodyIdMap postToBody) {
         List<Long> postsynapticPartnerIds = new ArrayList<>();
-        for (String psd : postsynapticPartners) {
-            postsynapticPartnerIds.add(postToBody.get(psd));
-            if (postToBody.get(psd)==null){
-                System.out.println(psd + " not in postToBody.");
+        for (String psdLocation : postsynapticPartners) {
+            postsynapticPartnerIds.add(postToBody.getBodyId(psdLocation));
+            if (postToBody.getBodyId(psdLocation)==null){
+                System.out.println(psdLocation + " not in postToBody.");
             }
         }
         return postsynapticPartnerIds;
