@@ -20,6 +20,8 @@ public class BodyWithSynapsesTest {
         Assert.assertEquals("invalid number of bodies parsed",
                             4, parsedBodyList.size());
 
+        Assert.assertEquals("invalid number of synapses for " + parsedBodyList.get(1), 2 , parsedBodyList.get(1).getSynapseSet().size());
+
         final String serializedJson = JsonUtils.GSON.toJson(parsedBodyList);
 
         Assert.assertTrue("serialized result is empty",
@@ -93,6 +95,22 @@ public class BodyWithSynapsesTest {
 
     }
 
+    @Test
+    public void testGetBodyRois() {
+
+        final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
+
+        List<String> firstBodyRois = parsedBodyList.get(0).getBodyRois();
+        List<String> roiList = new ArrayList<>();
+        roiList.add("seven_column_roi");
+        roiList.add("testroi");
+        roiList.add("seven_column_roi");
+
+        Assert.assertEquals(firstBodyRois,roiList);
+
+
+    }
+
     // TODO: add more tests!
 
     private static final String BODY_LIST_JSON =
@@ -101,7 +119,7 @@ public class BodyWithSynapsesTest {
             "    \"BodyId\": 8426959,\n" +
             "    \"SynapseSet\": [\n" +
             "      {\n" +
-            "        \"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ],\n" +
+            "        \"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\", \"testroi\" ],\n" +
             "        \"ConnectsTo\": [\n" +
             "          [ 4298, 2294, 1542 ], [ 4301, 2276, 1535 ], [ 4292, 2261, 1542 ]\n" +
             "        ]\n" +
