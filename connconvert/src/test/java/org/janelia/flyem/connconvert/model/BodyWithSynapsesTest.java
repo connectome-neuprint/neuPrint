@@ -1,5 +1,6 @@
 package org.janelia.flyem.connconvert.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.janelia.flyem.connconvert.json.JsonUtils;
@@ -57,6 +58,41 @@ public class BodyWithSynapsesTest {
 
     }
 
+    @Test
+    public void testGetSynapticLocations() {
+
+        final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
+
+        BodyWithSynapses body1 = parsedBodyList.get(0);
+        BodyWithSynapses body2 = parsedBodyList.get(1);
+        BodyWithSynapses body3 = parsedBodyList.get(2);
+
+        List<String> postloclist = new ArrayList<>();
+        List<String> preloclist = new ArrayList<>();
+        postloclist.add("4222:2402:1688");
+        preloclist.add("4287:2277:1542");
+
+        Assert.assertEquals(body1.getPreLocations(), preloclist);
+        Assert.assertEquals(body1.getPostLocations(), postloclist);
+
+        List<String> postloclist2 = new ArrayList<>();
+        List<String> emptylist = new ArrayList<>();
+        postloclist2.add("4301:2276:1535");
+        postloclist2.add("4222:2402:1688");
+
+
+        Assert.assertEquals(body2.getPostLocations(), postloclist2);
+        Assert.assertEquals(body2.getPreLocations(), emptylist);
+
+        List<String> preloclist2 = new ArrayList<>();
+        preloclist2.add("4298:2294:1542");
+        preloclist2.add("4287:2277:1542");
+
+        Assert.assertEquals(body3.getPreLocations(), preloclist2);
+        Assert.assertEquals(body3.getPostLocations(), emptylist);
+
+    }
+
     // TODO: add more tests!
 
     private static final String BODY_LIST_JSON =
@@ -76,13 +112,20 @@ public class BodyWithSynapsesTest {
             "  {\n" +
             "    \"BodyId\": 26311,\n" +
             "    \"SynapseSet\": [\n" +
-            "      { \"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4287, 2277, 1542 ] ] }\n" +
+            "      { \"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4287, 2277, 1542 ] ] },\n" +
+            "        { \"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4236, 2394, 1700 ] ]  }\n" +
             "    ]\n" +
             "  },\n" +
             "  {\n" +
             "    \"BodyId\": 2589725,\n" +
             "    \"SynapseSet\": [\n" +
-            "      { \"Type\": \"post\", \"Location\": [ 4298, 2294, 1542 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4287, 2277, 1542 ] ] }\n" +
+            "      { \"Type\": \"pre\", \"Location\": [ 4298, 2294, 1542 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4287, 2277, 1542 ] ] },\n" +
+                    "       {\n" +
+            "        \"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ],\n" +
+            "        \"ConnectsTo\": [\n" +
+            "          [ 4298, 2294, 1542 ], [ 4301, 2276, 1535 ], [ 4292, 2261, 1542 ]\n" +
+            "        ]\n" +
+            "      }\n" +
             "    ]\n" +
             "  },\n" +
             "  {\n" +
