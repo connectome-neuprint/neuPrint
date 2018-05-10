@@ -29,6 +29,36 @@ public class NeuronTest {
                             NEURON_JSON, serializedJson);
     }
 
+    @Test
+    public void testEqualsAndHashCode() {
+
+        final List<Neuron> parsedList = Neuron.fromJson(NEURON_JSON);
+
+        Neuron x = parsedList.get(0);
+        Neuron y = parsedList.get(1);
+        Neuron z = parsedList.get(2);
+
+        Neuron neuron1 = new Neuron(new Long(85), x.getStatus(), x.getName(), x.getNeuronType(), x.getSize(), x.getRois(), x.getSoma() );
+        Neuron neuron2 = new Neuron(new Long(85), y.getStatus(), y.getName(), y.getNeuronType(), y.getSize(), y.getRois(), y.getSoma() );
+        Neuron neuron3 = new Neuron(new Long(85), z.getStatus(), z.getName(), z.getNeuronType(), z.getSize(), z.getRois(), z.getSoma() );
+
+        //reflexive
+        Assert.assertTrue(neuron1.equals(neuron1));
+        //symmetric
+        Assert.assertTrue(neuron1.equals(neuron2) && neuron2.equals(neuron1));
+        //transitive
+        Assert.assertTrue(neuron1.equals(neuron2)  && neuron2.equals(neuron3) && neuron3.equals(neuron1));
+        //consistent
+        Assert.assertTrue(neuron2.equals(neuron1) && neuron2.equals(neuron1));
+        //not equal to null
+        Assert.assertTrue(!neuron2.equals(null));
+
+        Assert.assertNotSame(neuron1, neuron2);
+        Assert.assertTrue(neuron1.hashCode() == neuron2.hashCode());
+
+
+    }
+
     private static final String NEURON_JSON =
             "[\n" +
                     "  {\n" +
