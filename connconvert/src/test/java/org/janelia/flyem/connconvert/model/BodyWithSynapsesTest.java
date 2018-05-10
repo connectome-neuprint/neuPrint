@@ -111,6 +111,46 @@ public class BodyWithSynapsesTest {
 
     }
 
+    @Test
+    public void testAddSynapseToBodyIdMap() {
+
+        final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
+
+        final SynapseLocationToBodyIdMap postSynapseLocationToBodyIdMap = new SynapseLocationToBodyIdMap();
+        final SynapseLocationToBodyIdMap preSynapseLocationToBodyIdMap = new SynapseLocationToBodyIdMap();
+
+        BodyWithSynapses body1 = parsedBodyList.get(0);
+        BodyWithSynapses body2 = parsedBodyList.get(1);
+
+        body1.addSynapseToBodyIdMap("post", postSynapseLocationToBodyIdMap);
+        body1.addSynapseToBodyIdMap("pre", preSynapseLocationToBodyIdMap);
+
+
+        Assert.assertEquals("Incorrect post-synapse to bodyId for " + body1, new Long(8426959), postSynapseLocationToBodyIdMap.getBodyId("4202:2402:1688"));
+        Assert.assertEquals("Incorrect pre-synapse to bodyId mapping for " + body1, new Long(8426959), preSynapseLocationToBodyIdMap.getBodyId("4287:2277:1542"));
+
+        body2.addSynapseToBodyIdMap("post", postSynapseLocationToBodyIdMap);
+        body2.addSynapseToBodyIdMap("pre", preSynapseLocationToBodyIdMap);
+
+        Assert.assertEquals("Incorrect number of keys in pre-synaptic location to bodyId map",  1, preSynapseLocationToBodyIdMap.getAllLocationKeys().size());
+        Assert.assertEquals("Incorrect number of keys in post-synaptic location to bodyId map", 3, postSynapseLocationToBodyIdMap.getAllLocationKeys().size());
+
+
+
+
+    }
+
+//    @Test
+//    public void testSetConnectsTo() {
+//
+//        final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
+//
+//        BodyWithSynapses body1 = parsedBodyList.get(0);
+//
+//        HashMap<String,Long> testMap = new
+//
+//    }
+
     // TODO: add more tests!
 
     private static final String BODY_LIST_JSON =
@@ -124,7 +164,7 @@ public class BodyWithSynapsesTest {
             "          [ 4298, 2294, 1542 ], [ 4301, 2276, 1535 ], [ 4292, 2261, 1542 ]\n" +
             "        ]\n" +
             "      },\n" +
-            "      { \"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4236, 2394, 1700 ] ]  }\n" +
+            "      { \"Type\": \"post\", \"Location\": [ 4202, 2402, 1688 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4236, 2394, 1700 ] ]  }\n" +
             "    ]\n" +
             "  },\n" +
             "  {\n" +
