@@ -241,7 +241,7 @@ public class ConnConvert {
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             neuronList = Neuron.fromJson(reader);
-            System.out.println("Number of neurons: " + neuronList.size());
+            LOG.info("Number of neurons: " + neuronList.size());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -271,7 +271,7 @@ public class ConnConvert {
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             bodyList = BodyWithSynapses.fromJson(reader);
-            System.out.println("Number of bodies with synapses: " + bodyList.size());
+            LOG.info("Number of bodies with synapses: " + bodyList.size());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -368,7 +368,7 @@ public class ConnConvert {
             setDatasetName(parameters.neuronJson, parameters.synapseJson);
         }
 
-        System.out.println("Dataset is: " + dataset);
+        LOG.info("Dataset is: " + dataset);
 
 
         if (parameters.loadNeurons || parameters.doAll) {
@@ -376,7 +376,7 @@ public class ConnConvert {
             // read in the neurons data
             Stopwatch timer2 = Stopwatch.createStarted();
             neuronList = readNeuronsJson(parameters.neuronJson);
-            System.out.println(timer2.stop());
+            LOG.info("Reading in neurons json took: " + timer2.stop());
             timer2.reset();
             //write it to the database
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
@@ -397,7 +397,7 @@ public class ConnConvert {
 
             Stopwatch timer = Stopwatch.createStarted();
             bodyList = readSynapsesJson(parameters.synapseJson);
-            LOG.info("Loading all synapse data took: " + timer.stop());
+            LOG.info("Reading in synapse json took: " + timer.stop());
             timer.reset();
 
             //create a new hashmap for storing: body>pre, pre>post; post>body
@@ -405,6 +405,7 @@ public class ConnConvert {
             HashMap<String, Long> postToBody = new HashMap<>();
             HashMap<String, List<String>> preToPost = new HashMap<>();
             timer.start();
+
             for (BodyWithSynapses bws : bodyList) {
                 List<String> preLocs = bws.getPreLocations();
                 List<String> postLocs = bws.getPostLocations();
