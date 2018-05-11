@@ -13,6 +13,7 @@ import com.google.common.base.Stopwatch;
 import java.util.List;
 import java.util.HashMap;
 import java.io.File;
+import java.util.Scanner;
 import java.util.logging.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -371,9 +372,20 @@ public class ConnConvert {
                 dataset = parameters.neuronDataset;
 
             } else {
-                LOG.log(Level.INFO, "Check that input files are from the same dataset.");
-                System.exit(1);
-            }
+//                Scanner input = new Scanner( System.in );
+//                String userInput = null;
+//                while (userInput == null ) {
+//                    System.out.print("Input file names do not appear to be from the same dataset. Okay to proceed? (y/n) ");
+//                    userInput = input.nextLine();
+//                    if (!userInput.equals("y") && !userInput.equals("n")) {
+//                        System.out.println("Incorrect response, please respond with y or n. ");
+//                    } else if (userInput.equals("y")) {
+//
+//
+//                    }
+                    System.out.print("Input file names do not appear to be from the same dataset.");
+                    System.exit(1);
+                }
         } else {
             setDatasetName(parameters.neuronJson, parameters.synapseJson);
         }
@@ -423,7 +435,8 @@ public class ConnConvert {
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-                Stopwatch timer = Stopwatch.createStarted();
+
+                Stopwatch timer = Stopwatch.createUnstarted();
 
                 if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll)) {
                     neo4jImporter.prepDatabase(dataset);
