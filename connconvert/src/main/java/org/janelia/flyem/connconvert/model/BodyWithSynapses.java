@@ -21,8 +21,8 @@ public class BodyWithSynapses {
     private final Set<Synapse> synapseSet;
     // TODO: check for attempts to add duplicate synapses
 
-    private transient HashMap<Long,Integer> connectsTo = new HashMap<>(); //Map of body IDs and weights
-    private transient HashMap<Long,Integer> connectsFrom = new HashMap<>(); //Map of body IDs and weights
+    private transient HashMap<Long,Integer> connectsTo; //Map of body IDs and weights
+    private transient HashMap<Long,Integer> connectsFrom; //Map of body IDs and weights
     private transient Integer numberOfPreSynapses;
     private transient Integer numberOfPostSynapses;
 
@@ -32,6 +32,8 @@ public class BodyWithSynapses {
     public BodyWithSynapses(Long bodyId, Set<Synapse> synapseSet) {
         this.bodyId = bodyId;
         this.synapseSet = synapseSet; // LinkedHashSet ? if want to preserve order
+
+
     }
     
     /**
@@ -122,70 +124,43 @@ public class BodyWithSynapses {
         return bodyRois;
     }
 
-    public void addSynapseToBodyIdMap(String type, SynapseLocationToBodyIdMap synapseLocationToBodyIdMap ) throws IllegalArgumentException {
+    public void addSynapseToBodyIdMapAndSetSynapseCounts(String mapType, SynapseLocationToBodyIdMap synapseLocationToBodyIdMap ) throws IllegalArgumentException {
 
+        int countPre = 0;
+        int countPost = 0;
+            switch (mapType) {
 
-        List<String> preLocs = this.getPreLocations();
-        List<String> postLocs = this.getPostLocations();
-
-        switch (type) {
-            case "pre":
-                if (!preLocs.isEmpty()) {
-                    for (String loc : preLocs) {
-                        synapseLocationToBodyIdMap.mapLocationToBodyId(loc,this.bodyId);
+                case "pre":
+                    for (Synapse synapse : this.synapseSet) {
+                        if (synapse.getType().equals("pre")) {
+                            String preLocation = synapse.getLocationString();
+                            synapseLocationToBodyIdMap.mapLocationToBodyId(preLocation, this.bodyId);
+                            countPre++;
+                        } else if (synapse.getType().equals("post")) {
+                            countPost++;
+                        }
                     }
-                }
+                    break;
+                case "post":
+                    for (Synapse synapse : this.synapseSet) {
+                        if (synapse.getType().equals("post")) {
+                            String postLocation = synapse.getLocationString();
+                            synapseLocationToBodyIdMap.mapLocationToBodyId(postLocation, this.bodyId);
+                            countPost++;
+                        } else if (synapse.getType().equals("pre")) {
+                            countPre++;
+                        }
 
-                break;
-
-            case "post":
-                if (!postLocs.isEmpty()) {
-                    for (String loc : postLocs) {
-                        synapseLocationToBodyIdMap.mapLocationToBodyId(loc,this.bodyId);
                     }
-                }
-
-                break;
-
-
-
-            default: throw new IllegalArgumentException("Incorrect input to function; use pre or post");
-        }
+                    break;
+                default:
+                    throw new IllegalArgumentException("Incorrect input to function; use pre or post");
+            }
 
 
 
-
-
-//
-//
-//        HashMap<String, Long> preToBody = new HashMap<>();
-//        HashMap<String, Long> postToBody = new HashMap<>();
-//
-//        List<String> preLocs = this.getPreLocations();
-//        List<String> postLocs = this.getPostLocations();
-//
-//        switch (type) {
-//            case "pre":
-//                if (!preLocs.isEmpty()) {
-//                    for (String loc : preLocs) {
-//                        preToBody.put(loc, this.getBodyId());
-//
-//                    }
-//                }
-//
-//                return preToBody;
-//            case "post":
-//                if (!postLocs.isEmpty()) {
-//                    for (String loc : postLocs) {
-//                        postToBody.put(loc, this.getBodyId());
-//                    }
-//                }
-//
-//                return postToBody;
-//
-//            default: throw new IllegalArgumentException("Incorrect input to function; use pre or post");
-//        }
-
+        this.numberOfPreSynapses = countPre;
+        this.numberOfPostSynapses = countPost;
 
 
     }
@@ -193,6 +168,7 @@ public class BodyWithSynapses {
 
 
     public void setConnectsTo(SynapseLocationToBodyIdMap postToBody) {
+        this.connectsTo = new HashMap<>();
         for (Synapse synapse: this.synapseSet) {
             if (synapse.getType().equals("pre")) {
                 List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
@@ -202,6 +178,7 @@ public class BodyWithSynapses {
                         int count = this.connectsTo.containsKey(partnerId) ? this.connectsTo.get(partnerId) : 0;
                         this.connectsTo.put(partnerId, count + 1);
                     } else {
+                        // TODO: change this to log
                         System.out.println(synapse.getLocationString() + " on " + this.bodyId + " has no bodyId for postsynaptic partner.");
 
                     }
@@ -246,21 +223,6 @@ public class BodyWithSynapses {
         return postsynapticPartnerIds;
     }
 
-
-    public void setSynapseCounts(){
-        int countPre = 0;
-        int countPost = 0;
-        for (Synapse synapse: this.synapseSet) {
-            if (synapse.getType().equals("pre")) {
-                countPre++;
-            } else if (synapse.getType().equals("post")) {
-                countPost++;
-            }
-        }
-        this.numberOfPreSynapses = countPre;
-        this.numberOfPostSynapses = countPost;
-
-    }
 
 
     public void setNeuronParts() {

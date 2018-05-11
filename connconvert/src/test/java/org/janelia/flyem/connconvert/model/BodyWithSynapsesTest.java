@@ -1,9 +1,11 @@
 package org.janelia.flyem.connconvert.model;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.janelia.flyem.connconvert.json.JsonUtils;
+import org.janelia.flyem.connconvert.model2.Body;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -112,7 +114,7 @@ public class BodyWithSynapsesTest {
     }
 
     @Test
-    public void testAddSynapseToBodyIdMap() {
+    public void testAddSynapseToBodyIdMapAndSetSynapseCounts() {
 
         final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
 
@@ -122,34 +124,53 @@ public class BodyWithSynapsesTest {
         BodyWithSynapses body1 = parsedBodyList.get(0);
         BodyWithSynapses body2 = parsedBodyList.get(1);
 
-        body1.addSynapseToBodyIdMap("post", postSynapseLocationToBodyIdMap);
-        body1.addSynapseToBodyIdMap("pre", preSynapseLocationToBodyIdMap);
+        body1.addSynapseToBodyIdMapAndSetSynapseCounts("post", postSynapseLocationToBodyIdMap);
+        body1.addSynapseToBodyIdMapAndSetSynapseCounts("pre", preSynapseLocationToBodyIdMap);
 
 
         Assert.assertEquals("Incorrect post-synapse to bodyId for " + body1, new Long(8426959), postSynapseLocationToBodyIdMap.getBodyId("4202:2402:1688"));
         Assert.assertEquals("Incorrect pre-synapse to bodyId mapping for " + body1, new Long(8426959), preSynapseLocationToBodyIdMap.getBodyId("4287:2277:1542"));
 
-        body2.addSynapseToBodyIdMap("post", postSynapseLocationToBodyIdMap);
-        body2.addSynapseToBodyIdMap("pre", preSynapseLocationToBodyIdMap);
+        body2.addSynapseToBodyIdMapAndSetSynapseCounts("post", postSynapseLocationToBodyIdMap);
+        body2.addSynapseToBodyIdMapAndSetSynapseCounts("pre", preSynapseLocationToBodyIdMap);
 
         Assert.assertEquals("Incorrect number of keys in pre-synaptic location to bodyId map",  1, preSynapseLocationToBodyIdMap.getAllLocationKeys().size());
         Assert.assertEquals("Incorrect number of keys in post-synaptic location to bodyId map", 3, postSynapseLocationToBodyIdMap.getAllLocationKeys().size());
+
+        Assert.assertEquals("Incorrect number of synapses for " + body1, 2, body1.getNumberOfPostSynapses()+ body1.getNumberOfPreSynapses());
+        Assert.assertEquals("Incorrect number of synapses for " + body2, new Integer(2), body2.getNumberOfPostSynapses());
+
 
 
 
 
     }
 
-//    @Test
-//    public void testSetConnectsTo() {
-//
-//        final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
-//
-//        BodyWithSynapses body1 = parsedBodyList.get(0);
-//
-//        HashMap<String,Long> testMap = new
-//
-//    }
+    @Test
+    public void testSetConnectsTo() {
+
+        final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
+        final SynapseLocationToBodyIdMap postSynapseLocationToBodyIdMap = new SynapseLocationToBodyIdMap();
+
+        for (BodyWithSynapses bws : parsedBodyList) {
+            bws.addSynapseToBodyIdMapAndSetSynapseCounts("post", postSynapseLocationToBodyIdMap);
+        }
+
+
+
+
+
+        BodyWithSynapses body1 = parsedBodyList.get(0);
+        body1.setConnectsTo(postSynapseLocationToBodyIdMap);
+
+        HashMap<Long, Integer> body1ConnectsTo = body1.getConnectsTo();
+
+
+        Assert.assertEquals("Incorrect connections for " + body1, new Integer(2),  body1ConnectsTo.get(new Long(26311)));
+        Assert.assertEquals("Incorrect connections for " + body1, new Integer(1),  body1.getConnectsTo().get(new Long(831744)));
+        Assert.assertEquals("Incorrect number of postsynaptic partners for " + body1, 2, body1.getConnectsTo().keySet().size());
+
+    }
 
     // TODO: add more tests!
 
@@ -161,7 +182,7 @@ public class BodyWithSynapsesTest {
             "      {\n" +
             "        \"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\", \"testroi\" ],\n" +
             "        \"ConnectsTo\": [\n" +
-            "          [ 4298, 2294, 1542 ], [ 4301, 2276, 1535 ], [ 4292, 2261, 1542 ]\n" +
+            "          [ 4292, 2261, 1542 ], [ 4301, 2276, 1535 ], [ 4222, 2402, 1688 ]\n" +
             "        ]\n" +
             "      },\n" +
             "      { \"Type\": \"post\", \"Location\": [ 4202, 2402, 1688 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4236, 2394, 1700 ] ]  }\n" +

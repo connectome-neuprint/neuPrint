@@ -1,7 +1,6 @@
 package org.janelia.flyem.connconvert.model;
 
 import java.io.BufferedReader;
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -74,12 +73,12 @@ public class SynapseMapper {
 
 
         for (final BodyWithSynapses body : bodyList) {
-            body.addSynapseToBodyIdMap("post", synapseLocationToBodyIdMap);
+            body.addSynapseToBodyIdMapAndSetSynapseCounts("post", synapseLocationToBodyIdMap);
         }
 
-//        for (final BodyWithSynapses body : bodyList) {
-//            body.setConnectsTo(synapseLocationToBodyIdMap);
-//        }
+        for (final BodyWithSynapses body : bodyList) {
+            body.setConnectsTo(synapseLocationToBodyIdMap);
+        }
 
     }
 

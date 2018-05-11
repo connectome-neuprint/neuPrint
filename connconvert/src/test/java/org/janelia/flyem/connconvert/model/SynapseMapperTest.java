@@ -22,24 +22,27 @@ public class SynapseMapperTest {
                             4, parsedBodyList.size());
 
         int totalSynapseCount = 0;
-//        for (final BodyWithSynapses body : parsedBodyList) {
-//            final int numberOfConnections = body.getNumberOfPreSynapses() +
-//                                            body.getNumberOfPostSynapses();
-//            Assert.assertTrue("no connections for body " + body,
-//                              numberOfConnections > 0);
-//            totalSynapseCount += body.getSynapseSet().size();
-//        }
+        for (final BodyWithSynapses body : parsedBodyList) {
+            final int numberOfConnections = body.getNumberOfPreSynapses() +
+                                            body.getNumberOfPostSynapses();
+            Assert.assertTrue("no connections for body " + body,
+                              numberOfConnections > 0);
+            totalSynapseCount += body.getSynapseSet().size();
+        }
 
-//        Assert.assertEquals("invalid number of synapses parsed", 5, totalSynapseCount);
+        Assert.assertEquals("invalid number of synapses parsed", 5, totalSynapseCount);
 
+        BodyWithSynapses body1 = parsedBodyList.get(0);
 
-        final SynapseMapper mapper2 = new SynapseMapper();
-        final List<BodyWithSynapses> parsedBodyList2 = mapper2.loadAndMapBodiesFromJsonString(BODY_LIST_JSON);
+        Assert.assertEquals("Incorrect connectsto weight for " + body1, new Integer(1), body1.getConnectsTo().get(new Long(26311)));
+        Assert.assertEquals("Incorrect number of connections for "+ body1, 3, body1.getConnectsTo().keySet().size());
 
-        SynapseLocationToBodyIdMap postToBody = mapper2.getSynapseLocationToBodyIdMap();
+        SynapseLocationToBodyIdMap postToBody = mapper.getSynapseLocationToBodyIdMap();
 
         Assert.assertEquals(4,postToBody.getAllLocationKeys().size());
         Assert.assertEquals(new Long(831744),postToBody.getBodyId("4292:2261:1542"));
+
+
 
 
         // TODO: improve this test
