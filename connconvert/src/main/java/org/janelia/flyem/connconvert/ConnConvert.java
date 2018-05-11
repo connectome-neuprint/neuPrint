@@ -20,9 +20,7 @@ import java.util.regex.Pattern;
 
 import org.janelia.flyem.connconvert.db.DbConfig;
 import org.janelia.flyem.connconvert.json.JsonUtils;
-import org.janelia.flyem.connconvert.model.BodyWithSynapses;
-import org.janelia.flyem.connconvert.model.Neuron;
-import org.janelia.flyem.connconvert.model.SortBodyByNumberOfSynapses;
+import org.janelia.flyem.connconvert.model.*;
 
 
 // TODO: Add ROI information using column names from neurons file?
@@ -395,56 +393,24 @@ public class ConnConvert {
 
         if (parameters.loadSynapses || parameters.doAll) {
 
-            Stopwatch timer = Stopwatch.createStarted();
-            bodyList = readSynapsesJson(parameters.synapseJson);
-            LOG.info("Reading in synapse json took: " + timer.stop());
-            timer.reset();
 
-            //create a new hashmap for storing: body>pre, pre>post; post>body
-            HashMap<String, Long> preToBody = new HashMap<>();
-            HashMap<String, Long> postToBody = new HashMap<>();
+            SynapseMapper mapper = new SynapseMapper();
+            bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
+
+
             HashMap<String, List<String>> preToPost = new HashMap<>();
-            timer.start();
 
             for (BodyWithSynapses bws : bodyList) {
-                List<String> preLocs = bws.getPreLocations();
-                List<String> postLocs = bws.getPostLocations();
-
-                if (!preLocs.isEmpty()) {
-                    for (String loc : preLocs) {
-                        preToBody.put(loc, bws.getBodyId());
-
-                    }
-                }
-                if (!postLocs.isEmpty()) {
-                    for (String loc : postLocs) {
-                        postToBody.put(loc, bws.getBodyId());
-                    }
-                }
-            }
-
-            LOG.info("hashmaps took : " + timer.stop());
-            timer.reset();
-            timer.start();
-            for (BodyWithSynapses bws : bodyList) {
-                bws.setConnectsTo(postToBody);
-                bws.setSynapseCounts();
                 preToPost.putAll(bws.getPreToPostForBody());
             }
 
-            LOG.info("setting features took : " + timer.stop());
-            timer.reset();
 
             // in mb6 bodyId 304654117 has a synapse classified as both pre and post
             // System.out.println(postToBody.get("4305:5400:11380"));
             // System.out.println(preToBody.get("4305:5400:11380"));
 
             //can now sort bodyList by synapse count
-            timer.start();
             bodyList.sort(new SortBodyByNumberOfSynapses());
-            LOG.info("sorting by synapses took : " + timer.stop());
-            timer.reset();
-
 
 
             //logging
@@ -463,6 +429,8 @@ public class ConnConvert {
 
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+
+                Stopwatch timer = Stopwatch.createStarted();
 
                 if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll)) {
                     neo4jImporter.prepDatabase(dataset);
@@ -507,7 +475,9 @@ public class ConnConvert {
             }
 
             if (parameters.addNeuronParts || parameters.doAll) {
-                timer.start();
+
+                Stopwatch timer = Stopwatch.createStarted();
+
                 for (BodyWithSynapses bws : bodyList) {
                     bws.setNeuronParts();
 

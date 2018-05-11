@@ -2,6 +2,7 @@ package org.janelia.flyem.connconvert.model;
 
 import java.util.List;
 
+import org.janelia.flyem.connconvert.SynapseMapper;
 import org.junit.Assert;
 import org.junit.Test;
 

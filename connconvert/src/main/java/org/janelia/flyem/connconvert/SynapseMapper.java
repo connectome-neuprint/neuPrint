@@ -1,9 +1,14 @@
-package org.janelia.flyem.connconvert.model;
+package org.janelia.flyem.connconvert;
+
+import com.google.common.base.Stopwatch;
+import org.janelia.flyem.connconvert.model.BodyWithSynapses;
+import org.janelia.flyem.connconvert.model.SynapseLocationToBodyIdMap;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Coordinates parsing and mapping JSON formatted connected body synapse data into an in-memory object model.
@@ -34,11 +39,14 @@ public class SynapseMapper {
      */
     public List<BodyWithSynapses> loadAndMapBodies(final String filepath) {
 
-
+        Stopwatch timer = Stopwatch.createStarted();
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             final List<BodyWithSynapses> bodyList = BodyWithSynapses.fromJson(reader);
             mapBodies(bodyList);
+            LOG.info("Number of bodies with synapses: " + bodyList.size());
+            LOG.info("Reading in synapse json took: " + timer.stop());
+            timer.reset();
             return bodyList;
 
         } catch (Exception e) {
@@ -52,16 +60,9 @@ public class SynapseMapper {
 
 
 
-    }
-
-
-    public List<BodyWithSynapses> loadAndMapBodiesFromJsonString(final String jsonString) {
-
-            final List<BodyWithSynapses> bodyList = BodyWithSynapses.fromJson(jsonString);
-            mapBodies(bodyList);
-            return bodyList;
 
     }
+
 
 
 
@@ -80,7 +81,11 @@ public class SynapseMapper {
             body.setConnectsTo(synapseLocationToBodyIdMap);
         }
 
+
     }
+
+    private static final Logger LOG = Logger.getLogger("SynapseMapper.class");
+
 
 
 
