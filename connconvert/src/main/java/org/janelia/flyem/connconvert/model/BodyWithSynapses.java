@@ -8,6 +8,7 @@ import org.janelia.flyem.connconvert.json.JsonUtils;
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
 import java.util.*;
+import java.util.logging.Logger;
 
 
 public class BodyWithSynapses {
@@ -178,8 +179,7 @@ public class BodyWithSynapses {
                         int count = this.connectsTo.containsKey(partnerId) ? this.connectsTo.get(partnerId) : 0;
                         this.connectsTo.put(partnerId, count + 1);
                     } else {
-                        // TODO: change this to log
-                        System.out.println(synapse.getLocationString() + " on " + this.bodyId + " has no bodyId for postsynaptic partner.");
+                        LOG.info(synapse.getLocationString() + " on " + this.bodyId + " has no bodyId for postsynaptic partner.");
 
                     }
                 }
@@ -198,19 +198,6 @@ public class BodyWithSynapses {
         return preToPost;
     }
 
-    public void setConnectsFrom(SynapseLocationToBodyIdMap preToBody) {
-        for (Synapse synapse: this.synapseSet) {
-            if (synapse.getType().equals("post")) {
-                List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
-                List<Long> postsynapticPartnerIds = postLocsToBodyIds(postsynapticPartners, preToBody);
-                for (Long partnerId : postsynapticPartnerIds) {
-                    int count = this.connectsFrom.containsKey(partnerId) ? this.connectsFrom.get(partnerId) : 0;
-                    this.connectsFrom.put(partnerId, count+1);
-
-                }
-            }
-        }
-    }
 
     private List<Long> postLocsToBodyIds (List<String> postsynapticPartners, SynapseLocationToBodyIdMap postToBody) {
         List<Long> postsynapticPartnerIds = new ArrayList<>();
@@ -273,7 +260,7 @@ public class BodyWithSynapses {
     private static Type BODY_LIST_TYPE = new TypeToken<List<BodyWithSynapses>>(){}.getType();
 
 
-
+    private static final Logger LOG = Logger.getLogger("BodyWithSynapses.class");
 
 
 
