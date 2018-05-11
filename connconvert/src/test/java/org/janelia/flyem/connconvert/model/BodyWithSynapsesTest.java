@@ -172,6 +172,23 @@ public class BodyWithSynapsesTest {
 
     }
 
+
+    @Test
+    public void testAddSynapsesToPreToPostMap() {
+
+        final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
+
+        final HashMap<String,List<String>> preToPostMap = new HashMap<>();
+
+        BodyWithSynapses body1 = parsedBodyList.get(0);
+
+        body1.addSynapsesToPreToPostMap(preToPostMap);
+
+        Assert.assertEquals(3,preToPostMap.get("4287:2277:1542").size());
+        Assert.assertEquals("4292:2261:1542",preToPostMap.get("4287:2277:1542").get(0));
+
+    }
+
     // TODO: add more tests!
 
     private static final String BODY_LIST_JSON =

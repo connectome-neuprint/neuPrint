@@ -187,15 +187,14 @@ public class BodyWithSynapses {
         }
     }
 
-    public HashMap<String,List<String>> getPreToPostForBody() {
-        HashMap<String,List<String>> preToPost = new HashMap<>();
+    public void addSynapsesToPreToPostMap(HashMap<String,List<String>> preToPost) {
+
         for (Synapse synapse: this.synapseSet) {
             if (synapse.getType().equals("pre")) {
                 List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
                 preToPost.put(synapse.getLocationString(), postsynapticPartners);
             }
         }
-        return preToPost;
     }
 
 

@@ -326,6 +326,20 @@ public class ConnConvert {
         final JCommander jCommander = new JCommander(parameters);
         jCommander.setProgramName("java -cp converter.jar " + ConnConvert.class.getName());
 
+        //logging
+        FileHandler fh;
+        try {
+
+            fh = new FileHandler("hemitestload.log");
+            fh.setFormatter(new SimpleFormatter());
+            LOG.addHandler(fh);
+
+            //LOG.setUseParentHandlers(false);
+
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
+
         boolean parseFailed = true;
         try {
             jCommander.parse(args);
@@ -396,36 +410,15 @@ public class ConnConvert {
 
             SynapseMapper mapper = new SynapseMapper();
             bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
-
-
-            HashMap<String, List<String>> preToPost = new HashMap<>();
-
-            for (BodyWithSynapses bws : bodyList) {
-                preToPost.putAll(bws.getPreToPostForBody());
-            }
+            HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
 
 
             // in mb6 bodyId 304654117 has a synapse classified as both pre and post
             // System.out.println(postToBody.get("4305:5400:11380"));
             // System.out.println(preToBody.get("4305:5400:11380"));
 
-            //can now sort bodyList by synapse count
+            //can now sort bodyList by synapse count for sId use
             bodyList.sort(new SortBodyByNumberOfSynapses());
-
-
-            //logging
-        FileHandler fh;
-        try {
-
-            fh = new FileHandler("hemitestload.log");
-            fh.setFormatter(new SimpleFormatter());
-            LOG.addHandler(fh);
-
-            //LOG.setUseParentHandlers(false);
-
-        } catch (SecurityException e) {
-            e.printStackTrace();
-        }
 
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {

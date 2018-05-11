@@ -7,6 +7,7 @@ import org.janelia.flyem.connconvert.model.SynapseLocationToBodyIdMap;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -17,6 +18,7 @@ import java.util.logging.Logger;
 public class SynapseMapper {
 
     private final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap;
+    private final HashMap<String,List<String>> preToPostMap = new HashMap<>();
 
     public SynapseMapper() {
         this.synapseLocationToBodyIdMap = new SynapseLocationToBodyIdMap();
@@ -24,6 +26,10 @@ public class SynapseMapper {
 
     public SynapseLocationToBodyIdMap getSynapseLocationToBodyIdMap() {
         return synapseLocationToBodyIdMap;
+    }
+
+    public HashMap<String, List<String>> getPreToPostMap() {
+        return preToPostMap;
     }
 
     @Override
@@ -79,6 +85,7 @@ public class SynapseMapper {
 
         for (final BodyWithSynapses body : bodyList) {
             body.setConnectsTo(synapseLocationToBodyIdMap);
+            body.addSynapsesToPreToPostMap(preToPostMap);
         }
 
 
