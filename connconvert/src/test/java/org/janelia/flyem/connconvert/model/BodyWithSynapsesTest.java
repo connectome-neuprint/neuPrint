@@ -74,7 +74,7 @@ public class BodyWithSynapsesTest {
 
         List<String> postloclist = new ArrayList<>();
         List<String> preloclist = new ArrayList<>();
-        postloclist.add("4222:2402:1688");
+        postloclist.add("4202:2402:1688");
         preloclist.add("4287:2277:1542");
 
         Assert.assertEquals(body1.getPreLocations(), preloclist);
