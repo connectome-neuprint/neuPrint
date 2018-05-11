@@ -13,6 +13,8 @@ import org.neo4j.driver.v1.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
@@ -175,7 +177,7 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSynapses: entry");
 
         final String preSynapseText =
-                "MERGE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
+                "MERGE (s:Synapse:PreSyn:" + dataset + " {datasetLocation:$datasetLocation}) " +
                         " ON CREATE SET s.location=$location, " +
                         " s.datasetLocation = $datasetLocation," +
                         " s.confidence=$confidence, " +
@@ -184,11 +186,11 @@ public class Neo4jImporter implements AutoCloseable {
                         " s.y=$y, " +
                         " s.z=$z \n" +
                         " WITH s \n" +
-                        " CALL apoc.create.addLabels(id(s),$datasetAndRois) YIELD node \n" +
+                        " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
                         " RETURN node";
 
         final String postSynapseText =
-                "MERGE (s:Synapse:PostSyn {datasetLocation:$datasetLocation}) " +
+                "MERGE (s:Synapse:PostSyn:" + dataset + " {datasetLocation:$datasetLocation}) " +
                         " ON CREATE SET s.location=$location, " +
                         " s.datasetLocation = $datasetLocation," +
                         " s.confidence=$confidence, " +
@@ -197,7 +199,7 @@ public class Neo4jImporter implements AutoCloseable {
                         " s.y=$y, " +
                         " s.z=$z \n" +
                         " WITH s \n" +
-                        " CALL apoc.create.addLabels(id(s),$datasetAndRois) YIELD node \n" +
+                        " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
                         " RETURN node";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -205,8 +207,6 @@ public class Neo4jImporter implements AutoCloseable {
                 // issue with this body id in mb6
                 if (bws.getBodyId() != 304654117 || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
                     for (final Synapse synapse : bws.getSynapseSet()) {
-                        List<String> datasetAndRois = synapse.getRois();
-                        datasetAndRois.add(dataset);
                         if (synapse.getType().equals("pre")) {
 
                             batch.addStatement(new Statement(
@@ -218,7 +218,7 @@ public class Neo4jImporter implements AutoCloseable {
                                             "x", synapse.getLocation().get(0),
                                             "y", synapse.getLocation().get(1),
                                             "z", synapse.getLocation().get(2),
-                                            "datasetAndRois", datasetAndRois))
+                                            "rois", synapse.getRois()))
                             );
                         } else if (synapse.getType().equals("post")) {
                             batch.addStatement(new Statement(
@@ -230,7 +230,7 @@ public class Neo4jImporter implements AutoCloseable {
                                             "x", synapse.getLocation().get(0),
                                             "y", synapse.getLocation().get(1),
                                             "z", synapse.getLocation().get(2),
-                                            "datasetAndRois", datasetAndRois))
+                                            "rois", synapse.getRois()))
                             );
 
                         }
@@ -311,10 +311,10 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addNeuronParts: entry");
 
         final String neuronPartText = "MERGE (n:Neuron:" + dataset +  " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforneuronpart \n"+
-                "MERGE (p:NeuronPart:" + dataset + " {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
+                "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size \n"+
                 "MERGE (p)-[:PartOf]->(n) \n" +
                 "WITH p \n" +
-                "CALL apoc.create.addLabels(id(p),[$roi]) YIELD node \n" +
+                "CALL apoc.create.addLabels(id(p),[$roi, \"" + dataset + "\" ]) YIELD node \n" +
                 "RETURN node";
 
         try (final TransactionBatch batch = getBatch()) {
