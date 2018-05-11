@@ -1,11 +1,12 @@
 package org.janelia.flyem.connconvert.model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import org.janelia.flyem.connconvert.SynapseMapper;
 import org.janelia.flyem.connconvert.json.JsonUtils;
-import org.janelia.flyem.connconvert.model2.Body;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -186,6 +187,39 @@ public class BodyWithSynapsesTest {
 
         Assert.assertEquals(3,preToPostMap.get("4287:2277:1542").size());
         Assert.assertEquals("4292:2261:1542",preToPostMap.get("4287:2277:1542").get(0));
+
+    }
+
+    @Test
+    public void testSetNeuronParts() {
+        final String bodyJsonFilePath = "src/test/resources/smallBodyListWithExtraRois.json";
+
+        final SynapseMapper mapper = new SynapseMapper();
+        final List<BodyWithSynapses> parsedBodyList = mapper.loadAndMapBodies(bodyJsonFilePath);
+
+        for (BodyWithSynapses bws: parsedBodyList) {
+            bws.setNeuronParts();
+        }
+
+        BodyWithSynapses body1 = parsedBodyList.get(0);
+
+        String[] possibleRois = {"roiA", "roiB", "seven_column_roi"};
+        List<String> possibleRoisList = Arrays.asList(possibleRois);
+
+        for (NeuronPart neuronPart: body1.getNeuronParts()) {
+            if (neuronPart.getRoi().equals("roiA")) {
+                Assert.assertEquals(2, neuronPart.getPre());
+                Assert.assertEquals(0, neuronPart.getPost());
+            } else if (neuronPart.getRoi().equals("roiB")) {
+                Assert.assertEquals(0, neuronPart.getPre());
+                Assert.assertEquals(1, neuronPart.getPost());
+            } else if (neuronPart.getRoi().equals("seven_column_roi")) {
+                Assert.assertEquals(2, neuronPart.getPre());
+                Assert.assertEquals(1, neuronPart.getPost());
+            } else {
+                Assert.assertTrue(possibleRoisList.contains(neuronPart.getRoi()));
+            }
+        }
 
     }
 

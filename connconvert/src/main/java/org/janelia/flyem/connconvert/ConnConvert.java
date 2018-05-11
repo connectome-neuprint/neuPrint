@@ -23,8 +23,6 @@ import org.janelia.flyem.connconvert.json.JsonUtils;
 import org.janelia.flyem.connconvert.model.*;
 
 
-// TODO: Add ROI information using column names from neurons file?
-// FIB25 names often include column info (7 columns)  - pnas paper.
 public class ConnConvert {
 
 
@@ -410,6 +408,8 @@ public class ConnConvert {
 
             SynapseMapper mapper = new SynapseMapper();
             bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
+
+            //TODO: do I need to worry about duplicates here?
             HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
 
 

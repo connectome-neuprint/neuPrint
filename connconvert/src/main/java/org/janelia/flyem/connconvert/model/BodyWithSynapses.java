@@ -210,7 +210,6 @@ public class BodyWithSynapses {
     }
 
 
-
     public void setNeuronParts() {
         neuronParts = new ArrayList<>();
         HashMap<String,SynapseCounter> roiToPrePostCount = new HashMap<>();

@@ -24,7 +24,7 @@ public class Neuron {
     private final String name;
 
     @SerializedName("Type")
-    private final String neuronType; // TODO: ask Nicole why this is missing from fib25 data
+    private final String neuronType;
 
     @SerializedName("Size")
     private final Integer size;

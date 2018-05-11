@@ -56,7 +56,6 @@ public class NeuronTest {
         Assert.assertNotSame(neuron1, neuron2);
         Assert.assertTrue(neuron1.hashCode() == neuron2.hashCode());
 
-
     }
 
     private static final String NEURON_JSON =
