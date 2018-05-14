@@ -10,6 +10,7 @@ import com.beust.jcommander.Parameters;
 import com.google.common.base.Stopwatch;
 
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.io.File;
@@ -108,6 +109,13 @@ public class ConnConvert {
         public boolean addNeuronParts;
 
         @Parameter(
+                names = "--addSkeletons",
+                description = "Indicates that skeleton nodes should be added (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addSkeletons;
+
+        @Parameter(
                 names = "--neuronJson",
                 description = "JSON file containing neuron data to import",
                 required = false)
@@ -124,6 +132,12 @@ public class ConnConvert {
                 description = "JSON file containing body synapse data to import",
                 required = false)
         public String synapseJson;
+
+        @Parameter(
+                names = "--skeletonDirectory",
+                description = "Path to directory containing skeleton files for this dataset",
+                required = false)
+        public String skeletonDirectory;
 
         @Parameter(
                 names = "--help",
@@ -319,6 +333,17 @@ public class ConnConvert {
         }
     }
 
+    private static Long setSkeletonAssociatedBodyId(String swcFilePath) {
+
+        String patternSurroundingId = ".*/(.*?).swc";
+        Pattern r = Pattern.compile(patternSurroundingId);
+        Matcher mR = r.matcher(swcFilePath);
+        mR.matches();
+        Long associatedBodyId = Long.parseLong(mR.group(1));
+        return associatedBodyId;
+
+    }
+
 
     public static void main(String[] args) throws Exception {
         final ConverterParameters parameters = new ConverterParameters();
@@ -498,6 +523,43 @@ public class ConnConvert {
                     LOG.info("Loading all NeuronParts took: " + timer.stop());
                     timer.reset();
                 }
+            }
+
+
+        }
+
+
+        if (parameters.addSkeletons || parameters.doAll) {
+
+            File folder = new File(parameters.skeletonDirectory);
+            File[] listOfSwcFiles = folder.listFiles();
+            List<Skeleton> skeletonList = new ArrayList<>();
+
+
+            for (File swcFile : listOfSwcFiles) {
+                String filepath = swcFile.getAbsolutePath();
+                Long associatedBodyId = setSkeletonAssociatedBodyId(filepath);
+                Skeleton skeleton = new Skeleton();
+
+                try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
+                    skeleton.fromSwc(reader, associatedBodyId);
+                    skeletonList.add(skeleton);
+                    LOG.info("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+
+            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+
+                if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll || parameters.loadSynapses)) {
+                    neo4jImporter.prepDatabase(dataset);
+                }
+
+                Stopwatch timer = Stopwatch.createStarted();
+                neo4jImporter.addSkeletonNodes(dataset, skeletonList);
+                LOG.info("Loading all Skeleton nodes took: " + timer.stop());
+                timer.reset();
             }
 
 

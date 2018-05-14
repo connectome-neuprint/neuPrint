@@ -5,10 +5,7 @@ import org.janelia.flyem.connconvert.db.DbConfig;
 import org.janelia.flyem.connconvert.db.DbTransactionBatch;
 import org.janelia.flyem.connconvert.db.StdOutTransactionBatch;
 import org.janelia.flyem.connconvert.db.TransactionBatch;
-import org.janelia.flyem.connconvert.model.BodyWithSynapses;
-import org.janelia.flyem.connconvert.model.Neuron;
-import org.janelia.flyem.connconvert.model.NeuronPart;
-import org.janelia.flyem.connconvert.model.Synapse;
+import org.janelia.flyem.connconvert.model.*;
 import org.neo4j.driver.v1.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,6 +66,8 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE CONSTRAINT ON (s:SynapseSet) ASSERT s.datasetBodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:Synapse) ASSERT s.datasetLocation IS UNIQUE",
                 "CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:SkelNode) ASSERT s.skelNodeId IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:Skeleton) ASSERT s.skeletonId IS UNIQUE",
                 "CREATE INDEX ON :Neuron(status)",
                 "CREATE INDEX ON :Synapse(x)",
                 "CREATE INDEX ON :Synapse(y)",
@@ -392,6 +391,70 @@ public class Neo4jImporter implements AutoCloseable {
         }
 
         LOG.info("addSynapseSets: exit");
+    }
+
+
+    public void addSkeletonNodes(final String dataset, final List<Skeleton> skeletonList) {
+
+        LOG.info("addSkeletonNodes: entry");
+
+        final String rootNodeString =
+                "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
+                "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId \n" +
+                "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius \n" +
+                "MERGE (n)-[:Contains]->(r) \n" +
+                "MERGE (r)-[:Contains]->(s) \n";
+
+        final String parentNodeString = "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius \n";
+
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (Skeleton skeleton: skeletonList) {
+
+                Long associatedBodyId = skeleton.getAssociatedBodyId();
+                List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
+
+                for (SkelNode skelNode : skelNodeList ) {
+
+                    if (skelNode.getParent()==null) {
+                        batch.addStatement(new Statement(rootNodeString,parameters("bodyId", associatedBodyId,
+                                "location",skelNode.getLocationString(),
+                                "radius",skelNode.getRadius(),
+                                "skeletonId", dataset+":"+associatedBodyId,
+                                "skelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString())));
+                    } else {
+
+                        String addChildrenString = parentNodeString;
+
+                        int childNodeCount = 1;
+                        for (SkelNode child : skelNode.getChildren()) {
+                            String childNodeId = dataset+":"+associatedBodyId+":"+child.getLocationString();
+                            final String childNodeString = "MERGE (c" + childNodeCount + ":SkelNode:" + dataset + " {skelNodeId:\"" + childNodeId + "\"}) ON CREATE SET c" + childNodeCount +
+                                    ".skelNodeId=\"" + childNodeId + "\", c" + childNodeCount + ".location=\"" + child.getLocationString() + "\", c" + childNodeCount + ".radius=" + child.getRadius() + " \n" +
+                                    "MERGE (p)-[:LinksTo]-(c" + childNodeCount + ") \n";
+
+                            addChildrenString = addChildrenString + childNodeString;
+
+                            childNodeCount++;
+
+                        }
+
+                        batch.addStatement(new Statement(addChildrenString,parameters("parentSkelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString(),
+                                "pLocation", skelNode.getLocationString(),
+                                "pRadius", skelNode.getRadius())));
+
+                    }
+
+
+                }
+
+
+            }
+            batch.writeTransaction();
+        }
+
+
+        LOG.info("addSkeletonNodes: exit");
     }
 
 

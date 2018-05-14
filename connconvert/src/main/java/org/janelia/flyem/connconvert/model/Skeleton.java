@@ -1,25 +1,35 @@
 package org.janelia.flyem.connconvert.model;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Skeleton {
 
     //entry point for skeleton
 
-    SkelTree skelTree; //TODO: should this be a tree?
-    Long associatedBodyId;
+    private List<SkelNode> skelNodeList; //TODO: should this be a tree?
+    private Long associatedBodyId;
 
 
-    public Skeleton(List<SkelNode> skelNodeList, Long associatedBodyId) {
-        this.skelTree = skelNodeList;
+    public Skeleton(final List<SkelNode> skelNodeList, final Long associatedBodyId) {
+        this.skelNodeList = skelNodeList;
         this.associatedBodyId = associatedBodyId;
     }
+
+    public Skeleton() {
+    }
+
+    public List<SkelNode> getSkelNodeList() { return this.skelNodeList; }
+
+    public Long getAssociatedBodyId() { return this.associatedBodyId;  }
 
 
     @Override
     public String toString() {
-        return "Skeleton{" + "associatedBodyId= " + associatedBodyId +
-                "skelTree= " + skelTree +
+        return "Skeleton{ " + "associatedBodyId = " + associatedBodyId +
+                " skelTree = " + skelNodeList +
                 "}";
 
     }
@@ -29,7 +39,7 @@ public class Skeleton {
         boolean isEqual = false;
         if (this == o) {
             isEqual = true;
-        } else if (o instanceof Synapse) {
+        } else if (o instanceof Skeleton) {
             final Skeleton that = (Skeleton) o;
             isEqual = this.associatedBodyId.equals(that.associatedBodyId); //should be only one skeleton per body
         }
@@ -40,6 +50,65 @@ public class Skeleton {
     public int hashCode() {
         return this.associatedBodyId.hashCode();
     }
+
+    public void fromSwc(final BufferedReader reader, final Long associatedBodyId) throws IOException {
+        String swcLine;
+        List<SkelNode> skelNodeList = new ArrayList<>();
+        List<Integer> location = null;
+        float radius = 0.0f;
+        int type = 0;
+        SkelNode parent = null;
+        List<SkelNode> children = null;
+
+        while((swcLine = reader.readLine()) != null) {
+
+            if (swcLine.startsWith("#")) {
+                //System.out.println("Skipping header");
+            } else {
+
+                String[] lineComponents = swcLine.split(" ");
+
+                location = new ArrayList<>();
+                for(int i=2; i<5; i++) {
+                    Integer coordinate = null;
+                    try{
+                        coordinate = Integer.parseInt(lineComponents[i]);
+                    } catch (NumberFormatException nfe) {
+                        coordinate = Math.round(Float.parseFloat(lineComponents[i]));
+                    }
+                    location.add(coordinate);
+                }
+
+
+                radius = Float.parseFloat(lineComponents[5]);
+
+                type = Integer.parseInt(lineComponents[1]);
+
+                Integer parentIndex = Integer.parseInt(lineComponents[6]);
+
+                SkelNode skelNode = null;
+                if (parentIndex!=-1) {
+                    parent = skelNodeList.get(parentIndex-1);
+                    skelNode = new SkelNode(associatedBodyId, location, radius, type, parent);
+                    parent.addChild(skelNode);
+
+                } else {
+                    skelNode = new SkelNode(associatedBodyId, location, radius, type, parent);
+                }
+
+                skelNodeList.add(skelNode);
+
+
+
+            }
+
+        }
+
+        this.skelNodeList = skelNodeList;
+        this.associatedBodyId = associatedBodyId;
+
+    }
+
 
 
 

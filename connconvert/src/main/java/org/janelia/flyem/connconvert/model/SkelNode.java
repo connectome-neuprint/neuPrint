@@ -3,32 +3,33 @@ package org.janelia.flyem.connconvert.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class SkelNode {  //TODO: should this be an abstract class? with root and rest as different types?
+public class SkelNode {  //TODO: should this be an abstract class? with root and rest as different types?
 
     private List<Integer> location;
     private float radius;
     private Long associatedBodyId;
-    private String type;
-//    private SkelNode parent; // only root doesn't have a parent
-//    private List<SkelNode> children; //no children means leaf node
+    private int type;
+    private SkelNode parent; // only root doesn't have a parent
+    private List<SkelNode> children = new ArrayList<>(); //no children means leaf node
 
 
 
-    public SkelNode () {
-        this.associatedBodyId = new Long(0);
-        this.location = null;
-        this.radius = 0.0;
-        this.type = null;
-//        this.parent = parent;
-//        this.children = children;
+    public SkelNode (Long associatedBodyId, List<Integer> location, float radius, int type, SkelNode parent) {
+        this.associatedBodyId = associatedBodyId;
+        this.location = location;
+        this.radius = radius;
+        this.type = type;
+        this.parent = parent;
     }
+
+    public SkelNode() {}
 
 
     @Override
     public String toString() {
-        return "SkelNode{" + "location= " + location +
-                "radius= " + radius +
-                "type= " + type +
+        return "SkelNode{" + " location = " + location +
+                " radius = " + radius +
+                " type = " + type +
                 "}";
 
     }
@@ -38,9 +39,9 @@ public abstract class SkelNode {  //TODO: should this be an abstract class? with
         boolean isEqual = false;
         if (this == o) {
             isEqual = true;
-        } else if (o instanceof Synapse) {
+        } else if (o instanceof SkelNode) {
             final SkelNode that = (SkelNode) o;
-            isEqual = this.location.equals(that.location); //should be only one skeleton per body
+            isEqual = this.location.equals(that.location);
         }
         return isEqual;
     }
@@ -50,28 +51,41 @@ public abstract class SkelNode {  //TODO: should this be an abstract class? with
         return this.location.hashCode();
     }
 
-//    public List<SkelNode> getChildren() {
-//        return this.children;
-//    }
-//
-//    public SkelNode getParent() {
-//        return this.parent;
-//    }
+    public List<SkelNode> getChildren() {
+        return this.children;
+    }
+
+    public SkelNode getParent() {
+        return this.parent;
+    }
 
     public List<Integer> getLocation() {
         return this.location;
+    }
+
+    public String locationToStringKey(List<Integer> location) {
+        return location.get(0) + ":" + location.get(1) + ":" + location.get(2);
+    }
+
+
+    public String getLocationString() {
+        return locationToStringKey(this.location);
     }
 
     public float getRadius() {
         return this.radius;
     }
 
-    public String getType() {
+    public int getType() {
         return this.type;
     }
 
     public Long getAssociatedBodyId() {
         return this.associatedBodyId;
+    }
+
+    public void addChild(SkelNode child) {
+        this.children.add(child);
     }
 
 
