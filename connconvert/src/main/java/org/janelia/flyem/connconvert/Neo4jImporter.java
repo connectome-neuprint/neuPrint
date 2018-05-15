@@ -422,7 +422,7 @@ public class Neo4jImporter implements AutoCloseable {
                                 "radius",skelNode.getRadius(),
                                 "skeletonId", dataset+":"+associatedBodyId,
                                 "skelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString())));
-                    } else {
+                    }
 
                         String addChildrenString = parentNodeString;
 
@@ -443,7 +443,7 @@ public class Neo4jImporter implements AutoCloseable {
                                 "pLocation", skelNode.getLocationString(),
                                 "pRadius", skelNode.getRadius())));
 
-                    }
+
 
 
                 }

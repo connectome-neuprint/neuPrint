@@ -535,6 +535,7 @@ public class ConnConvert {
             File[] listOfSwcFiles = folder.listFiles();
             List<Skeleton> skeletonList = new ArrayList<>();
 
+            LOG.info("Reading in " + listOfSwcFiles.length + " swc files.");
 
             for (File swcFile : listOfSwcFiles) {
                 String filepath = swcFile.getAbsolutePath();
@@ -544,7 +545,7 @@ public class ConnConvert {
                 try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
                     skeleton.fromSwc(reader, associatedBodyId);
                     skeletonList.add(skeleton);
-                    LOG.info("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
+                    //LOG.info("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
