@@ -4,7 +4,8 @@ pom.xml.releaseBackup
 pom.xml.next
 connconvert.properties
 logs/
-hemitestload.log
+*.log
+*.log.lck
 *~
 
 .DS_Store
