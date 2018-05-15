@@ -401,11 +401,11 @@ public class Neo4jImporter implements AutoCloseable {
         final String rootNodeString =
                 "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
                 "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId \n" +
-                "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius \n" +
+                "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.x=$x, s.y=$y, s.z=$z \n" +
                 "MERGE (n)-[:Contains]->(r) \n" +
                 "MERGE (r)-[:Contains]->(s) \n";
 
-        final String parentNodeString = "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius \n";
+        final String parentNodeString = "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.x=$pX, p.y=$pY, p.z=$pZ \n";
 
 
         try (final TransactionBatch batch = getBatch()) {
@@ -421,7 +421,11 @@ public class Neo4jImporter implements AutoCloseable {
                                 "location",skelNode.getLocationString(),
                                 "radius",skelNode.getRadius(),
                                 "skeletonId", dataset+":"+associatedBodyId,
-                                "skelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString())));
+                                "skelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString(),
+                                "x",skelNode.getLocation().get(0),
+                                "y", skelNode.getLocation().get(1),
+                                "z", skelNode.getLocation().get(2)
+                        )));
                     }
 
                         String addChildrenString = parentNodeString;
@@ -430,7 +434,8 @@ public class Neo4jImporter implements AutoCloseable {
                         for (SkelNode child : skelNode.getChildren()) {
                             String childNodeId = dataset+":"+associatedBodyId+":"+child.getLocationString();
                             final String childNodeString = "MERGE (c" + childNodeCount + ":SkelNode:" + dataset + " {skelNodeId:\"" + childNodeId + "\"}) ON CREATE SET c" + childNodeCount +
-                                    ".skelNodeId=\"" + childNodeId + "\", c" + childNodeCount + ".location=\"" + child.getLocationString() + "\", c" + childNodeCount + ".radius=" + child.getRadius() + " \n" +
+                                    ".skelNodeId=\"" + childNodeId + "\", c" + childNodeCount + ".location=\"" + child.getLocationString() + "\", c" + childNodeCount + ".radius=" + child.getRadius() +
+                                    ", c" + childNodeCount + ".x=" + child.getLocation().get(0) + ", c" + childNodeCount + ".y=" + child.getLocation().get(1) + ", c" + childNodeCount + ".z=" + child.getLocation().get(2) + " \n" +
                                     "MERGE (p)-[:LinksTo]-(c" + childNodeCount + ") \n";
 
                             addChildrenString = addChildrenString + childNodeString;
@@ -441,7 +446,11 @@ public class Neo4jImporter implements AutoCloseable {
 
                         batch.addStatement(new Statement(addChildrenString,parameters("parentSkelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString(),
                                 "pLocation", skelNode.getLocationString(),
-                                "pRadius", skelNode.getRadius())));
+                                "pRadius", skelNode.getRadius(),
+                                "pX",skelNode.getLocation().get(0),
+                                "pY",skelNode.getLocation().get(1),
+                                "pZ",skelNode.getLocation().get(2)
+                                )));
 
 
 
