@@ -457,7 +457,7 @@ public class Neo4jImporter implements AutoCloseable {
 
                 }
 
-
+                LOG.info("Added full skeleton for bodyId: " + skeleton.getAssociatedBodyId());
             }
             batch.writeTransaction();
         }
