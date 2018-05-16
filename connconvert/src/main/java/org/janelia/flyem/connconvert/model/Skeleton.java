@@ -58,7 +58,6 @@ public class Skeleton {
         float radius = 0.0f;
         int type = 0;
         SkelNode parent = null;
-        List<SkelNode> children = null;
 
         while((swcLine = reader.readLine()) != null) {
 
@@ -86,15 +85,16 @@ public class Skeleton {
 
                 Integer parentIndex = Integer.parseInt(lineComponents[6]);
 
+                int rowNumber = Integer.parseInt(lineComponents[0]);
+
                 SkelNode skelNode = null;
                 if (parentIndex!=-1) {
                     parent = skelNodeList.get(parentIndex-1);
-                    skelNode = new SkelNode(associatedBodyId, location, radius, type, parent);
+                    skelNode = new SkelNode(associatedBodyId, location, radius, type, parent, rowNumber);
                     parent.addChild(skelNode);
 
                 } else {
-                    parent = null;
-                    skelNode = new SkelNode(associatedBodyId, location, radius, type, parent);
+                    skelNode = new SkelNode(associatedBodyId, location, radius, type, null, rowNumber);
                 }
 
                 skelNodeList.add(skelNode);

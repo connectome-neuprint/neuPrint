@@ -11,15 +11,17 @@ public class SkelNode {  //TODO: should this be an abstract class? with root and
     private int type;
     private SkelNode parent; // only root doesn't have a parent
     private List<SkelNode> children = new ArrayList<>(); //no children means leaf node
+    private int rowNumber;
 
 
 
-    public SkelNode (Long associatedBodyId, List<Integer> location, float radius, int type, SkelNode parent) {
+    public SkelNode (Long associatedBodyId, List<Integer> location, float radius, int type, SkelNode parent, int rowNumber) {
         this.associatedBodyId = associatedBodyId;
         this.location = location;
         this.radius = radius;
         this.type = type;
         this.parent = parent;
+        this.rowNumber = rowNumber;
     }
 
     public SkelNode() {}
@@ -30,6 +32,7 @@ public class SkelNode {  //TODO: should this be an abstract class? with root and
         return "SkelNode{" + " location = " + location +
                 " radius = " + radius +
                 " type = " + type +
+                " rowNumber = " + rowNumber +
                 "}";
 
     }
@@ -62,6 +65,8 @@ public class SkelNode {  //TODO: should this be an abstract class? with root and
     public List<Integer> getLocation() {
         return this.location;
     }
+
+    public int getRowNumber() {return this.rowNumber; }
 
     public String locationToStringKey(List<Integer> location) {
         return location.get(0) + ":" + location.get(1) + ":" + location.get(2);
