@@ -50,8 +50,6 @@ public class SynapseMapper {
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             final List<BodyWithSynapses> bodyList = BodyWithSynapses.fromJson(reader);
             mapBodies(bodyList);
-            LOG.info("Number of bodies with synapses: " + bodyList.size());
-            LOG.info("Reading in synapse json took: " + timer.stop());
             timer.reset();
             return bodyList;
 

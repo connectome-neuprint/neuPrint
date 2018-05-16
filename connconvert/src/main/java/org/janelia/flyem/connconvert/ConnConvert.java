@@ -10,6 +10,7 @@ import com.beust.jcommander.Parameters;
 import com.google.common.base.Stopwatch;
 
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
@@ -353,8 +354,9 @@ public class ConnConvert {
         //logging
         FileHandler fh;
         try {
-            // TODO: have log file be a parameter
-            fh = new FileHandler("hemitestload.log");
+
+            String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new java.util.Date());
+            fh = new FileHandler("log/connconvertmainlog_" + timeStamp + ".log");
             fh.setFormatter(new SimpleFormatter());
             LOG.addHandler(fh);
 
@@ -442,9 +444,12 @@ public class ConnConvert {
 
         if (parameters.loadSynapses || parameters.doAll) {
 
-
+            Stopwatch timer = Stopwatch.createStarted();
             SynapseMapper mapper = new SynapseMapper();
             bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
+            LOG.info("Number of bodies with synapses: " + bodyList.size());
+            LOG.info("Reading in synapse json took: " + timer.stop());
+            timer.reset();
 
             //TODO: do I need to worry about duplicates here?
             HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
@@ -461,7 +466,6 @@ public class ConnConvert {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
 
-                Stopwatch timer = Stopwatch.createUnstarted();
 
                 if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll)) {
                     neo4jImporter.prepDatabase(dataset);
@@ -507,8 +511,7 @@ public class ConnConvert {
 
             if (parameters.addNeuronParts || parameters.doAll) {
 
-                Stopwatch timer = Stopwatch.createStarted();
-
+                timer.start();
                 for (BodyWithSynapses bws : bodyList) {
                     bws.setNeuronParts();
 
