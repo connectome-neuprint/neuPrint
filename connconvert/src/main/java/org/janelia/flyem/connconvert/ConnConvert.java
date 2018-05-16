@@ -353,7 +353,7 @@ public class ConnConvert {
         //logging
         FileHandler fh;
         try {
-
+            // TODO: have log file be a parameter
             fh = new FileHandler("hemitestload.log");
             fh.setFormatter(new SimpleFormatter());
             LOG.addHandler(fh);
@@ -529,7 +529,7 @@ public class ConnConvert {
         }
 
 
-        if (parameters.addSkeletons || parameters.doAll) {
+        if (parameters.addSkeletons) {
 
             File folder = new File(parameters.skeletonDirectory);
             File[] listOfSwcFiles = folder.listFiles();
