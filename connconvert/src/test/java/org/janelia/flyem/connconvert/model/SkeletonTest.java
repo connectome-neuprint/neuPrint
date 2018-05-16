@@ -44,6 +44,22 @@ public class SkeletonTest {
         Assert.assertEquals(childList, skelNodeList.get(8).getChildren());
         Assert.assertEquals( new ArrayList<>(), skelNodeList.get(28).getChildren());
 
+
+        String filepath2 = "src/test/resources/multipleRootsSkeleton.swc";
+
+        File file2 = new File(filepath2);
+        BufferedReader bufferedReader2 = new BufferedReader(new FileReader(file2));
+        Skeleton skeleton2 = new Skeleton();
+
+        skeleton2.fromSwc(bufferedReader2,new Long(10));
+
+        List<SkelNode> skelNodeList2 = skeleton2.getSkelNodeList();
+
+        Assert.assertTrue(skelNodeList2.get(13122).getParent()==null && skelNodeList2.get(13123).getParent()==null && skelNodeList2.get(13124).getParent()==null && skelNodeList2.get(0).getParent()==null);
+
+        Assert.assertEquals(skelNodeList2.get(13124),skelNodeList2.get(13125).getParent());
+
+
     }
 
 

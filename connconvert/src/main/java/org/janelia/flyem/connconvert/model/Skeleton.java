@@ -93,6 +93,7 @@ public class Skeleton {
                     parent.addChild(skelNode);
 
                 } else {
+                    parent = null;
                     skelNode = new SkelNode(associatedBodyId, location, radius, type, parent);
                 }
 
