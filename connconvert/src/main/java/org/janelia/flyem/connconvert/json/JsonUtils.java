@@ -3,10 +3,6 @@ package org.janelia.flyem.connconvert.json;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import org.janelia.flyem.connconvert.model2.Location;
-import org.janelia.flyem.connconvert.model2.PostSynapse;
-import org.janelia.flyem.connconvert.model2.PreSynapse;
-import org.janelia.flyem.connconvert.model2.Synapse;
 
 /**
  * Shared utilities for working with JSON.
@@ -16,7 +12,7 @@ public class JsonUtils {
     /** Default GSON instance used for serializing and de-serializing data. */
     public static final Gson GSON = new GsonBuilder()
 //            .registerTypeAdapter(Location.class, new LocationAdapter())
-//            .registerTypeAdapter(Synapse.class, new SynapseDeserializer2())
+//            .registerTypeAdapter(Synapse.class, new SynapseDeserializer())
 //            .registerTypeAdapter(PostSynapse.class, new PostSynapseSerializer())
 //            .registerTypeAdapter(PreSynapse.class, new PreSynapseSerializer())
             .setPrettyPrinting()
