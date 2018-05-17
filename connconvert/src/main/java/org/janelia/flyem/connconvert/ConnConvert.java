@@ -355,7 +355,7 @@ public class ConnConvert {
     public static void main(String[] args) throws Exception {
         final ConverterParameters parameters = new ConverterParameters();
         final JCommander jCommander = new JCommander(parameters);
-        jCommander.setProgramName("java -cp converter.jar " + ConnConvert.class.getName());
+        jCommander.setProgramName("java -cp neuprinter.jar " + ConnConvert.class.getName());
 
 
         if (parameters.createLog) {
