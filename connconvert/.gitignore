@@ -6,6 +6,7 @@ connconvert.properties
 /log/
 *.log
 *.log.lck
+.idea/
 *~
 
 .DS_Store
