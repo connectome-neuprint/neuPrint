@@ -3,6 +3,7 @@ package org.janelia.flyem.connconvert;
 import java.io.BufferedReader;
 import java.io.FileReader;
 
+import ch.qos.logback.core.rolling.RollingFileAppender;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -33,8 +34,8 @@ public class ConnConvert {
 
         @Parameter(
                 names = "--dbProperties",
-                description = "Properties file containing database information (omit to print statements to stdout)",
-                required = false)
+                description = "Properties file containing database information (required)",
+                required = true)
         public String dbProperties;
 
         @Parameter(
@@ -360,7 +361,6 @@ public class ConnConvert {
         if (parameters.createLog) {
             FileHandler fh;
             try {
-
                 String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm").format(new java.util.Date());
                 fh = new FileHandler("connconvertmainlog_" + timeStamp + ".log");
                 fh.setFormatter(new SimpleFormatter());
