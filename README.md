@@ -26,3 +26,4 @@ java -jar neuprinter.jar --dbProperties=example.properties --prepDatabase --addS
 ```
 ## Load your own connectome data into Neo4j using neuPrint
 
+Follow these [input specifications](jsonspecs.md) to create your own neurons.json, synapses.json, and skeleton files. 
