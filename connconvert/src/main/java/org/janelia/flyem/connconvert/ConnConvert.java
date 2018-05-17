@@ -15,7 +15,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.HashMap;
 import java.io.File;
-import java.util.Scanner;
 import java.util.logging.*;
 import java.util.logging.Logger;
 import java.util.regex.Matcher;
@@ -123,10 +122,10 @@ public class ConnConvert {
         public String neuronJson;
 
         @Parameter(
-                names = "--neuronDataset",
-                description = "Dataset value for all neurons (if not specified will read from file name)",
-                required = false)
-        public String neuronDataset;
+                names = "--datasetLabel",
+                description = "Dataset value for all nodes (required)",
+                required = true)
+        public String datasetLabel;
 
         @Parameter(
                 names = "--synapseJson",
@@ -139,6 +138,12 @@ public class ConnConvert {
                 description = "Path to directory containing skeleton files for this dataset",
                 required = false)
         public String skeletonDirectory;
+
+        @Parameter(
+                names = "--createLog",
+                description = "Indicates that log file should be created (omit to skip)",
+                required = false)
+        public boolean createLog;
 
         @Parameter(
                 names = "--help",
@@ -351,19 +356,22 @@ public class ConnConvert {
         final JCommander jCommander = new JCommander(parameters);
         jCommander.setProgramName("java -cp converter.jar " + ConnConvert.class.getName());
 
-        //logging
-        FileHandler fh;
-        try {
 
-            String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new java.util.Date());
-            fh = new FileHandler("log/connconvertmainlog_" + timeStamp + ".log");
-            fh.setFormatter(new SimpleFormatter());
-            LOG.addHandler(fh);
+        if (parameters.createLog) {
+            FileHandler fh;
+            try {
 
-            //LOG.setUseParentHandlers(false);
+                String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm").format(new java.util.Date());
+                fh = new FileHandler("connconvertmainlog_" + timeStamp + ".log");
+                fh.setFormatter(new SimpleFormatter());
+                LOG.addHandler(fh);
 
-        } catch (SecurityException e) {
-            e.printStackTrace();
+                //LOG.setUseParentHandlers(false);
+
+            } catch (SecurityException e) {
+                e.printStackTrace();
+            }
+
         }
 
         boolean parseFailed = true;
@@ -384,38 +392,40 @@ public class ConnConvert {
 
         LOG.info("running with parameters: " + parameters);
 
+        dataset = parameters.datasetLabel;
 
-        if ((parameters.neuronDataset != null)) {
-            String patternNeurons = ".*/(.*?)_Neurons.*";
-            Pattern rN = Pattern.compile(patternNeurons);
-            Matcher mN = rN.matcher(parameters.neuronJson);
-            String patternSynapses = ".*/(.*?)_Synapses.*";
-            Pattern rS = Pattern.compile(patternSynapses);
-            Matcher mS = rS.matcher(parameters.synapseJson);
-            mN.matches();
-            mS.matches();
-            // TODO: ask user if it's okay to continue if the dataset names seem different
-            if (mN.group(1).equals(mS.group(1))) {
-                dataset = parameters.neuronDataset;
 
-            } else {
-//                Scanner input = new Scanner( System.in );
-//                String userInput = null;
-//                while (userInput == null ) {
-//                    System.out.print("Input file names do not appear to be from the same dataset. Okay to proceed? (y/n) ");
-//                    userInput = input.nextLine();
-//                    if (!userInput.equals("y") && !userInput.equals("n")) {
-//                        System.out.println("Incorrect response, please respond with y or n. ");
-//                    } else if (userInput.equals("y")) {
+//        if ((parameters.datasetLabel != null)) {
+//            String patternNeurons = ".*/(.*?)_Neurons.*";
+//            Pattern rN = Pattern.compile(patternNeurons);
+//            Matcher mN = rN.matcher(parameters.neuronJson);
+//            String patternSynapses = ".*/(.*?)_Synapses.*";
+//            Pattern rS = Pattern.compile(patternSynapses);
+//            Matcher mS = rS.matcher(parameters.synapseJson);
+//            mN.matches();
+//            mS.matches();
+//            // TODO: ask user if it's okay to continue if the dataset names seem different
+//            if (mN.group(1).equals(mS.group(1))) {
 //
 //
-//                    }
-                    System.out.print("Input file names do not appear to be from the same dataset.");
-                    System.exit(1);
-                }
-        } else {
-            setDatasetName(parameters.neuronJson, parameters.synapseJson);
-        }
+//            } else {
+////                Scanner input = new Scanner( System.in );
+////                String userInput = null;
+////                while (userInput == null ) {
+////                    System.out.print("Input file names do not appear to be from the same dataset. Okay to proceed? (y/n) ");
+////                    userInput = input.nextLine();
+////                    if (!userInput.equals("y") && !userInput.equals("n")) {
+////                        System.out.println("Incorrect response, please respond with y or n. ");
+////                    } else if (userInput.equals("y")) {
+////
+////
+////                    }
+//                    System.out.print("Input file names do not appear to be from the same dataset.");
+//                    System.exit(1);
+//                }
+//        } else {
+//            setDatasetName(parameters.neuronJson, parameters.synapseJson);
+//        }
 
         LOG.info("Dataset is: " + dataset);
 

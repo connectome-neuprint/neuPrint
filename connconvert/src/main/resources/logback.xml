@@ -9,20 +9,20 @@
     </appender>
 
 
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-        <!-- Daily rollover -->
-        <fileNamePattern>log/connconvert.%d{yyyy-MM-dd_HH}.log</fileNamePattern>
+    <!--<appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">-->
+    <!--<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">-->
+        <!--&lt;!&ndash; Daily rollover &ndash;&gt;-->
+        <!--<fileNamePattern>log/connconvert.%d{yyyy-MM-dd_HH}.log</fileNamePattern>-->
 
-        <!-- Keep 3 days' worth of history -->
-        <maxHistory>3</maxHistory>
-    </rollingPolicy>
+        <!--&lt;!&ndash; Keep 3 days' worth of history &ndash;&gt;-->
+        <!--<maxHistory>3</maxHistory>-->
+    <!--</rollingPolicy>-->
 
 
-        <encoder>
-            <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
-        </encoder>
-    </appender>
+        <!--<encoder>-->
+            <!--<pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>-->
+        <!--</encoder>-->
+    <!--</appender>-->
 
 
 
