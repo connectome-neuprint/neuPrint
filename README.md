@@ -1,2 +1,2 @@
-# ConnectomeJSONtoNeo4j
-tools for importing connectome data into neo4j
+# neuPrint
+A tool for loading connectome data into a neo4j database. 
