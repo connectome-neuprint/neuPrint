@@ -485,6 +485,29 @@ public class ConnConvert {
                 timer.reset();
             }
 
+//            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
+//
+//                List<Skeleton> mbonSkeletons = new ArrayList<>();
+//                for (Skeleton skeleton : skeletonList) {
+//                    if (skeleton.getAssociatedBodyId()==1661302 || skeleton.getAssociatedBodyId()==1190582) {
+//                        mbonSkeletons.add(skeleton);
+//                    }
+//                }
+//
+//                Stopwatch timer = Stopwatch.createStarted();
+//                neo4jEditor.updateSkelNodesRowNumber(dataset, mbonSkeletons);
+//                LOG.info("Updating skelnodes took: " + timer.stop());
+//                timer.reset();
+//
+//                timer.start();
+//                neo4jEditor.linkAllSkelNodesToSkeleton(dataset, mbonSkeletons);
+//                LOG.info("Adding links to skeletons took: " + timer.stop());
+//                timer.reset();
+//
+//
+//
+//            }
+
 
         }
     }
