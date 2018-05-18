@@ -167,94 +167,6 @@ public class ConnConvert {
     private static String dataset;
 
 
-//
-//    public void testLoadNeuronsWithJSON() throws Exception {
-//        try (Session session = driver.session()) {
-//            for (Neuron neuron : neurons) {
-//                try (Transaction tx = session.beginTransaction()) {
-//                    String stringQuery = "CALL apoc.load.json(\"/Users/neubarthn/Downloads/fib25_neo4j_inputs/fib25_Neurons.json\") \n" +
-//                            "YIELD value AS neurons \n" +
-//                            //"UNWIND neurons AS test \n" +
-//                            "RETURN neurons";
-//                    tx.run(stringQuery);
-//                    tx.success();
-//
-//                }
-//            }
-//        }
-//    }
-//
-//    public void testSynapseLoad() throws Exception {
-//        try (Session session = driver.session()) {
-//            for (int i=0 ; i <= 100 ; i++) {
-//                if (bodyList.get(i).getBodyId() != 304654117 || !dataset.equals("mb6v2")) {
-//                    for (Synapse synapse : bodyList.get(i).getSynapseSet()) {
-//
-//
-//                        if (synapse.getType().equals("pre")) {
-//
-//                            //StatementResult test=null;
-//                            try (Transaction tx = session.beginTransaction()) {
-//                                tx.run("CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
-//                                                "SET s.location = $location," +
-//                                                " s.datasetLocation = $datasetLocation," +
-//                                                " s.confidence = $confidence," +
-//                                                " s.type = $type," +
-//                                                " s.x=$x," +
-//                                                " s.y=$y," +
-//                                                " s.z=$z \n" +
-//                                                " WITH s \n" +
-//                                                " CALL apoc.create.addLabels(id(s),[$dataset]) YIELD node \n" +
-//                                                " RETURN node",
-//                                        parameters("location", synapse.getLocationString(),
-//                                                "datasetLocation", dataset + ":" + synapse.getLocationString(),
-//                                                "confidence", synapse.getConfidence(),
-//                                                "type", synapse.getType(),
-//                                                "x", synapse.getLocation().get(0),
-//                                                "y", synapse.getLocation().get(1),
-//                                                "z", synapse.getLocation().get(2),
-//                                                "dataset", dataset));
-//                                //LOG.info(test.summary().toString());
-//                                tx.success();
-//                            } catch (ClientException ce) {
-//                                ce.printStackTrace();
-//                            }
-//                            //LOG.info("Loading Synapse node with CREATE+apoc.create.addLabels took: " + timer.stop());
-//
-//                            //timer.start();
-//                            try (Transaction tx = session.beginTransaction()) {
-//                                String stringQuery = "CREATE (s:Synapse:PreSyn {datasetLocation:$datasetLocation}) " +
-//                                        "SET s.location = $location," +
-//                                        " s.datasetLocation = $datasetLocation," +
-//                                        " s.confidence = $confidence," +
-//                                        " s.type = $type," +
-//                                        " s.x=$x," +
-//                                        " s.y=$y," +
-//                                        " s.z=$z," +
-//                                        " s:" + dataset ;
-//                                tx.run(stringQuery,
-//                                        parameters("location", synapse.getLocationString(),
-//                                                "datasetLocation", dataset + ":" + synapse.getLocationString(),
-//                                                "confidence", synapse.getConfidence(),
-//                                                "type", synapse.getType(),
-//                                                "x", synapse.getLocation().get(0),
-//                                                "y", synapse.getLocation().get(1),
-//                                                "z", synapse.getLocation().get(2)));
-//                                tx.success();
-//                            } catch (ClientException ce) {
-//                                System.out.println("Synapse already present.");
-//                            }
-//                            //LOG.info("Loading Synapse node with just CREATE+stringbuild took: " + timer.stop());
-//                        }
-//
-//                    }
-//                }
-//            }
-//        }
-//    }
-//
-
-
     private static List<Neuron> readNeuronsJson(String filepath) {
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
@@ -465,9 +377,6 @@ public class ConnConvert {
             HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
 
 
-            // in mb6 bodyId 304654117 has a synapse classified as both pre and post
-            // System.out.println(postToBody.get("4305:5400:11380"));
-            // System.out.println(preToBody.get("4305:5400:11380"));
 
             //can now sort bodyList by synapse count for sId use
             bodyList.sort(new SortBodyByNumberOfSynapses());
