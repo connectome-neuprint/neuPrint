@@ -13,7 +13,7 @@ A tool for loading connectome data into a Neo4j database.
 
 2. Run the following on the command line:
 ```console
-java -jar neuprinter.jar --dbProperties=example.properties --doAll --datasetLabel=mb6 --neuronJson=mb6_neo4j_inputs/mb6_Neurons_with_nt.json --synapseJson=mb6_neo4j_inputs/mb6_Synapses.json
+$ java -jar neuprinter.jar --dbProperties=example.properties --doAll --datasetLabel=mb6 --neuronJson=mb6_neo4j_inputs/mb6_Neurons_with_nt.json --synapseJson=mb6_neo4j_inputs/mb6_Synapses.json
 ```
 
 ## Load mb6 skeleton data into Neo4j
@@ -22,7 +22,7 @@ java -jar neuprinter.jar --dbProperties=example.properties --doAll --datasetLabe
 
 2. Run the following on the command line:
 ```console
-java -jar neuprinter.jar --dbProperties=example.properties --prepDatabase --addSkeletons --datasetLabel=mb6 --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons
+$ java -jar neuprinter.jar --dbProperties=example.properties --prepDatabase --addSkeletons --datasetLabel=mb6 --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons
 ```
 ## Load your own connectome data into Neo4j using neuPrint
 
