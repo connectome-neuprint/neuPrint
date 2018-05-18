@@ -28,6 +28,66 @@ java -jar neuprinter.jar --dbProperties=example.properties --prepDatabase --addS
 
 Follow these [input specifications](jsonspecs.md) to create your own neurons.json, synapses.json, and skeleton files. To create a database on your computer, use [Neo4j Desktop](https://neo4j.com/download/?ref=product).
 
+```console
+$ java -jar neuprinter.jar --help
+
+Usage: java -cp neuprinter.jar org.janelia.flyem.connconvert.ConnConvert
+      [options]
+  Options:
+    --addConnectsTo
+      Indicates that ConnectsTo relations should be added (omit to skip)
+      Default: false
+    --addNeuronParts
+      Indicates that neuron parts nodes should be added (omit to skip)
+      Default: false
+    --addNeuronRois
+      Indicates that neuron ROI labels should be added (omit to skip)
+      Default: false
+    --addSkeletons
+      Indicates that skeleton nodes should be added (omit to skip)
+      Default: false
+    --addSynapseSets
+      Indicates that synapse set nodes should be added (omit to skip)
+      Default: false
+    --addSynapses
+      Indicates that synapse nodes should be added (omit to skip)
+      Default: false
+    --addSynapsesTo
+      Indicates that SynapsesTo relations should be added (omit to skip)
+      Default: false
+    --createLog
+      Indicates that log file should be created (omit to skip)
+      Default: false
+  * --datasetLabel
+      Dataset value for all nodes (required)
+  * --dbProperties
+      Properties file containing database information (required)
+    --doAll
+      Indicates that both Neurons and Synapses jsons should be loaded and all
+      database features added
+      Default: false
+    --help
+
+    --loadNeurons
+      Indicates that data from neurons json should be loaded to database (omit
+      to skip)
+      Default: false
+    --loadSynapses
+      Indicates that data from synapses json should be loaded to database
+      (omit to skip)
+      Default: false
+    --neuronJson
+      JSON file containing neuron data to import
+    --prepDatabase
+      Indicates that database constraints and indexes should be setup (omit to
+      skip)
+      Default: false
+    --skeletonDirectory
+      Path to directory containing skeleton files for this dataset
+    --synapseJson
+      JSON file containing body synapse data to import
+```
+
 ## Neo4j Property Graph Model
 
 ![Property Graph Model](PGMv3.png)
