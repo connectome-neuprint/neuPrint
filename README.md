@@ -92,3 +92,23 @@ Usage: java -cp neuprinter.jar org.janelia.flyem.connconvert.ConnConvert
 
 ![Property Graph Model](PGMv3.png)
 
+### :Neuron properties
+* pre: number of presynaptic terminals
+* post: number of postsynaptic terminals
+* size: size of body in voxels
+* name: name of neuron
+* type: type of neuron
+* bodyId: int64 identifier (unique per data set)
+* sId: id indicating rank of neuron by number of synapses in descending order (starts with 0; only given to bodies with > 10 synapses)
+* status: status of neuron
+* somaLocation: location of soma
+* somaRadius: radius of soma
+
+### :Synapse properties
+
+### :NeuronPart properties
+
+### :Skeleton properties
+
+### :SkelNode properties
+
