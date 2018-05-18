@@ -105,10 +105,23 @@ Usage: java -cp neuprinter.jar org.janelia.flyem.connconvert.ConnConvert
 * somaRadius: radius of soma
 
 ### :Synapse properties
+* type: type of synapse
+* confidence: confidence
+* location: string indicating location in format "x:y:z" (unique per data set)
+* x: x coordinate 
+* y: y coordinate
+* z: z coordinate
 
 ### :NeuronPart properties
-
-### :Skeleton properties
+* pre: number of presynaptic terminals in this roi
+* post: number of postsynaptic terminals in this roi
+* size: total number of synapses in this roi
 
 ### :SkelNode properties
+* location: location string in format "x:y:z"
+* x: x coordinate 
+* y: y coordinate
+* z: z coordinate
+* radius: radius
+* rowNumber: row number within swc file
 
