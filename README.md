@@ -1,5 +1,5 @@
 # neuPrint
-A tool for loading connectome data into a Neo4j database. 
+A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [https://github.com/janelia-flyem/ConnectomeAnalyzer](https://github.com/janelia-flyem/ConnectomeAnalyzer).
 
 ## Example data
 
@@ -101,7 +101,7 @@ Usage: java -cp neuprinter.jar org.janelia.flyem.connconvert.ConnConvert
 * bodyId: int64 identifier (unique per data set)
 * sId: id indicating rank of neuron by number of synapses in descending order (starts with 0; only given to bodies with > 10 synapses)
 * status: status of neuron
-* somaLocation: location of soma
+* somaLocation: location of soma ([x,y,z])
 * somaRadius: radius of soma
 
 ### :Synapse properties
