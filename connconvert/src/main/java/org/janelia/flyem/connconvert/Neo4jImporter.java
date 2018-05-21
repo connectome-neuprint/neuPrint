@@ -121,7 +121,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList) {
+    public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList, int bigThreshold) {
 
         LOG.info("addConnectsTo: entry");
 
@@ -130,7 +130,7 @@ public class Neo4jImporter implements AutoCloseable {
                         "MERGE (m:Neuron:" + dataset + " {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2 \n" +
                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m)";
         // TODO: rois added here?
-        final String terminalCountText = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.sId=$sId";
+        final String terminalCountText = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.sId=$sId, n:Big";
 
         final String terminalCountTextWithoutSId = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post";
 
@@ -146,7 +146,7 @@ public class Neo4jImporter implements AutoCloseable {
                                             "weight", bws.getConnectsTo().get(postsynapticBodyId)))
                     );
                 }
-                if (bws.getNumberOfPostSynapses()+bws.getNumberOfPreSynapses() > 10) {
+                if (bws.getNumberOfPostSynapses()+bws.getNumberOfPreSynapses() > bigThreshold) {
                     batch.addStatement(
                             new Statement(terminalCountText,
                                     parameters("pre", bws.getNumberOfPreSynapses(),

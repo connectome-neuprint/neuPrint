@@ -129,6 +129,12 @@ public class ConnConvert {
         public String datasetLabel;
 
         @Parameter(
+                names = "--bigThreshold",
+                description = "Total number of synapses for a body must be greater than this value for the body to be considered \"Big\" and be given an sId (must be an integer)",
+                required = true)
+        public int bigThreshold;
+
+        @Parameter(
                 names = "--synapseJson",
                 description = "JSON file containing body synapse data to import",
                 required = false)
@@ -296,7 +302,7 @@ public class ConnConvert {
 
             FileHandler fh;
             try {
-                String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm").format(new java.util.Date());
+                String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH").format(new java.util.Date());
                 fh = new FileHandler("connconvertmainlog_" + timeStamp + ".log");
                 fh.setFormatter(new SimpleFormatter());
                 LOG.addHandler(fh);
@@ -395,7 +401,7 @@ public class ConnConvert {
 
                 if (parameters.addConnectsTo || parameters.doAll) {
                     timer.start();
-                    neo4jImporter.addConnectsTo(dataset, bodyList);
+                    neo4jImporter.addConnectsTo(dataset, bodyList, parameters.bigThreshold);
                     LOG.info("Loading all ConnectsTo took: " + timer.stop());
                     timer.reset();
                 }
