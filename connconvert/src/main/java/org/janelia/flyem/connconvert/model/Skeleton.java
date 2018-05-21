@@ -9,7 +9,7 @@ public class Skeleton {
 
     //entry point for skeleton
 
-    private List<SkelNode> skelNodeList; //TODO: should this be a tree?
+    private List<SkelNode> skelNodeList;
     private Long associatedBodyId;
 
 

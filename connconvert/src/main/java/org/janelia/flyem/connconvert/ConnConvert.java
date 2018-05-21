@@ -143,7 +143,8 @@ public class ConnConvert {
         @Parameter(
                 names = "--createLog",
                 description = "Indicates that log file should be created (omit to skip)",
-                required = false)
+                required = false,
+                arity=0)
         public boolean createLog;
 
         @Parameter(
@@ -270,22 +271,6 @@ public class ConnConvert {
         jCommander.setProgramName("java -cp neuprinter.jar " + ConnConvert.class.getName());
 
 
-        if (parameters.createLog) {
-            FileHandler fh;
-            try {
-                String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm").format(new java.util.Date());
-                fh = new FileHandler("connconvertmainlog_" + timeStamp + ".log");
-                fh.setFormatter(new SimpleFormatter());
-                LOG.addHandler(fh);
-
-                //LOG.setUseParentHandlers(false);
-
-            } catch (SecurityException e) {
-                e.printStackTrace();
-            }
-
-        }
-
         boolean parseFailed = true;
         try {
             jCommander.parse(args);
@@ -305,6 +290,24 @@ public class ConnConvert {
         LOG.info("running with parameters: " + parameters);
 
         dataset = parameters.datasetLabel;
+
+
+        if (parameters.createLog) {
+
+            FileHandler fh;
+            try {
+                String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm").format(new java.util.Date());
+                fh = new FileHandler("connconvertmainlog_" + timeStamp + ".log");
+                fh.setFormatter(new SimpleFormatter());
+                LOG.addHandler(fh);
+
+                //LOG.setUseParentHandlers(false);
+
+            } catch (SecurityException e) {
+                e.printStackTrace();
+            }
+
+        }
 
 
 //        if ((parameters.datasetLabel != null)) {
