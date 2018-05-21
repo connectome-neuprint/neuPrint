@@ -130,9 +130,9 @@ public class ConnConvert {
 
         @Parameter(
                 names = "--bigThreshold",
-                description = "Total number of synapses for a body must be greater than this value for the body to be considered \"Big\" and be given an sId (must be an integer)",
-                required = true)
-        public int bigThreshold;
+                description = "Total number of synapses for a body must be greater than this value for the body to be considered \"Big\" and be given an sId (must be an integer; default is 10)",
+                required = false)
+        public Integer bigThreshold;
 
         @Parameter(
                 names = "--synapseJson",
@@ -401,7 +401,9 @@ public class ConnConvert {
 
                 if (parameters.addConnectsTo || parameters.doAll) {
                     timer.start();
-                    neo4jImporter.addConnectsTo(dataset, bodyList, parameters.bigThreshold);
+                    if (parameters.bigThreshold!=null) {
+                        neo4jImporter.addConnectsTo(dataset, bodyList, parameters.bigThreshold);
+                    } else {  neo4jImporter.addConnectsTo(dataset, bodyList, 10); }
                     LOG.info("Loading all ConnectsTo took: " + timer.stop());
                     timer.reset();
                 }

@@ -121,7 +121,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList, int bigThreshold) {
+    public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList, Integer bigThreshold) {
 
         LOG.info("addConnectsTo: entry");
 
