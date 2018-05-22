@@ -55,6 +55,10 @@ Usage: java -cp neuprinter.jar org.janelia.flyem.connconvert.ConnConvert
     --addSynapsesTo
       Indicates that SynapsesTo relations should be added (omit to skip)
       Default: false
+    --bigThreshold
+      Total number of synapses for a body must be greater than this value for
+      the body to be considered "Big" and be given an sId (must be an integer;
+      default is 10)
     --createLog
       Indicates that log file should be created (omit to skip)
       Default: false
@@ -65,6 +69,10 @@ Usage: java -cp neuprinter.jar org.janelia.flyem.connconvert.ConnConvert
     --doAll
       Indicates that both Neurons and Synapses jsons should be loaded and all
       database features added
+      Default: false
+    --editMode
+      Indicates that neuprinter is being used in edit mode to alter data in an
+      existing database (omit to skip).
       Default: false
     --help
 
