@@ -150,8 +150,15 @@ public class ConnConvert {
                 names = "--createLog",
                 description = "Indicates that log file should be created (omit to skip)",
                 required = false,
-                arity=0)
+                arity = 0)
         public boolean createLog;
+
+        @Parameter(
+                names = "--editMode",
+                description = "Indicates that neuprinter is being used in edit mode to alter data in an existing database (omit to skip).",
+                required = false,
+                arity = 0)
+        public boolean editMode;
 
         @Parameter(
                 names = "--help",
@@ -236,7 +243,7 @@ public class ConnConvert {
         return bodyList;
     }
 
-    private static void setDatasetName(String neuronFilePath,String synapseFilePath) {
+    private static void setDatasetName(String neuronFilePath, String synapseFilePath) {
         String patternNeurons = ".*/(.*?)_Neurons.*";
         Pattern rN = Pattern.compile(patternNeurons);
         Matcher mN = rN.matcher(neuronFilePath);
@@ -250,11 +257,11 @@ public class ConnConvert {
             if (mS.group(1).equals(mN.group(1))) {
                 dataset = mS.group(1);
             } else {
-                LOG.log(Level.INFO,"Check that input files are from the same dataset.");
+                LOG.log(Level.INFO, "Check that input files are from the same dataset.");
                 System.exit(1);
             }
         } catch (IllegalStateException ise) {
-            LOG.log(Level.INFO,"Check input file names.",ise);
+            LOG.log(Level.INFO, "Check input file names.", ise);
             System.exit(1);
         }
     }
@@ -386,13 +393,11 @@ public class ConnConvert {
             HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
 
 
-
             //can now sort bodyList by synapse count for sId use
             bodyList.sort(new SortBodyByNumberOfSynapses());
 
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
 
 
                 if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll)) {
@@ -401,9 +406,11 @@ public class ConnConvert {
 
                 if (parameters.addConnectsTo || parameters.doAll) {
                     timer.start();
-                    if (parameters.bigThreshold!=null) {
+                    if (parameters.bigThreshold != null) {
                         neo4jImporter.addConnectsTo(dataset, bodyList, parameters.bigThreshold);
-                    } else {  neo4jImporter.addConnectsTo(dataset, bodyList, 10); }
+                    } else {
+                        neo4jImporter.addConnectsTo(dataset, bodyList, 10);
+                    }
                     LOG.info("Loading all ConnectsTo took: " + timer.stop());
                     timer.reset();
                 }
@@ -496,8 +503,26 @@ public class ConnConvert {
                 timer.reset();
             }
 
-//            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
-//
+
+        }
+
+
+        if (parameters.editMode) {
+
+
+            // read in the neurons data
+            Stopwatch timer2 = Stopwatch.createStarted();
+            neuronList = readNeuronsJson(parameters.neuronJson);
+            LOG.info("Reading in neurons json took: " + timer2.stop());
+            timer2.reset();
+
+            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                neo4jImporter.prepDatabase(dataset);
+            }
+
+            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
+
+
 //                List<Skeleton> mbonSkeletons = new ArrayList<>();
 //                for (Skeleton skeleton : skeletonList) {
 //                    if (skeleton.getAssociatedBodyId()==1661302 || skeleton.getAssociatedBodyId()==1190582) {
@@ -514,11 +539,13 @@ public class ConnConvert {
 //                neo4jEditor.linkAllSkelNodesToSkeleton(dataset, mbonSkeletons);
 //                LOG.info("Adding links to skeletons took: " + timer.stop());
 //                timer.reset();
-//
-//
-//
-//            }
 
+//                timer2.start();
+//                neo4jEditor.updateNeuronProperties(dataset, neuronList);
+//                LOG.info("Updating all Neuron nodes took: " + timer2.stop());
+//                timer2.reset();
+
+            }
 
         }
     }

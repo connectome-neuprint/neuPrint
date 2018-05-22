@@ -4,6 +4,7 @@ import org.janelia.flyem.connconvert.db.DbConfig;
 import org.janelia.flyem.connconvert.db.DbTransactionBatch;
 import org.janelia.flyem.connconvert.db.StdOutTransactionBatch;
 import org.janelia.flyem.connconvert.db.TransactionBatch;
+import org.janelia.flyem.connconvert.model.Neuron;
 import org.janelia.flyem.connconvert.model.SkelNode;
 import org.janelia.flyem.connconvert.model.Skeleton;
 import org.neo4j.driver.v1.AuthTokens;
@@ -17,7 +18,7 @@ import java.util.List;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
-public class Neo4jEditor implements AutoCloseable{
+public class Neo4jEditor implements AutoCloseable {
 
     private final Driver driver;
     private final int statementsPerTransaction;
@@ -106,6 +107,52 @@ public class Neo4jEditor implements AutoCloseable{
         }
 
         LOG.info("linkAllSkelNodesToSkeleton : exit");
+
+    }
+
+
+
+    public void updateNeuronProperties (final String dataset, final List<Neuron> neuronList) {
+
+        LOG.info("updateNeuronProperties : entry");
+
+
+        final String neuronText = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) " +
+                "ON MATCH SET n.name = $name," +
+                " n.type = $type," +
+                " n.status = $status," +
+                " n.size = $size," +
+                " n.somaLocation = $somaLocation," +
+                " n.somaRadius = $somaRadius \n" +
+                "ON CREATE SET n.bodyId = $bodyId," +
+                " n.name = $name," +
+                " n.type = $type," +
+                " n.status = $status," +
+                " n.size = $size," +
+                " n.somaLocation = $somaLocation," +
+                " n.somaRadius = $somaRadius \n";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (final Neuron neuron : neuronList) {
+                if (neuron.getRois() != null) {
+                    LOG.error("Found neuron with rois listed. bodyId: " + neuron.getId());
+                }
+                batch.addStatement(
+                        new Statement(neuronText,
+                                parameters("bodyId", neuron.getId(),
+                                        "name", neuron.getName(),
+                                        "type", neuron.getNeuronType(),
+                                        "status", neuron.getStatus(),
+                                        "size", neuron.getSize(),
+                                        "somaLocation", neuron.getSomaLocation(),
+                                        "somaRadius", neuron.getSomaRadius()))
+                );
+            }
+            batch.writeTransaction();
+        }
+
+        LOG.info("updateNeuronProperties : exit");
+
 
     }
 
