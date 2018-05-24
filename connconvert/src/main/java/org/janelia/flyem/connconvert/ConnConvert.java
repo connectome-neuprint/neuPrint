@@ -509,18 +509,27 @@ public class ConnConvert {
 
         if (parameters.editMode) {
 
-
-            // read in the neurons data
-            Stopwatch timer2 = Stopwatch.createStarted();
-            neuronList = readNeuronsJson(parameters.neuronJson);
-            LOG.info("Reading in neurons json took: " + timer2.stop());
-            timer2.reset();
+            final HashMap<String,NeuronTypeTree> neuronTypeTreeMap = NeuronTypeTree.readTypeTree("mb6_cell_types.csv");
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+
                 neo4jImporter.prepDatabase(dataset);
+
+                neo4jImporter.addCellTypeTree(dataset,neuronTypeTreeMap);
+
+
             }
 
-            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
+//            Stopwatch timer2 = Stopwatch.createStarted();
+//            neuronList = readNeuronsJson(parameters.neuronJson);
+//            LOG.info("Reading in neurons json took: " + timer2.stop());
+//            timer2.reset();
+
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                neo4jImporter.prepDatabase(dataset);
+//            }
+
+//            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
 
 
 //                List<Skeleton> mbonSkeletons = new ArrayList<>();
@@ -545,7 +554,7 @@ public class ConnConvert {
 //                LOG.info("Updating all Neuron nodes took: " + timer2.stop());
 //                timer2.reset();
 
-            }
+//            }
 
         }
     }

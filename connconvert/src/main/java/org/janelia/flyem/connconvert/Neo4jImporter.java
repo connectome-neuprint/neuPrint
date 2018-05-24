@@ -68,6 +68,8 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:SkelNode) ASSERT s.skelNodeId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:Skeleton) ASSERT s.skeletonId IS UNIQUE",
+                "CREATE CONSTRAINT ON (c:NeuronClass) ASSERT c.neuronClassId IS UNIQUE",
+                "CREATE CONSTRAINT ON (t:NeuronType) ASSERT t.neuronTypeId IS UNIQUE",
                 "CREATE INDEX ON :Neuron(status)",
                 "CREATE INDEX ON :Synapse(x)",
                 "CREATE INDEX ON :Synapse(y)",
@@ -468,6 +470,39 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSkeletonNodes: exit");
     }
+
+
+    public void addCellTypeTree (final String dataset, final HashMap<String,NeuronTypeTree> neuronTypeTreeMap) {
+
+        LOG.info("addCellTypeTree: enter");
+
+
+        final String cellTypeTreeString = "MERGE (nc:NeuronClass:" + dataset + " {neuronClassId:$neuronClassId}) ON CREATE SET nc.neuronClassId=$neuronClassId, nc.neuronClass=$neuronClass \n" +
+                "MERGE (nt:NeuronType:" + dataset + "{neuronTypeId:$neuronTypeId}) ON CREATE SET nt.neuronTypeId=$neuronTypeId, nt.neuronType=$neuronType, nt.description=$description, nt.putativeNeurotransmitter=$neurotransmitter \n" +
+                "MERGE (nc)-[:Contains]->(nt)";
+
+        try (final TransactionBatch batch = getBatch()) {
+
+            for (String neuronClass : neuronTypeTreeMap.keySet()) {
+                    for (NeuronType neuronType: neuronTypeTreeMap.get(neuronClass).getNeuronTypeList()) {
+
+                        batch.addStatement(new Statement(cellTypeTreeString, parameters("neuronClassId", dataset + neuronClass,
+                                "neuronClass",neuronClass,
+                                "neuronType", neuronType.getCellType(),
+                                "neuronTypeId", dataset + neuronType.getCellType(),
+                                "description", neuronType.getCellDescription(),
+                                "neurotransmitter",neuronType.getPutativeTransmitter()
+                        )));
+                }
+            }
+            batch.writeTransaction();
+        }
+
+
+        LOG.info("addCellTypeTree: exit");
+
+    }
+
 
 
 
