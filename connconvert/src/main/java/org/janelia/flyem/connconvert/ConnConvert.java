@@ -472,7 +472,7 @@ public class ConnConvert {
         if (parameters.addSkeletons) {
 
             File folder = new File(parameters.skeletonDirectory);
-            File[] listOfSwcFiles = folder.listFiles();
+            File[] listOfSwcFiles = folder.listFiles((dir,name) -> name.toLowerCase().endsWith(".swc"));
             List<Skeleton> skeletonList = new ArrayList<>();
 
             LOG.info("Reading in " + listOfSwcFiles.length + " swc files.");
