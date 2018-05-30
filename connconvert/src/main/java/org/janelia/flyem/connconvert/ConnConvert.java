@@ -509,16 +509,16 @@ public class ConnConvert {
 
         if (parameters.editMode) {
 
-            final HashMap<String,NeuronTypeTree> neuronTypeTreeMap = NeuronTypeTree.readTypeTree("mb6_cell_types.csv");
-
-            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                neo4jImporter.prepDatabase(dataset);
-
-                neo4jImporter.addCellTypeTree(dataset,neuronTypeTreeMap);
-
-
-            }
+//            final HashMap<String,NeuronTypeTree> neuronTypeTreeMap = NeuronTypeTree.readTypeTree("mb6_cell_types.csv");
+//
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//
+//                neo4jImporter.prepDatabase(dataset);
+//
+//                neo4jImporter.addCellTypeTree(dataset,neuronTypeTreeMap);
+//
+//
+//            }
 
 //            Stopwatch timer2 = Stopwatch.createStarted();
 //            neuronList = readNeuronsJson(parameters.neuronJson);

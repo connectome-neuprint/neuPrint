@@ -407,7 +407,9 @@ public class Neo4jImporter implements AutoCloseable {
                 "MERGE (n)-[:Contains]->(r) \n" +
                 "MERGE (r)-[:Contains]->(s) \n";
 
-        final String parentNodeString = "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.x=$pX, p.y=$pY, p.z=$pZ, p.rowNumber=$pRowNumber \n";
+        final String parentNodeString = "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) \n" +
+                "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.x=$pX, p.y=$pY, p.z=$pZ, p.rowNumber=$pRowNumber \n" +
+                "MERGE (r)-[:Contains]->(p) ";
 
 
         try (final TransactionBatch batch = getBatch()) {
@@ -449,6 +451,7 @@ public class Neo4jImporter implements AutoCloseable {
                         }
 
                         batch.addStatement(new Statement(addChildrenString,parameters("parentSkelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString(),
+                                "skeletonId", dataset+":"+associatedBodyId,
                                 "pLocation", skelNode.getLocationString(),
                                 "pRadius", skelNode.getRadius(),
                                 "pX",skelNode.getLocation().get(0),
@@ -472,7 +475,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
 
-    public void addCellTypeTree (final String dataset, final HashMap<String,NeuronTypeTree> neuronTypeTreeMap) {
+    public void addCellTypeTree(final String dataset, final HashMap<String,NeuronTypeTree> neuronTypeTreeMap) {
 
         LOG.info("addCellTypeTree: enter");
 
