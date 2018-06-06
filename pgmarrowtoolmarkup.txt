@@ -1,0 +1,103 @@
+<ul class="graph-diagram-markup" data-internal-scale="5" data-external-scale="1">
+  <li class="node" data-node-id="0" data-x="-409.69970764389296" data-y="-220.74850161021072">
+    <span class="caption">Neuron :ROI        :Dataset</span><dl class="properties"><dt>bodyId</dt><dd>int64</dd><dt>pre</dt><dd>int</dd><dt>post</dt><dd>int</dd><dt>size</dt><dd>int64</dd><dt>name</dt><dd>"string"</dd><dt>type</dt><dd>"string"</dd><dt>sId</dt><dd>int</dd><dt>status</dt><dd>"string"</dd><dt>somaLocation</dt><dd>int array</dd><dt>somaRadius</dt><dd>float</dd></dl></li>
+  <li class="node" data-node-id="1" data-x="-216.55922460192042" data-y="45.772489859311605">
+    <span class="caption">Synapse :PreSyn :ROI        :Dataset</span><dl class="properties"><dt>type</dt><dd>"string"</dd><dt>confidence</dt><dd>float</dd><dt>location</dt><dd>"string"</dd><dt>x</dt><dd>int</dd><dt>y</dt><dd>int</dd><dt>z</dt><dd>int</dd></dl></li>
+  <li class="node" data-node-id="2" data-x="-409.69970764389296" data-y="45.772489859311605">
+    <span class="caption">SkelNode  :Dataset</span>
+  </li>
+  <li class="node" data-node-id="3" data-x="-216.55922460192042" data-y="-123.42566733323892">
+    <span class="caption">Synapse :PostSyn :ROI         :Dataset</span>
+  </li>
+  <li class="node" data-node-id="4" data-x="-141.2787593230038" data-y="-248.99277641937113">
+    <span class="caption">Neuron :ROI      :Dataset</span>
+  </li>
+  <li class="node" data-node-id="5" data-x="35.71360708920996" data-y="-67.6316735653478">
+    <span class="caption">Synapse :PostSyn :ROI            :Dataset</span>
+  </li>
+  <li class="node" data-node-id="6" data-x="-572.4490519516343" data-y="-123.42566733323892">
+    <span class="caption">Skeleton :Dataset</span>
+  </li>
+  <li class="node" data-node-id="7" data-x="-660.0006727844709" data-y="-177.57403733058604">
+    <span class="caption">SkelNode  :Dataset</span><dl class="properties"><dt>location</dt><dd>"string"</dd><dt>x</dt><dd>int</dd><dt>y</dt><dd>int</dd><dt>z</dt><dd>int</dd><dt>radius</dt><dd>float</dd><dt>rowNumber</dt><dd>int</dd></dl></li>
+  <li class="node" data-node-id="8" data-x="-788.9335300125242" data-y="-5.577902291567298">
+    <span class="caption">SkelNode  :Dataset</span>
+  </li>
+  <li class="node" data-node-id="9" data-x="-532.8473524719712" data-y="45.772489859311605">
+    <span class="caption">SkelNode  :Dataset</span>
+  </li>
+  <li class="node" data-node-id="10" data-x="-631.000819268846" data-y="89.51629778447015">
+    <span class="caption">SkelNode  :Dataset</span>
+  </li>
+  <li class="node" data-node-id="11" data-x="35.71360708920996" data-y="-220.74850161021072">
+    <span class="caption">NeuronPart :ROI    :Dataset</span>
+  </li>
+  <li class="node" data-node-id="12" data-x="-74.42793059372248" data-y="-177.57403733058604">
+    <span class="caption">SynapseSet :Dataset</span>
+  </li>
+  <li class="node" data-node-id="14" data-x="-363.3185650735931" data-y="-123.42566733323892">
+    <span class="caption">SynapseSet :Dataset</span>
+  </li>
+  <li class="node" data-node-id="15" data-x="-31.81818928162169" data-y="-299.47250612374785">
+    <span class="caption">NeuronPart :ROI    :Dataset</span><dl class="properties"><dt>pre</dt><dd>int</dd><dt>post</dt><dd>int</dd><dt>size</dt><dd>int</dd></dl></li>
+  <li class="relationship" data-from="1" data-to="3">
+    <span class="type">SynapsesTo</span>
+  </li>
+  <li class="relationship" data-from="0" data-to="4">
+    <span class="type">ConnectsTo</span>
+  </li>
+  <li class="relationship" data-from="1" data-to="5">
+    <span class="type">SynapsesTo</span>
+  </li>
+  <li class="relationship" data-from="0" data-to="6">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="6" data-to="7">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="6" data-to="10">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="6" data-to="2">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="6" data-to="8">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="6" data-to="9">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="7" data-to="8">
+    <span class="type">LinksTo</span>
+  </li>
+  <li class="relationship" data-from="8" data-to="9">
+    <span class="type">LinksTo</span>
+  </li>
+  <li class="relationship" data-from="9" data-to="10">
+    <span class="type">LinksTo</span>
+  </li>
+  <li class="relationship" data-from="9" data-to="2">
+    <span class="type">LinksTo</span>
+  </li>
+  <li class="relationship" data-from="11" data-to="4">
+    <span class="type">PartOf</span>
+  </li>
+  <li class="relationship" data-from="4" data-to="12">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="12" data-to="3">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="0" data-to="14">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="14" data-to="1">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="12" data-to="5">
+    <span class="type">Contains</span>
+  </li>
+  <li class="relationship" data-from="15" data-to="4">
+    <span class="type">PartOf</span>
+  </li>
+</ul>
