@@ -98,7 +98,7 @@ Usage: java -cp neuprinter.jar org.janelia.flyem.connconvert.ConnConvert
 
 ## Neo4j Property Graph Model
 
-![Property Graph Model](PGMv3.png)
+![Property Graph Model](PGMv4.png)
 
 ### :Neuron properties
 * pre: number of presynaptic terminals
