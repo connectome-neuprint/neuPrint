@@ -1,5 +1,5 @@
 # neuPrint
-A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [https://github.com/janelia-flyem/ConnectomeAnalyzer](https://github.com/janelia-flyem/ConnectomeAnalyzer).
+A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [ConnectomeAnalyzer](https://github.com/janelia-flyem/ConnectomeAnalyzer).
 
 ## Example data
 
