@@ -73,6 +73,7 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE CONSTRAINT ON (c:NeuronClass) ASSERT c.neuronClassId IS UNIQUE",
                 "CREATE CONSTRAINT ON (t:NeuronType) ASSERT t.neuronTypeId IS UNIQUE",
                 "CREATE INDEX ON :Neuron(status)",
+                "CREATE INDEX ON :Neuron(name)",
                 "CREATE INDEX ON :Synapse(x)",
                 "CREATE INDEX ON :Synapse(y)",
                 "CREATE INDEX ON :Synapse(z)",
