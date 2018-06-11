@@ -22,7 +22,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     private final Driver driver;
     private final int statementsPerTransaction;
-    private final Integer timeStamp = new Integer(LocalDate.now().toString().replace("-",""));
+    private final LocalDate timeStamp = LocalDate.now();
 
     public Neo4jImporter(final DbConfig dbConfig) {
 
