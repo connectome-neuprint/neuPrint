@@ -31,7 +31,7 @@ Follow these [input specifications](jsonspecs.md) to create your own neurons.jso
 ```console
 $ java -jar neuprinter.jar --help
 
-Usage: java -cp neuprinter.jar org.janelia.flyem.connconvert.ConnConvert
+Usage: java -cp neuprinter.jar ConnConvert
       [options]
   Options:
     --addConnectsTo

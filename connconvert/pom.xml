@@ -4,50 +4,21 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 
     <modelVersion>4.0.0</modelVersion>
-    <groupId>org.janelia.flyem</groupId>
-    <artifactId>connconvert</artifactId>
+
+    <parent>
+        <artifactId>neuprint-root</artifactId>
+        <groupId>org.janelia.flyem</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>neuprinter</artifactId>
     <version>1.0-SNAPSHOT</version>
-
-
     <packaging>jar</packaging>
-    <name>converter</name>
+    <name>neuprinter</name>
     <description>Procedures for importing connectome data into neo4j</description>
 
-    <!--<properties>-->
-    <!--<neo4j.version>3.3.1</neo4j.version>-->
-    <!--</properties>-->
 
     <dependencies>
-        <!--<dependency>-->
-        <!--&lt;!&ndash; This gives us the Procedure API our runtime code uses.-->
-        <!--We have a `provided` scope on it, because when this is-->
-        <!--deployed in a Neo4j Instance, the API will be provided-->
-        <!--by Neo4j. If you add non-Neo4j dependencies to this-->
-        <!--project, their scope should normally be `compile` &ndash;&gt;-->
-        <!--<groupId>org.neo4j</groupId>-->
-        <!--<artifactId>neo4j</artifactId>-->
-        <!--<version>${neo4j.version}</version>-->
-        <!--<scope>provided</scope>-->
-        <!--</dependency>-->
-
-        <!-- Test Dependencies -->
-        <!--<dependency>-->
-        <!--&lt;!&ndash; This is used for a utility that lets us start Neo4j with-->
-        <!--a specific Procedure, which is nice for writing tests. &ndash;&gt;-->
-        <!--<groupId>org.neo4j.test</groupId>-->
-        <!--<artifactId>neo4j-harness</artifactId>-->
-        <!--<version>${neo4j.version}</version>-->
-        <!--<scope>test</scope>-->
-        <!--</dependency>-->
-
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- Other Dependencies -->
 
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -60,13 +31,6 @@
             <groupId>org.javatuples</groupId>
             <artifactId>javatuples</artifactId>
             <version>1.2</version>
-            <scope>compile</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>org.neo4j.driver</groupId>
-            <artifactId>neo4j-java-driver</artifactId>
-            <version>1.6.1</version>
             <scope>compile</scope>
         </dependency>
 
@@ -91,6 +55,20 @@
             <scope>compile</scope>
         </dependency>
 
+        <dependency>
+            <groupId>org.neo4j.driver</groupId>
+            <artifactId>neo4j-java-driver</artifactId>
+            <version>1.6.1</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+
         <!-- https://mvnrepository.com/artifact/com.opencsv/opencsv -->
         <dependency>
             <groupId>com.opencsv</groupId>
@@ -104,20 +82,6 @@
     <build>
         <plugins>
             <plugin>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
-                <configuration>
-                    <!-- Neo4j Procedures require Java 8 -->
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
-            </plugin>
-            <plugin>
-                <!-- This generates a jar-file with our procedure code,
-                     plus any dependencies marked as `compile` scope.
-                     This should then be deployed in the `plugins` directory
-                     of each Neo4j instance in your deployment.
-                     After a restart, the procedure is available for calling. -->
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>2.4.3</version>
                 <executions>
@@ -129,7 +93,7 @@
                         <configuration>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>org.janelia.flyem.connconvert.ConnConvert</mainClass>
+                                    <mainClass>org.janelia.flyem.neuprinter.ConnConvert</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>
