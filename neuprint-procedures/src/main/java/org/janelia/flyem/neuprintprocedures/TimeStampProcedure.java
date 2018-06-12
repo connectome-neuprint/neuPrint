@@ -17,7 +17,7 @@ public class TimeStampProcedure {
     public Log log;
 
 
-    @Procedure(value = "connprocedures.timeStamp", mode = Mode.WRITE)
+    @Procedure(value = "neuPrintProcedures.timeStamp", mode = Mode.WRITE)
     @Description("For the node with the given node-id, add properties for the provided keys to index per label")
     public void timeStamp(@Name("nodeId") long nodeId) {
 

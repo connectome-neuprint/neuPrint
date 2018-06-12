@@ -34,25 +34,7 @@ public class TimeStampTest {
 
             Long nodeId = session.run("CREATE (n:Neuron{id:1}) RETURN id(n)").single().get(0).asLong();
 
-            session.run("CALL connprocedures.timeStamp($nodeId)", parameters("nodeId", nodeId));
-
-            LocalDate timeStamp = session.run("MATCH (n:Neuron{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
-
-            Assert.assertEquals(LocalDate.now(), timeStamp);
-
-        }
-    }
-
-    @Test
-    public void shouldApplyTimeStampUponNodeCreation() {
-
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
-
-            Session session = driver.session();
-
-            Long nodeId = session.run("CREATE (n:Neuron{id:1}) RETURN id(n)").single().get(0).asLong();
-
-            session.run("CALL connprocedures.timeStamp($nodeId)", parameters("nodeId", nodeId));
+            session.run("CALL neuPrintProcedures.timeStamp($nodeId)", parameters("nodeId", nodeId));
 
             LocalDate timeStamp = session.run("MATCH (n:Neuron{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
 
@@ -63,7 +45,7 @@ public class TimeStampTest {
 
 
     @Test
-    public void showSimpleEventHandling() {
+    public void showTimeStampUponCreation() {
         GraphDatabaseService database
                 = new TestGraphDatabaseFactory().newImpermanentDatabase();
         ExecutorService executorService = Executors.newFixedThreadPool(2);
