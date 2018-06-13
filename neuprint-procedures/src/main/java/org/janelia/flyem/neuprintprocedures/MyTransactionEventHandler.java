@@ -24,7 +24,7 @@ public class MyTransactionEventHandler implements TransactionEventHandler {
     @Override
     public void afterCommit(TransactionData transactionData, Object o) {
         TimeStampRunnable timeStampRunnable = new TimeStampRunnable(transactionData, dbService);
-        timeStampRunnable.run();
+        executorService.submit(timeStampRunnable);
     }
 
     @Override

@@ -5,7 +5,8 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.event.TransactionData;
 
 
-public class TimeStampRunnable {
+
+public class TimeStampRunnable implements Runnable {
 
     private static TransactionData transactionData;
     private static GraphDatabaseService dbService;
@@ -15,7 +16,7 @@ public class TimeStampRunnable {
         dbService = graphDatabaseService;
     }
 
-
+    @Override
     public void run() {
 
         final TimeStampProcedure timeStampProcedure = new TimeStampProcedure();
