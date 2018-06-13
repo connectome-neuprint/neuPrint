@@ -7,6 +7,7 @@ import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 
 import java.time.LocalDate;
+import java.util.Set;
 
 public class TimeStampProcedure {
 
@@ -28,12 +29,11 @@ public class TimeStampProcedure {
     }
 
     //for testing in embedded mode or registering transaction events
-    public static void timeStampEmbedded(long nodeId, GraphDatabaseService dbService) {
+    public static void timeStampEmbedded(Set<Long> nodeIdSet, GraphDatabaseService dbService) {
 
-        try (Transaction tx = dbService.beginTx()) {
+        for (Long nodeId : nodeIdSet) {
             Node node = dbService.getNodeById(nodeId);
             node.setProperty("timeStamp", LocalDate.now());
-            tx.success();
         }
 
     }

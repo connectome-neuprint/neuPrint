@@ -7,8 +7,9 @@ import org.neo4j.driver.v1.Config;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
-import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.harness.junit.Neo4jRule;
 import org.neo4j.test.TestGraphDatabaseFactory;
@@ -18,6 +19,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import static org.neo4j.driver.v1.Values.parameters;
+import static org.neo4j.graphdb.Label.label;
 
 public class TimeStampTest {
 
@@ -32,7 +34,9 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            Long nodeId = session.run("CREATE (n:Neuron{id:1}) RETURN id(n)").single().get(0).asLong();
+            Long nodeId = session.run("CREATE (n:Neuron:test{id:1}) RETURN id(n)").single().get(0).asLong();
+
+            session.run("MATCH (n:Neuron{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
 
             session.run("CALL neuPrintProcedures.timeStamp($nodeId)", parameters("nodeId", nodeId));
 
@@ -45,30 +49,101 @@ public class TimeStampTest {
 
 
     @Test
-    public void showTimeStampUponCreation() {
-        GraphDatabaseService database
-                = new TestGraphDatabaseFactory().newImpermanentDatabase();
-        ExecutorService executorService = Executors.newFixedThreadPool(2);
+    public void shouldAddTimeStampUponCreation() {
 
-        database.registerTransactionEventHandler(new MyTransactionEventHandler(database, executorService));
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
-        Long createdNodeId = null;
-        LocalDate nodeTimeStamp = null;
+            Session session = driver.session();
 
-        try (Transaction tx = database.beginTx()) {
-            Node createdNode = database.createNode();
-            createdNodeId = createdNode.getId();
-            tx.success();
+            session.run("CREATE (n:Neuron:test{id:1}) RETURN id(n)");
+
+            LocalDate timeStamp = session.run("MATCH (n:Neuron{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp);
         }
-
-        try (Transaction tx = database.beginTx()) {
-            nodeTimeStamp = (LocalDate) database.getNodeById(createdNodeId).getProperty("timeStamp");
-        }
-
-        Assert.assertEquals(LocalDate.now(), nodeTimeStamp);
 
     }
 
+    @Test
+    public void shouldAddTimeStampUponAddLabel() {
 
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            session.run("CREATE (n{id:1}) RETURN id(n)");
+
+            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+
+            session.run("MATCH (n{id:1}) SET n:test");
+
+            LocalDate timeStamp = session.run("MATCH (n:test{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp);
+        }
+
+    }
+
+    @Test
+    public void shouldAddTimeStampUponRemoveLabel() {
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            session.run("CREATE (n:test{id:1}) RETURN id(n)");
+
+            session.run("MATCH (n:test{id:1}) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+
+            session.run("MATCH (n{id:1}) REMOVE n:test");
+
+            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp);
+        }
+
+    }
+
+    @Test
+    public void shouldAddTimeStampUponPropertiesAssigned() {
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            session.run("CREATE (n{id:1}) RETURN id(n)");
+
+            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+
+            session.run("MATCH (n{id:1}) SET n.testProperty=\"testValue\"");
+
+            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp);
+
+        }
+    }
+
+    @Test
+    public void shouldAddTimeStampUponPropertiesRemoved() {
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            session.run("CREATE (n{id:1}) RETURN id(n)");
+
+            session.run("MATCH (n{id:1}) SET n.testProperty=\"testValue\"");
+
+            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+
+            session.run("MATCH (n{id:1}) REMOVE n.testProperty");
+
+            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp);
+
+        }
+    }
 }
 
