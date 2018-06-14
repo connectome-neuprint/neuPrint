@@ -19,7 +19,7 @@ public class TimeStampProcedure {
 
 
     @Procedure(value = "neuPrintProcedures.timeStamp", mode = Mode.WRITE)
-    @Description("For the node with the given node-id, add properties for the provided keys to index per label")
+    @Description("For the node with the given node ID, add time stamp property with current date")
     public void timeStamp(@Name("nodeId") long nodeId) {
 
         Node node = dbService.getNodeById(nodeId);
