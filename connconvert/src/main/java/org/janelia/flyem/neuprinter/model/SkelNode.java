@@ -51,7 +51,9 @@ public class SkelNode {  //TODO: should this be an abstract class? with root and
 
     @Override
     public int hashCode() {
-        return this.location.hashCode();
+        int result = 17;
+        result = 31 * result + location.hashCode();
+        return result;
     }
 
     public List<SkelNode> getChildren() {

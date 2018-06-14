@@ -40,8 +40,9 @@ public class NeuronType {
 
     @Override
     public int hashCode() {
-
-        return Objects.hash(cellType);
+        int result = 17;
+        result = 31 * result + cellType.hashCode();
+        return result;
     }
 
     @Override

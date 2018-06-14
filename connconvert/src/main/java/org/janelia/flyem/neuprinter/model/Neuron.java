@@ -111,7 +111,9 @@ public class Neuron {
 
     @Override
     public int hashCode() {
-        return this.id.hashCode();
+        int result = 17;
+        result = 31 * result + id.hashCode();
+        return result;
     }
 
     @Override

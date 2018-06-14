@@ -68,7 +68,9 @@ public class Synapse {
 
     @Override
     public int hashCode() {
-        return this.location.hashCode();
+        int result = 17;
+        result = 31 * result + location.hashCode();
+        return result;
     }
 
 

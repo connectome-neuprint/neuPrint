@@ -48,7 +48,9 @@ public class Skeleton {
 
     @Override
     public int hashCode() {
-        return this.associatedBodyId.hashCode();
+        int result = 17;
+        result = 31 * result + associatedBodyId.hashCode();
+        return result;
     }
 
     public void fromSwc(final BufferedReader reader, final Long associatedBodyId) throws IOException {

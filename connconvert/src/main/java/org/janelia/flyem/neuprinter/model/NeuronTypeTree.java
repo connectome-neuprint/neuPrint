@@ -63,8 +63,9 @@ public class NeuronTypeTree {
 
     @Override
     public int hashCode() {
-
-        return Objects.hash(cellClass);
+        int result = 17;
+        result = 31 * result + cellClass.hashCode();
+        return result;
     }
 
 

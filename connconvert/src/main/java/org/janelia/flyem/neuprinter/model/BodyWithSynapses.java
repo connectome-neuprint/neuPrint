@@ -94,7 +94,9 @@ public class BodyWithSynapses {
     @Override
     public int hashCode() {
         //noinspection ConstantConditions
-        return bodyId.hashCode();
+        int result = 17;
+        result = 31 * result + bodyId.hashCode();
+        return result;
     }
 
     public List<String> getPreLocations() {
