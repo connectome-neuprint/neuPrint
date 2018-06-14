@@ -25,9 +25,9 @@ public class TimeStampRunnable implements Runnable {
     @Override
     public void run() {
 
-        try (Transaction tx = dbService.beginTx()) {
+        Boolean timeStampTransaction = false;
 
-            System.out.println("entered run");
+        try (Transaction tx = dbService.beginTx()) {
 
             Set<Long> nodesForTimeStamping = new HashSet<>();
             for (Node node : transactionData.createdNodes()) {
@@ -51,7 +51,8 @@ public class TimeStampRunnable implements Runnable {
                     nodesForTimeStamping.add(assignedPropertiesNodeId);
                     System.out.println("node properties assigned: " + propertyEntry);
                 } else {
-                    System.out.println("timestamp added.");
+                    timeStampTransaction = true;
+                    //System.out.println("timestamp added.");
                 }
 
             }
@@ -62,7 +63,8 @@ public class TimeStampRunnable implements Runnable {
                     nodesForTimeStamping.add(removedPropertiesNodeId);
                     System.out.println("node properties removed: " + propertyEntry);
                 } else {
-                    System.out.println("timestamp removed.");
+                    timeStampTransaction = true;
+                    //System.out.println("timestamp removed.");
                 }
             }
 
@@ -100,12 +102,12 @@ public class TimeStampRunnable implements Runnable {
                 }
             }
 
-
-            System.out.println(nodesForTimeStamping);
-            // TODO: probably want to batch this.
-            TimeStampProcedure.timeStampEmbedded(nodesForTimeStamping, dbService);
-
-            tx.success();
+            if (nodesForTimeStamping.size() > 0) {
+                System.out.println("the following nodes will be time-stamped: " + nodesForTimeStamping);
+                // TODO: probably want to batch this.
+                TimeStampProcedure.timeStampEmbedded(nodesForTimeStamping, dbService);
+                tx.success();
+            }
 
 
         }
