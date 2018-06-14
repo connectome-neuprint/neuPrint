@@ -145,5 +145,120 @@ public class TimeStampTest {
 
         }
     }
+
+    @Test
+    public void shouldAddTimeStampUponRelationshipPropertiesAssigned() {
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            session.run("CREATE (n{id:1})  \n" +
+                    "CREATE (m{id:2}) \n" +
+                    "CREATE (n)-[:RelatesTo]->(m)");
+
+            session.run("MATCH (n) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+
+            session.run("MATCH (n)-[r:RelatesTo]->() SET r.testProperty=\"testValue\"");
+
+            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp);
+
+            LocalDate timeStamp2 = session.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp2);
+
+        }
+
+    }
+
+
+    @Test
+    public void shouldAddTimeStampUponRelationshipPropertiesRemoved() {
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            session.run("CREATE (n{id:1})  \n" +
+                    "CREATE (m{id:2}) \n" +
+                    "CREATE (n)-[:RelatesTo]->(m)");
+
+            session.run("MATCH (n)-[r:RelatesTo]-() SET r.testProperty=\"testValue\"");
+
+            session.run("MATCH (n) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+
+            session.run("MATCH (n)-[r:RelatesTo]->() REMOVE r.testProperty");
+
+            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp);
+
+            LocalDate timeStamp2 = session.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp2);
+
+        }
+
+    }
+
+    @Test
+    public void shouldAddTimeStampUponRelationshipCreated() {
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            session.run("CREATE (n{id:1})  \n" +
+                    "CREATE (m{id:2})");
+
+            session.run("MATCH (n) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+
+            session.run("MATCH (n{id:1}) \n" +
+                    "MATCH (m{id:2}) \n" +
+                    "CREATE (n)-[:RelatesTo]->(m)");
+
+            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp);
+
+            LocalDate timeStamp2 = session.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp2);
+
+        }
+
+    }
+
+    @Test
+    public void shouldAddTimeStampUponRelationshipDeleted() {
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            session.run("CREATE (n{id:1})  \n" +
+                    "CREATE (m{id:2}) \n" +
+                    "CREATE (n)-[:RelatesTo]->(m)");
+
+            session.run("MATCH (n) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+
+            session.run("MATCH (n{id:1})  \n" +
+                    "MATCH (m{id:2}) \n" +
+                    "MATCH (n)-[r:RelatesTo]->(m) \n" +
+                    "DELETE r");
+
+            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp);
+
+            LocalDate timeStamp2 = session.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate();
+
+            Assert.assertEquals(LocalDate.now(), timeStamp2);
+
+        }
+
+    }
 }
 
