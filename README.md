@@ -133,3 +133,10 @@ Usage: java -cp neuprinter.jar ConnConvert
 * radius: radius
 * rowNumber: row number within swc file
 
+## neuPrint Neo4j Stored Procedures
+
+Place neuprint-procedures.jar into the plugins folder of your neo4j database, and restart the datbase. Under development. Current features:
+* applies time stamp to nodes when they are created, when their properties change, when relationships are changed, and when relationship properties are changed. 
+* neuPrintProcedures.timeStamp(nodeId): For the node with the given node ID, add time stamp property with current date. e.g.
+      ``` CALL neuPrintProcedures.timeStamp(12) ```
+
