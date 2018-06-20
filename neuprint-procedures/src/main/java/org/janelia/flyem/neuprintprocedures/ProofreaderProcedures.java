@@ -34,8 +34,6 @@ public class ProofreaderProcedures {
 
         final Node node1 = (Node) nodeQueryResult.get("node1");
         final Node node2 = (Node) nodeQueryResult.get("node2");
-        final Node newNode = dbService.createNode();
-
 
         // grab write locks upfront
         try (Transaction tx = dbService.beginTx()) {
@@ -44,13 +42,7 @@ public class ProofreaderProcedures {
             tx.success();
         }
 
-        //create a new body with new bodyId and properties
-        //id for new body is by convention the first node Id listed in the function
-        newNode.setProperty("bodyId", node1.getProperty("bodyId"));
-        node1.setProperty("mergedBodyId", node1.getProperty("bodyId"));
-        node1.removeProperty("bodyId");
-        node2.setProperty("mergedBodyId", node2.getProperty("bodyId"));
-        node2.removeProperty("bodyId");
+        Node newNode = createNewNode(node1, node2, datasetLabel);
 
         mergeConnectsToRelationships(node1,node2,newNode);
 
@@ -213,5 +205,19 @@ public class ProofreaderProcedures {
             Relationship relationship = startNode.createRelationshipTo(endNode, RelationshipType.withName("ConnectsTo"));
             relationship.setProperty("weight", connectsToRelationship.getWeight());
         }
+    }
+
+    private Node createNewNode(Node node1, Node node2, String datasetLabel) {
+        //create a new body with new bodyId and properties
+        //id for new body is by convention the first node Id listed in the function
+        //newNode acquires dataset label
+        final Node newNode = dbService.createNode();
+        newNode.setProperty("bodyId", node1.getProperty("bodyId"));
+        node1.setProperty("mergedBodyId", node1.getProperty("bodyId"));
+        node1.removeProperty("bodyId");
+        node2.setProperty("mergedBodyId", node2.getProperty("bodyId"));
+        node2.removeProperty("bodyId");
+        newNode.addLabel(Label.label(datasetLabel));
+        return newNode;
     }
 }
