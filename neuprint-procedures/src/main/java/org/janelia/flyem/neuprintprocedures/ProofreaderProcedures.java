@@ -38,26 +38,7 @@ public class ProofreaderProcedures {
 
         mergeConnectsToRelationships(node1,node2,newNode);
 
-        //create relationships between synapse sets and new nodes (also deletes old relationship)
-        Map<String, Object> parametersMap = new HashMap<>();
-        parametersMap = new HashMap<>();
-        Node node1SynapseSetNode = getSynapseSetForNode(node1);
-        if (node1SynapseSetNode != null) {
-            newNode.createRelationshipTo(node1SynapseSetNode, RelationshipType.withName("Contains"));
-            parametersMap.put("ssnode1", node1SynapseSetNode);
-        }
-        Node node2SynapseSetNode = getSynapseSetForNode(node2);
-        if (node2SynapseSetNode != null) {
-            newNode.createRelationshipTo(node2SynapseSetNode, RelationshipType.withName("Contains"));
-            parametersMap.put("ssnode2", node2SynapseSetNode);
-        }
-
-        // merge the two synapse nodes using apoc. inherits the datasetBodyId of the first node
-        if (parametersMap.containsKey("ssnode1") && parametersMap.containsKey("ssnode2")) {
-            Node newSynapseSetNode = (Node) dbService.execute("CALL apoc.refactor.mergeNodes([$ssnode1, $ssnode2], {properties:{datasetBodyId:\"discard\"}}) YIELD node RETURN node", parametersMap).next().get("node");
-            //delete the extra relationship between new node and new synapse set node
-            newNode.getRelationships(RelationshipType.withName("Contains")).iterator().next().delete();
-        }
+        mergeSynapseSets(node1, node2, newNode);
 
         //TODO: trigger call for new skeleton/update skeleton for new node
         deleteSkeletonForNode(node1);
@@ -226,6 +207,30 @@ public class ProofreaderProcedures {
             System.exit(1);
         }
         return nodeQueryResult;
+    }
+
+
+    private void mergeSynapseSets(Node node1, Node node2, Node newNode) {
+        //create relationships between synapse sets and new nodes (also deletes old relationship)
+        Map<String, Object> parametersMap = new HashMap<>();
+        parametersMap = new HashMap<>();
+        Node node1SynapseSetNode = getSynapseSetForNode(node1);
+        if (node1SynapseSetNode != null) {
+            newNode.createRelationshipTo(node1SynapseSetNode, RelationshipType.withName("Contains"));
+            parametersMap.put("ssnode1", node1SynapseSetNode);
+        }
+        Node node2SynapseSetNode = getSynapseSetForNode(node2);
+        if (node2SynapseSetNode != null) {
+            newNode.createRelationshipTo(node2SynapseSetNode, RelationshipType.withName("Contains"));
+            parametersMap.put("ssnode2", node2SynapseSetNode);
+        }
+
+        // merge the two synapse nodes using apoc. inherits the datasetBodyId of the first node
+        if (parametersMap.containsKey("ssnode1") && parametersMap.containsKey("ssnode2")) {
+            Node newSynapseSetNode = (Node) dbService.execute("CALL apoc.refactor.mergeNodes([$ssnode1, $ssnode2], {properties:{datasetBodyId:\"discard\"}}) YIELD node RETURN node", parametersMap).next().get("node");
+            //delete the extra relationship between new node and new synapse set node
+            newNode.getRelationships(RelationshipType.withName("Contains")).iterator().next().delete();
+        }
     }
 
 }
