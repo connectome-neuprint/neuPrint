@@ -20,17 +20,9 @@ public class ProofreaderProcedures {
     @Description("proofreader.mergeNeurons(node1BodyId,node2BodyId,datasetLabel) merge nodes into new node with bodyId inherited from first in list")
     public Stream<NodeResult> mergeNeurons(@Name("node1") Long node1BodyId, @Name("node2") Long node2BodyId, @Name("datasetLabel") String datasetLabel) {
         if (node1BodyId == null || node2BodyId == null) return Stream.empty();
+
         // TODO: check that all labels are copied over.
-        Map<String, Object> parametersMap = new HashMap<>();
-        parametersMap.put("node1BodyId", node1BodyId);
-        parametersMap.put("node2BodyId", node2BodyId);
-        Map<String, Object> nodeQueryResult = null;
-        try {
-            nodeQueryResult = dbService.execute("MATCH (node1:Neuron:" + datasetLabel + "{bodyId:$node1BodyId}), (node2:Neuron:" + datasetLabel + "{bodyId:$node2BodyId}) RETURN node1,node2", parametersMap).next();
-        } catch (java.util.NoSuchElementException nse) {
-            System.out.println("Error using proofreader.mergeNodes: both nodes must exist in the dataset and be labeled :Neuron.");
-            System.exit(1);
-        }
+        Map<String,Object> nodeQueryResult = acquireNodesFromDatabase(node1BodyId, node2BodyId, datasetLabel);
 
         final Node node1 = (Node) nodeQueryResult.get("node1");
         final Node node2 = (Node) nodeQueryResult.get("node2");
@@ -47,6 +39,7 @@ public class ProofreaderProcedures {
         mergeConnectsToRelationships(node1,node2,newNode);
 
         //create relationships between synapse sets and new nodes (also deletes old relationship)
+        Map<String, Object> parametersMap = new HashMap<>();
         parametersMap = new HashMap<>();
         Node node1SynapseSetNode = getSynapseSetForNode(node1);
         if (node1SynapseSetNode != null) {
@@ -220,4 +213,19 @@ public class ProofreaderProcedures {
         newNode.addLabel(Label.label(datasetLabel));
         return newNode;
     }
+
+    private Map<String, Object> acquireNodesFromDatabase(Long node1BodyId, Long node2BodyId, String datasetLabel) {
+        Map<String, Object> parametersMap = new HashMap<>();
+        parametersMap.put("node1BodyId", node1BodyId);
+        parametersMap.put("node2BodyId", node2BodyId);
+        Map<String, Object> nodeQueryResult = null;
+        try {
+            nodeQueryResult = dbService.execute("MATCH (node1:Neuron:" + datasetLabel + "{bodyId:$node1BodyId}), (node2:Neuron:" + datasetLabel + "{bodyId:$node2BodyId}) RETURN node1,node2", parametersMap).next();
+        } catch (java.util.NoSuchElementException nse) {
+            System.out.println("Error using proofreader.mergeNodes: both nodes must exist in the dataset and be labeled :Neuron.");
+            System.exit(1);
+        }
+        return nodeQueryResult;
+    }
+
 }
