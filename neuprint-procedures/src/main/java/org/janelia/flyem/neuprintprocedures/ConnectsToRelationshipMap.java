@@ -9,7 +9,7 @@ public class ConnectsToRelationshipMap {
 
     private Map<String,ConnectsToRelationship> nodeIdToConnectsToRelationshipHashMap = new HashMap<>();
 
-    public void insertConnectsToRelationship(Node startNode, Node endNode, Long weight) {
+    void insertConnectsToRelationship(Node startNode, Node endNode, Long weight) {
         String stringKey = nodeIdsToStringKey(startNode, endNode);
         if (this.nodeIdToConnectsToRelationshipHashMap.get(stringKey) != null) {
             this.nodeIdToConnectsToRelationshipHashMap.get(stringKey).addWeight(weight);
@@ -29,11 +29,11 @@ public class ConnectsToRelationshipMap {
         }
     }
 
-    public ConnectsToRelationship getConnectsToRelationshipByKey(String key) {
+    ConnectsToRelationship getConnectsToRelationshipByKey(String key) {
         return nodeIdToConnectsToRelationshipHashMap.get(key);
     }
 
-    public Map<String,ConnectsToRelationship> getNodeIdToConnectsToRelationshipHashMap() {
+    Map<String,ConnectsToRelationship> getNodeIdToConnectsToRelationshipHashMap() {
         return this.nodeIdToConnectsToRelationshipHashMap;
     }
 

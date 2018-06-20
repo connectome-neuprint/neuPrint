@@ -49,10 +49,10 @@ public class MergeNeuronsTest {
                     "CREATE (m)-[:ConnectsTo{weight:3}]->(m) \n" +
                     "CREATE (m)-[:ConnectsTo{weight:37}]->(n) \n " +
                     "CREATE (n)-[:ConnectsTo{weight:5}]->(m)",
-                    parameters("id1",new Long(1),"id2", new Long(2),"id3", new Long(3), "id4", new Long(4)));
+                    parameters("id1",1,"id2", 2,"id3", 3, "id4", 4));
 
 
-            Node newNode = session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset) YIELD node RETURN node",parameters("bodyId1", new Long(1), "bodyId2", new Long(2), "dataset", "test")).single().get(0).asNode();
+            session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset) YIELD node RETURN node",parameters("bodyId1",1, "bodyId2", 2, "dataset", "test")).single().get(0).asNode();
 
             Long newTo1Weight = session.run("MATCH (n)-[r:ConnectsTo]->(m{bodyId:1}) WHERE id(n)=20 RETURN r.weight").single().get(0).asLong();
 
@@ -99,21 +99,21 @@ public class MergeNeuronsTest {
                     "CREATE (o)-[:Contains]->(q) \n" +
                     "CREATE (o)-[:Contains]->(r) \n" +
                     "CREATE (p)-[:Contains]->(s) ",
-                    parameters("id1", new Long(1), "id2", new Long(2), "ssid1", "test:1", "ssid2", "test:2"));
+                    parameters("id1", 1, "id2", 2, "ssid1", "test:1", "ssid2", "test:2"));
 
-            session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)",parameters("bodyId1", new Long(1), "bodyId2", new Long(2),"dataset", "test"));
+            session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)",parameters("bodyId1", 1, "bodyId2", 2,"dataset", "test"));
 
-            Node newSSNode = session.run("MATCH (o:SynapseSet{datasetBodyId:$ssid1}) RETURN o", parameters("ssid1","test:1")).single().get(0).asNode();
+            Node newSSNode = session.run("MATCH (o:SynapseSet:test{datasetBodyId:$ssid1}) RETURN o", parameters("ssid1","test:1")).single().get(0).asNode();
 
             //should inherit the id from the first listed synapse set
             Assert.assertEquals("test:1",newSSNode.get("datasetBodyId").asString());
 
-            Long newSSNodeNeuronId = session.run("MATCH (o:SynapseSet{datasetBodyId:$ssid1})<-[r:Contains]-(n) RETURN n.bodyId", parameters("ssid1","test:1")).single().get(0).asLong();
+            Long newSSNodeNeuronId = session.run("MATCH (o:SynapseSet:test{datasetBodyId:$ssid1})<-[r:Contains]-(n) RETURN n.bodyId", parameters("ssid1","test:1")).single().get(0).asLong();
 
             //should only be contained by the new node
             Assert.assertEquals(new Long(1), newSSNodeNeuronId);
 
-            int numberOfRelationships = session.run("MATCH (o:SynapseSet{datasetBodyId:$ssid1})-[r:Contains]->(n) RETURN count(n)", parameters("ssid1", "test:1")).single().get(0).asInt();
+            int numberOfRelationships = session.run("MATCH (o:SynapseSet:test{datasetBodyId:$ssid1})-[r:Contains]->(n) RETURN count(n)", parameters("ssid1", "test:1")).single().get(0).asInt();
 
             //number of relationships to synapses should be equal to sum from node1 and node2
             Assert.assertEquals(3,numberOfRelationships);
@@ -156,7 +156,7 @@ public class MergeNeuronsTest {
 
             Assert.assertEquals("test:101",session.run("MATCH (n{bodyId:101})-[:Contains]->(s:Skeleton) RETURN s.skeletonId").single().get(0).asString());
 
-            session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)",parameters("bodyId1", new Long(101), "bodyId2", new Long(102),"dataset", "test"));
+            session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)",parameters("bodyId1", 101, "bodyId2", 102,"dataset", "test"));
 
             Assert.assertFalse(session.run("MATCH (n{bodyId:101})-[:Contains]->(s:Skeleton) RETURN s.skeletonId").hasNext());
 
@@ -196,7 +196,7 @@ public class MergeNeuronsTest {
                 }
                 neo4jImporter.addNeuronParts(dataset, bodyList);
 
-                session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)",parameters("bodyId1", new Long(8426959) , "bodyId2", new Long(26311) ,"dataset", dataset));
+                session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)",parameters("bodyId1", 8426959 , "bodyId2", 26311 ,"dataset", dataset));
 
                 int neuronPartCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np) RETURN count(np)").single().get(0).asInt();
 
@@ -252,13 +252,13 @@ public class MergeNeuronsTest {
                 }
                 neo4jImporter.addNeuronParts(dataset, bodyList);
 
-                Set<String> oldNeuronLabelList = session.run("MATCH (n:Neuron:test{bodyId:$bodyId}) RETURN labels(n)", parameters("bodyId",new Long(8426959))).single().get(0).asList().stream().map(object -> Objects.toString(object, null)).collect(Collectors.toSet());
+                Set<String> oldNeuronLabelList = session.run("MATCH (n:Neuron:test{bodyId:$bodyId}) RETURN labels(n)", parameters("bodyId", 8426959)).single().get(0).asList().stream().map(object -> Objects.toString(object, null)).collect(Collectors.toSet());
 
-                oldNeuronLabelList.addAll(session.run("MATCH (n:Neuron:test{bodyId:$bodyId}) RETURN labels(n)",  parameters("bodyId",new Long(26311))).single().get(0).asList().stream().map(object -> Objects.toString(object, null)).collect(Collectors.toSet()));
+                oldNeuronLabelList.addAll(session.run("MATCH (n:Neuron:test{bodyId:$bodyId}) RETURN labels(n)",  parameters("bodyId", 26311)).single().get(0).asList().stream().map(object -> Objects.toString(object, null)).collect(Collectors.toSet()));
 
-                session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)", parameters("bodyId1", new Long(8426959), "bodyId2", new Long(26311), "dataset", dataset));
+                session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)", parameters("bodyId1", 8426959, "bodyId2", 26311, "dataset", dataset));
 
-                Set<String> newNeuronLabelList = session.run("MATCH (n:Neuron:test{bodyId:$bodyId}) RETURN labels(n)", parameters("bodyId",new Long(8426959))).single().get(0).asList().stream().map(object -> Objects.toString(object, null)).collect(Collectors.toSet());
+                Set<String> newNeuronLabelList = session.run("MATCH (n:Neuron:test{bodyId:$bodyId}) RETURN labels(n)", parameters("bodyId",8426959)).single().get(0).asList().stream().map(object -> Objects.toString(object, null)).collect(Collectors.toSet());
 
                 Assert.assertEquals(oldNeuronLabelList, newNeuronLabelList);
 

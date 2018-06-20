@@ -8,25 +8,25 @@ public class ConnectsToRelationship {
     private final Node endNode;
     private Long weight;
 
-    public ConnectsToRelationship (Node startNode, Node endNode) {
+    ConnectsToRelationship(Node startNode, Node endNode) {
         this.startNode = startNode;
         this.endNode = endNode;
         this.weight = new Long(0);
     }
 
-    public Long getWeight() {
+    Long getWeight() {
         return this.weight;
     }
 
-    public Node getStartNode() {
+    Node getStartNode() {
         return this.startNode;
     }
 
-    public Node getEndNode() {
+    Node getEndNode() {
         return this.endNode;
     }
 
-    public void addWeight(Long addedWeight) {
+    void addWeight(Long addedWeight) {
         this.weight += addedWeight;
     }
 
