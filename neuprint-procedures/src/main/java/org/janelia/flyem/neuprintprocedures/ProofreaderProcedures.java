@@ -192,6 +192,18 @@ public class ProofreaderProcedures {
         node2.setProperty("mergedBodyId", node2.getProperty("bodyId"));
         node2.removeProperty("bodyId");
         newNode.addLabel(Label.label(datasetLabel));
+        newNode.addLabel(Label.label("Neuron"));
+        //newNode gets all roi labels from node1 and node2
+        for (Label node1Label : node1.getLabels()) {
+            if (!node1Label.name().equals("Neuron") && !node1Label.name().equals(datasetLabel)) {
+                newNode.addLabel(node1Label);
+            }
+        }
+        for (Label node2Label : node2.getLabels()) {
+            if (!node2Label.name().equals("Neuron") && !node2Label.name().equals(datasetLabel)) {
+                newNode.addLabel(node2Label);
+            }
+        }
         return newNode;
     }
 

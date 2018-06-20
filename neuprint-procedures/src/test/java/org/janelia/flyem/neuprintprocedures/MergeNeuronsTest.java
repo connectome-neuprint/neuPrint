@@ -18,9 +18,8 @@ import org.neo4j.harness.junit.Neo4jRule;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -226,7 +225,44 @@ public class MergeNeuronsTest {
 
             }
 
+        }
 
+        @Test
+        public void shouldApplyAppropriateLabels() {
+
+            SynapseMapper mapper = new SynapseMapper();
+            List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+            HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+            bodyList.sort(new SortBodyByNumberOfSynapses());
+
+            try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+                Session session = driver.session();
+                String dataset = "test";
+
+                Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+                neo4jImporter.prepDatabase(dataset);
+                neo4jImporter.addConnectsTo(dataset, bodyList, 10);
+                neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+                neo4jImporter.addSynapsesTo(dataset, preToPost);
+                neo4jImporter.addNeuronRois(dataset, bodyList);
+                neo4jImporter.addSynapseSets(dataset, bodyList);
+                for (BodyWithSynapses bws : bodyList) {
+                    bws.setNeuronParts();
+                }
+                neo4jImporter.addNeuronParts(dataset, bodyList);
+
+                Set<String> oldNeuronLabelList = session.run("MATCH (n:Neuron:test{bodyId:$bodyId}) RETURN labels(n)", parameters("bodyId",new Long(8426959))).single().get(0).asList().stream().map(object -> Objects.toString(object, null)).collect(Collectors.toSet());
+
+                oldNeuronLabelList.addAll(session.run("MATCH (n:Neuron:test{bodyId:$bodyId}) RETURN labels(n)",  parameters("bodyId",new Long(26311))).single().get(0).asList().stream().map(object -> Objects.toString(object, null)).collect(Collectors.toSet()));
+
+                session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)", parameters("bodyId1", new Long(8426959), "bodyId2", new Long(26311), "dataset", dataset));
+
+                Set<String> newNeuronLabelList = session.run("MATCH (n:Neuron:test{bodyId:$bodyId}) RETURN labels(n)", parameters("bodyId",new Long(8426959))).single().get(0).asList().stream().map(object -> Objects.toString(object, null)).collect(Collectors.toSet());
+
+                Assert.assertEquals(oldNeuronLabelList, newNeuronLabelList);
+
+            }
         }
     }
 
