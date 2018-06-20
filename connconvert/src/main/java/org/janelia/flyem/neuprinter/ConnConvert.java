@@ -268,7 +268,7 @@ public class ConnConvert {
         }
     }
 
-    private static Long setSkeletonAssociatedBodyId(String swcFilePath) {
+    public static Long setSkeletonAssociatedBodyId(String swcFilePath) {
 
         String patternSurroundingId = ".*/(.*?).swc";
         Pattern r = Pattern.compile(patternSurroundingId);

@@ -40,6 +40,12 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
+    //for testing
+    public Neo4jImporter(final Driver driver) {
+        this.driver = driver;
+        this.statementsPerTransaction = 20;
+    }
+
     @Override
     public void close() {
         driver.close();
