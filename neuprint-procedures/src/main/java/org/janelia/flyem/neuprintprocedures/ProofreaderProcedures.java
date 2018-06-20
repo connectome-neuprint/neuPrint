@@ -82,60 +82,11 @@ public class ProofreaderProcedures {
             newNode.getRelationships(RelationshipType.withName("Contains")).iterator().next().delete();
         }
 
-        //delete skeleton
         //TODO: trigger call for new skeleton/update skeleton for new node
         deleteSkeletonForNode(node1);
         deleteSkeletonForNode(node2);
 
-        Map<String, Node> node1NeuronParts = new HashMap<>();
-
-        //neuron parts -> move to new body and recalculate?
-        //inherits the neuronPartId from the first listed body
-        //sum pre, post, size for matching neurons (i.e. if labels are the same)
-        for (Relationship node1NeuronPartRelationship : node1.getRelationships(RelationshipType.withName("PartOf"))) {
-            //get the neuronpart
-            Node neuronPart = node1NeuronPartRelationship.getStartNode();
-            //connect to the new node
-            neuronPart.createRelationshipTo(newNode, RelationshipType.withName("PartOf"));
-            //delete the old node relationship
-            node1NeuronPartRelationship.delete();
-            for (Label neuronPartLabel : neuronPart.getLabels()) {
-                if (!neuronPartLabel.name().equals("NeuronPart") && !neuronPartLabel.name().equals(datasetLabel)) {
-                    node1NeuronParts.put(neuronPartLabel.name(), neuronPart);
-                }
-            }
-
-        }
-
-        for (Relationship node2NeuronPartRelationship : node2.getRelationships(RelationshipType.withName("PartOf"))) {
-            //get the neuronpart
-            Node neuronPart = node2NeuronPartRelationship.getStartNode();
-            //connect to the new node
-            neuronPart.createRelationshipTo(newNode, RelationshipType.withName("PartOf"));
-            //delete the old node relationship
-            node2NeuronPartRelationship.delete();
-
-            //add pre post size from node2 to node1 neuronpart then delete node2 neuronpart
-            for (Label neuronPartLabel : neuronPart.getLabels()) {
-                if (!neuronPartLabel.name().equals("NeuronPart") && !neuronPartLabel.name().equals(datasetLabel)) {
-                    Node node1NeuronPart = node1NeuronParts.get(neuronPartLabel.name());
-                    Map<String, Object> node2NeuronPartProperties = neuronPart.getProperties("pre", "post", "size");
-                    Map<String, Object> node1NeuronPartProperties = node1NeuronPart.getProperties("pre", "post", "size");
-                    for (String propertyName : node1NeuronPartProperties.keySet()) {
-                        node1NeuronPart.setProperty(propertyName, (Long) node1NeuronPartProperties.get(propertyName) + (Long) node2NeuronPartProperties.get(propertyName));
-                    }
-                    // found a matching roi for node1 so delete node2 neuronpart
-                    neuronPart.getRelationships().forEach(Relationship::delete);
-                    neuronPart.delete();
-                }
-            }
-
-
-        }
-
-
-        //
-
+        mergeNeuronParts(node1,node2,newNode,datasetLabel);
 
         //properties and labels on body
 
@@ -215,6 +166,47 @@ public class ProofreaderProcedures {
             }
             //delete Skeleton
             nodeSkeletonNode.delete();
+        }
+    }
+
+    private void mergeNeuronParts(final Node node1,final Node node2, final Node newNode, final String datasetLabel) {
+        Map<String, Node> node1NeuronParts = new HashMap<>();
+
+        for (Relationship node1NeuronPartRelationship : node1.getRelationships(RelationshipType.withName("PartOf"))) {
+            //get the neuronpart
+            Node neuronPart = node1NeuronPartRelationship.getStartNode();
+            //connect to the new node
+            neuronPart.createRelationshipTo(newNode, RelationshipType.withName("PartOf"));
+            //delete the old node relationship
+            node1NeuronPartRelationship.delete();
+            for (Label neuronPartLabel : neuronPart.getLabels()) {
+                if (!neuronPartLabel.name().equals("NeuronPart") && !neuronPartLabel.name().equals(datasetLabel)) {
+                    node1NeuronParts.put(neuronPartLabel.name(), neuronPart);
+                }
+            }
+        }
+
+        for (Relationship node2NeuronPartRelationship : node2.getRelationships(RelationshipType.withName("PartOf"))) {
+            //get the neuronpart
+            Node neuronPart = node2NeuronPartRelationship.getStartNode();
+            //connect to the new node
+            neuronPart.createRelationshipTo(newNode, RelationshipType.withName("PartOf"));
+            //delete the old node relationship
+            node2NeuronPartRelationship.delete();
+            //add pre post size from node2 to node1 neuronpart then delete node2 neuronpart
+            for (Label neuronPartLabel : neuronPart.getLabels()) {
+                if (!neuronPartLabel.name().equals("NeuronPart") && !neuronPartLabel.name().equals(datasetLabel)) {
+                    Node node1NeuronPart = node1NeuronParts.get(neuronPartLabel.name());
+                    Map<String, Object> node2NeuronPartProperties = neuronPart.getProperties("pre", "post", "size");
+                    Map<String, Object> node1NeuronPartProperties = node1NeuronPart.getProperties("pre", "post", "size");
+                    for (String propertyName : node1NeuronPartProperties.keySet()) {
+                        node1NeuronPart.setProperty(propertyName, (Long) node1NeuronPartProperties.get(propertyName) + (Long) node2NeuronPartProperties.get(propertyName));
+                    }
+                    // found a matching roi for node1 so delete node2 neuronpart
+                    neuronPart.getRelationships().forEach(Relationship::delete);
+                    neuronPart.delete();
+                }
+            }
         }
     }
 }
