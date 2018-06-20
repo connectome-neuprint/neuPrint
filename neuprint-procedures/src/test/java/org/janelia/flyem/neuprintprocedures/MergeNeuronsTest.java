@@ -40,7 +40,7 @@ public class MergeNeuronsTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n:Neuron{bodyId:$id1}), (m:Neuron{bodyId:$id2}), (o{bodyId:$id3}), (p{bodyId:$id4}) \n" +
+            session.run("CREATE (n:Neuron:test{bodyId:$id1}), (m:Neuron:test{bodyId:$id2}), (o{bodyId:$id3}), (p{bodyId:$id4}) \n" +
                     "CREATE (n)-[:ConnectsTo{weight:7}]->(o) \n" +
                     "CREATE (m)-[:ConnectsTo{weight:23}]->(o) \n" +
                     "CREATE (o)-[:ConnectsTo{weight:13}]->(n) \n" +
@@ -94,7 +94,7 @@ public class MergeNeuronsTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n:Neuron{bodyId:$id1}), (m:Neuron{bodyId:$id2}), (o:SynapseSet{datasetBodyId:$ssid1}), (p:SynapseSet{datasetBodyId:$ssid2}), (q:Synapse{location:\"1:2:3\"}), (r:Synapse{location:\"4:5:6\"}), (s:Synapse{location:\"7:8:9\"}) \n" +
+            session.run("CREATE (n:Neuron:test{bodyId:$id1}), (m:Neuron:test{bodyId:$id2}), (o:SynapseSet{datasetBodyId:$ssid1}), (p:SynapseSet{datasetBodyId:$ssid2}), (q:Synapse{location:\"1:2:3\"}), (r:Synapse{location:\"4:5:6\"}), (s:Synapse{location:\"7:8:9\"}) \n" +
                     "CREATE (n)-[:Contains]->(o) \n" +
                     "CREATE (m)-[:Contains]->(p) \n" +
                     "CREATE (o)-[:Contains]->(q) \n" +

@@ -52,15 +52,7 @@ public class ProofreaderProcedures {
         node2.setProperty("mergedBodyId", node2.getProperty("bodyId"));
         node2.removeProperty("bodyId");
 
-        //duplicate all relationships for this body from the other two bodies
-        ConnectsToRelationshipMap connectsToRelationshipMap = getConnectsToRelationshipMapForNodes(node1, node2, newNode);
-        for (String stringKey : connectsToRelationshipMap.getNodeIdToConnectsToRelationshipHashMap().keySet()) {
-            ConnectsToRelationship connectsToRelationship = connectsToRelationshipMap.getConnectsToRelationshipByKey(stringKey);
-            Node startNode = connectsToRelationship.getStartNode();
-            Node endNode = connectsToRelationship.getEndNode();
-            Relationship relationship = startNode.createRelationshipTo(endNode, RelationshipType.withName("ConnectsTo"));
-            relationship.setProperty("weight", connectsToRelationship.getWeight());
-        }
+        mergeConnectsToRelationships(node1,node2,newNode);
 
         //create relationships between synapse sets and new nodes (also deletes old relationship)
         parametersMap = new HashMap<>();
@@ -207,6 +199,19 @@ public class ProofreaderProcedures {
                     neuronPart.delete();
                 }
             }
+        }
+    }
+
+
+    private void mergeConnectsToRelationships(Node node1, Node node2, Node newNode) {
+        //duplicate all relationships for this body from the other two bodies
+        ConnectsToRelationshipMap connectsToRelationshipMap = getConnectsToRelationshipMapForNodes(node1, node2, newNode);
+        for (String stringKey : connectsToRelationshipMap.getNodeIdToConnectsToRelationshipHashMap().keySet()) {
+            ConnectsToRelationship connectsToRelationship = connectsToRelationshipMap.getConnectsToRelationshipByKey(stringKey);
+            Node startNode = connectsToRelationship.getStartNode();
+            Node endNode = connectsToRelationship.getEndNode();
+            Relationship relationship = startNode.createRelationshipTo(endNode, RelationshipType.withName("ConnectsTo"));
+            relationship.setProperty("weight", connectsToRelationship.getWeight());
         }
     }
 }
