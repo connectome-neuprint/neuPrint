@@ -1,9 +1,13 @@
 package org.janelia.flyem.neuprintprocedures;
 
 import apoc.refactor.GraphRefactoring;
+import apoc.create.Create;
 import org.janelia.flyem.neuprinter.ConnConvert;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
+import org.janelia.flyem.neuprinter.SynapseMapper;
+import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Skeleton;
+import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -15,6 +19,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import static org.neo4j.driver.v1.Values.parameters;
@@ -24,7 +29,8 @@ public class MergeNeuronsTest {
     @Rule
     public Neo4jRule neo4j = new Neo4jRule()
             .withProcedure(ProofreaderProcedures.class)
-            .withProcedure(GraphRefactoring.class);
+            .withProcedure(GraphRefactoring.class)
+            .withProcedure(Create.class);
 
 
     @Test
@@ -163,6 +169,63 @@ public class MergeNeuronsTest {
 
 
         }
+
+        }
+
+        @Test
+        public void shouldCombineNeuronParts() {
+
+            SynapseMapper mapper = new SynapseMapper();
+            List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+            HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+            bodyList.sort(new SortBodyByNumberOfSynapses());
+
+            try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+                Session session = driver.session();
+                String dataset = "test";
+
+                Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+                neo4jImporter.prepDatabase(dataset);
+                neo4jImporter.addConnectsTo(dataset, bodyList, 10);
+                neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+                neo4jImporter.addSynapsesTo(dataset, preToPost);
+                neo4jImporter.addNeuronRois(dataset, bodyList);
+                neo4jImporter.addSynapseSets(dataset, bodyList);
+                for (BodyWithSynapses bws : bodyList) {
+                    bws.setNeuronParts();
+                }
+                neo4jImporter.addNeuronParts(dataset, bodyList);
+
+                session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)",parameters("bodyId1", new Long(8426959) , "bodyId2", new Long(26311) ,"dataset", dataset));
+
+                int neuronPartCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np) RETURN count(np)").single().get(0).asInt();
+
+                Assert.assertEquals(3,neuronPartCount);
+
+                Long roiAPreCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.pre").single().get(0).asLong();
+
+                Assert.assertEquals(new Long(2),roiAPreCount);
+
+                Long roiAPostCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.post").single().get(0).asLong();
+
+                Assert.assertEquals(new Long(1),roiAPostCount);
+
+                Long roiASizeCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.size").single().get(0).asLong();
+
+                Assert.assertEquals(new Long(3),roiASizeCount);
+
+                Long scRoiSizeCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:seven_column_roi) RETURN np.size").single().get(0).asLong();
+
+                Assert.assertEquals(new Long(4),scRoiSizeCount);
+
+                int neuronPartCountForOldBody = session.run("MATCH (n{mergedBodyId:8426959})<-[:PartOf]-(np) RETURN count(np)").single().get(0).asInt();
+
+                Assert.assertEquals(0,neuronPartCountForOldBody);
+
+
+            }
+
 
         }
     }
