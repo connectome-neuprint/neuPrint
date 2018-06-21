@@ -416,9 +416,9 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
 
-    public void addSkeletonNodes(final String dataset, final List<Skeleton> skeletonList) {
+    public void addSkeletonNodesOld(final String dataset, final List<Skeleton> skeletonList) {
 
-        LOG.info("addSkeletonNodes: entry");
+        LOG.info("addSkeletonNodesOld: entry");
 
         final String rootNodeString =
                 "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
@@ -483,6 +483,101 @@ public class Neo4jImporter implements AutoCloseable {
                                 )));
 
 
+
+
+                }
+
+                LOG.info("Added full skeleton for bodyId: " + skeleton.getAssociatedBodyId());
+            }
+            batch.writeTransaction();
+        }
+
+
+        LOG.info("addSkeletonNodesOld: exit");
+    }
+
+    public void addSkeletonNodes(final String dataset, final List<Skeleton> skeletonList) {
+
+        LOG.info("addSkeletonNodes: entry");
+
+        final String neuronToSkeletonConnectionString = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
+                "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
+                "MERGE (n)-[:Contains]->(r) \n";
+
+        final String rootNodeString = "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
+                        "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.x=$x, s.y=$y, s.z=$z, s.rowNumber=$rowNumber \n" +
+                        "MERGE (r)-[:Contains]->(s) \n";
+
+        final String parentNodeString = "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.timeStamp=$timeStamp \n" +
+                "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.x=$pX, p.y=$pY, p.z=$pZ, p.rowNumber=$pRowNumber \n" +
+                "MERGE (r)-[:Contains]->(p) ";
+
+        final String childNodeString = "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.x=$pX, p.y=$pY, p.z=$pZ, p.rowNumber=$pRowNumber \n" +
+                "MERGE (c:SkelNode:" + dataset + " {skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.x=$childX, c.y=$childY, c.z=$childZ, c.rowNumber=$childRowNumber \n" +
+                "MERGE (p)-[:LinksTo]-(c)";
+
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (Skeleton skeleton: skeletonList) {
+
+                Long associatedBodyId = skeleton.getAssociatedBodyId();
+                List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
+
+                batch.addStatement(new Statement(neuronToSkeletonConnectionString,parameters("bodyId", associatedBodyId,
+                        "skeletonId", dataset+":"+associatedBodyId,
+                        "timeStamp", timeStamp
+                )));
+
+                for (SkelNode skelNode : skelNodeList ) {
+
+                    if (skelNode.getParent()==null) {
+                        batch.addStatement(new Statement(rootNodeString,parameters(
+                                "location",skelNode.getLocationString(),
+                                "radius",skelNode.getRadius(),
+                                "skeletonId", dataset+":"+associatedBodyId,
+                                "skelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString(),
+                                "x",skelNode.getLocation().get(0),
+                                "y", skelNode.getLocation().get(1),
+                                "z", skelNode.getLocation().get(2),
+                                "rowNumber", skelNode.getRowNumber(),
+                                "timeStamp", timeStamp
+                        )));
+                    }
+
+                    batch.addStatement(new Statement(parentNodeString,parameters(
+                            "pLocation",skelNode.getLocationString(),
+                            "pRadius",skelNode.getRadius(),
+                            "skeletonId", dataset+":"+associatedBodyId,
+                            "parentSkelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString(),
+                            "pX",skelNode.getLocation().get(0),
+                            "pY", skelNode.getLocation().get(1),
+                            "pZ", skelNode.getLocation().get(2),
+                            "pRowNumber", skelNode.getRowNumber(),
+                            "timeStamp", timeStamp
+                    )));
+
+                    for (SkelNode child : skelNode.getChildren()) {
+                        String childNodeId = dataset+":"+associatedBodyId+":"+child.getLocationString();
+                        batch.addStatement(new Statement(childNodeString,parameters("parentSkelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString(),
+                                "skeletonId", dataset+":"+associatedBodyId,
+                                "pLocation", skelNode.getLocationString(),
+                                "pRadius", skelNode.getRadius(),
+                                "pX",skelNode.getLocation().get(0),
+                                "pY",skelNode.getLocation().get(1),
+                                "pZ",skelNode.getLocation().get(2),
+                                "pRowNumber", skelNode.getRowNumber(),
+                                "timeStamp", timeStamp,
+                                "childNodeId", childNodeId,
+                                "childLocation", child.getLocationString(),
+                                "childRadius", child.getRadius(),
+                                "childX", child.getLocation().get(0),
+                                "childY", child.getLocation().get(1),
+                                "childZ", child.getLocation().get(2),
+                                "childRowNumber", child.getRowNumber()
+                        )));
+
+
+                    }
 
 
                 }
