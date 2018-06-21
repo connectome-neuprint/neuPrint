@@ -15,10 +15,6 @@
     <name>neuprint-procedures</name>
     <description>Neo4j stored procedures for connectome data.</description>
 
-    <properties>
-        <neo4j.version>3.4.0</neo4j.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>org.neo4j</groupId>
@@ -28,32 +24,25 @@
         </dependency>
 
         <dependency>
+            <groupId>org.neo4j.procedure</groupId>
+            <artifactId>apoc</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
             <groupId>org.neo4j.test</groupId>
             <artifactId>neo4j-harness</artifactId>
-            <version>${neo4j.version}</version>
-            <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>org.neo4j.driver</groupId>
             <artifactId>neo4j-java-driver</artifactId>
-            <version>1.6.1</version>
             <scope>test</scope>
         </dependency>
 
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
-
-        <!-- https://mvnrepository.com/artifact/org.neo4j.procedure/apoc -->
-        <dependency>
-            <groupId>org.neo4j.procedure</groupId>
-            <artifactId>apoc</artifactId>
-            <version>3.4.0.1</version>
-            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -63,21 +52,20 @@
             <scope>test</scope>
         </dependency>
 
-
     </dependencies>
 
     <build>
         <plugins>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
-                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
             </plugin>
             <plugin>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>2.4.3</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
