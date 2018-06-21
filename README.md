@@ -136,7 +136,11 @@ Usage: java -cp neuprinter.jar ConnConvert
 ## neuPrint Neo4j Stored Procedures
 
 Place neuprint-procedures.jar into the plugins folder of your neo4j database, and restart the datbase. Under development. Current features:
-* applies time stamp to nodes when they are created, when their properties change, when relationships are changed, and when relationship properties are changed. 
-* neuPrintProcedures.timeStamp(nodeId): For the node with the given node ID, add time stamp property with current date. e.g.
-      ``` CALL neuPrintProcedures.timeStamp(12) ```
+1. applies time stamp to nodes when they are created, when their properties change, when relationships are changed, and when relationship properties are changed. 
+2. proofreader.mergeNeurons(node1BodyId,node2BodyId,datasetLabel): For the neuron nodes with the given bodyIds within the dataset, merge neurons into a new neuron. Returns the new neuron node. e.g.: ``` CALL proofreader.mergeNeurons(87475,12678,"mb6") YIELD node RETURN node ```
+      * The new neuron inherits all ConnectsTo, Contains, and PartOf relationships and all labels from the original neurons.
+      * SynapseSets will be combined into one. Skeletons will be deleted. NeuronParts will be combined. 
+      * The new neuron inherits bodyId from the first listed neuron. All other properties are inherited from the first listed neuron or, if a property is null for that neuron, the second listed neuron. Property names on the original neurons start with "merged", e.g. "mergedBodyId".
+      * Original neurons lose all labels and relationships, and "MergedTo" relationships are created between the original neurons and the new neuron. 
+      
 
