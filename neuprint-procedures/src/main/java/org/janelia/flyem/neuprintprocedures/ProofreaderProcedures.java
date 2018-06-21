@@ -47,7 +47,6 @@ public class ProofreaderProcedures {
 
         combinePropertiesOntoMergedNeuron(node1,node2,newNode);
 
-        //TODO: connect merged body nodes to new node with "MergedTo", change property names to merged, remove all labels
         convertAllPropertiesToMergedProperties(node1);
         convertAllPropertiesToMergedProperties(node2);
         removeAllLabels(node1);

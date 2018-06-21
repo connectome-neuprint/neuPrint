@@ -78,11 +78,11 @@ public class MergeNeuronsTest {
 
             int mergedBody1RelCount = session.run("MATCH (n{mergedBodyId:1})-[r]->() RETURN count(r)").single().get(0).asInt();
 
-            Assert.assertEquals(0, mergedBody1RelCount);
+            Assert.assertEquals(1, mergedBody1RelCount);
 
             int mergedBody2RelCount = session.run("MATCH (n{mergedBodyId:2})-[r]->() RETURN count(r)").single().get(0).asInt();
 
-            Assert.assertEquals(0, mergedBody2RelCount);
+            Assert.assertEquals(1, mergedBody2RelCount);
 
         }
     }
