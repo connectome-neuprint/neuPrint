@@ -14,6 +14,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.neo4j.driver.v1.*;
 import org.neo4j.driver.v1.types.Node;
+import org.neo4j.driver.v1.types.Relationship;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.BufferedReader;
@@ -310,6 +311,68 @@ public class MergeNeuronsTest {
 
 
 
+        }
+    }
+
+    @Test
+    public void shouldConvertOldNodePropertiesToMergedAndRemoveLabelsAndRelationshipsExceptMergedTo () {
+
+
+        List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        bodyList.sort(new SortBodyByNumberOfSynapses());
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+            String dataset = "test";
+
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+            neo4jImporter.prepDatabase(dataset);
+
+            neo4jImporter.addNeurons(dataset, neuronList);
+
+            neo4jImporter.addConnectsTo(dataset, bodyList, 10);
+            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+            neo4jImporter.addSynapsesTo(dataset, preToPost);
+            neo4jImporter.addNeuronRois(dataset, bodyList);
+            neo4jImporter.addSynapseSets(dataset, bodyList);
+            for (BodyWithSynapses bws : bodyList) {
+                bws.setNeuronParts();
+            }
+            neo4jImporter.addNeuronParts(dataset, bodyList);
+
+            Node newNode = session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset) YIELD node RETURN node", parameters("bodyId1", 8426959, "bodyId2", 26311, "dataset", dataset)).single().get(0).asNode();
+
+            Node node1 = session.run("MATCH (n{mergedBodyId:$bodyId}) RETURN n", parameters("bodyId",8426959)).single().get(0).asNode();
+            Node node2 = session.run("MATCH (n{mergedBodyId:$bodyId}) RETURN n", parameters("bodyId",26311)).single().get(0).asNode();
+
+            Map<String, Object> node1Properties = node1.asMap();
+            Map<String, Object> node2Properties = node2.asMap();
+
+            for (String propertyName : node1Properties.keySet()) {
+                Assert.assertTrue(propertyName.startsWith("merged"));
+            }
+
+            for (String propertyName : node2Properties.keySet()) {
+                Assert.assertTrue(propertyName.startsWith("merged"));
+            }
+
+            Assert.assertFalse(node1.labels().iterator().hasNext());
+            Assert.assertFalse(node2.labels().iterator().hasNext());
+
+            List<Record> node1Relationships = session.run("MATCH (n{mergedBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId",8426959)).list();
+            List<Record> node2Relationships = session.run("MATCH (n{mergedBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId",26311)).list();
+
+            Assert.assertEquals(1,node1Relationships.size());
+            Assert.assertEquals(1,node2Relationships.size());
+
+            Relationship r1 = (Relationship) node1Relationships.get(0).asMap().get("r");
+            Assert.assertTrue(r1.hasType("MergedTo") && r1.endNodeId()==newNode.id());
+            Relationship r2 = (Relationship) node2Relationships.get(0).asMap().get("r");
+            Assert.assertTrue(r2.hasType("MergedTo") && r2.endNodeId()==newNode.id());
         }
     }
 }

@@ -48,7 +48,15 @@ public class ProofreaderProcedures {
         combinePropertiesOntoMergedNeuron(node1,node2,newNode);
 
         //TODO: connect merged body nodes to new node with "MergedTo", change property names to merged, remove all labels
+        convertAllPropertiesToMergedProperties(node1);
+        convertAllPropertiesToMergedProperties(node2);
+        removeAllLabels(node1);
+        removeAllLabels(node2);
+        removeAllRelationships(node1);
+        removeAllRelationships(node2);
 
+        node1.createRelationshipTo(newNode,RelationshipType.withName("MergedTo"));
+        node2.createRelationshipTo(newNode,RelationshipType.withName("MergedTo"));
 
         return Stream.of(new NodeResult(newNode));
 
@@ -315,25 +323,42 @@ public class ProofreaderProcedures {
 //            newNode.setProperty("sId",newNodeSId);
 //        }
 
-        convertPropertyNameToMergedPropertyName(propertyName,"mergedSId",node1,node2);
+        convertPropertyNameToMergedPropertyName(propertyName,"mergedSId",node1);
+        convertPropertyNameToMergedPropertyName(propertyName,"mergedSId",node2);
 
     }
 
-    private void convertPropertyNameToMergedPropertyName(String propertyName, String mergedPropertyName, Node node1, Node node2) {
-        if (node1.hasProperty(propertyName)) {
-            Object node1Property = node1.getProperty(propertyName);
-            node1.setProperty(mergedPropertyName,node1Property);
-            node1.removeProperty(propertyName);
+    private void convertPropertyNameToMergedPropertyName(String propertyName, String mergedPropertyName, Node node) {
+        if (node.hasProperty(propertyName)) {
+            Object node1Property = node.getProperty(propertyName);
+            node.setProperty(mergedPropertyName,node1Property);
+            node.removeProperty(propertyName);
         }
 
-        if (node2.hasProperty(propertyName)) {
-            Object node2Property = node1.getProperty(propertyName);
-            node2.setProperty(mergedPropertyName,node2Property);
-            node2.removeProperty(propertyName);
+    }
+
+    private void convertAllPropertiesToMergedProperties(Node node) {
+        Map<String,Object> nodeProperties = node.getAllProperties();
+        for (String propertyName : nodeProperties.keySet()) {
+            if (!propertyName.startsWith("merged")) {
+                String mergedPropertyName = "merged" + propertyName.substring(0,1).toUpperCase() + propertyName.substring(1);
+                convertPropertyNameToMergedPropertyName(propertyName, mergedPropertyName, node);
+            }
         }
+    }
 
+    private void removeAllLabels(Node node) {
+        Iterable<Label> nodeLabels = node.getLabels();
+        for (Label label : nodeLabels) {
+            node.removeLabel(label);
+        }
+    }
 
-
+    private void removeAllRelationships(Node node) {
+        Iterable<Relationship> nodeRelationships = node.getRelationships();
+        for (Relationship relationship : nodeRelationships) {
+            relationship.delete();
+        }
     }
 
 }
