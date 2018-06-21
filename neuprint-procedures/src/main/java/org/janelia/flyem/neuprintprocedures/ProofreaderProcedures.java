@@ -20,8 +20,7 @@ public class ProofreaderProcedures {
     @Description("proofreader.mergeNeurons(node1BodyId,node2BodyId,datasetLabel) merge nodes into new node with bodyId inherited from first in list")
     public Stream<NodeResult> mergeNeurons(@Name("node1") Long node1BodyId, @Name("node2") Long node2BodyId, @Name("datasetLabel") String datasetLabel) {
         if (node1BodyId == null || node2BodyId == null) return Stream.empty();
-
-        // TODO: check that all labels are copied over.
+        //TODO: Check that everything is properly time stamped using triggers.
         Map<String,Object> nodeQueryResult = acquireNodesFromDatabase(node1BodyId, node2BodyId, datasetLabel);
 
         final Node node1 = (Node) nodeQueryResult.get("node1");
@@ -46,9 +45,9 @@ public class ProofreaderProcedures {
 
         mergeNeuronParts(node1,node2,newNode,datasetLabel);
 
-        //properties and labels on body
+        combinePropertiesOntoMergedNeuron(node1,node2,newNode);
 
-        //TODO: connect merged body nodes to new node with "MergedTo"
+        //TODO: connect merged body nodes to new node with "MergedTo", change property names to merged, remove all labels
 
 
         return Stream.of(new NodeResult(newNode));
@@ -243,6 +242,98 @@ public class ProofreaderProcedures {
             //delete the extra relationship between new node and new synapse set node
             newNode.getRelationships(RelationshipType.withName("Contains")).iterator().next().delete();
         }
+    }
+
+
+    private void combinePropertiesOntoMergedNeuron(Node node1, Node node2, Node newNode) {
+
+        setNode1InheritedProperty("name",node1,node2,newNode);
+        setNode1InheritedProperty("type",node1,node2,newNode);
+        setNode1InheritedProperty("status",node1,node2,newNode);
+        setNode1InheritedProperty("somaLocation",node1,node2,newNode);
+        setNode1InheritedProperty("somaRadius",node1,node2,newNode);
+
+        setSummedLongProperty("size",node1,node2,newNode);
+        setSummedLongProperty("pre",node1,node2,newNode);
+        setSummedLongProperty("post",node1,node2,newNode);
+
+        // changes sId for old nodes to mergedSId
+        setSId(node1,node2,newNode);
+
+
+    }
+
+
+    private void setNode1InheritedProperty(String propertyName, Node node1, Node node2, Node newNode) {
+        if (node1.hasProperty(propertyName)) {
+            Object node1Property = node1.getProperty(propertyName);
+            newNode.setProperty(propertyName,node1Property);
+        } else if (node2.hasProperty(propertyName)) {
+            Object node2Property = node2.getProperty(propertyName);
+            newNode.setProperty(propertyName,node2Property);
+        }
+    }
+
+    private void setSummedLongProperty(String propertyName, Node node1, Node node2, Node newNode) {
+        Long summedValue = 0L;
+        if (node1.hasProperty(propertyName)) {
+            Long node1Property = (Long) node1.getProperty(propertyName);
+            summedValue += node1Property;
+        }
+        if (node2.hasProperty(propertyName)) {
+            Long node2Property = (Long) node2.getProperty(propertyName);
+            summedValue += node2Property;
+        }
+        newNode.setProperty(propertyName,summedValue);
+    }
+
+    private void setSummedIntProperty(String propertyName, Node node1, Node node2, Node newNode) {
+        Integer summedValue = 0;
+        if (node1.hasProperty(propertyName)) {
+            Integer node1Property = (Integer) node1.getProperty(propertyName);
+            summedValue += node1Property;
+        }
+        if (node2.hasProperty(propertyName)) {
+            Integer node2Property = (Integer) node2.getProperty(propertyName);
+            summedValue += node2Property;
+        }
+        newNode.setProperty(propertyName,summedValue);
+    }
+
+    private void setSId(Node node1, Node node2, Node newNode) {
+        String propertyName = "sId";
+        setNode1InheritedProperty(propertyName,node1,node2,newNode);
+
+//        if (node1SId!=null && node2SId!=null) {
+//            Integer newNodeSId = node1SId <= node2SId ? node1SId : node2SId;
+//            newNode.setProperty("sId",newNodeSId);
+//        } else if (node1SId!=null) {
+//            Integer newNodeSId = node1SId;
+//            newNode.setProperty("sId",newNodeSId);
+//        } else if (node2SId!=null) {
+//            Integer newNodeSId = node2SId;
+//            newNode.setProperty("sId",newNodeSId);
+//        }
+
+        convertPropertyNameToMergedPropertyName(propertyName,"mergedSId",node1,node2);
+
+    }
+
+    private void convertPropertyNameToMergedPropertyName(String propertyName, String mergedPropertyName, Node node1, Node node2) {
+        if (node1.hasProperty(propertyName)) {
+            Object node1Property = node1.getProperty(propertyName);
+            node1.setProperty(mergedPropertyName,node1Property);
+            node1.removeProperty(propertyName);
+        }
+
+        if (node2.hasProperty(propertyName)) {
+            Object node2Property = node1.getProperty(propertyName);
+            node2.setProperty(mergedPropertyName,node2Property);
+            node2.removeProperty(propertyName);
+        }
+
+
+
     }
 
 }

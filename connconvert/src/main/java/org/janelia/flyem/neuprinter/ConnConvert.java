@@ -183,7 +183,7 @@ public class ConnConvert {
     private static String dataset;
 
 
-    private static List<Neuron> readNeuronsJson(String filepath) {
+    public static List<Neuron> readNeuronsJson(String filepath) {
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             neuronList = Neuron.fromJson(reader);
