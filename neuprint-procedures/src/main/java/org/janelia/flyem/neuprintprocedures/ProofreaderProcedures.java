@@ -18,7 +18,7 @@ public class ProofreaderProcedures {
 
     @Procedure(value = "proofreader.mergeNeurons", mode = Mode.WRITE)
     @Description("proofreader.mergeNeurons(node1BodyId,node2BodyId,datasetLabel) merge nodes into new node with bodyId inherited from first in list")
-    public Stream<NodeResult> mergeNeurons(@Name("node1") Long node1BodyId, @Name("node2") Long node2BodyId, @Name("datasetLabel") String datasetLabel) {
+    public Stream<NodeResult> mergeNeurons(@Name("node1BodyId") Long node1BodyId, @Name("node2BodyId") Long node2BodyId, @Name("datasetLabel") String datasetLabel) {
         if (node1BodyId == null || node2BodyId == null) return Stream.empty();
         //TODO: Check that everything is properly time stamped using triggers.
         Map<String,Object> nodeQueryResult = acquireNodesFromDatabase(node1BodyId, node2BodyId, datasetLabel);
@@ -345,7 +345,7 @@ public class ProofreaderProcedures {
             }
         }
     }
-
+    // TODO: deal with null pointer exceptions
     private void removeAllLabels(Node node) {
         Iterable<Label> nodeLabels = node.getLabels();
         for (Label label : nodeLabels) {
