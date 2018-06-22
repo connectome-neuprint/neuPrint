@@ -1,5 +1,9 @@
 # neuPrint
-A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [ConnectomeAnalyzer](https://github.com/janelia-flyem/ConnectomeAnalyzer).
+A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [ConnectomeAnalyzer](https://github.com/janelia-flyem/ConnectomeAnalyzer). 
+
+## Requirements
+* Neo4j version 3.4.0
+* [apoc version 3.4.0.1](https://neo4j-contrib.github.io/neo4j-apoc-procedures/)
 
 ## Example data
 
@@ -135,7 +139,7 @@ Usage: java -cp neuprinter.jar ConnConvert
 
 ## neuPrint Neo4j Stored Procedures
 
-Place neuprint-procedures.jar into the plugins folder of your neo4j database, and restart the datbase. Under development. Current features:
+Place neuprint-procedures.jar (use neuprint-procedures-3.3.jar for Neo4j version 3.3) into the plugins folder of your neo4j database, and restart the datbase. Under development. Current features:
 1. applies time stamp to nodes when they are created, when their properties change, when relationships are changed, and when relationship properties are changed. 
 2. proofreader.mergeNeurons(node1BodyId,node2BodyId,datasetLabel): For the neuron nodes with the given bodyIds within the dataset, merge neurons into a new neuron. Returns the new neuron node. e.g.: ``` CALL proofreader.mergeNeurons(87475,12678,"mb6") YIELD node RETURN node ```
       * The new neuron inherits all ConnectsTo, Contains, and PartOf relationships and all labels from the original neurons.
