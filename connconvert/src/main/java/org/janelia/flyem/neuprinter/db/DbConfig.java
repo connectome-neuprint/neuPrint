@@ -75,7 +75,15 @@ public class DbConfig {
                 }
             }
 
-            // TODO: add error checking for missing required properties
+            if (uri==null) {
+                throw new IllegalArgumentException("failed to read uri from " + file);
+            }
+            if (password==null) {
+                throw new IllegalArgumentException("failed to read password from " + file);
+            }
+            if (user==null) {
+                throw new IllegalArgumentException("failed to read password from " + file);
+            }
 
             dbConfig = new DbConfig(uri, user, password, statementsPerTransaction);
 
