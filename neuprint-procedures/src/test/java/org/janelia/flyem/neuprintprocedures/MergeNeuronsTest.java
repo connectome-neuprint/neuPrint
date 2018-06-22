@@ -375,6 +375,45 @@ public class MergeNeuronsTest {
             Assert.assertTrue(r2.hasType("MergedTo") && r2.endNodeId()==newNode.id());
         }
     }
+
+    @Test
+    public void shouldApplyTimeStampToAllNodesAfterMerge() {
+
+        List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        bodyList.sort(new SortBodyByNumberOfSynapses());
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+            String dataset = "test";
+
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+            neo4jImporter.prepDatabase(dataset);
+
+            neo4jImporter.addNeurons(dataset, neuronList);
+
+            neo4jImporter.addConnectsTo(dataset, bodyList, 10);
+            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+            neo4jImporter.addSynapsesTo(dataset, preToPost);
+            neo4jImporter.addNeuronRois(dataset, bodyList);
+            neo4jImporter.addSynapseSets(dataset, bodyList);
+            for (BodyWithSynapses bws : bodyList) {
+                bws.setNeuronParts();
+            }
+            neo4jImporter.addNeuronParts(dataset, bodyList);
+
+            Node newNode = session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset) YIELD node RETURN node", parameters("bodyId1", 8426959, "bodyId2", 26311, "dataset", dataset)).single().get(0).asNode();
+
+            Node mergedNode1 = session.run("MATCH (n{mergedBodyId:8426959}) RETURN n").single().get(0).asNode();
+
+            Assert.assertTrue(mergedNode1.asMap().containsKey("timeStamp"));
+
+
+        }
+    }
 }
 
 

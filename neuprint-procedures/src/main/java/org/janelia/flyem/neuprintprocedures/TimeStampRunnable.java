@@ -32,17 +32,17 @@ public class TimeStampRunnable implements Runnable {
             Set<Long> nodesForTimeStamping = new HashSet<>();
             for (Node node : transactionData.createdNodes()) {
                 nodesForTimeStamping.add(node.getId());
-                System.out.println("nodes created: " + node);
+                System.out.println("node created: " + node);
             }
 
             for (LabelEntry labelEntry : transactionData.assignedLabels()) {
                 nodesForTimeStamping.add(labelEntry.node().getId());
-                System.out.println("label entries assigned: " + labelEntry);
+                System.out.println("label entry assigned: " + labelEntry);
             }
 
             for (LabelEntry labelEntry : transactionData.removedLabels()) {
                 nodesForTimeStamping.add(labelEntry.node().getId());
-                System.out.println("label entries removed: " + labelEntry);
+                System.out.println("label entry removed: " + labelEntry);
             }
 
             for (PropertyEntry<Node> propertyEntry : transactionData.assignedNodeProperties()) {
@@ -107,6 +107,7 @@ public class TimeStampRunnable implements Runnable {
                 // TODO: probably want to batch this.
                 TimeStampProcedure.timeStampEmbedded(nodesForTimeStamping, dbService);
                 tx.success();
+                System.out.println("Completed time stamping.");
             }
 
 
