@@ -3,7 +3,7 @@ package org.janelia.flyem.neuprinter.model;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SkelNode {  //TODO: should this be an abstract class? with root and rest as different types?
+public class SkelNode {
 
     private List<Integer> location;
     private float radius;

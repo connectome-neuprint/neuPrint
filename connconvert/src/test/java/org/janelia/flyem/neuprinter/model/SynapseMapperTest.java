@@ -51,7 +51,6 @@ public class SynapseMapperTest {
 
 
 
-        // TODO: improve this test
     }
 
 

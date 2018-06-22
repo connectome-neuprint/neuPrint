@@ -20,7 +20,6 @@ public class ProofreaderProcedures {
     @Description("proofreader.mergeNeurons(node1BodyId,node2BodyId,datasetLabel) merge nodes into new node with bodyId inherited from first in list")
     public Stream<NodeResult> mergeNeurons(@Name("node1BodyId") Long node1BodyId, @Name("node2BodyId") Long node2BodyId, @Name("datasetLabel") String datasetLabel) {
         if (node1BodyId == null || node2BodyId == null) return Stream.empty();
-        //TODO: Check that everything is properly time stamped using triggers.
         Map<String,Object> nodeQueryResult = acquireNodesFromDatabase(node1BodyId, node2BodyId, datasetLabel);
 
         final Node node1 = (Node) nodeQueryResult.get("node1");
@@ -39,7 +38,6 @@ public class ProofreaderProcedures {
 
         mergeSynapseSets(node1, node2, newNode, datasetLabel);
 
-        //TODO: trigger call for new skeleton/update skeleton for new node
         deleteSkeletonForNode(node1);
         deleteSkeletonForNode(node2);
 

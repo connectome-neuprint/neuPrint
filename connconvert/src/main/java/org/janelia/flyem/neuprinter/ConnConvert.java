@@ -334,7 +334,6 @@ public class ConnConvert {
 //            Matcher mS = rS.matcher(parameters.synapseJson);
 //            mN.matches();
 //            mS.matches();
-//            // TODO: ask user if it's okay to continue if the dataset names seem different
 //            if (mN.group(1).equals(mS.group(1))) {
 //
 //

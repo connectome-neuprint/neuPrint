@@ -34,7 +34,6 @@ public class BodyWithSynapsesTest {
         Assert.assertEquals("serialized result does not match original",
                 BODY_LIST_JSON.replaceAll("[\\n\\t\\r\\s+]+"," "), serializedJson.replaceAll("[\\n\\t\\r\\s+]+"," "));
 
-        // TODO: improve this test
     }
 
     @Test
@@ -223,7 +222,6 @@ public class BodyWithSynapsesTest {
 
     }
 
-    // TODO: add more tests!
 
     private static final String BODY_LIST_JSON =
             "[\n" +
