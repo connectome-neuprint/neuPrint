@@ -334,7 +334,7 @@ public class MergeNeuronsTest {
 
             neo4jImporter.addNeurons(dataset, neuronList);
 
-            neo4jImporter.addConnectsTo(dataset, bodyList, 10);
+            neo4jImporter.addConnectsTo(dataset, bodyList, 0);
             neo4jImporter.addSynapsesWithRois(dataset, bodyList);
             neo4jImporter.addSynapsesTo(dataset, preToPost);
             neo4jImporter.addNeuronRois(dataset, bodyList);

@@ -336,7 +336,6 @@ public class ProofreaderProcedures {
 
     private void setSId(Node node1, Node node2, Node newNode) {
         String propertyName = "sId";
-        setNode1InheritedProperty(propertyName,node1,node2,newNode);
 
         if (node1.hasProperty(propertyName)) {
             Object node1Property = node1.getProperty(propertyName);
