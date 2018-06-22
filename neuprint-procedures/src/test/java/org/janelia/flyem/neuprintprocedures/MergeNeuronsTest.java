@@ -353,11 +353,15 @@ public class MergeNeuronsTest {
             Map<String, Object> node2Properties = node2.asMap();
 
             for (String propertyName : node1Properties.keySet()) {
-                Assert.assertTrue(propertyName.startsWith("merged"));
+                if (!propertyName.equals("timeStamp")) {
+                    Assert.assertTrue(propertyName.startsWith("merged"));
+                }
             }
 
             for (String propertyName : node2Properties.keySet()) {
-                Assert.assertTrue(propertyName.startsWith("merged"));
+                if (!propertyName.equals("timeStamp")) {
+                    Assert.assertTrue(propertyName.startsWith("merged"));
+                }
             }
 
             Assert.assertFalse(node1.labels().iterator().hasNext());
