@@ -338,6 +338,16 @@ public class ProofreaderProcedures {
         String propertyName = "sId";
         setNode1InheritedProperty(propertyName,node1,node2,newNode);
 
+        if (node1.hasProperty(propertyName)) {
+            Object node1Property = node1.getProperty(propertyName);
+            convertPropertyNameToMergedPropertyName(propertyName,"mergedSId",node1);
+            newNode.setProperty(propertyName,node1Property);
+        } else if (node2.hasProperty(propertyName)) {
+            Object node2Property = node2.getProperty(propertyName);
+            convertPropertyNameToMergedPropertyName(propertyName,"mergedSId",node2);
+            newNode.setProperty(propertyName,node2Property);
+        }
+
 //        if (node1SId!=null && node2SId!=null) {
 //            Integer newNodeSId = node1SId <= node2SId ? node1SId : node2SId;
 //            newNode.setProperty("sId",newNodeSId);
@@ -349,8 +359,6 @@ public class ProofreaderProcedures {
 //            newNode.setProperty("sId",newNodeSId);
 //        }
 
-        convertPropertyNameToMergedPropertyName(propertyName,"mergedSId",node1);
-        convertPropertyNameToMergedPropertyName(propertyName,"mergedSId",node2);
 
     }
 

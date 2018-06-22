@@ -302,7 +302,7 @@ public class MergeNeuronsTest {
 
             Assert.assertEquals(2L, newNodeProperties.get("pre"));
             Assert.assertEquals(2L, newNodeProperties.get("post"));
-            Assert.assertEquals(3158061L+14766L,newNodeProperties.get("size"));
+            Assert.assertEquals(3158061L+14766999L,newNodeProperties.get("size"));
             Assert.assertEquals("Dm12-4",newNodeProperties.get( "name"));
             Assert.assertEquals(8426959L,newNodeProperties.get("bodyId"));
             Assert.assertEquals("Dm",newNodeProperties.get("type"));
