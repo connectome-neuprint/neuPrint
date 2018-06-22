@@ -53,9 +53,13 @@ public class ProofreaderProcedures {
         removeAllLabels(node2);
         removeAllRelationships(node1);
         removeAllRelationships(node2);
+        log.info("All labels and relationships removed from original neurons.");
+
 
         node1.createRelationshipTo(newNode,RelationshipType.withName("MergedTo"));
         node2.createRelationshipTo(newNode,RelationshipType.withName("MergedTo"));
+        log.info("Created MergedTo relationship between original neurons and new neuron.");
+
 
         return Stream.of(new NodeResult(newNode));
 
@@ -71,7 +75,10 @@ public class ProofreaderProcedures {
         nodeList.add(node2);
         for (Node node : nodeList) {
             for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName("ConnectsTo"))) {
-                Long weight = (Long) nodeRelationship.getProperty("weight");
+                Long weight = null;
+                if (nodeRelationship.hasProperty("weight")) {
+                    weight = (Long) nodeRelationship.getProperty("weight");
+                } else { weight = 0L; }
                 //replace node with newNode in start and end
                 Node startNode = nodeRelationship.getStartNode();
                 Node endNode = nodeRelationship.getEndNode();
@@ -131,10 +138,12 @@ public class ProofreaderProcedures {
             //delete Skeleton
             nodeSkeletonNode.delete();
         }
+        log.info("Deleted skeletons for original nodes.");
+
     }
 
     private void mergeNeuronParts(final Node node1,final Node node2, final Node newNode, final String datasetLabel) {
-        Map<String, Node> node1NeuronParts = new HashMap<>();
+        Map<String, Node> node1LabelToNeuronParts = new HashMap<>();
 
         for (Relationship node1NeuronPartRelationship : node1.getRelationships(RelationshipType.withName("PartOf"))) {
             //get the neuronpart
@@ -143,12 +152,14 @@ public class ProofreaderProcedures {
             neuronPart.createRelationshipTo(newNode, RelationshipType.withName("PartOf"));
             //delete the old node relationship
             node1NeuronPartRelationship.delete();
+            //create a map of labels to neuron parts for node1
             for (Label neuronPartLabel : neuronPart.getLabels()) {
                 if (!neuronPartLabel.name().equals("NeuronPart") && !neuronPartLabel.name().equals(datasetLabel)) {
-                    node1NeuronParts.put(neuronPartLabel.name(), neuronPart);
+                    node1LabelToNeuronParts.put(neuronPartLabel.name(), neuronPart);
                 }
             }
         }
+
 
         for (Relationship node2NeuronPartRelationship : node2.getRelationships(RelationshipType.withName("PartOf"))) {
             //get the neuronpart
@@ -160,18 +171,27 @@ public class ProofreaderProcedures {
             //add pre post size from node2 to node1 neuronpart then delete node2 neuronpart
             for (Label neuronPartLabel : neuronPart.getLabels()) {
                 if (!neuronPartLabel.name().equals("NeuronPart") && !neuronPartLabel.name().equals(datasetLabel)) {
-                    Node node1NeuronPart = node1NeuronParts.get(neuronPartLabel.name());
-                    Map<String, Object> node2NeuronPartProperties = neuronPart.getProperties("pre", "post", "size");
-                    Map<String, Object> node1NeuronPartProperties = node1NeuronPart.getProperties("pre", "post", "size");
-                    for (String propertyName : node1NeuronPartProperties.keySet()) {
-                        node1NeuronPart.setProperty(propertyName, (Long) node1NeuronPartProperties.get(propertyName) + (Long) node2NeuronPartProperties.get(propertyName));
+                    //get the properties for the matching neuron part for node1 if it exists
+                    Node node1NeuronPart = node1LabelToNeuronParts.get(neuronPartLabel.name());
+
+                    if (node1NeuronPart!=null) {
+                        Map<String, Object> node1NeuronPartProperties = node1NeuronPart.getProperties("pre", "post", "size");
+                        Map<String, Object> node2NeuronPartProperties = neuronPart.getProperties("pre", "post", "size");
+
+                        for (String propertyName : node1NeuronPartProperties.keySet()) {
+                            node1NeuronPart.setProperty(propertyName, (Long) node1NeuronPartProperties.get(propertyName) + (Long) node2NeuronPartProperties.get(propertyName));
+                        }
+                        // found a matching roi for node1 so delete node2 neuronpart
+                        neuronPart.getRelationships().forEach(Relationship::delete);
+                        neuronPart.delete();
                     }
-                    // found a matching roi for node1 so delete node2 neuronpart
-                    neuronPart.getRelationships().forEach(Relationship::delete);
-                    neuronPart.delete();
+
+
                 }
             }
         }
+        log.info("Merged NeuronPart nodes from original neurons onto new neuron.");
+
     }
 
 
@@ -185,6 +205,7 @@ public class ProofreaderProcedures {
             Relationship relationship = startNode.createRelationshipTo(endNode, RelationshipType.withName("ConnectsTo"));
             relationship.setProperty("weight", connectsToRelationship.getWeight());
         }
+        log.info("Merged ConnectsTo relationships from original neurons onto new neuron.");
     }
 
     private Node createNewNode(Node node1, Node node2, String datasetLabel) {
@@ -210,6 +231,7 @@ public class ProofreaderProcedures {
                 newNode.addLabel(node2Label);
             }
         }
+        log.info("Created a new neuron with bodyId " + newNode.getProperty("bodyId") + " in " + datasetLabel + ".");
         return newNode;
     }
 
@@ -224,6 +246,7 @@ public class ProofreaderProcedures {
             System.out.println("Error using proofreader.mergeNodes: both nodes must exist in the dataset and be labeled :Neuron.");
             System.exit(1);
         }
+        log.info("Acquired neurons with bodyId " + node1BodyId + " and " + node2BodyId + " from " + datasetLabel + ".");
         return nodeQueryResult;
     }
 
@@ -242,13 +265,16 @@ public class ProofreaderProcedures {
             parametersMap.put("ssnode2", node2SynapseSetNode);
         }
 
-        // merge the two synapse nodes using apoc. inherits the datasetBodyId of the first node
+        // merge the two synapse nodes using apoc if there are two synapseset nodes. inherits the datasetBodyId of the first node
         if (parametersMap.containsKey("ssnode1") && parametersMap.containsKey("ssnode2")) {
             Node newSynapseSetNode = (Node) dbService.execute("CALL apoc.refactor.mergeNodes([$ssnode1, $ssnode2], {properties:{datasetBodyId:\"discard\"}}) YIELD node RETURN node", parametersMap).next().get("node");
             newSynapseSetNode.addLabel(Label.label(datasetLabel));
             //delete the extra relationship between new node and new synapse set node
             newNode.getRelationships(RelationshipType.withName("Contains")).iterator().next().delete();
         }
+
+        log.info("Merged SynapseSet nodes from original neurons onto new neuron.");
+
     }
 
 
@@ -266,6 +292,9 @@ public class ProofreaderProcedures {
 
         // changes sId for old nodes to mergedSId
         setSId(node1,node2,newNode);
+
+        log.info("Properties from merged neurons added to new neuron.");
+
 
 
     }
@@ -344,8 +373,10 @@ public class ProofreaderProcedures {
                 convertPropertyNameToMergedPropertyName(propertyName, mergedPropertyName, node);
             }
         }
+        log.info("All properties from merged neurons changed to \"merged\" + property name.");
+
     }
-    // TODO: deal with null pointer exceptions
+
     private void removeAllLabels(Node node) {
         Iterable<Label> nodeLabels = node.getLabels();
         for (Label label : nodeLabels) {
