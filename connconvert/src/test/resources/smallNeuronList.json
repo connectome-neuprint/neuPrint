@@ -1,11 +1,11 @@
 [
   {
-    "Id": 100488,
+    "Id": 8426959,
     "Status": "final",
     "Size": 14766
   },
   {
-    "Id": 100517,
+    "Id": 26311,
     "Status": "ask",
     "Name": "Dm12-4",
     "Size": 3158061
@@ -38,6 +38,11 @@
   {
     "Id": 100569,
     "Status": "final",
-    "Size": 1031
-  }
+    "Size": 1031,
+    "Name": "KC-5",
+    "NeuronType": "KC",
+    "rois": ["roi1","roi2"],
+    "Soma": { "Location":[1,2,3],"Radius":5.0}
+}
+
 ]
