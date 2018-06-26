@@ -1,12 +1,23 @@
 package org.janelia.flyem.neuprintprocedures;
 
 import apoc.result.NodeResult;
+import org.janelia.flyem.neuprinter.model.SkelNode;
+import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.neo4j.graphdb.*;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 
-import java.util.*;
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
+
 
 public class ProofreaderProcedures {
 
@@ -17,13 +28,12 @@ public class ProofreaderProcedures {
     public Log log;
 
     @Procedure(value = "proofreader.mergeNeurons", mode = Mode.WRITE)
-    @Description("proofreader.mergeNeurons(node1BodyId,node2BodyId,datasetLabel) merge nodes into new node with bodyId inherited from first in list")
-    public Stream<NodeResult> mergeNeurons(@Name("node1BodyId") Long node1BodyId, @Name("node2BodyId") Long node2BodyId, @Name("datasetLabel") String datasetLabel) {
-        if (node1BodyId == null || node2BodyId == null) return Stream.empty();
-        Map<String,Object> nodeQueryResult = acquireNodesFromDatabase(node1BodyId, node2BodyId, datasetLabel);
+    @Description("proofreader.mergeNeurons(neuron1BodyId,neuron2BodyId,datasetLabel) : merge neurons into new neuron with bodyId inherited from first in list")
+    public Stream<NodeResult> mergeNeurons(@Name("neuron1BodyId") Long neuron1BodyId, @Name("neuron2BodyId") Long neuron2BodyId, @Name("datasetLabel") String datasetLabel) {
+        if (neuron1BodyId == null || neuron2BodyId == null) return Stream.empty();
 
-        final Node node1 = (Node) nodeQueryResult.get("node1");
-        final Node node2 = (Node) nodeQueryResult.get("node2");
+        final Node node1 = acquireNeuronFromDatabase(neuron1BodyId, datasetLabel);
+        final Node node2 = acquireNeuronFromDatabase(neuron2BodyId, datasetLabel);
 
         // grab write locks upfront
         try (Transaction tx = dbService.beginTx()) {
@@ -34,16 +44,16 @@ public class ProofreaderProcedures {
 
         Node newNode = createNewNode(node1, node2, datasetLabel);
 
-        mergeConnectsToRelationships(node1,node2,newNode);
+        mergeConnectsToRelationships(node1, node2, newNode);
 
         mergeSynapseSets(node1, node2, newNode, datasetLabel);
 
         deleteSkeletonForNode(node1);
         deleteSkeletonForNode(node2);
 
-        mergeNeuronParts(node1,node2,newNode,datasetLabel);
+        mergeNeuronParts(node1, node2, newNode, datasetLabel);
 
-        combinePropertiesOntoMergedNeuron(node1,node2,newNode);
+        combinePropertiesOntoMergedNeuron(node1, node2, newNode);
 
         convertAllPropertiesToMergedProperties(node1);
         convertAllPropertiesToMergedProperties(node2);
@@ -54,12 +64,56 @@ public class ProofreaderProcedures {
         log.info("All labels and relationships removed from original neurons.");
 
 
-        node1.createRelationshipTo(newNode,RelationshipType.withName("MergedTo"));
-        node2.createRelationshipTo(newNode,RelationshipType.withName("MergedTo"));
+        node1.createRelationshipTo(newNode, RelationshipType.withName("MergedTo"));
+        node2.createRelationshipTo(newNode, RelationshipType.withName("MergedTo"));
         log.info("Created MergedTo relationship between original neurons and new neuron.");
 
 
         return Stream.of(new NodeResult(newNode));
+
+
+    }
+
+    @Procedure(value = "proofreader.addSkeleton", mode = Mode.WRITE)
+    @Description("proofreader.addSkeleton(fileUrl,datasetLabel) : load skeleton from provided url and connect to its associated neuron (note: file URL must contain body id of neuron) ")
+    public Stream<NodeResult> addSkeleton(@Name("fileUrl") String fileUrlString, @Name("datasetLabel") String datasetLabel) {
+
+        if (fileUrlString == null) return Stream.empty();
+
+        String neuronIdPattern = ".*/(.*?)[._]swc";
+        Pattern rN = Pattern.compile(neuronIdPattern);
+        Matcher mN = rN.matcher(fileUrlString);
+        mN.matches();
+        Long neuronBodyId = Long.parseLong(mN.group(1));
+
+        Skeleton skeleton = new Skeleton();
+        URL fileUrl = null;
+
+
+        try {
+            fileUrl = new URL(fileUrlString);
+        } catch (MalformedURLException e) {
+            System.out.println("Malformed URL: " + e.getMessage());
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(fileUrl.openStream()))) {
+                skeleton.fromSwc(reader,neuronBodyId);
+        } catch (IOException e) {
+            System.out.println("IOException: " + e.getMessage());
+        }
+
+
+        final Node neuron = acquireNeuronFromDatabase(neuronBodyId, datasetLabel);
+
+        // grab write locks upfront
+        try (Transaction tx = dbService.beginTx()) {
+            tx.acquireWriteLock(neuron);
+            tx.success();
+        }
+
+        Node skeletonNode = addSkeletonNode(datasetLabel, skeleton);
+
+        return Stream.of(new NodeResult(skeletonNode));
 
 
     }
@@ -76,7 +130,9 @@ public class ProofreaderProcedures {
                 Long weight = null;
                 if (nodeRelationship.hasProperty("weight")) {
                     weight = (Long) nodeRelationship.getProperty("weight");
-                } else { weight = 0L; }
+                } else {
+                    weight = 0L;
+                }
                 //replace node with newNode in start and end
                 Node startNode = nodeRelationship.getStartNode();
                 Node endNode = nodeRelationship.getEndNode();
@@ -140,7 +196,7 @@ public class ProofreaderProcedures {
 
     }
 
-    private void mergeNeuronParts(final Node node1,final Node node2, final Node newNode, final String datasetLabel) {
+    private void mergeNeuronParts(final Node node1, final Node node2, final Node newNode, final String datasetLabel) {
         Map<String, Node> node1LabelToNeuronParts = new HashMap<>();
 
         for (Relationship node1NeuronPartRelationship : node1.getRelationships(RelationshipType.withName("PartOf"))) {
@@ -172,7 +228,7 @@ public class ProofreaderProcedures {
                     //get the properties for the matching neuron part for node1 if it exists
                     Node node1NeuronPart = node1LabelToNeuronParts.get(neuronPartLabel.name());
 
-                    if (node1NeuronPart!=null) {
+                    if (node1NeuronPart != null) {
                         Map<String, Object> node1NeuronPartProperties = node1NeuronPart.getProperties("pre", "post", "size");
                         Map<String, Object> node2NeuronPartProperties = neuronPart.getProperties("pre", "post", "size");
 
@@ -233,19 +289,19 @@ public class ProofreaderProcedures {
         return newNode;
     }
 
-    private Map<String, Object> acquireNodesFromDatabase(Long node1BodyId, Long node2BodyId, String datasetLabel) {
+
+    private Node acquireNeuronFromDatabase(Long nodeBodyId, String datasetLabel) {
         Map<String, Object> parametersMap = new HashMap<>();
-        parametersMap.put("node1BodyId", node1BodyId);
-        parametersMap.put("node2BodyId", node2BodyId);
+        parametersMap.put("nodeBodyId", nodeBodyId);
         Map<String, Object> nodeQueryResult = null;
         try {
-            nodeQueryResult = dbService.execute("MATCH (node1:Neuron:" + datasetLabel + "{bodyId:$node1BodyId}), (node2:Neuron:" + datasetLabel + "{bodyId:$node2BodyId}) RETURN node1,node2", parametersMap).next();
+            nodeQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId}) RETURN node", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
-            System.out.println("Error using proofreader.mergeNodes: both nodes must exist in the dataset and be labeled :Neuron.");
+            System.out.println("Error using proofreader procedures: Node must exist in the dataset and be labeled :Neuron.");
             System.exit(1);
         }
-        log.info("Acquired neurons with bodyId " + node1BodyId + " and " + node2BodyId + " from " + datasetLabel + ".");
-        return nodeQueryResult;
+
+        return (Node) nodeQueryResult.get("node");
     }
 
 
@@ -278,21 +334,20 @@ public class ProofreaderProcedures {
 
     private void combinePropertiesOntoMergedNeuron(Node node1, Node node2, Node newNode) {
 
-        setNode1InheritedProperty("name",node1,node2,newNode);
-        setNode1InheritedProperty("type",node1,node2,newNode);
-        setNode1InheritedProperty("status",node1,node2,newNode);
-        setNode1InheritedProperty("somaLocation",node1,node2,newNode);
-        setNode1InheritedProperty("somaRadius",node1,node2,newNode);
+        setNode1InheritedProperty("name", node1, node2, newNode);
+        setNode1InheritedProperty("type", node1, node2, newNode);
+        setNode1InheritedProperty("status", node1, node2, newNode);
+        setNode1InheritedProperty("somaLocation", node1, node2, newNode);
+        setNode1InheritedProperty("somaRadius", node1, node2, newNode);
 
-        setSummedLongProperty("size",node1,node2,newNode);
-        setSummedLongProperty("pre",node1,node2,newNode);
-        setSummedLongProperty("post",node1,node2,newNode);
+        setSummedLongProperty("size", node1, node2, newNode);
+        setSummedLongProperty("pre", node1, node2, newNode);
+        setSummedLongProperty("post", node1, node2, newNode);
 
         // changes sId for old nodes to mergedSId
-        setSId(node1,node2,newNode);
+        setSId(node1, node2, newNode);
 
         log.info("Properties from merged neurons added to new neuron.");
-
 
 
     }
@@ -301,10 +356,10 @@ public class ProofreaderProcedures {
     private void setNode1InheritedProperty(String propertyName, Node node1, Node node2, Node newNode) {
         if (node1.hasProperty(propertyName)) {
             Object node1Property = node1.getProperty(propertyName);
-            newNode.setProperty(propertyName,node1Property);
+            newNode.setProperty(propertyName, node1Property);
         } else if (node2.hasProperty(propertyName)) {
             Object node2Property = node2.getProperty(propertyName);
-            newNode.setProperty(propertyName,node2Property);
+            newNode.setProperty(propertyName, node2Property);
         }
     }
 
@@ -318,7 +373,7 @@ public class ProofreaderProcedures {
             Long node2Property = (Long) node2.getProperty(propertyName);
             summedValue += node2Property;
         }
-        newNode.setProperty(propertyName,summedValue);
+        newNode.setProperty(propertyName, summedValue);
     }
 
     private void setSummedIntProperty(String propertyName, Node node1, Node node2, Node newNode) {
@@ -331,7 +386,7 @@ public class ProofreaderProcedures {
             Integer node2Property = (Integer) node2.getProperty(propertyName);
             summedValue += node2Property;
         }
-        newNode.setProperty(propertyName,summedValue);
+        newNode.setProperty(propertyName, summedValue);
     }
 
     private void setSId(Node node1, Node node2, Node newNode) {
@@ -339,12 +394,12 @@ public class ProofreaderProcedures {
 
         if (node1.hasProperty(propertyName)) {
             Object node1Property = node1.getProperty(propertyName);
-            convertPropertyNameToMergedPropertyName(propertyName,"mergedSId",node1);
-            newNode.setProperty(propertyName,node1Property);
+            convertPropertyNameToMergedPropertyName(propertyName, "mergedSId", node1);
+            newNode.setProperty(propertyName, node1Property);
         } else if (node2.hasProperty(propertyName)) {
             Object node2Property = node2.getProperty(propertyName);
-            convertPropertyNameToMergedPropertyName(propertyName,"mergedSId",node2);
-            newNode.setProperty(propertyName,node2Property);
+            convertPropertyNameToMergedPropertyName(propertyName, "mergedSId", node2);
+            newNode.setProperty(propertyName, node2Property);
         }
 
 //        if (node1SId!=null && node2SId!=null) {
@@ -364,17 +419,17 @@ public class ProofreaderProcedures {
     private void convertPropertyNameToMergedPropertyName(String propertyName, String mergedPropertyName, Node node) {
         if (node.hasProperty(propertyName)) {
             Object node1Property = node.getProperty(propertyName);
-            node.setProperty(mergedPropertyName,node1Property);
+            node.setProperty(mergedPropertyName, node1Property);
             node.removeProperty(propertyName);
         }
 
     }
 
     private void convertAllPropertiesToMergedProperties(Node node) {
-        Map<String,Object> nodeProperties = node.getAllProperties();
+        Map<String, Object> nodeProperties = node.getAllProperties();
         for (String propertyName : nodeProperties.keySet()) {
             if (!propertyName.startsWith("merged")) {
-                String mergedPropertyName = "merged" + propertyName.substring(0,1).toUpperCase() + propertyName.substring(1);
+                String mergedPropertyName = "merged" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
                 convertPropertyNameToMergedPropertyName(propertyName, mergedPropertyName, node);
             }
         }
@@ -396,4 +451,102 @@ public class ProofreaderProcedures {
         }
     }
 
+
+    private Node addSkeletonNode(final String dataset, final Skeleton skeleton) {
+
+        final String neuronToSkeletonConnectionString = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
+                "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId \n" +
+                "MERGE (n)-[:Contains]->(r) \n";
+
+        final String rootNodeString = "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId \n" +
+                "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.x=$x, s.y=$y, s.z=$z, s.rowNumber=$rowNumber \n" +
+                "MERGE (r)-[:Contains]->(s) \n";
+
+        final String parentNodeString = "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId})\n" +
+                "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.x=$pX, p.y=$pY, p.z=$pZ, p.rowNumber=$pRowNumber \n" +
+                "MERGE (r)-[:Contains]->(p) ";
+
+        final String childNodeString = "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.x=$pX, p.y=$pY, p.z=$pZ, p.rowNumber=$pRowNumber \n" +
+                "MERGE (c:SkelNode:" + dataset + " {skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.x=$childX, c.y=$childY, c.z=$childZ, c.rowNumber=$childRowNumber \n" +
+                "MERGE (p)-[:LinksTo]-(c)";
+
+
+        Long associatedBodyId = skeleton.getAssociatedBodyId();
+        List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
+
+        Map<String, Object> neuronToSkeletonParametersMap = new HashMap<String, Object>() {{
+            put("bodyId", associatedBodyId);
+            put("skeletonId", dataset + ":" + associatedBodyId);
+        }};
+
+
+        dbService.execute(neuronToSkeletonConnectionString, neuronToSkeletonParametersMap);
+
+
+        for (SkelNode skelNode : skelNodeList) {
+
+            if (skelNode.getParent() == null) {
+                Map<String, Object> rootNodeStringParametersMap = new HashMap<String, Object>() {{
+                    put("location", skelNode.getLocationString());
+                    put("radius", skelNode.getRadius());
+                    put("skelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString());
+                    put("skeletonId", dataset + ":" + associatedBodyId);
+                    put("x", skelNode.getLocation().get(0));
+                    put("y", skelNode.getLocation().get(1));
+                    put("z", skelNode.getLocation().get(2));
+                    put("rowNumber", skelNode.getRowNumber());
+                }};
+
+                dbService.execute(rootNodeString, rootNodeStringParametersMap);
+            }
+
+            Map<String, Object> parentNodeStringParametersMap = new HashMap<String, Object>() {{
+                put("pLocation", skelNode.getLocationString());
+                put("pRadius", skelNode.getRadius());
+                put("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString());
+                put("skeletonId", dataset + ":" + associatedBodyId);
+                put("pX", skelNode.getLocation().get(0));
+                put("pY", skelNode.getLocation().get(1));
+                put("pZ", skelNode.getLocation().get(2));
+                put("pRowNumber", skelNode.getRowNumber());
+            }};
+
+            dbService.execute(parentNodeString, parentNodeStringParametersMap);
+
+
+            for (SkelNode child : skelNode.getChildren()) {
+                String childNodeId = dataset + ":" + associatedBodyId + ":" + child.getLocationString();
+
+                Map<String, Object> childNodeStringParametersMap = new HashMap<String, Object>() {{
+                    put("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString());
+                    put("skeletonId", dataset + ":" + associatedBodyId);
+                    put("pLocation", skelNode.getLocationString());
+                    put("pRadius", skelNode.getRadius());
+                    put("pX", skelNode.getLocation().get(0));
+                    put("pY", skelNode.getLocation().get(1));
+                    put("pZ", skelNode.getLocation().get(2));
+                    put("pRowNumber", skelNode.getRowNumber());
+                    put("childNodeId", childNodeId);
+                    put("childLocation", child.getLocationString());
+                    put("childRadius", child.getRadius());
+                    put("childX", child.getLocation().get(0));
+                    put("childY", child.getLocation().get(1));
+                    put("childZ", child.getLocation().get(2));
+                    put("childRowNumber", child.getRowNumber());
+                }};
+
+                dbService.execute(childNodeString, childNodeStringParametersMap);
+
+            }
+
+
+        }
+        Map<String, Object> getSkeletonParametersMap = new HashMap<String, Object>() {{
+            put("skeletonId", dataset + ":" + associatedBodyId);
+        }};
+
+        Map<String, Object> nodeQueryResult= dbService.execute("MATCH (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) RETURN r",getSkeletonParametersMap).next();
+        return (Node) nodeQueryResult.get("r");
+    }
 }
+
