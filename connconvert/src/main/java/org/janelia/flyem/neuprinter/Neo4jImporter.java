@@ -137,8 +137,8 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addConnectsTo: entry");
 
         final String connectsToText =
-                "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1\n" +
-                        "MERGE (m:Neuron:" + dataset + " {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp \n" +
+                "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.status=$notAnnotated\n" +
+                        "MERGE (m:Neuron:" + dataset + " {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, n.status=$notAnnotated \n" +
                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m)";
         final String terminalCountText = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.sId=$sId, n:Big, n.timeStamp=$timeStamp";
 
@@ -154,6 +154,7 @@ public class Neo4jImporter implements AutoCloseable {
                                     parameters("bodyId1", bws.getBodyId(),
                                             "bodyId2", postsynapticBodyId,
                                             "timeStamp", timeStamp,
+                                            "notAnnotated","not annotated",
                                             "weight", bws.getConnectsTo().get(postsynapticBodyId)))
                     );
                 }
@@ -298,7 +299,7 @@ public class Neo4jImporter implements AutoCloseable {
 //                "CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
 //                "RETURN node";
 
-        final String roiNeuronText = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId = $bodyId, n.timeStamp=$timeStamp \n" +
+        final String roiNeuronText = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId = $bodyId, n.timeStamp=$timeStamp, n.status=$notAnnotated \n" +
                 "WITH n \n" +
                 "CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
                 "RETURN node";
@@ -312,6 +313,7 @@ public class Neo4jImporter implements AutoCloseable {
 //                            "rois", roiList)));
                     batch.addStatement(new Statement(roiNeuronText,parameters("bodyId", bws.getBodyId(),
                             "timeStamp", timeStamp,
+                            "notAnnotated","not annotated",
                             "rois", roiList)));
                 }
             }
@@ -328,7 +330,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addNeuronParts: entry");
 
-        final String neuronPartText = "MERGE (n:Neuron:" + dataset +  " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforneuronpart, n.timeStamp=$timeStamp \n"+
+        final String neuronPartText = "MERGE (n:Neuron:" + dataset +  " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforneuronpart, n.timeStamp=$timeStamp, n.status=$notAnnotated \n"+
                 "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size, p.timeStamp=$timeStamp \n"+
                 "MERGE (p)-[:PartOf]->(n) \n" +
                 "WITH p \n" +
@@ -345,6 +347,7 @@ public class Neo4jImporter implements AutoCloseable {
                             "pre",np.getPre(),
                             "post",np.getPost(),
                             "size",np.getPre()+np.getPost(),
+                            "notAnnotated","not annotated",
                             "timeStamp", timeStamp)));
 
                 }
@@ -499,7 +502,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSkeletonNodes: entry");
 
-        final String neuronToSkeletonConnectionString = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
+        final String neuronToSkeletonConnectionString = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
                 "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
                 "MERGE (n)-[:Contains]->(r) \n";
 
@@ -523,6 +526,7 @@ public class Neo4jImporter implements AutoCloseable {
                 List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
 
                 batch.addStatement(new Statement(neuronToSkeletonConnectionString,parameters("bodyId", associatedBodyId,
+                        "notAnnotated","not annotated",
                         "skeletonId", dataset+":"+associatedBodyId,
                         "timeStamp", timeStamp
                 )));

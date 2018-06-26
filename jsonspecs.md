@@ -3,7 +3,8 @@ This documents the input specifications for loading connectome data into Neo4j u
 
 
 # Neurons
-Describes all the neurons or segments in the dataset. 
+Describes all the neurons or segments in the dataset.  (Note: that if a neuron id is not listed in this file but exists in other files, a default status of “not annotated” will be given.)
+
 
 Neurons.json
 ```console

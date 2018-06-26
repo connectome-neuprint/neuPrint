@@ -88,6 +88,10 @@ public class Neo4jImporterTest {
             Assert.assertEquals(9281L, skelNodeProperties.get("s.y"));
             Assert.assertEquals(1624L, skelNodeProperties.get("s.z"));
 
+            int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
+            Assert.assertEquals(0,noStatusCount);
+
+
 
         }
     }
@@ -302,10 +306,12 @@ public class Neo4jImporterTest {
 
 
             int noDatasetLabelCount = session.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
-            int notimeStampCount = session.run("MATCH (n) WHERE n.timeStamp=null RETURN count(n)").single().get(0).asInt();
+            int noTimeStampCount = session.run("MATCH (n) WHERE n.timeStamp=null RETURN count(n)").single().get(0).asInt();
+            int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
 
             Assert.assertEquals(0,noDatasetLabelCount);
-            Assert.assertEquals(0,notimeStampCount);
+            Assert.assertEquals(0,noTimeStampCount);
+            Assert.assertEquals(0,noStatusCount);
 
 
 
