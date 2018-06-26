@@ -146,5 +146,6 @@ Place neuprint-procedures.jar into the plugins folder of your neo4j database, an
       * SynapseSets will be combined into one. Skeletons will be deleted. NeuronParts will be combined. 
       * The new neuron inherits bodyId from the first listed neuron. All other properties are inherited from the first listed neuron or, if a property is null for that neuron, the second listed neuron. Property names on the original neurons start with "merged", e.g. "mergedBodyId".
       * Original neurons lose all labels and relationships, and "MergedTo" relationships are created between the original neurons and the new neuron. 
+3. proofreader.addSkeleton(fileUrl,datasetLabel): Load skeleton file from url into database and connect to appropriate neuron. Returns the new skeleton node. e.g.: ``` CALL proofreader.addSkeleton("http://fileurl/87475_swc","mb6") YIELD node RETURN node ```
       
 
