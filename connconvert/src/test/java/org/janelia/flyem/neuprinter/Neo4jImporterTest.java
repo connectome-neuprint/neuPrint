@@ -211,7 +211,7 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void testSynapsesNeuronPartsSynapseSets() {
+    public void testSynapsesNeuronPartsSynapseSetsMeta() {
 
         String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
         String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
@@ -253,6 +253,8 @@ public class Neo4jImporterTest {
             neo4jImporter.addNeuronParts("test",bodyList);
 
             neo4jImporter.addSynapseSets("test", bodyList);
+
+            neo4jImporter.createMetaNode("test");
 
             Node preSynNode = session.run("MATCH (s:Synapse:PreSyn{datasetLocation:\"test:4287:2277:1502\"}) RETURN s").single().get(0).asNode();
 
@@ -306,14 +308,21 @@ public class Neo4jImporterTest {
 
 
             int noDatasetLabelCount = session.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
-            int noTimeStampCount = session.run("MATCH (n) WHERE n.timeStamp=null RETURN count(n)").single().get(0).asInt();
-            int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
+            int noTimeStampCount = session.run("MATCH (n) WHERE NOT exists(n.timeStamp) RETURN count(n)").single().get(0).asInt();
+            int noStatusCount = session.run("MATCH (n:Neuron) WHERE NOT exists(n.status) RETURN count(n)").single().get(0).asInt();
 
             Assert.assertEquals(0,noDatasetLabelCount);
-            Assert.assertEquals(0,noTimeStampCount);
+            Assert.assertEquals(1,noTimeStampCount);
             Assert.assertEquals(0,noStatusCount);
 
+            Node metaNode = session.run("MATCH (n:Meta:test) RETURN n").single().get(0).asNode();
+            Assert.assertEquals(2L,metaNode.asMap().get("totalPreCount"));
+            Assert.assertEquals(4L,metaNode.asMap().get("totalPostCount"));
 
+            Assert.assertEquals(2L,metaNode.asMap().get("roiAPostCount"));
+            Assert.assertEquals(2L,metaNode.asMap().get("roiAPreCount"));
+            Assert.assertEquals(0L,metaNode.asMap().get("roiBPreCount"));
+            Assert.assertEquals(3L,metaNode.asMap().get("roiBPostCount"));
 
 
 
