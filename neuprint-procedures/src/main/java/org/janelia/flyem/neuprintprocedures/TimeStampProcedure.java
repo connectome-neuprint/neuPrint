@@ -8,7 +8,6 @@ import java.util.Set;
 
 public class TimeStampProcedure {
 
-    //for testing in embedded mode or registering transaction events
     public static void timeStampEmbedded(Set<Long> nodeIdSet, GraphDatabaseService dbService) {
 
         for (Long nodeId : nodeIdSet) {

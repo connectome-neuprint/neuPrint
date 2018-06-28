@@ -1,44 +1,58 @@
 package org.janelia.flyem.neuprintprocedures;
 
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.event.LabelEntry;
 import org.neo4j.graphdb.event.PropertyEntry;
 import org.neo4j.graphdb.event.TransactionData;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class TransactionDataHandler {
 
-    static TransactionData transactionData;
+    private TransactionData transactionData;
+    private Set<Long> nodesForTimeStamping;
 
     public TransactionDataHandler(TransactionData transactionData) {
-        TransactionDataHandler.transactionData = transactionData;
+        this.transactionData = transactionData;
+        this.nodesForTimeStamping = new HashSet<>();
     }
 
-    public static Set<Long> getNodesForTimeStamping() {
-        Set<Long> nodesForTimeStamping = new HashSet<>();
+    public Set<Long> getNodesForTimeStamping() {
+
         for (Node node : transactionData.createdNodes()) {
-            nodesForTimeStamping.add(node.getId());
-            System.out.println("node created: " + node);
+            if (!node.hasLabel(Label.label("Meta"))) {
+                this.nodesForTimeStamping.add(node.getId());
+                System.out.println("node created: " + node);
+            }
         }
 
         for (LabelEntry labelEntry : transactionData.assignedLabels()) {
-            nodesForTimeStamping.add(labelEntry.node().getId());
-            System.out.println("label entry assigned: " + labelEntry);
+            Node node = labelEntry.node();
+            if (!node.hasLabel(Label.label("Meta"))) {
+                this.nodesForTimeStamping.add(node.getId());
+                System.out.println("label entry assigned: " + labelEntry);
+            }
         }
 
         for (LabelEntry labelEntry : transactionData.removedLabels()) {
-            nodesForTimeStamping.add(labelEntry.node().getId());
-            System.out.println("label entry removed: " + labelEntry);
+            Node node = labelEntry.node();
+            if (!node.hasLabel(Label.label("Meta"))) {
+                this.nodesForTimeStamping.add(node.getId());
+                System.out.println("label entry removed: " + labelEntry);
+            }
         }
 
         for (PropertyEntry<Node> propertyEntry : transactionData.assignedNodeProperties()) {
             if (!propertyEntry.key().equals("timeStamp")) {
-                Long assignedPropertiesNodeId = propertyEntry.entity().getId();
-                nodesForTimeStamping.add(assignedPropertiesNodeId);
-                if (propertyEntry.key().equals("pre") || propertyEntry.key().equals("post")) {
+                Node node = propertyEntry.entity();
+                if (!node.hasLabel(Label.label("Meta"))) {
+                    Long assignedPropertiesNodeId = node.getId();
+                    this.nodesForTimeStamping.add(assignedPropertiesNodeId);
                     System.out.println("node properties assigned: " + propertyEntry);
                 }
             }
@@ -46,9 +60,12 @@ public class TransactionDataHandler {
 
         for (PropertyEntry<Node> propertyEntry : transactionData.removedNodeProperties()) {
             if (!propertyEntry.key().equals("timeStamp")) {
-                Long removedPropertiesNodeId = propertyEntry.entity().getId();
-                nodesForTimeStamping.add(removedPropertiesNodeId);
-                System.out.println("node properties removed: " + propertyEntry);
+                Node node = propertyEntry.entity();
+                if (!node.hasLabel(Label.label("Meta"))) {
+                    Long removedPropertiesNodeId = propertyEntry.entity().getId();
+                    this.nodesForTimeStamping.add(removedPropertiesNodeId);
+                    System.out.println("node properties removed: " + propertyEntry);
+                }
             }
         }
 
@@ -56,8 +73,10 @@ public class TransactionDataHandler {
             Relationship relationship = propertyEntry.entity();
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
-                nodesForTimeStamping.add(node.getId());
-                System.out.println("relationship properties added for: " + node);
+                if (!node.hasLabel(Label.label("Meta"))) {
+                    this.nodesForTimeStamping.add(node.getId());
+                    System.out.println("relationship properties added for: " + node);
+                }
             }
         }
 
@@ -65,24 +84,30 @@ public class TransactionDataHandler {
             Relationship relationship = propertyEntry.entity();
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
-                nodesForTimeStamping.add(node.getId());
-                System.out.println("relationship properties removed for: " + node);
+                if (!node.hasLabel(Label.label("Meta"))) {
+                    this.nodesForTimeStamping.add(node.getId());
+                    System.out.println("relationship properties removed for: " + node);
+                }
             }
         }
 
         for (Relationship relationship : transactionData.createdRelationships()) {
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
-                nodesForTimeStamping.add(node.getId());
-                System.out.println("relationship created for: " + node);
+                if (!node.hasLabel(Label.label("Meta"))) {
+                    this.nodesForTimeStamping.add(node.getId());
+                    System.out.println("relationship created for: " + node);
+                }
             }
         }
 
         for (Relationship relationship : transactionData.deletedRelationships()) {
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
-                nodesForTimeStamping.add(node.getId());
-                System.out.println("relationship deleted for: " + node);
+                if (!node.hasLabel(Label.label("Meta"))) {
+                    this.nodesForTimeStamping.add(node.getId());
+                    System.out.println("relationship deleted for: " + node);
+                }
             }
         }
 
@@ -90,9 +115,8 @@ public class TransactionDataHandler {
 
     }
 
-
-
-
-
-
+    public boolean shouldUpdateMetaNode() {
+        //if time stamping, means a significant change happened during transaction that wasn't the addition of a time stamp or alteration of the meta node itself
+        return (this.nodesForTimeStamping.size() > 0);
+    }
 }
