@@ -163,6 +163,13 @@ public class ConnConvert {
         public boolean editMode;
 
         @Parameter(
+                names = "--addMetaNodeOnly",
+                description = "Indicates that only the Meta Node should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addMetaNodeOnly;
+
+        @Parameter(
                 names = "--help",
                 help = true)
         public boolean help;
@@ -463,6 +470,8 @@ public class ConnConvert {
                     neo4jImporter.addNeuronParts(dataset, bodyList);
                     LOG.info("Loading all NeuronParts took: " + timer.stop());
                     timer.reset();
+
+                    neo4jImporter.createMetaNode(dataset);
                 }
             }
 
@@ -505,6 +514,14 @@ public class ConnConvert {
             }
 
 
+        }
+
+
+        if ( parameters.addMetaNodeOnly ) {
+            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                neo4jImporter.prepDatabase(dataset);
+                neo4jImporter.createMetaNode(dataset);
+            }
         }
 
 
