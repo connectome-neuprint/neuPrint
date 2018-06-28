@@ -634,8 +634,6 @@ public class Neo4jImporter implements AutoCloseable {
                 "m.dataset=$dataset, m.totalPreCount=$totalPre, m.totalPostCount=$totalPost";
 
 
-
-
         long totalPre;
         long totalPost;
         List<String> roiNameList;
@@ -646,7 +644,7 @@ public class Neo4jImporter implements AutoCloseable {
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
             roiNameList = session.readTransaction(tx -> getAllRois(tx, dataset));
             for (String roi : roiNameList) {
-                if (!roi.equals("NeuronPart") && !roi.equals("test")) {
+                if (!roi.equals("NeuronPart") && !roi.equals(dataset)) {
                     long roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
                     long roiPostCount = session.readTransaction(tx -> getRoiPostCount(tx, dataset, roi));
                     roiSet.add(new Roi(roi,roiPreCount,roiPostCount));
