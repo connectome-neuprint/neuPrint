@@ -472,6 +472,11 @@ public class ConnConvert {
                     timer.reset();
 
                     neo4jImporter.createMetaNode(dataset);
+
+                    timer.start();
+                    neo4jImporter.addAutoNames(dataset);
+                    LOG.info("Adding autoNames took: " + timer.stop());
+                    timer.reset();
                 }
             }
 
