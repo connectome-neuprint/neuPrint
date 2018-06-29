@@ -77,7 +77,7 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE CONSTRAINT ON (c:NeuronClass) ASSERT c.neuronClassId IS UNIQUE",
                 "CREATE CONSTRAINT ON (t:NeuronType) ASSERT t.neuronTypeId IS UNIQUE",
                 "CREATE CONSTRAINT ON (m:Meta) ASSERT m.dataset IS UNIQUE",
-                "CREATE CONSTRAINT ON (n:Neuron) ASSERT n.autoName is UNIQUE",
+                "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.autoName is UNIQUE",
                 "CREATE INDEX ON :Neuron(status)",
                 "CREATE INDEX ON :Neuron(name)",
                 "CREATE INDEX ON :Synapse(x)",
@@ -358,7 +358,7 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addNeuronParts: exit");
     }
 
-    public void addAutoNames(final String dataset) throws Exception {
+    public void addAutoNames(final String dataset) {
 
         LOG.info("addAutoNames: entry");
 
