@@ -8,7 +8,7 @@
           [ 4298, 2294, 1542 ], [ 4301, 2276, 1535 ], [ 4292, 2261, 1542 ]
         ]
       },
-      { "Type": "post", "Location": [ 4222, 2402, 1688 ], "ConnectsFrom": [ [ 4236, 2394, 1700 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi", "roiB" ] },
+      { "Type": "post", "Location": [ 4222, 2402, 1688 ], "ConnectsFrom": [ [ 4236, 2394, 1700 ] ], "Confidence": 1.0, "rois": ["roiA", "roiB" ] },
       {
         "Type": "pre", "Location": [ 4287, 2277, 1502 ], "Confidence": 1.0, "rois": [ "seven_column_roi", "roiA" ],
         "ConnectsTo": [

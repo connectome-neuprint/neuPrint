@@ -77,6 +77,7 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE CONSTRAINT ON (c:NeuronClass) ASSERT c.neuronClassId IS UNIQUE",
                 "CREATE CONSTRAINT ON (t:NeuronType) ASSERT t.neuronTypeId IS UNIQUE",
                 "CREATE CONSTRAINT ON (m:Meta) ASSERT m.dataset IS UNIQUE",
+                "CREATE CONSTRAINT ON (n:Neuron) ASSERT n.autoName is UNIQUE",
                 "CREATE INDEX ON :Neuron(status)",
                 "CREATE INDEX ON :Neuron(name)",
                 "CREATE INDEX ON :Synapse(x)",
@@ -355,6 +356,59 @@ public class Neo4jImporter implements AutoCloseable {
             batch.writeTransaction();
         }
         LOG.info("addNeuronParts: exit");
+    }
+
+    public void addAutoNames(final String dataset) throws Exception {
+
+        LOG.info("addAutoNames: entry");
+
+        List<AutoName> autoNameList = new ArrayList<>();
+        List<Long> bodyIdsWithoutNames;
+        final String autoNameText = "MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId}) SET n.autoName=$autoName";
+        final String autoNameToNameText = "MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId}) SET n.autoName=$autoName, n.name=$autoName ";
+
+        //autonames only added to :Big neurons
+        //get the associated neuron part with the largest post. = roi1
+        //get the associated neuron part with the largest pre. = roi2
+        //unique four digit number (e.g. 0004)
+        //FB-LAL-0001, AL-CA-0023
+
+        //if there is no existing name, give it the autoname as name.
+        try (Session session = driver.session()) {
+            List<Long> bodyIdList = session.readTransaction(tx -> getAllBigNeuronBodyIds(tx, dataset));
+            for (Long bodyId : bodyIdList) {
+                String maxPostRoiName = session.readTransaction(tx -> getMaxInputRoi(tx, dataset, bodyId));
+                String maxPreRoiName = session.readTransaction(tx -> getMaxOutputRoi(tx, dataset, bodyId));
+                System.out.println("body id : " + bodyId + " max output roi: " + maxPostRoiName + " max input roi: " + maxPreRoiName);
+                AutoName autoName = new AutoName(maxPostRoiName,maxPreRoiName,bodyId);
+                autoNameList.add(autoName);
+            }
+            bodyIdsWithoutNames = session.readTransaction(tx -> getAllBigNeuronBodyIdsWithoutNames(tx,dataset));
+        }
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (AutoName autoName : autoNameList) {
+                Long bodyId = autoName.getBodyId();
+                if (bodyIdsWithoutNames.contains(bodyId)) {
+                    batch.addStatement(new Statement(autoNameToNameText,
+                            parameters("bodyId", autoName.getBodyId(),
+                                    "autoName", autoName.getAutoName())));
+                } else {
+                    batch.addStatement(new Statement(autoNameText,
+                            parameters("bodyId", autoName.getBodyId(),
+                                    "autoName", autoName.getAutoName())));
+                }
+            }
+            batch.writeTransaction();
+        }
+
+
+
+
+
+        LOG.info("addAutoNames: exit");
+
+
     }
 
 
@@ -708,6 +762,63 @@ public class Neo4jImporter implements AutoCloseable {
         return roiList;
     }
 
+    private static String getMaxInputRoi(final Transaction tx, final String dataset, Long bodyId){
+        TreeSet<String> maxPostLabelList = new TreeSet<>();
+        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WITH max(np.post) AS maxPost " +
+                "MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WHERE np.post=maxPost WITH DISTINCT labels(np) AS labels " +
+                "UNWIND labels AS label RETURN DISTINCT label",parameters("bodyId",bodyId));
+        while (result.hasNext()) {
+            String roiName = result.next().asMap().get("label").toString();
+            if (!roiName.equals("NeuronPart") && !roiName.equals(dataset)) {
+                maxPostLabelList.add(roiName);
+            }
+        }
+
+        try {
+            return maxPostLabelList.first();
+        } catch (NoSuchElementException nse) {
+            System.out.println(("No max input roi found for " + bodyId));
+            return null;
+        }
+    }
+
+    private static String getMaxOutputRoi(final Transaction tx, final String dataset, Long bodyId){
+        TreeSet<String> maxPreLabelList = new TreeSet<>();
+        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WITH max(np.pre) AS maxPre " +
+                "MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WHERE np.pre=maxPre WITH DISTINCT labels(np) AS labels " +
+                "UNWIND labels AS label RETURN DISTINCT label",parameters("bodyId",bodyId));
+        while (result.hasNext()) {
+            String roiName = result.next().asMap().get("label").toString();
+            if (!roiName.equals("NeuronPart") && !roiName.equals(dataset)) {
+                maxPreLabelList.add(roiName);
+            }
+        }
+
+        try {
+            return maxPreLabelList.first();
+        } catch (NoSuchElementException nse) {
+            System.out.println(("No max output roi found for " + bodyId));
+            return null;
+        }
+    }
+
+    private static List<Long> getAllBigNeuronBodyIds(final Transaction tx, final String dataset) {
+        StatementResult result = tx.run("MATCH (n:Neuron:Big:" + dataset + ") RETURN n.bodyId ");
+        List<Long> bodyIdList = new ArrayList<>();
+        while (result.hasNext()) {
+            bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
+        }
+        return bodyIdList;
+    }
+
+    private static List<Long> getAllBigNeuronBodyIdsWithoutNames(final Transaction tx, final String dataset) {
+        StatementResult result = tx.run("MATCH (n:Neuron:Big:" + dataset + ") WHERE NOT exists(n.name) RETURN n.bodyId ");
+        List<Long> bodyIdList = new ArrayList<>();
+        while (result.hasNext()) {
+            bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
+        }
+        return bodyIdList;
+    }
 
 
 

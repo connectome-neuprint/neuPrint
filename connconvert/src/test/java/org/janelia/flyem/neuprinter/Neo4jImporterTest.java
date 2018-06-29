@@ -211,7 +211,7 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void testSynapsesNeuronPartsSynapseSetsMeta() {
+    public void testSynapsesNeuronPartsSynapseSetsMetaAutoName() {
 
         String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
         String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
@@ -256,6 +256,12 @@ public class Neo4jImporterTest {
 
             neo4jImporter.createMetaNode("test");
 
+            try {
+                neo4jImporter.addAutoNames("test");
+            } catch (Exception e) {
+                System.out.println("auto names failed");
+            }
+
             Node preSynNode = session.run("MATCH (s:Synapse:PreSyn{datasetLocation:\"test:4287:2277:1502\"}) RETURN s").single().get(0).asNode();
 
             Assert.assertEquals(1.0, preSynNode.asMap().get("confidence"));
@@ -291,8 +297,8 @@ public class Neo4jImporterTest {
             Node neuronPart = session.run("MATCH (p:NeuronPart {neuronPartId:\"test:8426959:seven_column_roi\"}) RETURN p").single().get(0).asNode();
 
             Assert.assertEquals(2L,neuronPart.asMap().get("pre"));
-            Assert.assertEquals(1L,neuronPart.asMap().get("post"));
-            Assert.assertEquals(3L,neuronPart.asMap().get("size"));
+            Assert.assertEquals(0L,neuronPart.asMap().get("post"));
+            Assert.assertEquals(2L,neuronPart.asMap().get("size"));
 
             Node neuronPartNeuron = session.run("MATCH (p:NeuronPart {neuronPartId:\"test:8426959:seven_column_roi\"})-[:PartOf]->(n) RETURN n").single().get(0).asNode();
 
@@ -319,11 +325,23 @@ public class Neo4jImporterTest {
             Assert.assertEquals(2L,metaNode.asMap().get("totalPreCount"));
             Assert.assertEquals(4L,metaNode.asMap().get("totalPostCount"));
 
-            Assert.assertEquals(2L,metaNode.asMap().get("roiAPostCount"));
+            Assert.assertEquals(3L,metaNode.asMap().get("roiAPostCount"));
             Assert.assertEquals(2L,metaNode.asMap().get("roiAPreCount"));
             Assert.assertEquals(0L,metaNode.asMap().get("roiBPreCount"));
             Assert.assertEquals(3L,metaNode.asMap().get("roiBPostCount"));
 
+
+            String neuronName = session.run("MATCH (n:Neuron:test{bodyId:8426959}) RETURN n.name").single().get(0).asString();
+            String neuronAutoName = session.run("MATCH (n:Neuron:test{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();
+
+            Assert.assertEquals("ROIA-ROIA-0",neuronName);
+            Assert.assertEquals(neuronName,neuronAutoName);
+
+            String neuronName2 = session.run("MATCH (n:Neuron:test{bodyId:26311}) RETURN n.name").single().get(0).asString();
+            String neuronAutoName2 = session.run("MATCH (n:Neuron:test{bodyId:26311}) RETURN n.autoName").single().get(0).asString();
+
+            Assert.assertEquals("Dm12-4",neuronName2);
+            Assert.assertEquals("ROIA-ROIA-1",neuronAutoName2);
 
 
         }

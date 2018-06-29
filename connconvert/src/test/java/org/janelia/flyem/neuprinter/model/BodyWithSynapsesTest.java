@@ -208,13 +208,13 @@ public class BodyWithSynapsesTest {
         for (NeuronPart neuronPart: body1.getNeuronParts()) {
             if (neuronPart.getRoi().equals("roiA")) {
                 Assert.assertEquals(2, neuronPart.getPre());
-                Assert.assertEquals(0, neuronPart.getPost());
+                Assert.assertEquals(1, neuronPart.getPost());
             } else if (neuronPart.getRoi().equals("roiB")) {
                 Assert.assertEquals(0, neuronPart.getPre());
                 Assert.assertEquals(1, neuronPart.getPost());
             } else if (neuronPart.getRoi().equals("seven_column_roi")) {
                 Assert.assertEquals(2, neuronPart.getPre());
-                Assert.assertEquals(1, neuronPart.getPost());
+                Assert.assertEquals(0, neuronPart.getPost());
             } else {
                 Assert.assertTrue(possibleRoisList.contains(neuronPart.getRoi()));
             }
