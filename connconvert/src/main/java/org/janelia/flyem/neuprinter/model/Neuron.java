@@ -7,6 +7,7 @@ import org.janelia.flyem.neuprinter.json.JsonUtils;
 
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
 public class Neuron {
@@ -72,7 +73,20 @@ public class Neuron {
     }
 
     public List<String> getRois() {
-        return rois;
+        // remove -lm tag on rois
+        if (this.rois!=null) {
+            List<String> newRoiList = new ArrayList<>();
+            for (String roi : rois) {
+                if (roi.endsWith("-lm")) {
+                    newRoiList.add(roi.replace("-lm", ""));
+                } else {
+                    newRoiList.add(roi);
+                }
+            }
+            return newRoiList;
+        } else {
+            return rois;
+        }
     }
 
     public Soma getSoma() {

@@ -145,7 +145,20 @@ public class Synapse {
     }
 
     public List<String> getRois() {
-        return this.rois;
+        // remove -lm tag on rois
+        if (this.rois!=null) {
+            List<String> newRoiList = new ArrayList<>();
+            for (String roi : rois) {
+                if (roi.endsWith("-lm")) {
+                    newRoiList.add(roi.replace("-lm", ""));
+                } else {
+                    newRoiList.add(roi);
+                }
+            }
+            return newRoiList;
+        } else {
+            return this.rois;
+        }
     }
 
     public static List<Synapse> fromJsonArray(final String jsonString) {

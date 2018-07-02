@@ -41,7 +41,7 @@
     "Size": 1031,
     "Name": "KC-5",
     "NeuronType": "KC",
-    "rois": ["roi1","roi2"],
+    "rois": ["roi1-lm","roi2"],
     "Soma": { "Location":[1,2,3],"Radius":5.0}
 }
 
