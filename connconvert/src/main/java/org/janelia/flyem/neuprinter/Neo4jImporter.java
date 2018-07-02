@@ -385,7 +385,7 @@ public class Neo4jImporter implements AutoCloseable {
             }
             bodyIdsWithoutNames = session.readTransaction(tx -> getAllBigNeuronBodyIdsWithoutNames(tx,dataset));
         }
-
+        // TODO: deal with situation in which neuron has no neuron parts/synapses
         try (final TransactionBatch batch = getBatch()) {
             for (AutoName autoName : autoNameList) {
                 Long bodyId = autoName.getBodyId();

@@ -170,6 +170,13 @@ public class ConnConvert {
         public boolean addMetaNodeOnly;
 
         @Parameter(
+                names = "--addAutoNamesOnly",
+                description = "Indicates that only the auto-names should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. (omit to skip)",
+                required = false,
+                arity = 0)
+        public boolean addAutoNamesOnly;
+
+        @Parameter(
                 names = "--help",
                 help = true)
         public boolean help;
@@ -526,6 +533,13 @@ public class ConnConvert {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
                 neo4jImporter.prepDatabase(dataset);
                 neo4jImporter.createMetaNode(dataset);
+            }
+        }
+
+        if ( parameters.addAutoNamesOnly ) {
+            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                neo4jImporter.prepDatabase(dataset);
+                neo4jImporter.addAutoNames(dataset);
             }
         }
 
