@@ -812,7 +812,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<Long> getAllBigNeuronBodyIdsWithoutNames(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:Neuron:Big:" + dataset + ") WHERE NOT exists(n.name) RETURN n.bodyId ");
+        StatementResult result = tx.run("MATCH (n:Neuron:Big:" + dataset + ") WHERE NOT exists(n.name) OR n.name=\"unknown\" RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
