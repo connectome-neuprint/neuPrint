@@ -119,6 +119,37 @@ public class ProofreaderProcedures {
     }
 
 
+    @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
+    @Description("proofreader.deleteNeuron(neuronBodyId,datasetLabel) : delete neuron with body Id and associated nodes from given dataset. ")
+    public void deleteNeuron(@Name("neuronBodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+        if (bodyId == null || datasetLabel == null ) System.out.println("Must provide both a bodyId and dataset label.");
+
+        final Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+
+        // grab write locks upfront
+        try (Transaction tx = dbService.beginTx()) {
+            tx.acquireWriteLock(neuron);
+            tx.success();
+        }
+
+        //delete connectsTo relationships
+        removeConnectsToRelationshipsForNode(neuron);
+
+        //delete synapse set and synapses
+        removeSynapseSetsAndSynapses(neuron);
+
+        //delete neuron parts
+        removeNeuronParts(neuron);
+
+        //delete skeleton
+        deleteSkeletonForNode(neuron);
+
+        neuron.delete();
+
+
+    }
+
+
     private ConnectsToRelationshipMap getConnectsToRelationshipMapForNodes(final Node node1, final Node node2, final Node newNode) {
 
         ConnectsToRelationshipMap connectsToRelationshipMap = new ConnectsToRelationshipMap();
@@ -150,7 +181,7 @@ public class ProofreaderProcedures {
         return connectsToRelationshipMap;
     }
 
-    private Node getSynapseSetForNode(final Node node) {
+    private Node getSynapseSetForNodeAndDeleteConnectionToNeuron(final Node node) {
         Node nodeSynapseSetNode = null;
         for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName("Contains"))) {
             Node containedNode = nodeRelationship.getEndNode();
@@ -307,12 +338,12 @@ public class ProofreaderProcedures {
     private void mergeSynapseSets(Node node1, Node node2, Node newNode, String datasetLabel) {
         //create relationships between synapse sets and new nodes (also deletes old relationship)
         Map<String, Object> parametersMap = new HashMap<>();
-        Node node1SynapseSetNode = getSynapseSetForNode(node1);
+        Node node1SynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNeuron(node1);
         if (node1SynapseSetNode != null) {
             newNode.createRelationshipTo(node1SynapseSetNode, RelationshipType.withName("Contains"));
             parametersMap.put("ssnode1", node1SynapseSetNode);
         }
-        Node node2SynapseSetNode = getSynapseSetForNode(node2);
+        Node node2SynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNeuron(node2);
         if (node2SynapseSetNode != null) {
             newNode.createRelationshipTo(node2SynapseSetNode, RelationshipType.withName("Contains"));
             parametersMap.put("ssnode2", node2SynapseSetNode);
@@ -546,6 +577,33 @@ public class ProofreaderProcedures {
 
         Map<String, Object> nodeQueryResult= dbService.execute("MATCH (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) RETURN r",getSkeletonParametersMap).next();
         return (Node) nodeQueryResult.get("r");
+    }
+
+    private void removeConnectsToRelationshipsForNode(Node node) {
+        for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName("ConnectsTo"))) {
+            nodeRelationship.delete();
+        }
+        log.info("Removed all ConnectsTo relationships for node.");
+    }
+
+    private void removeSynapseSetsAndSynapses(Node node) {
+        Node synapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNeuron(node);
+        for (Relationship ssRelationship : synapseSetNode.getRelationships(RelationshipType.withName("Contains"))) {
+            Node synapseNode = ssRelationship.getEndNode();
+            removeAllRelationships(synapseNode);
+            synapseNode.delete();
+        }
+        synapseSetNode.delete();
+        log.info("Removed all SynapseSets and Synapses for node.");
+    }
+
+    private void removeNeuronParts(Node node) {
+        for (Relationship nodeNeuronPartRelationship : node.getRelationships(RelationshipType.withName("PartOf"))) {
+            Node neuronPart = nodeNeuronPartRelationship.getStartNode();
+            nodeNeuronPartRelationship.delete();
+            neuronPart.delete();
+        }
+        log.info("Removed all NeuronParts for node.");
     }
 }
 
