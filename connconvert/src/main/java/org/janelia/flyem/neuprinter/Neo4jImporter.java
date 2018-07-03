@@ -777,8 +777,8 @@ public class Neo4jImporter implements AutoCloseable {
         try {
             return maxPostLabelList.first();
         } catch (NoSuchElementException nse) {
-            System.out.println(("No max input roi found for " + bodyId));
-            return null;
+            LOG.info(("No max input roi found for " + bodyId));
+            return "NONE";
         }
     }
 
@@ -797,8 +797,8 @@ public class Neo4jImporter implements AutoCloseable {
         try {
             return maxPreLabelList.first();
         } catch (NoSuchElementException nse) {
-            System.out.println(("No max output roi found for " + bodyId));
-            return null;
+            LOG.info(("No max output roi found for " + bodyId));
+            return "NONE";
         }
     }
 
