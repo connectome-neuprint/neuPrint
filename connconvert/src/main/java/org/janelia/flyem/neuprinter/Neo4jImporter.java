@@ -379,7 +379,7 @@ public class Neo4jImporter implements AutoCloseable {
             for (Long bodyId : bodyIdList) {
                 String maxPostRoiName = session.readTransaction(tx -> getMaxInputRoi(tx, dataset, bodyId));
                 String maxPreRoiName = session.readTransaction(tx -> getMaxOutputRoi(tx, dataset, bodyId));
-                System.out.println("body id : " + bodyId + " max output roi: " + maxPostRoiName + " max input roi: " + maxPreRoiName);
+                //System.out.println("body id : " + bodyId + " max output roi: " + maxPostRoiName + " max input roi: " + maxPreRoiName);
                 AutoName autoName = new AutoName(maxPostRoiName,maxPreRoiName,bodyId);
                 autoNameList.add(autoName);
             }
@@ -744,12 +744,12 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static long getRoiPreCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ":" + roi + ") RETURN sum(n.pre)");
+        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ":`" + roi + "`) RETURN sum(n.pre)");
         return result.single().get(0).asLong();
     }
 
     private static long getRoiPostCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ":" + roi + ") RETURN sum(n.post)");
+        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ":`" + roi + "`) RETURN sum(n.post)");
         return result.single().get(0).asLong();
     }
 
