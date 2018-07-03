@@ -29,7 +29,7 @@ public class Roi {
     }
 
     public String getRoiName() {
-        return roiName;
+        return roiName.replaceAll("[^A-Za-z0-9]","_");
     }
 
     @Override
