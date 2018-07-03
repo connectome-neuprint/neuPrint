@@ -32,7 +32,7 @@
   {
     "BodyId": 831744,
     "SynapseSet": [
-      { "Type": "post", "Location": [ 4292, 2261, 1542 ], "ConnectsFrom": [ [ 4287, 2277, 1542 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi-lm", "roiA-lm", "roiB-lm" ] }
+      { "Type": "post", "Location": [ 4292, 2261, 1542 ], "ConnectsFrom": [ [ 4287, 2277, 1542 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi-lm", "roiA-lm", "roiB-lm", "roi'C" ] }
     ]
   }
 ]
