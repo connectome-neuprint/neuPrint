@@ -10,10 +10,7 @@ import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-import org.neo4j.driver.v1.Config;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.GraphDatabase;
-import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.*;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
@@ -54,21 +51,47 @@ public class MetaNodeUpdaterTest {
             }
             neo4jImporter.addNeuronParts(dataset, bodyList);
             neo4jImporter.createMetaNode(dataset);
+        }
 
-            session.run("CREATE (n:Neuron:test{bodyId:50}) SET n.pre=5, n.post=2 RETURN n");
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
-            Node metaNode = session.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode();
+            Session session = driver.session();
 
-            Assert.assertEquals(6L,metaNode.asMap().get("totalPostCount"));
+            session.writeTransaction(tx -> {
+                Node node = tx.run("CREATE (n:Neuron:test{bodyId:50}) SET n.pre=5, n.post=2 RETURN n").single().get(0).asNode();
+                return node;
+            });
+
+            session.writeTransaction(tx -> {
+                Node node = tx.run(
+                "CREATE (np:NeuronPart:roiA{neuronPartId:\"test:50:roiA\"}) SET np.pre=5, np.post=2 RETURN np").single().get(0).asNode();
+                return node;
+            });
+
+        }
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+            Session session = driver.session();
+
+            Node metaNode = session.readTransaction(tx -> {
+                Node node = tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode();
+                return node;
+            });
+
+            Assert.assertEquals(6L, metaNode.asMap().get("totalPostCount"));
+            Assert.assertEquals(7L, metaNode.asMap().get("totalPreCount"));
+
+            Assert.assertEquals(7L, metaNode.asMap().get("roiAPreCount"));
+            Assert.assertEquals(2L, metaNode.asMap().get("roiAPostCount"));
+
+
+
 
 
             System.out.println("metaNode: " + metaNode.asMap());
-//
-//            Assert.assertEquals(5L, metaNodeV1.asMap().get("totalPreCount"));
-//            Assert.assertEquals(2L, metaNodeV1.asMap().get("totalPostCount"));
-//
-//            session.run("CREATE (n:Neuron:test{bodyId:2}) SET n.pre=5, n.post=0 RETURN n");
-//
+        }
+
+
 //            // TODO: figure out how to clear test harness cache
 //            Node metaNodeV2 = session.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode();
 //
@@ -81,4 +104,4 @@ public class MetaNodeUpdaterTest {
     }
 
 
-}
+
