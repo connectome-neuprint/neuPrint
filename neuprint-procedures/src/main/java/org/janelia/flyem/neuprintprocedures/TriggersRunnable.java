@@ -30,7 +30,7 @@ public class TriggersRunnable implements Runnable {
             Set<Long> nodesForTimeStamping = transactionDataHandler.getNodesForTimeStamping();
 
 
-            if (nodesForTimeStamping.size() > 0) {
+            if (transactionDataHandler.shouldTimeStampAndUpdateMetaNode()) {
                 System.out.println("the following nodes will be time-stamped: " + nodesForTimeStamping);
                 TimeStampProcedure.timeStampEmbedded(nodesForTimeStamping, dbService);
 

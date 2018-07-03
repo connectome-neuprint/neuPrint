@@ -62,11 +62,13 @@ public class MetaNodeUpdaterTest {
                 return node;
             });
 
-            session.writeTransaction(tx -> {
+            Node neuronPart = session.writeTransaction(tx -> {
                 Node node = tx.run(
-                "CREATE (np:NeuronPart:roiA{neuronPartId:\"test:50:roiA\"}) SET np.pre=5, np.post=2 RETURN np").single().get(0).asNode();
+                "CREATE (np:NeuronPart:test:roiA{neuronPartId:\"test:50:roiA\"}) SET np.pre=5, np.post=2 RETURN np").single().get(0).asNode();
                 return node;
             });
+
+            System.out.println(neuronPart.labels());
 
         }
 
@@ -82,22 +84,12 @@ public class MetaNodeUpdaterTest {
             Assert.assertEquals(7L, metaNode.asMap().get("totalPreCount"));
 
             Assert.assertEquals(7L, metaNode.asMap().get("roiAPreCount"));
-            Assert.assertEquals(2L, metaNode.asMap().get("roiAPostCount"));
-
-
-
+            Assert.assertEquals(4L, metaNode.asMap().get("roiAPostCount"));
 
 
             System.out.println("metaNode: " + metaNode.asMap());
         }
 
-
-//            // TODO: figure out how to clear test harness cache
-//            Node metaNodeV2 = session.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode();
-//
-//            Assert.assertEquals(10L, metaNodeV2.get("totalPreCount").asLong());
-//            Assert.assertEquals(2L, metaNodeV2.get("totalPostCount").asLong());
-//
 
 
         }

@@ -115,7 +115,7 @@ public class TransactionDataHandler {
 
     }
 
-    public boolean shouldUpdateMetaNode() {
+    public boolean shouldTimeStampAndUpdateMetaNode() {
         //if time stamping, means a significant change happened during transaction that wasn't the addition of a time stamp or alteration of the meta node itself
         return (this.nodesForTimeStamping.size() > 0);
     }

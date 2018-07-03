@@ -69,12 +69,12 @@ public class MetaNodeUpdater {
     }
 
     private static long getRoiPreCount(GraphDatabaseService dbService, final String dataset, final String roi) {
-        Result roiPreCountQuery = dbService.execute("MATCH (n:NeuronPart:" + dataset + ":" + roi + ") RETURN n.pre AS pre");
+        Result roiPreCountQuery = dbService.execute("MATCH (n:NeuronPart:" + dataset + ":" + roi + ") RETURN sum(n.pre) AS pre");
         return (long) roiPreCountQuery.next().get("pre");
     }
 
     private static long getRoiPostCount(GraphDatabaseService dbService, final String dataset, final String roi) {
-        Result roiPostCountQuery = dbService.execute("MATCH (n:NeuronPart:" + dataset + ":" + roi + ") RETURN n.post AS post");
+        Result roiPostCountQuery = dbService.execute("MATCH (n:NeuronPart:" + dataset + ":" + roi + ") RETURN sum(n.post) AS post");
         return (long) roiPostCountQuery.next().get("post");
     }
 
