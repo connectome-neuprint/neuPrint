@@ -80,11 +80,11 @@ public class MetaNodeUpdaterTest {
                 return node;
             });
 
-            Assert.assertEquals(6L, metaNode.asMap().get("totalPostCount"));
-            Assert.assertEquals(7L, metaNode.asMap().get("totalPreCount"));
+            Assert.assertEquals(7L, metaNode.asMap().get("totalPostCount"));
+            Assert.assertEquals(8L, metaNode.asMap().get("totalPreCount"));
 
             Assert.assertEquals(7L, metaNode.asMap().get("roiAPreCount"));
-            Assert.assertEquals(4L, metaNode.asMap().get("roiAPostCount"));
+            Assert.assertEquals(5L, metaNode.asMap().get("roiAPostCount"));
 
 
             System.out.println("metaNode: " + metaNode.asMap());

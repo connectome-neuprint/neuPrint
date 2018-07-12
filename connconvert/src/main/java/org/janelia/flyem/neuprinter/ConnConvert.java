@@ -259,28 +259,6 @@ public class ConnConvert {
         return bodyList;
     }
 
-    private static void setDatasetName(String neuronFilePath, String synapseFilePath) {
-        String patternNeurons = ".*/(.*?)_Neurons.*";
-        Pattern rN = Pattern.compile(patternNeurons);
-        Matcher mN = rN.matcher(neuronFilePath);
-        String patternSynapses = ".*/(.*?)_Synapses.*";
-        Pattern rS = Pattern.compile(patternSynapses);
-        Matcher mS = rS.matcher(synapseFilePath);
-        mN.matches();
-        mS.matches();
-
-        try {
-            if (mS.group(1).equals(mN.group(1))) {
-                dataset = mS.group(1);
-            } else {
-                LOG.log(Level.INFO, "Check that input files are from the same dataset.");
-                System.exit(1);
-            }
-        } catch (IllegalStateException ise) {
-            LOG.log(Level.INFO, "Check input file names.", ise);
-            System.exit(1);
-        }
-    }
 
     public static Long setSkeletonAssociatedBodyId(String swcFilePath) {
 
@@ -338,37 +316,6 @@ public class ConnConvert {
 
         }
 
-
-//        if ((parameters.datasetLabel != null)) {
-//            String patternNeurons = ".*/(.*?)_Neurons.*";
-//            Pattern rN = Pattern.compile(patternNeurons);
-//            Matcher mN = rN.matcher(parameters.neuronJson);
-//            String patternSynapses = ".*/(.*?)_Synapses.*";
-//            Pattern rS = Pattern.compile(patternSynapses);
-//            Matcher mS = rS.matcher(parameters.synapseJson);
-//            mN.matches();
-//            mS.matches();
-//            if (mN.group(1).equals(mS.group(1))) {
-//
-//
-//            } else {
-////                Scanner input = new Scanner( System.in );
-////                String userInput = null;
-////                while (userInput == null ) {
-////                    System.out.print("Input file names do not appear to be from the same dataset. Okay to proceed? (y/n) ");
-////                    userInput = input.nextLine();
-////                    if (!userInput.equals("y") && !userInput.equals("n")) {
-////                        System.out.println("Incorrect response, please respond with y or n. ");
-////                    } else if (userInput.equals("y")) {
-////
-////
-////                    }
-//                    System.out.print("Input file names do not appear to be from the same dataset.");
-//                    System.exit(1);
-//                }
-//        } else {
-//            setDatasetName(parameters.neuronJson, parameters.synapseJson);
-//        }
 
         LOG.info("Dataset is: " + dataset);
 

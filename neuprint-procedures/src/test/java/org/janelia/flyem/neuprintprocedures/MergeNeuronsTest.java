@@ -202,7 +202,7 @@ public class MergeNeuronsTest {
 
             int neuronPartCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np) RETURN count(np)").single().get(0).asInt();
 
-            Assert.assertEquals(3, neuronPartCount);
+            Assert.assertEquals(4, neuronPartCount);
 
             Long roiAPreCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.pre").single().get(0).asLong();
 
@@ -210,15 +210,15 @@ public class MergeNeuronsTest {
 
             Long roiAPostCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.post").single().get(0).asLong();
 
-            Assert.assertEquals(new Long(1), roiAPostCount);
+            Assert.assertEquals(new Long(2), roiAPostCount);
 
             Long roiASizeCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.size").single().get(0).asLong();
 
-            Assert.assertEquals(new Long(3), roiASizeCount);
+            Assert.assertEquals(new Long(4), roiASizeCount);
 
             Long scRoiSizeCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:seven_column_roi) RETURN np.size").single().get(0).asLong();
 
-            Assert.assertEquals(new Long(4), scRoiSizeCount);
+            Assert.assertEquals(new Long(5), scRoiSizeCount);
 
             int neuronPartCountForOldBody = session.run("MATCH (n{mergedBodyId:8426959})<-[:PartOf]-(np) RETURN count(np)").single().get(0).asInt();
 
@@ -300,8 +300,8 @@ public class MergeNeuronsTest {
 
             Map<String,Object> newNodeProperties = newNode.asMap();
 
-            Assert.assertEquals(2L, newNodeProperties.get("pre"));
-            Assert.assertEquals(2L, newNodeProperties.get("post"));
+            Assert.assertEquals(3L, newNodeProperties.get("pre"));
+            Assert.assertEquals(3L, newNodeProperties.get("post"));
             Assert.assertEquals(3158061L+14766999L,newNodeProperties.get("size"));
             Assert.assertEquals("Dm12-4",newNodeProperties.get( "name"));
             Assert.assertEquals(8426959L,newNodeProperties.get("bodyId"));
