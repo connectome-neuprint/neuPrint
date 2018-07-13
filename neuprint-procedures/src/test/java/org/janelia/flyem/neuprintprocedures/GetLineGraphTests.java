@@ -62,13 +62,10 @@ public class GetLineGraphTests {
             neo4jImporter.addNeuronParts(dataset, bodyList);
 
 
-            Map<String,Object> jsons = session.writeTransaction(tx -> {
-                Map<String,Object> dataMap = tx.run("CALL analysis.getLineGraph(\"seven_column_roi\",\"test\") YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
-                return dataMap;
+            String nodes = session.writeTransaction(tx -> {
+                String dataJson = tx.run("CALL analysis.getLineGraph(\"seven_column_roi\",\"test\") YIELD value AS dataJson RETURN dataJson").single().get(0).asString();
+                return dataJson;
             });
-
-            String edges = (String) jsons.get("Edges");
-            String nodes = (String) jsons.get("Vertices");
 
             Gson gson = new Gson();
 
@@ -86,13 +83,13 @@ public class GetLineGraphTests {
             Assert.assertEquals(new Integer(1), nodeList.get(3).getPost());
             Assert.assertEquals(new Location(4291L,2283L,1529L).getLocation(), nodeList.get(3).getCentroidLocation());
 
-            SynapticConnectionEdge[] edgeArray = gson.fromJson(edges,SynapticConnectionEdge[].class);
-            List<SynapticConnectionEdge> edgeList = Arrays.asList(edgeArray);
-
-            Assert.assertEquals(6, edgeList.size());
-            Assert.assertEquals("8426959_to_2589725", edgeList.get(1).getSourceName());
-            Assert.assertEquals("8426959_to_26311", edgeList.get(1).getTargetName());
-            Assert.assertEquals(new Long(189),edgeList.get(1).getDistance());
+//            SynapticConnectionEdge[] edgeArray = gson.fromJson(edges,SynapticConnectionEdge[].class);
+//            List<SynapticConnectionEdge> edgeList = Arrays.asList(edgeArray);
+//
+//            Assert.assertEquals(6, edgeList.size());
+//            Assert.assertEquals("8426959_to_2589725", edgeList.get(1).getSourceName());
+//            Assert.assertEquals("8426959_to_26311", edgeList.get(1).getTargetName());
+//            Assert.assertEquals(new Long(189),edgeList.get(1).getDistance());
 
         }
 

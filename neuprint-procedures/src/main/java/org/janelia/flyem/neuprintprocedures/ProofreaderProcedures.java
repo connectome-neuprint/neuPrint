@@ -298,7 +298,6 @@ public class ProofreaderProcedures {
             nodeQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId}) RETURN node", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
             System.out.println("Error using proofreader procedures: Node must exist in the dataset and be labeled :Neuron.");
-            System.exit(1);
         }
 
         return (Node) nodeQueryResult.get("node");
