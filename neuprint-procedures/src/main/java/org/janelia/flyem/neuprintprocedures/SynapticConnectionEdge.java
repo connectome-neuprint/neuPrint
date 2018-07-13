@@ -29,8 +29,8 @@ public class SynapticConnectionEdge {
     }
 
     private void setDistance() {
-        Long[] startCentroid = this.source.setAndGetCentroid();
-        Long[] endCentroid = this.target.setAndGetCentroid();
+        Long[] startCentroid = this.source.getCentroidLocation();
+        Long[] endCentroid = this.target.getCentroidLocation();
 
         Long dx = (startCentroid[0] - endCentroid[0]);
         Long dy = (startCentroid[1] - endCentroid[1]);

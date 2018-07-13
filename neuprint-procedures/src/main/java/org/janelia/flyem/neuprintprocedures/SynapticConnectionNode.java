@@ -8,7 +8,6 @@ import java.util.Set;
 public class SynapticConnectionNode {
 
     private String connectionDescription;
-    //private transient Long[] centroidLocationSums;
     private transient Set<Location> preSynapseLocations;
     private transient Set<Location> postSynapseLocations;
     private Long[] centroidLocation;

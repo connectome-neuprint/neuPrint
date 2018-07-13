@@ -70,3 +70,5 @@ fabric.properties
 
 
 /neuprint-procedures/target/
+/neuprint-reader/target/
+/*.json
