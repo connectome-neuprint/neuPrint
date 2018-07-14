@@ -1,5 +1,5 @@
 # neuPrint
-A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [ConnectomeAnalyzer](https://github.com/janelia-flyem/ConnectomeAnalyzer). 
+A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [neuPrintExplorer](https://github.com/janelia-flyem/neuPrintExplorer). 
 
 ## Requirements
 * Neo4j version 3.4.0
@@ -148,6 +148,6 @@ Place neuprint-procedures.jar into the plugins folder of your neo4j database, an
       * Original neurons lose all labels and relationships, and "MergedTo" relationships are created between the original neurons and the new neuron. 
 3. proofreader.addSkeleton(fileUrl,datasetLabel): Load skeleton file from url into database and connect to appropriate neuron. Returns the new skeleton node. e.g.: ``` CALL proofreader.addSkeleton("http://fileurl/87475_swc","mb6") YIELD node RETURN node ```
 4. analysis.getLineGraph(roi,datasetLabel): used to produce an edge-to-vertex dual graph, or line graph, for the neurons within the provided ROI. Produces a JSON describing vertices from which edges can be computed. e.g.: ``` CALL analysis.getLineGraph("alpha2", "mb6") YIELD value RETURN value ``` 
-The returned value is a string containing the neuron json. Note: to be used with the neo4j driver (see neuprint-reader); large results will crash the neo4j browser.
+The returned value is a string containing the vertex json. Note: to be used with the neo4j driver (see neuprint-reader); large results will crash the neo4j browser.
       
 
