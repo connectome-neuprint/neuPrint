@@ -20,28 +20,27 @@ public class AnalysisProcedures {
     public Log log;
 
     @Procedure(value = "analysis.getLineGraph", mode = Mode.READ)
-    @Description("analysis.getLineGraph(roi,datasetLabel) : used to produce an edge-to-vertex dual graph, or line graph, for the :Big neurons within the provided ROI. " +
-            "The returned value is a string containing the neuron json. Note: to be used with the neo4j driver (see neuprint-reader); large results will crash the neo4j browser." +
-            " To get a JSON describing the vertices, " +
-            "use the following query: CALL analysis.getLineGraph(roi,datasetLabel) YIELD value RETURN value.")
-    public Stream<StringResult> getLineGraph(@Name("ROI") String roi, @Name("datasetLabel") String datasetLabel) {
+    @Description("analysis.getLineGraph(roi,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) : used to produce an edge-to-vertex dual graph, or line graph, for neurons within the provided ROI " +
+            " with greater than synapseThreshold synapses.  " +
+            " The returned value is a string containing the vertex json. " +
+            " To get a JSON describing the vertices " +
+            "use the following query: CALL analysis.getLineGraph(roi,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) YIELD value RETURN value.")
+    public Stream<StringResult> getLineGraph(@Name("ROI") String roi, @Name("datasetLabel") String datasetLabel, @Name("synapseThreshold") Long synapseThreshold, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
+        if (roi == null || datasetLabel == null || synapseThreshold == null) return Stream.empty();
+        SynapticConnectionVertexMap synapticConnectionVertexMap = null;
 
-        SynapticConnectionNodeMap synapticConnectionNodeMap = null;
-
-
-        List<Long> bodyIdList = getBigNeuronBodyIdListFromRoi(roi, datasetLabel);
-        System.out.println("Number of :Big neurons within roi: " + bodyIdList.size());
+        List<Long> bodyIdList = getNeuronBodyIdListFromRoi(roi, datasetLabel, synapseThreshold);
+        System.out.println("Number of neurons within roi with greater than " + synapseThreshold + " synapses: " + bodyIdList.size());
 
 
         try {
-            synapticConnectionNodeMap = getSynapticConnectionNodeMap(bodyIdList, datasetLabel);
+            synapticConnectionVertexMap = getSynapticConnectionNodeMap(bodyIdList, datasetLabel);
         } catch (NullPointerException npe) {
             npe.printStackTrace();
         }
 
-        String nodeJson = synapticConnectionNodeMap.getNodesAsJsonObjects();
 
-        System.out.println("Created vertex json.");
+        String nodeJson = synapticConnectionVertexMap.getVerticesAboveThresholdAsJsonObjects(vertexSynapseThreshold);
 
 
         return Stream.of(new StringResult(nodeJson));
@@ -49,13 +48,13 @@ public class AnalysisProcedures {
     }
 
 
-    private List<Long> getBigNeuronBodyIdListFromRoi(String roi, String datasetLabel) {
+    private List<Long> getNeuronBodyIdListFromRoi(String roi, String datasetLabel, Long synapseThreshold) {
 
         Map<String, Object> roiQueryResult = null;
         try {
-            roiQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + ":" + roi + ":Big) WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList").next();
+            roiQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + ":" + roi + ") WHERE (node.pre+node.post)>" + synapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList").next();
         } catch (Exception e) {
-            System.out.println("Error getting node body ids for roi with name " + roi + ".:");
+            System.out.println("Error getting node body ids for roi with name " + roi + ".");
             e.printStackTrace();
         }
 
@@ -64,13 +63,13 @@ public class AnalysisProcedures {
     }
 
 
-    private Node acquireBigNeuronFromDatabase(Long nodeBodyId, String datasetLabel) {
+    private Node acquireNeuronFromDatabase(Long nodeBodyId, String datasetLabel) {
 
         Map<String, Object> parametersMap = new HashMap<>();
         parametersMap.put("nodeBodyId", nodeBodyId);
         Map<String, Object> nodeQueryResult = null;
         try {
-            nodeQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + ":Big{bodyId:$nodeBodyId}) RETURN node", parametersMap).next();
+            nodeQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId}) RETURN node", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
             System.out.println("Error using analysis procedures: Node must exist in the dataset and be labeled :Neuron.");
         }
@@ -90,12 +89,12 @@ public class AnalysisProcedures {
         return nodeSynapseSetNode;
     }
 
-    private SynapticConnectionNodeMap getSynapticConnectionNodeMap(List<Long> neuronBodyIdList, String datasetLabel) {
-        SynapticConnectionNodeMap synapticConnectionNodeMap = new SynapticConnectionNodeMap();
+    private SynapticConnectionVertexMap getSynapticConnectionNodeMap(List<Long> neuronBodyIdList, String datasetLabel) {
+        SynapticConnectionVertexMap synapticConnectionVertexMap = new SynapticConnectionVertexMap();
 
         for (Long neuronBodyId : neuronBodyIdList) {
 
-            Node neuron = acquireBigNeuronFromDatabase(neuronBodyId, datasetLabel);
+            Node neuron = acquireNeuronFromDatabase(neuronBodyId, datasetLabel);
             Node neuronSynapseSet = getSynapseSetForNode(neuron);
 
             if (neuronSynapseSet != null) {
@@ -119,13 +118,12 @@ public class AnalysisProcedures {
 
                                 if (synapseNode.hasLabel(Label.label("PreSyn"))) {
                                     categoryString = neuron.getProperty("bodyId") + "_to_" + connectedNeuronBodyId;
-                                    synapticConnectionNodeMap.addSynapticConnection(categoryString, synapseNode, connectedSynapseNode);
+                                    synapticConnectionVertexMap.addSynapticConnection(categoryString, synapseNode, connectedSynapseNode);
+
+                                } else if (synapseNode.hasLabel(Label.label("PostSyn"))) {
+                                    categoryString = connectedNeuronBodyId + "_to_" + neuron.getProperty("bodyId");
+                                    synapticConnectionVertexMap.addSynapticConnection(categoryString, connectedSynapseNode, synapseNode);
                                 }
-//                        } else if (synapseNode.hasLabel(Label.label("PostSyn"))) {
-//                            categoryString = connectedNeuronBodyId + "_to_" + neuron.getProperty("bodyId");
-//                            synapticConnectionNodeMap.addSynapticConnection(categoryString, connectedSynapseNode, synapseNode);
-//                            System.out.println("Adding " + categoryString + " with prenode " + connectedSynapseNode + " and postnode " + synapseNode);
-//                        }
 
 
                             } else {
@@ -143,7 +141,7 @@ public class AnalysisProcedures {
             }
         }
 
-        return synapticConnectionNodeMap;
+        return synapticConnectionVertexMap;
     }
 
 }

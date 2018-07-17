@@ -76,6 +76,31 @@ public class SynapticConnectionVertexMap {
 
         String json = gson.toJson(synapticConnectionVertexArray);
 
+        System.out.println("Created vertex json with " + synapticConnectionVertexArray.size() + " nodes.");
+
+
+        return json;
+    }
+
+    public String getVerticesAboveThresholdAsJsonObjects(Long minimumNumberOfSynapses) {
+
+        List<SynapticConnectionVertex> synapticConnectionVertexArray = new ArrayList<>();
+        int sizeOfFilteredList = 0;
+
+        for ( String connectionDescription : synapticConnectionVertexStore.keySet() ) {
+            SynapticConnectionVertex synapticConnectionVertex = synapticConnectionVertexStore.get(connectionDescription);
+            synapticConnectionVertex.setCentroidLocationAndSynapseCounts();
+            if ( (synapticConnectionVertex.getPost()+synapticConnectionVertex.getPre()) > minimumNumberOfSynapses ) {
+                synapticConnectionVertexArray.add(synapticConnectionVertex);
+                sizeOfFilteredList += 1;
+            }
+        }
+
+        String json = gson.toJson(synapticConnectionVertexArray);
+
+        System.out.println("Created vertex json with " + sizeOfFilteredList + " nodes.");
+
+
         return json;
     }
 
