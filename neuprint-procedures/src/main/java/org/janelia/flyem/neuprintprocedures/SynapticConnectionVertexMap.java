@@ -104,6 +104,16 @@ public class SynapticConnectionVertexMap {
         return json;
     }
 
+    public String getEdgesAsJsonObjects() {
+
+        createSynapticConnectionVertexEdges();
+        String json = gson.toJson(synapticConnectionEdges);
+        System.out.println("Created edge json with " + synapticConnectionEdges.size() + " edges.");
+
+        return json;
+
+    }
+
     public int numberOfVertices() {
         return synapticConnectionVertexStore.keySet().size();
     }

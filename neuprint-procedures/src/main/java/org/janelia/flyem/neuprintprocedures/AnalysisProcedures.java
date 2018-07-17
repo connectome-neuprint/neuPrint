@@ -1,6 +1,6 @@
 package org.janelia.flyem.neuprintprocedures;
 
-import apoc.result.StringResult;
+import apoc.result.MapResult;
 import org.neo4j.graphdb.*;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
@@ -21,11 +21,10 @@ public class AnalysisProcedures {
 
     @Procedure(value = "analysis.getLineGraph", mode = Mode.READ)
     @Description("analysis.getLineGraph(roi,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) : used to produce an edge-to-vertex dual graph, or line graph, for neurons within the provided ROI " +
-            " with greater than synapseThreshold synapses.  " +
-            " The returned value is a string containing the vertex json. " +
-            " To get a JSON describing the vertices " +
-            "use the following query: CALL analysis.getLineGraph(roi,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) YIELD value RETURN value.")
-    public Stream<StringResult> getLineGraph(@Name("ROI") String roi, @Name("datasetLabel") String datasetLabel, @Name("synapseThreshold") Long synapseThreshold, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
+            " with greater than synapseThreshold synapses. " +
+            " Return value is a map with the vertex json under key \"Vertices\" and edge json under \"Edges\".  " +
+            "e.g. CALL analysis.getLineGraph(roi,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) YIELD value RETURN value.")
+    public Stream<MapResult> getLineGraph(@Name("ROI") String roi, @Name("datasetLabel") String datasetLabel, @Name("synapseThreshold") Long synapseThreshold, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
         if (roi == null || datasetLabel == null || synapseThreshold == null) return Stream.empty();
         SynapticConnectionVertexMap synapticConnectionVertexMap = null;
 
@@ -40,10 +39,17 @@ public class AnalysisProcedures {
         }
 
 
-        String nodeJson = synapticConnectionVertexMap.getVerticesAboveThresholdAsJsonObjects(vertexSynapseThreshold);
+        String vertexJson = synapticConnectionVertexMap.getVerticesAboveThresholdAsJsonObjects(vertexSynapseThreshold);
+
+        SynapticConnectionVertexMap synapticConnectionVertexMapFromJson = new SynapticConnectionVertexMap(vertexJson);
+        String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects();
+
+        Map<String,Object> jsonMap = new HashMap<>();
+        jsonMap.put("Vertices", vertexJson);
+        jsonMap.put("Edges", edgeJson);
 
 
-        return Stream.of(new StringResult(nodeJson));
+        return Stream.of(new MapResult(jsonMap));
 
     }
 

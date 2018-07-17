@@ -21,6 +21,7 @@ import org.neo4j.harness.junit.Neo4jRule;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class GetLineGraphTests {
 
@@ -61,10 +62,14 @@ public class GetLineGraphTests {
             neo4jImporter.addNeuronParts(dataset, bodyList);
 
 
-            String nodes = session.writeTransaction(tx -> {
-                String dataJson = tx.run("CALL analysis.getLineGraph(\"seven_column_roi\",\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asString();
-                return dataJson;
+            Map<String,Object> jsonData = session.writeTransaction(tx -> {
+                Map<String,Object> jsonMap = tx.run("CALL analysis.getLineGraph(\"seven_column_roi\",\"test\",0,1) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
+                return jsonMap;
             });
+
+            String nodes = (String) jsonData.get("Vertices");
+            String edges = (String) jsonData.get("Edges");
+
 
             Gson gson = new Gson();
 
@@ -82,13 +87,13 @@ public class GetLineGraphTests {
             Assert.assertEquals(new Integer(1), nodeList.get(3).getPost());
             Assert.assertEquals(new Location(4291L,2283L,1529L).getLocation(), nodeList.get(3).getCentroidLocation());
 
-//            SynapticConnectionEdge[] edgeArray = gson.fromJson(edges,SynapticConnectionEdge[].class);
-//            List<SynapticConnectionEdge> edgeList = Arrays.asList(edgeArray);
-//
-//            Assert.assertEquals(6, edgeList.size());
-//            Assert.assertEquals("8426959_to_2589725", edgeList.get(1).getSourceName());
-//            Assert.assertEquals("8426959_to_26311", edgeList.get(1).getTargetName());
-//            Assert.assertEquals(new Long(189),edgeList.get(1).getDistance());
+            SynapticConnectionEdge[] edgeArray = gson.fromJson(edges,SynapticConnectionEdge[].class);
+            List<SynapticConnectionEdge> edgeList = Arrays.asList(edgeArray);
+
+            Assert.assertEquals(6, edgeList.size());
+            Assert.assertEquals("8426959_to_2589725", edgeList.get(1).getSourceName());
+            Assert.assertEquals("8426959_to_26311", edgeList.get(1).getTargetName());
+            Assert.assertEquals(new Long(189),edgeList.get(1).getDistance());
 
         }
 
