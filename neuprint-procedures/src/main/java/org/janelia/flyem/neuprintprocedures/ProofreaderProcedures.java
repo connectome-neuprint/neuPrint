@@ -30,7 +30,7 @@ public class ProofreaderProcedures {
     @Procedure(value = "proofreader.mergeNeurons", mode = Mode.WRITE)
     @Description("proofreader.mergeNeurons(neuron1BodyId,neuron2BodyId,datasetLabel) : merge neurons into new neuron with bodyId inherited from first in list")
     public Stream<NodeResult> mergeNeurons(@Name("neuron1BodyId") Long neuron1BodyId, @Name("neuron2BodyId") Long neuron2BodyId, @Name("datasetLabel") String datasetLabel) {
-        if (neuron1BodyId == null || neuron2BodyId == null) return Stream.empty();
+        if (neuron1BodyId == null || neuron2BodyId == null || datasetLabel == null) return Stream.empty();
 
         final Node node1 = acquireNeuronFromDatabase(neuron1BodyId, datasetLabel);
         final Node node2 = acquireNeuronFromDatabase(neuron2BodyId, datasetLabel);
@@ -78,7 +78,7 @@ public class ProofreaderProcedures {
     @Description("proofreader.addSkeleton(fileUrl,datasetLabel) : load skeleton from provided url and connect to its associated neuron (note: file URL must contain body id of neuron) ")
     public Stream<NodeResult> addSkeleton(@Name("fileUrl") String fileUrlString, @Name("datasetLabel") String datasetLabel) {
 
-        if (fileUrlString == null) return Stream.empty();
+        if (fileUrlString == null || datasetLabel == null) return Stream.empty();
 
         String neuronIdPattern = ".*/(.*?)[._]swc";
         Pattern rN = Pattern.compile(neuronIdPattern);
