@@ -5,7 +5,7 @@ import org.neo4j.graphdb.Node;
 import java.util.HashSet;
 import java.util.Set;
 
-public class SynapticConnectionNode {
+public class SynapticConnectionVertex {
 
     private String connectionDescription;
     private transient Set<Location> preSynapseLocations;
@@ -14,7 +14,7 @@ public class SynapticConnectionNode {
     private int pre;
     private int post;
 
-    public SynapticConnectionNode(String connectionDescription) {
+    public SynapticConnectionVertex(String connectionDescription) {
         this.connectionDescription = connectionDescription;
         this.preSynapseLocations = new HashSet<>();
         this.postSynapseLocations = new HashSet<>();
@@ -37,7 +37,7 @@ public class SynapticConnectionNode {
     }
 
     public Long[] setAndGetCentroid() {
-        setCentroidLocation();
+        setCentroidLocationAndSynapseCounts();
         return this.centroidLocation;
     }
 
@@ -45,7 +45,7 @@ public class SynapticConnectionNode {
         return centroidLocation;
     }
 
-    public void setCentroidLocation() {
+    public void setCentroidLocationAndSynapseCounts() {
         this.pre = preSynapseLocations.size();
         this.post = postSynapseLocations.size();
 
@@ -80,8 +80,8 @@ public class SynapticConnectionNode {
         boolean isEqual = false;
         if (this == o) {
             isEqual = true;
-        } else if (o instanceof SynapticConnectionNode) {
-            final SynapticConnectionNode that = (SynapticConnectionNode) o;
+        } else if (o instanceof SynapticConnectionVertex) {
+            final SynapticConnectionVertex that = (SynapticConnectionVertex) o;
             isEqual = this.connectionDescription.equals(that.connectionDescription);
         }
         return isEqual;

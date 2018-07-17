@@ -21,7 +21,6 @@ import org.neo4j.harness.junit.Neo4jRule;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class GetLineGraphTests {
 
@@ -63,14 +62,14 @@ public class GetLineGraphTests {
 
 
             String nodes = session.writeTransaction(tx -> {
-                String dataJson = tx.run("CALL analysis.getLineGraph(\"seven_column_roi\",\"test\") YIELD value AS dataJson RETURN dataJson").single().get(0).asString();
+                String dataJson = tx.run("CALL analysis.getLineGraph(\"seven_column_roi\",\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asString();
                 return dataJson;
             });
 
             Gson gson = new Gson();
 
-            SynapticConnectionNode[] nodeArray = gson.fromJson(nodes,SynapticConnectionNode[].class);
-            List<SynapticConnectionNode> nodeList = Arrays.asList(nodeArray);
+            SynapticConnectionVertex[] nodeArray = gson.fromJson(nodes,SynapticConnectionVertex[].class);
+            List<SynapticConnectionVertex> nodeList = Arrays.asList(nodeArray);
 
             Assert.assertEquals(4, nodeList.size());
             Assert.assertEquals("8426959_to_26311",nodeList.get(2).getConnectionDescription());

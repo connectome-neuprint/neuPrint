@@ -5,10 +5,10 @@ public class SynapticConnectionEdge {
     private String sourceName;
     private String targetName;
     private Long distance;
-    private transient SynapticConnectionNode source;
-    private transient SynapticConnectionNode target;
+    private transient SynapticConnectionVertex source;
+    private transient SynapticConnectionVertex target;
 
-    public SynapticConnectionEdge(SynapticConnectionNode source, SynapticConnectionNode target) {
+    public SynapticConnectionEdge(SynapticConnectionVertex source, SynapticConnectionVertex target) {
         this.source = source;
         this.target = target;
         this.sourceName = source.getConnectionDescription();

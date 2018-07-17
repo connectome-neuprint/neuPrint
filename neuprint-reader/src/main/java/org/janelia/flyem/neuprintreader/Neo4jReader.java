@@ -4,7 +4,7 @@ import org.janelia.flyem.neuprinter.db.DbConfig;
 import org.janelia.flyem.neuprinter.db.DbTransactionBatch;
 import org.janelia.flyem.neuprinter.db.StdOutTransactionBatch;
 import org.janelia.flyem.neuprinter.db.TransactionBatch;
-import org.janelia.flyem.neuprintprocedures.SynapticConnectionNodeMap;
+import org.janelia.flyem.neuprintprocedures.SynapticConnectionVertexMap;
 import org.neo4j.driver.v1.*;
 
 public class Neo4jReader implements AutoCloseable {
@@ -59,9 +59,9 @@ public class Neo4jReader implements AutoCloseable {
 
     public void getLineGraphEdgesAndVerticesJson(String dataset, String roi, String lineGraphVerticesJson) {
 
-        SynapticConnectionNodeMap synapticConnectionNodeMap = new SynapticConnectionNodeMap(lineGraphVerticesJson);
-        synapticConnectionNodeMap.writeEdgesAsJson(dataset, roi);
-        synapticConnectionNodeMap.writeVerticesAsJson(dataset, roi);
+        SynapticConnectionVertexMap synapticConnectionVertexMap = new SynapticConnectionVertexMap(lineGraphVerticesJson);
+        synapticConnectionVertexMap.writeEdgesAsJson(dataset, roi);
+        synapticConnectionVertexMap.writeVerticesAsJson(dataset, roi);
 
     }
 
