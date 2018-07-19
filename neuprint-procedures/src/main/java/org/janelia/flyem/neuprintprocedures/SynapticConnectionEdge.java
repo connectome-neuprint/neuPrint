@@ -1,8 +1,12 @@
 package org.janelia.flyem.neuprintprocedures;
 
+import com.google.gson.annotations.SerializedName;
+
 public class SynapticConnectionEdge {
 
+    @SerializedName("source")
     private String sourceName;
+    @SerializedName("target")
     private String targetName;
     private Long distance;
     private transient SynapticConnectionVertex source;

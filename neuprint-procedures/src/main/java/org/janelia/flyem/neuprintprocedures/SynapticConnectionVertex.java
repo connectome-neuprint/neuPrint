@@ -1,5 +1,6 @@
 package org.janelia.flyem.neuprintprocedures;
 
+import com.google.gson.annotations.SerializedName;
 import org.neo4j.graphdb.Node;
 
 import java.util.HashSet;
@@ -7,6 +8,7 @@ import java.util.Set;
 
 public class SynapticConnectionVertex {
 
+    @SerializedName("id")
     private String connectionDescription;
     private transient Set<Location> preSynapseLocations;
     private transient Set<Location> postSynapseLocations;
