@@ -19,12 +19,12 @@ public class AnalysisProcedures {
     @Context
     public Log log;
 
-    @Procedure(value = "analysis.getLineGraph", mode = Mode.READ)
+    @Procedure(value = "analysis.getLineGraphForRoi", mode = Mode.READ)
     @Description("analysis.getLineGraph(roi,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) : used to produce an edge-to-vertex dual graph, or line graph, for neurons within the provided ROI " +
             " with greater than synapseThreshold synapses. " +
             " Return value is a map with the vertex json under key \"Vertices\" and edge json under \"Edges\".  " +
-            "e.g. CALL analysis.getLineGraph(roi,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) YIELD value RETURN value.")
-    public Stream<MapResult> getLineGraph(@Name("ROI") String roi, @Name("datasetLabel") String datasetLabel, @Name("synapseThreshold") Long synapseThreshold, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
+            "e.g. CALL analysis.getLineGraphForRoi(roi,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) YIELD value RETURN value.")
+    public Stream<MapResult> getLineGraphForRoi(@Name("ROI") String roi, @Name("datasetLabel") String datasetLabel, @Name("synapseThreshold") Long synapseThreshold, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
         if (roi == null || datasetLabel == null || synapseThreshold == null) return Stream.empty();
         SynapticConnectionVertexMap synapticConnectionVertexMap = null;
 
@@ -44,12 +44,55 @@ public class AnalysisProcedures {
         SynapticConnectionVertexMap synapticConnectionVertexMapFromJson = new SynapticConnectionVertexMap(vertexJson);
         String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects();
 
-        Map<String,Object> jsonMap = new HashMap<>();
+        Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put("Vertices", vertexJson);
         jsonMap.put("Edges", edgeJson);
 
+        //String graphJson = synapticConnectionVertexMapFromJson.getGraphJson(edgeJson,vertexJson);
+
 
         return Stream.of(new MapResult(jsonMap));
+
+    }
+
+
+    @Procedure(value = "analysis.getLineGraphForNeuron", mode = Mode.READ)
+    @Description("analysis.getLineGraph(bodyId,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) : used to produce an edge-to-vertex dual graph, or line graph, for a neuron and 1st-degree connections" +
+            " with greater than synapseThreshold total synapses. " +
+            " Return value is a map with the vertex json under key \"Vertices\" and edge json under \"Edges\".  " +
+            "e.g. CALL analysis.getLineGraphForNeuron(bodyId,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) YIELD value RETURN value.")
+    public Stream<MapResult> getLineGraphForNeuron(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel, @Name("synapseThreshold") Long synapseThreshold, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
+        if (bodyId == null || datasetLabel == null || synapseThreshold == null) return Stream.empty();
+        SynapticConnectionVertexMap synapticConnectionVertexMap = null;
+
+        List<Long> bodyIdList = new ArrayList<>();
+        //add selected body
+        bodyIdList.add(bodyId);
+        //add 1st degree connections to body
+        bodyIdList.addAll(getFirstDegreeConnectionsForNeuron(bodyId,datasetLabel,synapseThreshold));
+
+
+        try {
+            synapticConnectionVertexMap = getSynapticConnectionNodeMap(bodyIdList, datasetLabel);
+        } catch (NullPointerException npe) {
+            npe.printStackTrace();
+        }
+
+        String vertexJson = synapticConnectionVertexMap.getVerticesAboveThresholdAsJsonObjects(vertexSynapseThreshold);
+
+        SynapticConnectionVertexMap synapticConnectionVertexMapFromJson = new SynapticConnectionVertexMap(vertexJson);
+        String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects();
+
+        Map<String, Object> jsonMap = new HashMap<>();
+        jsonMap.put("Vertices", vertexJson);
+        jsonMap.put("Edges", edgeJson);
+
+        //String graphJson = synapticConnectionVertexMapFromJson.getGraphJson(edgeJson,vertexJson);
+
+
+        return Stream.of(new MapResult(jsonMap));
+
+
 
     }
 
@@ -61,6 +104,22 @@ public class AnalysisProcedures {
             roiQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + ":" + roi + ") WHERE (node.pre+node.post)>" + synapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList").next();
         } catch (Exception e) {
             System.out.println("Error getting node body ids for roi with name " + roi + ".");
+            e.printStackTrace();
+        }
+
+        return (ArrayList<Long>) roiQueryResult.get("bodyIdList");
+
+    }
+
+    private List<Long> getFirstDegreeConnectionsForNeuron(Long bodyId, String datasetLabel, Long synapseThreshold) {
+
+        Map<String, Object> parametersMap = new HashMap<>();
+        parametersMap.put("nodeBodyId", bodyId);
+        Map<String, Object> roiQueryResult = null;
+        try {
+            roiQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId})-[:ConnectsTo]-(p) WHERE (p.pre+p.post)>" + synapseThreshold + " WITH collect(p.bodyId) AS bodyIdList RETURN bodyIdList", parametersMap).next();
+        } catch (Exception e) {
+            System.out.println("Error getting node body ids connected to " + bodyId + ".");
             e.printStackTrace();
         }
 

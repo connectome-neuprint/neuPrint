@@ -33,7 +33,7 @@ public class GetLineGraphTests {
 
 
     @Test
-    public void shouldStoreSynapticConnectionNodesCorrectly() {
+    public void shouldProduceLineGraphForRoi() {
 
         List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
@@ -63,7 +63,74 @@ public class GetLineGraphTests {
 
 
             Map<String,Object> jsonData = session.writeTransaction(tx -> {
-                Map<String,Object> jsonMap = tx.run("CALL analysis.getLineGraph(\"seven_column_roi\",\"test\",0,1) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
+                Map<String,Object> jsonMap = tx.run("CALL analysis.getLineGraphForRoi(\"seven_column_roi\",\"test\",0,1) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
+                return jsonMap;
+            });
+
+            String nodes = (String) jsonData.get("Vertices");
+            String edges = (String) jsonData.get("Edges");
+
+
+            Gson gson = new Gson();
+
+            SynapticConnectionVertex[] nodeArray = gson.fromJson(nodes,SynapticConnectionVertex[].class);
+            List<SynapticConnectionVertex> nodeList = Arrays.asList(nodeArray);
+
+            Assert.assertEquals(4, nodeList.size());
+            Assert.assertEquals("8426959_to_26311",nodeList.get(2).getConnectionDescription());
+            Assert.assertEquals(new Integer(2), nodeList.get(2).getPre());
+            Assert.assertEquals(new Integer(2), nodeList.get(2).getPost());
+            Assert.assertEquals(new Location(4219L,2458L,1520L).getLocation(), nodeList.get(2).getCentroidLocation());
+
+            Assert.assertEquals("8426959_to_2589725",nodeList.get(3).getConnectionDescription());
+            Assert.assertEquals(new Integer(2), nodeList.get(3).getPre());
+            Assert.assertEquals(new Integer(1), nodeList.get(3).getPost());
+            Assert.assertEquals(new Location(4291L,2283L,1529L).getLocation(), nodeList.get(3).getCentroidLocation());
+
+            SynapticConnectionEdge[] edgeArray = gson.fromJson(edges,SynapticConnectionEdge[].class);
+            List<SynapticConnectionEdge> edgeList = Arrays.asList(edgeArray);
+
+            Assert.assertEquals(6, edgeList.size());
+            Assert.assertEquals("8426959_to_2589725", edgeList.get(1).getSourceName());
+            Assert.assertEquals("8426959_to_26311", edgeList.get(1).getTargetName());
+            Assert.assertEquals(new Long(189),edgeList.get(1).getDistance());
+
+        }
+
+    }
+
+    @Test
+    public void shouldProduceLineGraphForNeuron() {
+
+        List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        bodyList.sort(new SortBodyByNumberOfSynapses());
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+            String dataset = "test";
+
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+            neo4jImporter.prepDatabase(dataset);
+
+            neo4jImporter.addNeurons(dataset, neuronList);
+
+            neo4jImporter.addConnectsTo(dataset, bodyList, 0);
+            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+            neo4jImporter.addSynapsesTo(dataset, preToPost);
+            neo4jImporter.addNeuronRois(dataset, bodyList);
+            neo4jImporter.addSynapseSets(dataset, bodyList);
+            for (BodyWithSynapses bws : bodyList) {
+                bws.setNeuronParts();
+            }
+            neo4jImporter.addNeuronParts(dataset, bodyList);
+
+
+            Map<String,Object> jsonData = session.writeTransaction(tx -> {
+                Map<String,Object> jsonMap = tx.run("CALL analysis.getLineGraphForNeuron(8426959,\"test\",0,1) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
                 return jsonMap;
             });
 
