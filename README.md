@@ -1,5 +1,5 @@
 # neuPrint
-A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [ConnectomeAnalyzer](https://github.com/janelia-flyem/ConnectomeAnalyzer). 
+A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [neuPrintExplorer](https://github.com/janelia-flyem/neuPrintExplorer). 
 
 ## Requirements
 * Neo4j version 3.4.0
@@ -147,6 +147,7 @@ Place neuprint-procedures.jar into the plugins folder of your neo4j database, an
       * The new neuron inherits bodyId from the first listed neuron. All other properties are inherited from the first listed neuron or, if a property is null for that neuron, the second listed neuron. Property names on the original neurons start with "merged", e.g. "mergedBodyId".
       * Original neurons lose all labels and relationships, and "MergedTo" relationships are created between the original neurons and the new neuron. 
 3. proofreader.addSkeleton(fileUrl,datasetLabel): Load skeleton file from url into database and connect to appropriate neuron. Returns the new skeleton node. e.g.: ``` CALL proofreader.addSkeleton("http://fileurl/87475_swc","mb6") YIELD node RETURN node ```
-4. analysis.getLineGraph(roi,datasetLabel,synapseThreshold,vertexSynapseThreshold=50): used to produce an edge-to-vertex dual graph, or line graph, for neurons within the provided ROI
-with greater than synapseThreshold synapses. Return value is a map with the vertex json under key "Vertices" and edge json under key "Edges". e.g. ``` CALL analysis.getLineGraph(roi,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) YIELD value RETURN value ```
+4. analysis.getLineGraph(roi,datasetLabel): used to produce an edge-to-vertex dual graph, or line graph, for the neurons within the provided ROI. Produces a JSON describing vertices from which edges can be computed. e.g.: ``` CALL analysis.getLineGraph("alpha2", "mb6") YIELD value RETURN value ``` 
+The returned value is a string containing the vertex json. Note: to be used with the neo4j driver (see neuprint-reader); large results will crash the neo4j browser.
+      
 
