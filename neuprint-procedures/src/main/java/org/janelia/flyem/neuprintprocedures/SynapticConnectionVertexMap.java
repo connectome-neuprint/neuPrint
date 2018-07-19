@@ -114,6 +114,15 @@ public class SynapticConnectionVertexMap {
 
     }
 
+    public String getGraphJson( String edgeJson, String vertexJson ) {
+
+        GraphJson graphJson = new GraphJson(edgeJson, vertexJson);
+        String graphJsonString = gson.toJson(graphJson);
+
+        return graphJsonString;
+
+    }
+
     public int numberOfVertices() {
         return synapticConnectionVertexStore.keySet().size();
     }
