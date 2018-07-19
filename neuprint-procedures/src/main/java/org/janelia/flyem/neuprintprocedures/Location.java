@@ -38,6 +38,14 @@ public class Location {
         return new Location(a.x + b.x, a.y + b.y,  a.z + b.z );
     }
 
+    public static Double getDistanceBetweenLocations(Location a, Location b) {
+        Long dx = (a.x - b.x);
+        Long dy = (a.y - b.y);
+        Long dz = (a.z - b.z);
+
+        return Math.sqrt(dx*dx + dy*dy + dz*dz);
+    }
+
     @Override
     public boolean equals(Object o) {
         boolean isEqual = false;

@@ -1,5 +1,6 @@
 package org.janelia.flyem.neuprintprocedures;
 
+import apoc.result.LongResult;
 import apoc.result.MapResult;
 import org.neo4j.graphdb.*;
 import org.neo4j.logging.Log;
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class AnalysisProcedures {
@@ -57,19 +59,19 @@ public class AnalysisProcedures {
 
 
     @Procedure(value = "analysis.getLineGraphForNeuron", mode = Mode.READ)
-    @Description("analysis.getLineGraph(bodyId,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) : used to produce an edge-to-vertex dual graph, or line graph, for a neuron and 1st-degree connections" +
-            " with greater than synapseThreshold total synapses. " +
+    @Description("analysis.getLineGraph(bodyId,datasetLabel,vertexSynapseThreshold=50) : used to produce an edge-to-vertex dual graph, or line graph, for a neuron." +
             " Return value is a map with the vertex json under key \"Vertices\" and edge json under \"Edges\".  " +
-            "e.g. CALL analysis.getLineGraphForNeuron(bodyId,datasetLabel,synapseThreshold,vertexSynapseThreshold=50) YIELD value RETURN value.")
-    public Stream<MapResult> getLineGraphForNeuron(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel, @Name("synapseThreshold") Long synapseThreshold, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
-        if (bodyId == null || datasetLabel == null || synapseThreshold == null) return Stream.empty();
+            "e.g. CALL analysis.getLineGraphForNeuron(bodyId,datasetLabel,vertexSynapseThreshold=50) YIELD value RETURN value.")
+    public Stream<MapResult> getLineGraphForNeuron(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
+        //TODO: deal with null pointer exceptions when body doesn't exist etc.
+        if (bodyId == null || datasetLabel == null) return Stream.empty();
         SynapticConnectionVertexMap synapticConnectionVertexMap = null;
 
         List<Long> bodyIdList = new ArrayList<>();
         //add selected body
         bodyIdList.add(bodyId);
         //add 1st degree connections to body
-        bodyIdList.addAll(getFirstDegreeConnectionsForNeuron(bodyId,datasetLabel,synapseThreshold));
+        //bodyIdList.addAll(getFirstDegreeConnectionsForNeuron(bodyId,datasetLabel,synapseThreshold));
 
 
         try {
@@ -93,6 +95,53 @@ public class AnalysisProcedures {
         return Stream.of(new MapResult(jsonMap));
 
 
+    }
+
+    @Procedure(value = "analysis.calculateSkeletonDistance", mode = Mode.READ)
+    @Description("")
+    public Stream<LongResult> calculateSkeletonDistance(@Name("datasetLabel") String datasetLabel,
+                                                        @Name("skelNodeA") Node skelNodeA, @Name("skelNodeB") Node skelNodeB) {
+        //TODO: deal with situations in which skeleton doesn't exist or user inputs invalid parameters
+        if (datasetLabel == null || skelNodeA == null || skelNodeB == null) return Stream.empty();
+
+
+        //find nodes along path between node a and node b, inclusive
+        List<Node> pathNodeList = getNodesAlongPath(skelNodeA, skelNodeB);
+
+        System.out.println("test");
+
+
+        // calculate the distance from start to finish
+
+        Double distance = 0.0D;
+        for (int i = 0; i < (pathNodeList.size() - 1); i++) {
+            distance += Location.getDistanceBetweenLocations(getSkelNodeLocation(pathNodeList.get(i)), getSkelNodeLocation(pathNodeList.get(i + 1)));
+        }
+
+        return Stream.of(new LongResult(Math.round(distance)));
+
+
+    }
+
+
+    private Location getSkelNodeLocation(Node skelNode) {
+        return new Location((Long) skelNode.getProperty("x"), (Long) skelNode.getProperty("y"), (Long) skelNode.getProperty("z"));
+    }
+
+    private List<Node> getNodesAlongPath(Node skelNodeA, Node skelNodeB) {
+
+        Map<String, Object> pathQueryResult = null;
+        Map<String, Object> parametersMap = new HashMap<>();
+        parametersMap.put("skelNodeIdA", skelNodeA.getProperty("skelNodeId"));
+        parametersMap.put("skelNodeIdB", skelNodeB.getProperty("skelNodeId"));
+        try {
+            pathQueryResult = dbService.execute("MATCH p=(:SkelNode{skelNodeId:$skelNodeIdA})-[:LinksTo*]-(:SkelNode{skelNodeId:$skelNodeIdB}) RETURN nodes(p) AS nodeList", parametersMap).next();
+        } catch (Exception e) {
+            System.out.println("Error getting path between SkelNodes.");
+            e.printStackTrace();
+        }
+
+        return (ArrayList<Node>) pathQueryResult.get("nodeList");
 
     }
 

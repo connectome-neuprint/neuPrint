@@ -1,0 +1,82 @@
+package org.janelia.flyem.neuprintprocedures;
+
+import apoc.create.Create;
+import apoc.refactor.GraphRefactoring;
+import org.janelia.flyem.neuprinter.ConnConvert;
+import org.janelia.flyem.neuprinter.Neo4jImporter;
+import org.janelia.flyem.neuprinter.model.Skeleton;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
+import org.neo4j.driver.v1.Config;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.types.Node;
+import org.neo4j.harness.junit.Neo4jRule;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.List;
+
+public class SkeletonDistanceTest {
+
+    @Rule
+    public Neo4jRule neo4j = new Neo4jRule()
+            .withProcedure(AnalysisProcedures.class)
+            .withProcedure(GraphRefactoring.class)
+            .withProcedure(Create.class);
+
+    public List<Skeleton> readSkeletonsFromSwcFileList(List<File> listOfSwcFiles) {
+        List<Skeleton> skeletonList = new ArrayList<>();
+
+        for (File swcFile : listOfSwcFiles) {
+            String filepath = swcFile.getAbsolutePath();
+            Long associatedBodyId = ConnConvert.setSkeletonAssociatedBodyId(filepath);
+            Skeleton skeleton = new Skeleton();
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
+                skeleton.fromSwc(reader, associatedBodyId);
+                skeletonList.add(skeleton);
+                System.out.println("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return skeletonList;
+
+    }
+
+
+    @Test
+    public void shouldCalculateCorrectDistance() {
+        File swcFile1 = new File("src/test/resources/101.swc");
+        File swcFile2 = new File("src/test/resources/102.swc");
+        List<File> listOfSwcFiles = new ArrayList<>();
+        listOfSwcFiles.add(swcFile1);
+        listOfSwcFiles.add(swcFile2);
+
+        List<Skeleton> skeletonList = readSkeletonsFromSwcFileList(listOfSwcFiles);
+
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+
+            neo4jImporter.addSkeletonNodes("test", skeletonList);
+
+            Long distance = session.readTransaction(tx -> tx.run("MATCH (n:SkelNode{skelNodeId:\"test:101:5464:9385:1248\"}), (m:SkelNode{skelNodeId:\"test:101:5328:9385:1368\"}) WITH n,m CALL analysis.calculateSkeletonDistance(\"test\",n,m) YIELD value RETURN value").single().get(0).asLong());
+
+            Assert.assertEquals(new Long(207),distance);
+
+        }
+
+
+
+    }
+}
