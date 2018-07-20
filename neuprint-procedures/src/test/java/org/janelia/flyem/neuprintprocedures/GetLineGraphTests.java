@@ -8,6 +8,7 @@ import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
+import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -18,10 +19,10 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.util.*;
 
 public class GetLineGraphTests {
 
@@ -108,6 +109,13 @@ public class GetLineGraphTests {
         HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
+        File swcFile1 = new File("src/test/resources/8426959.swc");
+        List<File> listOfSwcFiles = new ArrayList<>();
+        listOfSwcFiles.add(swcFile1);
+
+        List<Skeleton> skeletonList = readSkeletonsFromSwcFileList(listOfSwcFiles);
+
+
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
             Session session = driver.session();
@@ -127,16 +135,16 @@ public class GetLineGraphTests {
                 bws.setNeuronParts();
             }
             neo4jImporter.addNeuronParts(dataset, bodyList);
+            neo4jImporter.addSkeletonNodes("test", skeletonList);
 
 
             Map<String,Object> jsonData = session.writeTransaction(tx -> {
-                Map<String,Object> jsonMap = tx.run("CALL analysis.getLineGraphForNeuron(8426959,\"test\",0,1) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
+                Map<String,Object> jsonMap = tx.run("CALL analysis.getLineGraphForNeuron(8426959,\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
                 return jsonMap;
             });
 
             String nodes = (String) jsonData.get("Vertices");
             String edges = (String) jsonData.get("Edges");
-
 
             Gson gson = new Gson();
 
@@ -162,7 +170,45 @@ public class GetLineGraphTests {
             Assert.assertEquals("8426959_to_26311", edgeList.get(1).getTargetName());
             Assert.assertEquals(new Long(189),edgeList.get(1).getDistance());
 
+            Map<String,Object> jsonDataWithCableLength = session.writeTransaction(tx -> {
+                Map<String,Object> jsonMap = tx.run("CALL analysis.getLineGraphForNeuron(8426959,\"test\",0,true) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
+                return jsonMap;
+            });
+
+            String nodesFromCableLength = (String) jsonDataWithCableLength.get("Vertices");
+            String edgesFromCableLength = (String) jsonDataWithCableLength.get("Edges");
+
+            SynapticConnectionVertex[] nodeArrayFromCableLength = gson.fromJson(nodesFromCableLength,SynapticConnectionVertex[].class);
+            List<SynapticConnectionVertex> nodeListFromCableLength = Arrays.asList(nodeArrayFromCableLength);
+            SynapticConnectionEdge[] edgeArrayFromCableLength = gson.fromJson(edgesFromCableLength,SynapticConnectionEdge[].class);
+            List<SynapticConnectionEdge> edgeListFromCableLength = Arrays.asList(edgeArrayFromCableLength);
+
+            Assert.assertEquals(new Long(212),edgeListFromCableLength.get(1).getDistance());
+
+
+
         }
+
+    }
+
+    public List<Skeleton> readSkeletonsFromSwcFileList(List<File> listOfSwcFiles) {
+        List<Skeleton> skeletonList = new ArrayList<>();
+
+        for (File swcFile : listOfSwcFiles) {
+            String filepath = swcFile.getAbsolutePath();
+            Long associatedBodyId = ConnConvert.setSkeletonAssociatedBodyId(filepath);
+            Skeleton skeleton = new Skeleton();
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
+                skeleton.fromSwc(reader, associatedBodyId);
+                skeletonList.add(skeleton);
+                System.out.println("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        return skeletonList;
 
     }
 }

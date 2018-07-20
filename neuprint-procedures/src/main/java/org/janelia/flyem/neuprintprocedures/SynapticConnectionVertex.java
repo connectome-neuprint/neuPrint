@@ -76,6 +76,11 @@ public class SynapticConnectionVertex {
         return post;
     }
 
+    @Override
+    public String toString() {
+        return "Synaptic Connection Vertex : " + this.connectionDescription;
+    }
+
 
     @Override
     public boolean equals(Object o) {

@@ -45,7 +45,7 @@ public class AnalysisProcedures {
         String vertexJson = synapticConnectionVertexMap.getVerticesAboveThresholdAsJsonObjects(vertexSynapseThreshold);
 
         SynapticConnectionVertexMap synapticConnectionVertexMapFromJson = new SynapticConnectionVertexMap(vertexJson);
-        String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects();
+        String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects(false,dbService,datasetLabel,0L); //bodyId 0; won't be relevant since cableDistance is false
 
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put("Vertices", vertexJson);
@@ -63,7 +63,7 @@ public class AnalysisProcedures {
     @Description("analysis.getLineGraph(bodyId,datasetLabel,vertexSynapseThreshold=50) : used to produce an edge-to-vertex dual graph, or line graph, for a neuron." +
             " Return value is a map with the vertex json under key \"Vertices\" and edge json under \"Edges\".  " +
             "e.g. CALL analysis.getLineGraphForNeuron(bodyId,datasetLabel,vertexSynapseThreshold=50) YIELD value RETURN value.")
-    public Stream<MapResult> getLineGraphForNeuron(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
+    public Stream<MapResult> getLineGraphForNeuron(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold, @Name(value = "cableDistance", defaultValue = "false" ) Boolean cableDistance) {
         //TODO: deal with null pointer exceptions when body doesn't exist etc.
         if (bodyId == null || datasetLabel == null) return Stream.empty();
         SynapticConnectionVertexMap synapticConnectionVertexMap = null;
@@ -84,7 +84,7 @@ public class AnalysisProcedures {
         String vertexJson = synapticConnectionVertexMap.getVerticesAboveThresholdAsJsonObjects(vertexSynapseThreshold);
 
         SynapticConnectionVertexMap synapticConnectionVertexMapFromJson = new SynapticConnectionVertexMap(vertexJson);
-        String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects();
+        String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects(cableDistance,dbService,datasetLabel,bodyId);
 
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put("Vertices", vertexJson);
@@ -102,8 +102,9 @@ public class AnalysisProcedures {
     @Description("Calculates the distance between two :SkelNodes for a body.")
     public Stream<LongResult> calculateSkeletonDistance(@Name("datasetLabel") String datasetLabel,
                                                         @Name("skelNodeA") Node skelNodeA, @Name("skelNodeB") Node skelNodeB) {
-        //TODO: deal with situations in which skeleton doesn't exist or user inputs invalid parameters
+        //TODO: deal with situations in which user inputs invalid parameters
         if (datasetLabel == null || skelNodeA == null || skelNodeB == null) return Stream.empty();
+        if (skelNodeA.equals(skelNodeB)) return Stream.of(new LongResult(0L));
 
 
         //find nodes along path between node a and node b, inclusive
@@ -161,6 +162,8 @@ public class AnalysisProcedures {
                     skelNodeList.add(containedNode);
                 }
             }
+        } else {
+            throw new Error( "No skeleton for bodyId " + neuron.getProperty("bodyId") );
         }
 
         return skelNodeList;
