@@ -2,6 +2,7 @@ package org.janelia.flyem.neuprintprocedures;
 
 import apoc.result.LongResult;
 import apoc.result.MapResult;
+import apoc.result.NodeResult;
 import org.neo4j.graphdb.*;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
@@ -98,7 +99,7 @@ public class AnalysisProcedures {
     }
 
     @Procedure(value = "analysis.calculateSkeletonDistance", mode = Mode.READ)
-    @Description("")
+    @Description("Calculates the distance between two :SkelNodes for a body.")
     public Stream<LongResult> calculateSkeletonDistance(@Name("datasetLabel") String datasetLabel,
                                                         @Name("skelNodeA") Node skelNodeA, @Name("skelNodeB") Node skelNodeB) {
         //TODO: deal with situations in which skeleton doesn't exist or user inputs invalid parameters
@@ -108,24 +109,66 @@ public class AnalysisProcedures {
         //find nodes along path between node a and node b, inclusive
         List<Node> pathNodeList = getNodesAlongPath(skelNodeA, skelNodeB);
 
-        System.out.println("test");
-
-
         // calculate the distance from start to finish
+        Double distance = pathNodeList.stream()
+                .map(n -> getSkelOrSynapseNodeLocation(n))
+                .collect(DistanceHelper::new, DistanceHelper::add, DistanceHelper::combine).getSum();
 
-        Double distance = 0.0D;
-        for (int i = 0; i < (pathNodeList.size() - 1); i++) {
-            distance += Location.getDistanceBetweenLocations(getSkelNodeLocation(pathNodeList.get(i)), getSkelNodeLocation(pathNodeList.get(i + 1)));
-        }
 
         return Stream.of(new LongResult(Math.round(distance)));
 
 
     }
 
+    @Procedure(value = "analysis.getNearestSkelNodeOnBodyToPoint", mode = Mode.READ)
+    @Description("Returns the :SkelNode on the given body's skeleton that is closest to the provided point.")
+    public Stream<NodeResult> getNearestSkelNodeOnBodyToPoint(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel,
+                                                              @Name("x") Long x, @Name("y") Long y, @Name("z") Long z) {
+        if (datasetLabel == null || bodyId == null || x == null || y == null || z == null) return Stream.empty();
 
-    private Location getSkelNodeLocation(Node skelNode) {
-        return new Location((Long) skelNode.getProperty("x"), (Long) skelNode.getProperty("y"), (Long) skelNode.getProperty("z"));
+        //Location synapseLocation = getSkelOrSynapseNodeLocation(synapse);
+        Location location = new Location(x, y, z);
+        Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+
+        //get all skelnodes for the skeleton and distances to point
+        List<SkelNodeDistanceToPoint> skelNodeDistanceToPointList = getSkelNodesForSkeleton(neuron).stream()
+                .map((s) -> new SkelNodeDistanceToPoint(s, getSkelOrSynapseNodeLocation(s), location))
+                .collect(Collectors.toList());
+
+        skelNodeDistanceToPointList.sort(new SortSkelNodeDistancesToPoint());
+
+
+        return Stream.of(new NodeResult(skelNodeDistanceToPointList.get(0).getSkelNode()));
+
+
+    }
+
+    private List<Node> getSkelNodesForSkeleton(Node neuron) {
+
+        Node nodeSkeletonNode = null;
+        List<Node> skelNodeList = new ArrayList<>();
+        for (Relationship nodeRelationship : neuron.getRelationships(RelationshipType.withName("Contains"))) {
+            Node containedNode = nodeRelationship.getEndNode();
+            if (containedNode.hasLabel(Label.label("Skeleton"))) {
+                nodeSkeletonNode = containedNode;
+            }
+        }
+
+        if (nodeSkeletonNode != null) {
+            for (Relationship skeletonRelationship : nodeSkeletonNode.getRelationships(RelationshipType.withName("Contains"))) {
+                Node containedNode = skeletonRelationship.getEndNode();
+                if (containedNode.hasLabel(Label.label("SkelNode"))) {
+                    skelNodeList.add(containedNode);
+                }
+            }
+        }
+
+        return skelNodeList;
+    }
+
+
+    private Location getSkelOrSynapseNodeLocation(Node node) {
+        return new Location((Long) node.getProperty("x"), (Long) node.getProperty("y"), (Long) node.getProperty("z"));
     }
 
     private List<Node> getNodesAlongPath(Node skelNodeA, Node skelNodeB) {
@@ -256,6 +299,35 @@ public class AnalysisProcedures {
         }
 
         return synapticConnectionVertexMap;
+    }
+
+}
+
+class DistanceHelper {
+    private double sum = 0;
+    private Location first = null;
+    private Location last = null;
+
+    public void add(Location location) {
+        if (this.first == null) {
+            this.first = location;
+        }
+        if (this.last != null) {
+            this.sum += Location.getDistanceBetweenLocations(location, this.last);
+        }
+        this.last = location;
+    }
+
+    public void combine(DistanceHelper otherHelper) {
+        this.sum += otherHelper.sum;
+        if (this.last != null && otherHelper.first != null) {
+            this.sum += Location.getDistanceBetweenLocations(this.last, otherHelper.first);
+        }
+        this.last = otherHelper.last;
+    }
+
+    public double getSum() {
+        return sum;
     }
 
 }

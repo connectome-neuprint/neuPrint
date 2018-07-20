@@ -35,7 +35,7 @@ public class Location {
     }
 
     public static Location getSummedLocations(Location a, Location b) {
-        return new Location(a.x + b.x, a.y + b.y,  a.z + b.z );
+        return new Location(a.x + b.x, a.y + b.y, a.z + b.z);
     }
 
     public static Double getDistanceBetweenLocations(Location a, Location b) {
@@ -43,7 +43,12 @@ public class Location {
         Long dy = (a.y - b.y);
         Long dz = (a.z - b.z);
 
-        return Math.sqrt(dx*dx + dy*dy + dz*dz);
+        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    @Override
+    public String toString() {
+        return this.x + ":" + this.y + ":" + this.z;
     }
 
     @Override
