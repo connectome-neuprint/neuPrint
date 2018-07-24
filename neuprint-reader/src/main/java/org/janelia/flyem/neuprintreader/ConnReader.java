@@ -91,7 +91,7 @@ public class ConnReader {
         try (Neo4jReader neo4jReader = new Neo4jReader(parameters.getDbConfig())) {
 
             String vertexJson = neo4jReader.getLineGraphVerticesJson(dataset, roi);
-            neo4jReader.getLineGraphEdgesAndVerticesJson(dataset, roi, vertexJson);
+            //neo4jReader.getLineGraphEdgesAndVerticesJson(dataset, roi, vertexJson);
 
 
         }

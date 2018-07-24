@@ -57,13 +57,13 @@ public class Neo4jReader implements AutoCloseable {
         return lineGraphVerticesJson;
     }
 
-    public void getLineGraphEdgesAndVerticesJson(String dataset, String roi, String lineGraphVerticesJson) {
-
-        SynapticConnectionVertexMap synapticConnectionVertexMap = new SynapticConnectionVertexMap(lineGraphVerticesJson);
-        synapticConnectionVertexMap.writeEdgesAsJson(dataset, roi);
-        synapticConnectionVertexMap.writeVerticesAsJson(dataset, roi);
-
-    }
+//    public void getLineGraphEdgesAndVerticesJson(String dataset, String roi, String lineGraphVerticesJson) {
+//
+//        SynapticConnectionVertexMap synapticConnectionVertexMap = new SynapticConnectionVertexMap(lineGraphVerticesJson);
+//        synapticConnectionVertexMap.writeEdgesAsJson(dataset, roi);
+//        synapticConnectionVertexMap.writeVerticesAsJson(dataset, roi);
+//
+//    }
 
 
     private static String getLineGraphResult(final Transaction tx, final String dataset, final String roi) {

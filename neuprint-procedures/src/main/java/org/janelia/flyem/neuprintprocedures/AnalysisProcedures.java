@@ -3,6 +3,7 @@ package org.janelia.flyem.neuprintprocedures;
 import apoc.result.LongResult;
 import apoc.result.MapResult;
 import apoc.result.NodeResult;
+import apoc.result.StringResult;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.neo4j.graphdb.*;
 import org.neo4j.logging.Log;
@@ -46,7 +47,7 @@ public class AnalysisProcedures {
         String vertexJson = synapticConnectionVertexMap.getVerticesAboveThresholdAsJsonObjects(vertexSynapseThreshold);
 
         SynapticConnectionVertexMap synapticConnectionVertexMapFromJson = new SynapticConnectionVertexMap(vertexJson);
-        String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects(false,dbService,datasetLabel,0L); //bodyId 0; won't be relevant since cableDistance is false
+        String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects(false, dbService, datasetLabel, 0L); //bodyId 0; won't be relevant since cableDistance is false
 
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put("Vertices", vertexJson);
@@ -64,7 +65,7 @@ public class AnalysisProcedures {
     @Description("analysis.getLineGraph(bodyId,datasetLabel,vertexSynapseThreshold=50) : used to produce an edge-to-vertex dual graph, or line graph, for a neuron." +
             " Return value is a map with the vertex json under key \"Vertices\" and edge json under \"Edges\".  " +
             "e.g. CALL analysis.getLineGraphForNeuron(bodyId,datasetLabel,vertexSynapseThreshold=50) YIELD value RETURN value.")
-    public Stream<MapResult> getLineGraphForNeuron(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold, @Name(value = "cableDistance", defaultValue = "false" ) Boolean cableDistance) {
+    public Stream<MapResult> getLineGraphForNeuron(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel, @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold, @Name(value = "cableDistance", defaultValue = "false") Boolean cableDistance) {
         //TODO: deal with null pointer exceptions when body doesn't exist etc.
         if (bodyId == null || datasetLabel == null) return Stream.empty();
         SynapticConnectionVertexMap synapticConnectionVertexMap = null;
@@ -85,7 +86,7 @@ public class AnalysisProcedures {
         String vertexJson = synapticConnectionVertexMap.getVerticesAboveThresholdAsJsonObjects(vertexSynapseThreshold);
 
         SynapticConnectionVertexMap synapticConnectionVertexMapFromJson = new SynapticConnectionVertexMap(vertexJson);
-        String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects(cableDistance,dbService,datasetLabel,bodyId);
+        String edgeJson = synapticConnectionVertexMapFromJson.getEdgesAsJsonObjects(cableDistance, dbService, datasetLabel, bodyId);
 
         Map<String, Object> jsonMap = new HashMap<>();
         jsonMap.put("Vertices", vertexJson);
@@ -102,8 +103,8 @@ public class AnalysisProcedures {
     @Procedure(value = "analysis.getConnectionCentroidsAndSkeleton", mode = Mode.READ)
     @Description("")
     public Stream<MapResult> getConnectionCentroidsAndSkeleton(@Name("bodyId") Long bodyId,
-                                                                   @Name("datasetLabel") String datasetLabel,
-                                                                   @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
+                                                               @Name("datasetLabel") String datasetLabel,
+                                                               @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
 
         if (bodyId == null || datasetLabel == null) return Stream.empty();
         SynapticConnectionVertexMap synapticConnectionVertexMap = null;
@@ -124,7 +125,7 @@ public class AnalysisProcedures {
         Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
         List<Node> nodeList = getSkelNodesForSkeleton(neuron);
         List<SkelNode> skelNodeList = nodeList.stream()
-                .map( (node) -> new SkelNode(bodyId, (String) node.getProperty("location"), (float) ( (double) node.getProperty("radius")), (int) ( (long) node.getProperty("rowNumber") )))
+                .map((node) -> new SkelNode(bodyId, (String) node.getProperty("location"), (float) ((double) node.getProperty("radius")), (int) ((long) node.getProperty("rowNumber"))))
                 .collect(Collectors.toList());
         String skeletonJson = SkelNode.getSkelNodeListJson(skelNodeList);
 
@@ -180,6 +181,41 @@ public class AnalysisProcedures {
 
     }
 
+    @Procedure(value = "analysis.getInputAndOutputCountsForRois", mode = Mode.READ)
+    @Description("")
+    public Stream<StringResult> getInputAndOutputCountsForRois(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+        if (datasetLabel == null || bodyId == null) return Stream.empty();
+        // NOTE: assumes rois are mutually exclusive.
+        Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+
+        Long totalInputCount = 0L;
+        Long totalOutputCount = 0L;
+        RoiCounts roiCounts = new RoiCounts();
+
+        for (Relationship partOfRelationship : neuron.getRelationships(RelationshipType.withName("PartOf"))) {
+            Node neuronPart = partOfRelationship.getStartNode();
+            String roiName = "";
+            for (Label label : neuronPart.getLabels()) {
+                if (!label.equals(Label.label(datasetLabel)) && !label.equals(Label.label("NeuronPart"))) {
+                    roiName = label.name();
+                }
+            }
+            Long outputCount = (Long) neuronPart.getProperty("pre");
+            totalOutputCount += outputCount;
+            Long inputCount = (Long) neuronPart.getProperty("post");
+            totalInputCount += inputCount;
+
+            roiCounts.addRoiCount(roiName, inputCount, outputCount);
+
+        }
+
+        roiCounts.addRoiCount("total", totalInputCount, totalOutputCount);
+
+        String roiCountJson = roiCounts.roiCountsToJson();
+
+        return Stream.of(new StringResult(roiCountJson));
+
+    }
 
 
     private List<Node> getSkelNodesForSkeleton(Node neuron) {
@@ -201,7 +237,7 @@ public class AnalysisProcedures {
                 }
             }
         } else {
-            throw new Error( "No skeleton for bodyId " + neuron.getProperty("bodyId") );
+            throw new Error("No skeleton for bodyId " + neuron.getProperty("bodyId"));
         }
 
         return skelNodeList;
