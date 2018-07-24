@@ -1,5 +1,7 @@
 package org.janelia.flyem.neuprinter.model;
 
+import com.google.gson.Gson;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -9,8 +11,8 @@ public class SkelNode {
     private float radius;
     private Long associatedBodyId;
     private int type;
-    private SkelNode parent; // only root doesn't have a parent
-    private List<SkelNode> children = new ArrayList<>(); //no children means leaf node
+    private transient SkelNode parent; // only root doesn't have a parent
+    private transient List<SkelNode> children = new ArrayList<>(); //no children means leaf node
     private int rowNumber;
 
 
@@ -24,7 +26,25 @@ public class SkelNode {
         this.rowNumber = rowNumber;
     }
 
+    public SkelNode (Long associatedBodyId, String locationString, float radius, int rowNumber) {
+        this.associatedBodyId = associatedBodyId;
+        String[] locationStringComponents = locationString.split(":");
+        this.location = new ArrayList<>();
+        for (String component : locationStringComponents) {
+            location.add(Integer.parseInt(component));
+        }
+        this.radius = radius;
+        this.rowNumber = rowNumber;
+    }
+
     public SkelNode() {}
+
+
+    public static String getSkelNodeListJson(List<SkelNode> skelNodeList) {
+        final Gson gson = new Gson();
+        String json = gson.toJson(skelNodeList);
+        return json;
+    }
 
 
     @Override

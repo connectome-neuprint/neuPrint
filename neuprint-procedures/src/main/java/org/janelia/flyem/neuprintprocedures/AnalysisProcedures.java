@@ -3,6 +3,7 @@ package org.janelia.flyem.neuprintprocedures;
 import apoc.result.LongResult;
 import apoc.result.MapResult;
 import apoc.result.NodeResult;
+import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.neo4j.graphdb.*;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
@@ -98,6 +99,41 @@ public class AnalysisProcedures {
 
     }
 
+    @Procedure(value = "analysis.getConnectionCentroidsAndSkeleton", mode = Mode.READ)
+    @Description("")
+    public Stream<MapResult> getConnectionCentroidsAndSkeleton(@Name("bodyId") Long bodyId,
+                                                                   @Name("datasetLabel") String datasetLabel,
+                                                                   @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
+
+        if (bodyId == null || datasetLabel == null) return Stream.empty();
+        SynapticConnectionVertexMap synapticConnectionVertexMap = null;
+
+        List<Long> bodyIdList = new ArrayList<>();
+        //add selected body
+        bodyIdList.add(bodyId);
+
+        try {
+            synapticConnectionVertexMap = getSynapticConnectionNodeMap(bodyIdList, datasetLabel);
+        } catch (NullPointerException npe) {
+            npe.printStackTrace();
+        }
+
+        String centroidJson = synapticConnectionVertexMap.getVerticesAboveThresholdAsJsonObjects(vertexSynapseThreshold);
+
+        //get skeleton points
+        Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+        List<Node> nodeList = getSkelNodesForSkeleton(neuron);
+        List<SkelNode> skelNodeList = nodeList.stream()
+                .map( (node) -> new SkelNode(bodyId, (String) node.getProperty("location"), (float) ( (double) node.getProperty("radius")), (int) ( (long) node.getProperty("rowNumber") )))
+                .collect(Collectors.toList());
+        String skeletonJson = SkelNode.getSkelNodeListJson(skelNodeList);
+
+        Map<String, Object> jsonMap = new HashMap<>();
+        jsonMap.put("Centroids", centroidJson);
+        jsonMap.put("Skeleton", skeletonJson);
+        return Stream.of(new MapResult(jsonMap));
+    }
+
     @Procedure(value = "analysis.calculateSkeletonDistance", mode = Mode.READ)
     @Description("Calculates the distance between two :SkelNodes for a body.")
     public Stream<LongResult> calculateSkeletonDistance(@Name("datasetLabel") String datasetLabel,
@@ -143,6 +179,8 @@ public class AnalysisProcedures {
 
 
     }
+
+
 
     private List<Node> getSkelNodesForSkeleton(Node neuron) {
 

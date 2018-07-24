@@ -10,8 +10,8 @@ public class SynapticConnectionVertex {
 
     @SerializedName("id")
     private String connectionDescription;
-    private transient Set<Location> preSynapseLocations;
-    private transient Set<Location> postSynapseLocations;
+    private Set<Location> preSynapseLocations;
+    private Set<Location> postSynapseLocations;
     private Long[] centroidLocation;
     private int pre;
     private int post;

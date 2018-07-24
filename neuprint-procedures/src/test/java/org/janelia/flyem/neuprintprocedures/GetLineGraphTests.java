@@ -186,6 +186,18 @@ public class GetLineGraphTests {
             Assert.assertEquals(new Long(212),edgeListFromCableLength.get(1).getDistance());
 
 
+            Map<String,Object> jsonCentroidAndSkeleton = session.writeTransaction(tx -> {
+                Map<String,Object> jsonMap = tx.run("CALL analysis.getConnectionCentroidsAndSkeleton(8426959,\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
+                return jsonMap;
+            });
+
+            String centroids = (String) jsonCentroidAndSkeleton.get("Centroids");
+            String skeleton = (String) jsonCentroidAndSkeleton.get("Skeleton");
+
+
+            Assert.assertEquals(nodesFromCableLength, centroids);
+            // TODO: write test for this procedure
+
 
         }
 
@@ -211,4 +223,7 @@ public class GetLineGraphTests {
         return skeletonList;
 
     }
+
+
+
 }

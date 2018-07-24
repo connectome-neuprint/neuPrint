@@ -4,9 +4,9 @@ package org.janelia.flyem.neuprintprocedures;
 public class Location {
 
     private Long[] location;
-    private Long x;
-    private Long y;
-    private Long z;
+    private transient Long x;
+    private transient Long y;
+    private transient Long z;
 
     public Location(Long x, Long y, Long z) {
         this.x = x;
@@ -58,7 +58,7 @@ public class Location {
             isEqual = true;
         } else if (o instanceof Location) {
             final Location that = (Location) o;
-            isEqual = this.x.equals(that.x) && this.y.equals(that.y) && this.z.equals(that.z);
+            isEqual = this.location[0].equals(that.location[0]) && this.location[1].equals(that.location[1]) && this.location[2].equals(that.location[2]);
         }
         return isEqual;
     }
@@ -66,9 +66,9 @@ public class Location {
     @Override
     public int hashCode() {
         int result = 17;
-        result = 31 * result + this.x.hashCode();
-        result = 31 * result + this.y.hashCode();
-        result = 31 * result + this.z.hashCode();
+        result = 31 * result + this.location[0].hashCode();
+        result = 31 * result + this.location[1].hashCode();
+        result = 31 * result + this.location[2].hashCode();
         return result;
     }
 
