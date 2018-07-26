@@ -9,10 +9,7 @@ import org.neo4j.graphdb.*;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -188,6 +185,53 @@ public class AnalysisProcedures {
         // NOTE: assumes rois are mutually exclusive.
         Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
 
+        RoiCounts roiCounts = getRoiCountsForNeuron(neuron,datasetLabel);
+
+        String roiCountJson = roiCounts.roiCountsToJson();
+
+        return Stream.of(new StringResult(roiCountJson));
+
+    }
+
+    @Procedure(value = "analysis.getInputAndOutputFeatureVectorsForNeuronsInRoi", mode = Mode.READ)
+    @Description("")
+    public Stream<StringResult> getInputAndOutputFeatureVectorsForNeuronsInRoi(@Name("roi") String roi, @Name("datasetLabel") String datasetLabel, @Name("synapseThreshold") Long synapseThreshold ) {
+        if (datasetLabel == null || roi == null || synapseThreshold == null) return Stream.empty();
+
+
+        //get all rois for dataset except for kc_alpha_roi and seven_column_roi
+        List<String> roiList = getRoiListForDataset(datasetLabel).stream().sorted().collect(Collectors.toList());
+        System.out.println("Rois in " + datasetLabel + ": " + roiList.size());
+        System.out.println(roiList);
+
+        List<Long> bodyIdList = getNeuronBodyIdListFromRoi(roi, datasetLabel, synapseThreshold);
+        System.out.println("Number of neurons within roi with greater than " + synapseThreshold + " synapses: " + bodyIdList.size());
+
+        //for each neuron get the number of inputs per roi
+        //another vector with number of outputs per roi
+        //to be normalized and/or combined into one vector later.
+        Set<ClusteringFeatureVector> clusteringFeatureVectors = new HashSet<>();
+        for (Long bodyId : bodyIdList ) {
+            Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+            RoiCounts roiCounts = getRoiCountsForNeuron(neuron,datasetLabel);
+            long[] inputFeatureVector = new long[roiList.size()];
+            long[] outputFeatureVector = new long[roiList.size()];
+            for ( int i=0 ; i < roiList.size() ; i++ ) {
+                if (roiCounts.getRoiSynapseCount(roiList.get(i))!=null) {
+                    inputFeatureVector[i] = roiCounts.getRoiSynapseCount(roiList.get(i)).getInputCount();
+                    outputFeatureVector[i] = roiCounts.getRoiSynapseCount(roiList.get(i)).getOutputCount();
+                }
+            }
+            clusteringFeatureVectors.add(new ClusteringFeatureVector(bodyId,inputFeatureVector,outputFeatureVector));
+        }
+
+        String featureVectorsJson = ClusteringFeatureVector.getClusteringFeatureVectorSetJson(clusteringFeatureVectors);
+
+        return Stream.of(new StringResult(featureVectorsJson));
+    }
+
+    private RoiCounts getRoiCountsForNeuron(Node neuron, String datasetLabel) {
+
         Long totalInputCount = 0L;
         Long totalOutputCount = 0L;
         RoiCounts roiCounts = new RoiCounts();
@@ -211,10 +255,7 @@ public class AnalysisProcedures {
 
         roiCounts.addRoiCount("total", totalInputCount, totalOutputCount);
 
-        String roiCountJson = roiCounts.roiCountsToJson();
-
-        return Stream.of(new StringResult(roiCountJson));
-
+        return roiCounts;
     }
 
 
@@ -277,6 +318,24 @@ public class AnalysisProcedures {
         }
 
         return (ArrayList<Long>) roiQueryResult.get("bodyIdList");
+
+    }
+
+    private List<String> getRoiListForDataset(String datasetLabel) {
+
+        Map<String, Object> roiListQueryResult = null;
+        try {
+            roiListQueryResult = dbService.execute("MATCH (n:Neuron:" + datasetLabel + ") WITH labels(n) AS labs UNWIND labs AS labels WITH DISTINCT labels RETURN collect(labels)").next();
+        } catch (Exception e) {
+            System.out.println("Error getting roi list from " + datasetLabel + ".");
+            e.printStackTrace();
+        }
+
+        List<String> labels = (ArrayList<String>) roiListQueryResult.get("collect(labels)");
+
+        return labels.stream()
+                .filter( (l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+                .collect(Collectors.toList());
 
     }
 
