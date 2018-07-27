@@ -98,7 +98,10 @@ public class AnalysisProcedures {
     }
 
     @Procedure(value = "analysis.getConnectionCentroidsAndSkeleton", mode = Mode.READ)
-    @Description("")
+    @Description("Provides the synapse points and centroid for each type of synaptic connection (e.g. neuron A to neuron B) " +
+        "present in the neuron with the provided bodyId as well as the skeleton for that body. Returned value is a map with the centroid json " +
+        "under key \"Centroids\" and the skeleton json under key \"Skeleton\". " +
+            "e.g. CALL analysis.getConnectionCentroidsAndSkeleton(bodyId,datasetLabel,vertexSynapseThreshold=50) YIELD value RETURN value.")
     public Stream<MapResult> getConnectionCentroidsAndSkeleton(@Name("bodyId") Long bodyId,
                                                                @Name("datasetLabel") String datasetLabel,
                                                                @Name(value = "vertexSynapseThreshold", defaultValue = "50") Long vertexSynapseThreshold) {
