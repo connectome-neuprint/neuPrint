@@ -313,8 +313,14 @@ public class AnalysisProcedures {
     private List<Long> getNeuronBodyIdListFromRoi(String roi, String datasetLabel, Long synapseThreshold) {
 
         Map<String, Object> roiQueryResult = null;
+        String bigQuery = "MATCH (node:Neuron:" + datasetLabel + ":" + roi + ":Big) WHERE (node.pre+node.post)>" + synapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList";
+        String smallQuery = "MATCH (node:Neuron:" + datasetLabel + ":" + roi + ") WHERE (node.pre+node.post)>" + synapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList";
         try {
-            roiQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + ":" + roi + ") WHERE (node.pre+node.post)>" + synapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList").next();
+            if (synapseThreshold > 10) {
+                roiQueryResult = dbService.execute(bigQuery).next();
+            } else {
+                roiQueryResult = dbService.execute(smallQuery).next();
+            }
         } catch (Exception e) {
             System.out.println("Error getting node body ids for roi with name " + roi + ".");
             e.printStackTrace();
@@ -347,8 +353,14 @@ public class AnalysisProcedures {
         Map<String, Object> parametersMap = new HashMap<>();
         parametersMap.put("nodeBodyId", bodyId);
         Map<String, Object> roiQueryResult = null;
+        String bigQuery = "MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId})-[:ConnectsTo]-(p:Neuron:Big) WHERE (p.pre+p.post)>" + synapseThreshold + " WITH collect(p.bodyId) AS bodyIdList RETURN bodyIdList";
+        String smallQuery = "MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId})-[:ConnectsTo]-(p:Neuron) WHERE (p.pre+p.post)>" + synapseThreshold + " WITH collect(p.bodyId) AS bodyIdList RETURN bodyIdList";
         try {
-            roiQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId})-[:ConnectsTo]-(p) WHERE (p.pre+p.post)>" + synapseThreshold + " WITH collect(p.bodyId) AS bodyIdList RETURN bodyIdList", parametersMap).next();
+            if (synapseThreshold > 10) {
+                roiQueryResult = dbService.execute(bigQuery, parametersMap).next();
+            } else {
+                roiQueryResult = dbService.execute(smallQuery, parametersMap).next();
+            }
         } catch (Exception e) {
             System.out.println("Error getting node body ids connected to " + bodyId + ".");
             e.printStackTrace();
