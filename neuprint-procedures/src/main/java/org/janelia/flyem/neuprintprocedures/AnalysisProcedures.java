@@ -31,7 +31,7 @@ public class AnalysisProcedures {
         SynapticConnectionVertexMap synapticConnectionVertexMap = null;
 
         List<Long> bodyIdList = getNeuronBodyIdListFromRoi(roi, datasetLabel, synapseThreshold);
-        System.out.println("Number of neurons within roi with greater than " + synapseThreshold + " synapses: " + bodyIdList.size());
+        log.info("Number of neurons within roi with greater than " + synapseThreshold + " synapses: " + bodyIdList.size());
 
 
         try {
@@ -204,11 +204,11 @@ public class AnalysisProcedures {
 
         //get all rois for dataset except for kc_alpha_roi and seven_column_roi
         List<String> roiList = getRoiListForDataset(datasetLabel).stream().sorted().collect(Collectors.toList());
-        System.out.println("Rois in " + datasetLabel + ": " + roiList.size());
-        System.out.println(roiList);
+        log.info("Rois in " + datasetLabel + ": " + roiList.size());
+        log.info(roiList.toString());
 
         List<Long> bodyIdList = getNeuronBodyIdListFromRoi(roi, datasetLabel, synapseThreshold);
-        System.out.println("Number of neurons within roi with greater than " + synapseThreshold + " synapses: " + bodyIdList.size());
+        log.info("Number of neurons within roi with greater than " + synapseThreshold + " synapses: " + bodyIdList.size());
 
         //for each neuron get the number of inputs per roi
         //another vector with number of outputs per roi
@@ -301,7 +301,7 @@ public class AnalysisProcedures {
         try {
             pathQueryResult = dbService.execute("MATCH p=(:SkelNode{skelNodeId:$skelNodeIdA})-[:LinksTo*]-(:SkelNode{skelNodeId:$skelNodeIdB}) RETURN nodes(p) AS nodeList", parametersMap).next();
         } catch (Exception e) {
-            System.out.println("Error getting path between SkelNodes.");
+            log.error("Error getting path between SkelNodes.");
             e.printStackTrace();
         }
 
@@ -322,7 +322,7 @@ public class AnalysisProcedures {
                 roiQueryResult = dbService.execute(smallQuery).next();
             }
         } catch (Exception e) {
-            System.out.println("Error getting node body ids for roi with name " + roi + ".");
+            log.error("Error getting node body ids for roi with name " + roi + ".");
             e.printStackTrace();
         }
 
@@ -345,14 +345,14 @@ public class AnalysisProcedures {
                         .filter((l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
                         .collect(Collectors.toList());
             } catch (NoSuchElementException nse) {
-                System.out.println("No Meta node found for this dataset. Acquiring rois from Neuron nodes...");
+                log.error("No Meta node found for this dataset. Acquiring rois from Neuron nodes...");
                 roiListQueryResult = dbService.execute(getRoiFromNeurons).next();
                 List<String> labels = (ArrayList<String>) roiListQueryResult.get("rois");
                 rois = labels.stream()
                         .filter((l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
                         .collect(Collectors.toList());
             } catch (NullPointerException npe) {
-                System.out.println("No rois property found on Meta node for this dataset. Acquiring rois from Neuron nodes...");
+                log.error("No rois property found on Meta node for this dataset. Acquiring rois from Neuron nodes...");
                 roiListQueryResult = dbService.execute(getRoiFromNeurons).next();
                 List<String> labels = (ArrayList<String>) roiListQueryResult.get("rois");
                 rois = labels.stream()
@@ -360,7 +360,7 @@ public class AnalysisProcedures {
                         .collect(Collectors.toList());
             }
         } catch (Exception e) {
-            System.out.println("Error getting roi list from " + datasetLabel + ".");
+            log.error("Error getting roi list from " + datasetLabel + ".");
             e.printStackTrace();
         }
 
@@ -383,7 +383,7 @@ public class AnalysisProcedures {
                 roiQueryResult = dbService.execute(smallQuery, parametersMap).next();
             }
         } catch (Exception e) {
-            System.out.println("Error getting node body ids connected to " + bodyId + ".");
+            log.error("Error getting node body ids connected to " + bodyId + ".");
             e.printStackTrace();
         }
 
@@ -400,7 +400,7 @@ public class AnalysisProcedures {
         try {
             nodeQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId}) RETURN node", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
-            System.out.println("Error using analysis procedures: Node must exist in the dataset and be labeled :Neuron.");
+            log.error("Error using analysis procedures: Node must exist in the dataset and be labeled :Neuron.");
         }
 
         return (Node) nodeQueryResult.get("node");
@@ -456,17 +456,17 @@ public class AnalysisProcedures {
 
 
                             } else {
-                                System.out.println("No synapse set relationship found for synapse: " + connectedSynapseNode.getAllProperties());
+                                log.info("No synapse set relationship found for synapse: " + connectedSynapseNode.getAllProperties());
                             }
 
 
                         } else {
-                            System.out.println("Connected synapse is not associated with any neuron: " + connectedSynapseNode.getAllProperties());
+                            log.info("Connected synapse is not associated with any neuron: " + connectedSynapseNode.getAllProperties());
                         }
                     }
                 }
             } else {
-                System.out.println("No synapse set found for neuron " + neuronBodyId);
+                log.info("No synapse set found for neuron " + neuronBodyId);
             }
         }
 

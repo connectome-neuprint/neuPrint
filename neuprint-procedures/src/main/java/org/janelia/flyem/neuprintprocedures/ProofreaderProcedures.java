@@ -93,13 +93,13 @@ public class ProofreaderProcedures {
         try {
             fileUrl = new URL(fileUrlString);
         } catch (MalformedURLException e) {
-            System.out.println("Malformed URL: " + e.getMessage());
+            log.error("Malformed URL: " + e.getMessage());
         }
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(fileUrl.openStream()))) {
                 skeleton.fromSwc(reader,neuronBodyId);
         } catch (IOException e) {
-            System.out.println("IOException: " + e.getMessage());
+            log.error("IOException: " + e.getMessage());
         }
 
 
@@ -122,7 +122,7 @@ public class ProofreaderProcedures {
     @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
     @Description("proofreader.deleteNeuron(neuronBodyId,datasetLabel) : delete neuron with body Id and associated nodes from given dataset. ")
     public void deleteNeuron(@Name("neuronBodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
-        if (bodyId == null || datasetLabel == null ) System.out.println("Must provide both a bodyId and dataset label.");
+        if (bodyId == null || datasetLabel == null ) log.error("Must provide both a bodyId and dataset label.");
 
         final Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
 
@@ -328,7 +328,7 @@ public class ProofreaderProcedures {
         try {
             nodeQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId}) RETURN node", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
-            System.out.println("Error using proofreader procedures: Node must exist in the dataset and be labeled :Neuron.");
+            log.error("Error using proofreader procedures: Node must exist in the dataset and be labeled :Neuron.");
         }
 
         return (Node) nodeQueryResult.get("node");
