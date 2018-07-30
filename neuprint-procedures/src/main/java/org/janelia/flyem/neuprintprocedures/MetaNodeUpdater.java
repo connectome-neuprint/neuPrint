@@ -1,6 +1,5 @@
 package org.janelia.flyem.neuprintprocedures;
 
-import com.google.common.graph.Graph;
 import org.janelia.flyem.neuprinter.model.Roi;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -12,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class MetaNodeUpdater {
 
@@ -19,31 +19,39 @@ public class MetaNodeUpdater {
     public static void updateMetaNode(Long metaNodeId, GraphDatabaseService dbService, String dataset) {
 
         try {
-                Node metaNode = dbService.getNodeById(metaNodeId);
-                getWriteLockForNode(metaNode, dbService);
+            Node metaNode = dbService.getNodeById(metaNodeId);
+            getWriteLockForNode(metaNode, dbService);
 
-                long preCount = getTotalPreCount(dbService, dataset);
-                long postCount = getTotalPostCount(dbService, dataset);
+            long preCount = getTotalPreCount(dbService, dataset);
+            long postCount = getTotalPostCount(dbService, dataset);
 
-                List<String> roiNameList = getAllRoisFromNeuronParts(dbService, dataset);
-                Set<Roi> roiSet = new HashSet<>();
+            List<String> roiNameList = getAllRoisFromNeuronParts(dbService, dataset)
+                    .stream()
+                    .filter((l) -> (!l.equals("NeuronPart") && !l.equals(dataset)))
+                    .collect(Collectors.toList());
+            Set<Roi> roiSet = new HashSet<>();
 
-                for (String roi : roiNameList) {
-                    if (!roi.equals("NeuronPart") && !roi.equals(dataset)) {
-                        long roiPreCount = getRoiPreCount(dbService, dataset, roi);
-                        long roiPostCount = getRoiPostCount(dbService, dataset, roi);
-                        roiSet.add(new Roi(roi, roiPreCount, roiPostCount));
-                    }
-                }
+            for (String roi : roiNameList) {
+                long roiPreCount = getRoiPreCount(dbService, dataset, roi);
+                long roiPostCount = getRoiPostCount(dbService, dataset, roi);
+                roiSet.add(new Roi(roi, roiPreCount, roiPostCount));
+            }
 
 
-                metaNode.setProperty("lastDatabaseEdit", LocalDate.now());
-                metaNode.setProperty("totalPreCount", preCount);
-                metaNode.setProperty("totalPostCount", postCount);
+            List<String> roiNameListWithoutNonDisjointRois = roiNameList
+                    .stream()
+                    .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+                    .collect(Collectors.toList());
+
+            metaNode.setProperty("lastDatabaseEdit", LocalDate.now());
+            metaNode.setProperty("totalPreCount", preCount);
+            metaNode.setProperty("totalPostCount", postCount);
+            metaNode.setProperty("rois", roiNameListWithoutNonDisjointRois
+                    .toArray(new String[roiNameListWithoutNonDisjointRois.size()]));
 
 
             for (Roi roi : roiSet) {
-                System.out.println("setting " + roi.getRoiName() + " pre:" + roi.getPreCount() + " post:" + roi.getPostCount() );
+                System.out.println("setting " + roi.getRoiName() + " pre:" + roi.getPreCount() + " post:" + roi.getPostCount());
                 metaNode.setProperty(roi.getRoiName() + "PreCount", roi.getPreCount());
                 metaNode.setProperty(roi.getRoiName() + "PostCount", roi.getPostCount());
 
@@ -80,7 +88,7 @@ public class MetaNodeUpdater {
 
     private static List<String> getAllRoisFromNeuronParts(GraphDatabaseService dbService, final String dataset) {
         List<String> roiList = new ArrayList<>();
-        Result roiLabelQuery = dbService.execute("MATCH (n:NeuronPart:" + dataset + ") WITH distinct labels(n) AS labels UNWIND labels AS label RETURN DISTINCT label");
+        Result roiLabelQuery = dbService.execute("MATCH (n:NeuronPart:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
 
         while (roiLabelQuery.hasNext()) {
             roiList.add((String) roiLabelQuery.next().get("label"));

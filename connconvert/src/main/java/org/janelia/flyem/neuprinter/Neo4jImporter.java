@@ -1,7 +1,6 @@
 package org.janelia.flyem.neuprinter;
 
 import org.janelia.flyem.neuprinter.db.DbConfig;
-
 import org.janelia.flyem.neuprinter.db.DbTransactionBatch;
 import org.janelia.flyem.neuprinter.db.StdOutTransactionBatch;
 import org.janelia.flyem.neuprinter.db.TransactionBatch;
@@ -10,8 +9,8 @@ import org.neo4j.driver.v1.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.*;
 import java.time.LocalDate;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
@@ -381,10 +380,10 @@ public class Neo4jImporter implements AutoCloseable {
                 String maxPostRoiName = session.readTransaction(tx -> getMaxInputRoi(tx, dataset, bodyId));
                 String maxPreRoiName = session.readTransaction(tx -> getMaxOutputRoi(tx, dataset, bodyId));
                 //System.out.println("body id : " + bodyId + " max output roi: " + maxPostRoiName + " max input roi: " + maxPreRoiName);
-                AutoName autoName = new AutoName(maxPostRoiName,maxPreRoiName,bodyId);
+                AutoName autoName = new AutoName(maxPostRoiName, maxPreRoiName, bodyId);
                 autoNameList.add(autoName);
             }
-            bodyIdsWithoutNames = session.readTransaction(tx -> getAllBigNeuronBodyIdsWithoutNames(tx,dataset));
+            bodyIdsWithoutNames = session.readTransaction(tx -> getAllBigNeuronBodyIdsWithoutNames(tx, dataset));
         }
 
         try (final TransactionBatch batch = getBatch()) {
@@ -402,9 +401,6 @@ public class Neo4jImporter implements AutoCloseable {
             }
             batch.writeTransaction();
         }
-
-
-
 
 
         LOG.info("addAutoNames: exit");
@@ -702,9 +698,9 @@ public class Neo4jImporter implements AutoCloseable {
                     .filter((l) -> (!l.equals("NeuronPart") && !l.equals(dataset)))
                     .collect(Collectors.toList());
             for (String roi : roiNameList) {
-                    long roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
-                    long roiPostCount = session.readTransaction(tx -> getRoiPostCount(tx, dataset, roi));
-                    roiSet.add(new Roi(roi,roiPreCount,roiPostCount));
+                long roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
+                long roiPostCount = session.readTransaction(tx -> getRoiPostCount(tx, dataset, roi));
+                roiSet.add(new Roi(roi, roiPreCount, roiPostCount));
             }
         }
 
@@ -715,7 +711,7 @@ public class Neo4jImporter implements AutoCloseable {
                     "timeStamp", timeStamp,
                     "rois", roiNameList
                             .stream()
-                            .filter( (l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+                            .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
                             .collect(Collectors.toList())
             )));
 
@@ -725,7 +721,7 @@ public class Neo4jImporter implements AutoCloseable {
                         "PreCount=$roiPreCount, m." + roi.getRoiName() + "PostCount=$roiPostCount ";
 
                 batch.addStatement(new Statement(metaNodeRoiString,
-                        parameters("dataset",dataset,
+                        parameters("dataset", dataset,
                                 "roiPreCount", roi.getPreCount(),
                                 "roiPostCount", roi.getPostCount()
                         )));
@@ -761,7 +757,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<String> getAllRois(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label RETURN DISTINCT label");
+        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
         List<String> roiList = new ArrayList<>();
         while (result.hasNext()) {
             roiList.add(result.next().asMap().get("label").toString());
@@ -769,11 +765,11 @@ public class Neo4jImporter implements AutoCloseable {
         return roiList;
     }
 
-    private static String getMaxInputRoi(final Transaction tx, final String dataset, Long bodyId){
+    private static String getMaxInputRoi(final Transaction tx, final String dataset, Long bodyId) {
         TreeSet<String> maxPostLabelList = new TreeSet<>();
         StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WITH max(np.post) AS maxPost " +
                 "MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WHERE np.post=maxPost WITH DISTINCT labels(np) AS labels " +
-                "UNWIND labels AS label RETURN DISTINCT label",parameters("bodyId",bodyId));
+                "UNWIND labels AS label RETURN DISTINCT label", parameters("bodyId", bodyId));
         while (result.hasNext()) {
             String roiName = result.next().asMap().get("label").toString();
             if (!roiName.equals("NeuronPart") && !roiName.equals(dataset)) {
@@ -789,11 +785,11 @@ public class Neo4jImporter implements AutoCloseable {
         }
     }
 
-    private static String getMaxOutputRoi(final Transaction tx, final String dataset, Long bodyId){
+    private static String getMaxOutputRoi(final Transaction tx, final String dataset, Long bodyId) {
         TreeSet<String> maxPreLabelList = new TreeSet<>();
         StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WITH max(np.pre) AS maxPre " +
                 "MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WHERE np.pre=maxPre WITH DISTINCT labels(np) AS labels " +
-                "UNWIND labels AS label RETURN DISTINCT label",parameters("bodyId",bodyId));
+                "UNWIND labels AS label RETURN DISTINCT label", parameters("bodyId", bodyId));
         while (result.hasNext()) {
             String roiName = result.next().asMap().get("label").toString();
             if (!roiName.equals("NeuronPart") && !roiName.equals(dataset)) {
@@ -826,8 +822,6 @@ public class Neo4jImporter implements AutoCloseable {
         }
         return bodyIdList;
     }
-
-
 
 
     private static final Logger LOG = LoggerFactory.getLogger(Neo4jImporter.class);

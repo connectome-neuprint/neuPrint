@@ -10,7 +10,10 @@ import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-import org.neo4j.driver.v1.*;
+import org.neo4j.driver.v1.Config;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
@@ -58,17 +61,15 @@ public class MetaNodeUpdaterTest {
             Session session = driver.session();
 
             session.writeTransaction(tx -> {
-                Node node = tx.run("CREATE (n:Neuron:test{bodyId:50}) SET n.pre=5, n.post=2 RETURN n").single().get(0).asNode();
-                return node;
+                tx.run("CREATE (n:Neuron:test{bodyId:50})<-[:PartOf]-(p:NeuronPart:newRoi:test) SET n.pre=5, n.post=2 RETURN n,p");
+                return 1;
             });
 
             Node neuronPart = session.writeTransaction(tx -> {
                 Node node = tx.run(
-                "CREATE (np:NeuronPart:test:roiA{neuronPartId:\"test:50:roiA\"}) SET np.pre=5, np.post=2 RETURN np").single().get(0).asNode();
+                        "CREATE (np:NeuronPart:test:roiA{neuronPartId:\"test:50:roiA\"}) SET np.pre=5, np.post=2 RETURN np").single().get(0).asNode();
                 return node;
             });
-
-            System.out.println(neuronPart.labels());
 
         }
 
@@ -86,14 +87,15 @@ public class MetaNodeUpdaterTest {
             Assert.assertEquals(7L, metaNode.asMap().get("roiAPreCount"));
             Assert.assertEquals(5L, metaNode.asMap().get("roiAPostCount"));
 
-
-            System.out.println("metaNode: " + metaNode.asMap());
-        }
-
-
+            List<String> roiList = (List<String>) metaNode.asMap().get("rois");
+            Assert.assertEquals(4, roiList.size());
+            Assert.assertEquals("anotherRoi", roiList.get(0));
 
         }
+
+
     }
+}
 
 
 

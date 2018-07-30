@@ -4,7 +4,6 @@ import apoc.result.LongResult;
 import apoc.result.MapResult;
 import apoc.result.NodeResult;
 import apoc.result.StringResult;
-import org.apache.commons.lang.ObjectUtils;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.neo4j.graphdb.*;
 import org.neo4j.logging.Log;
@@ -100,8 +99,8 @@ public class AnalysisProcedures {
 
     @Procedure(value = "analysis.getConnectionCentroidsAndSkeleton", mode = Mode.READ)
     @Description("Provides the synapse points and centroid for each type of synaptic connection (e.g. neuron A to neuron B) " +
-        "present in the neuron with the provided bodyId as well as the skeleton for that body. Returned value is a map with the centroid json " +
-        "under key \"Centroids\" and the skeleton json under key \"Skeleton\". " +
+            "present in the neuron with the provided bodyId as well as the skeleton for that body. Returned value is a map with the centroid json " +
+            "under key \"Centroids\" and the skeleton json under key \"Skeleton\". " +
             "e.g. CALL analysis.getConnectionCentroidsAndSkeleton(bodyId,datasetLabel,vertexSynapseThreshold=50) YIELD value RETURN value.")
     public Stream<MapResult> getConnectionCentroidsAndSkeleton(@Name("bodyId") Long bodyId,
                                                                @Name("datasetLabel") String datasetLabel,
@@ -189,7 +188,7 @@ public class AnalysisProcedures {
         // NOTE: assumes rois are mutually exclusive.
         Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
 
-        RoiCounts roiCounts = getRoiCountsForNeuron(neuron,datasetLabel);
+        RoiCounts roiCounts = getRoiCountsForNeuron(neuron, datasetLabel);
 
         String roiCountJson = roiCounts.roiCountsToJson();
 
@@ -199,7 +198,7 @@ public class AnalysisProcedures {
 
     @Procedure(value = "analysis.getInputAndOutputFeatureVectorsForNeuronsInRoi", mode = Mode.READ)
     @Description("")
-    public Stream<StringResult> getInputAndOutputFeatureVectorsForNeuronsInRoi(@Name("roi") String roi, @Name("datasetLabel") String datasetLabel, @Name("synapseThreshold") Long synapseThreshold ) {
+    public Stream<StringResult> getInputAndOutputFeatureVectorsForNeuronsInRoi(@Name("roi") String roi, @Name("datasetLabel") String datasetLabel, @Name("synapseThreshold") Long synapseThreshold) {
         if (datasetLabel == null || roi == null || synapseThreshold == null) return Stream.empty();
 
 
@@ -215,18 +214,18 @@ public class AnalysisProcedures {
         //another vector with number of outputs per roi
         //to be normalized and/or combined into one vector later.
         Set<ClusteringFeatureVector> clusteringFeatureVectors = new HashSet<>();
-        for (Long bodyId : bodyIdList ) {
+        for (Long bodyId : bodyIdList) {
             Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
-            RoiCounts roiCounts = getRoiCountsForNeuron(neuron,datasetLabel);
+            RoiCounts roiCounts = getRoiCountsForNeuron(neuron, datasetLabel);
             long[] inputFeatureVector = new long[roiList.size()];
             long[] outputFeatureVector = new long[roiList.size()];
-            for ( int i=0 ; i < roiList.size() ; i++ ) {
-                if (roiCounts.getRoiSynapseCount(roiList.get(i))!=null) {
+            for (int i = 0; i < roiList.size(); i++) {
+                if (roiCounts.getRoiSynapseCount(roiList.get(i)) != null) {
                     inputFeatureVector[i] = roiCounts.getRoiSynapseCount(roiList.get(i)).getInputCount();
                     outputFeatureVector[i] = roiCounts.getRoiSynapseCount(roiList.get(i)).getOutputCount();
                 }
             }
-            clusteringFeatureVectors.add(new ClusteringFeatureVector(bodyId,inputFeatureVector,outputFeatureVector));
+            clusteringFeatureVectors.add(new ClusteringFeatureVector(bodyId, inputFeatureVector, outputFeatureVector));
         }
 
         String featureVectorsJson = ClusteringFeatureVector.getClusteringFeatureVectorSetJson(clusteringFeatureVectors);
@@ -341,9 +340,9 @@ public class AnalysisProcedures {
         try {
             try {
                 roiListQueryResult = dbService.execute(getRoiFromMeta).next();
-                List<String> labels = (ArrayList<String>) roiListQueryResult.get("rois");
+                List<String> labels = Arrays.asList((String[]) roiListQueryResult.get("rois"));
                 rois = labels.stream()
-                        .filter( (l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+                        .filter((l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
                         .collect(Collectors.toList());
             } catch (NoSuchElementException nse) {
                 System.out.println("No Meta node found for this dataset. Acquiring rois from Neuron nodes...");
@@ -357,14 +356,13 @@ public class AnalysisProcedures {
                 roiListQueryResult = dbService.execute(getRoiFromNeurons).next();
                 List<String> labels = (ArrayList<String>) roiListQueryResult.get("rois");
                 rois = labels.stream()
-                        .filter( (l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+                        .filter((l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
                         .collect(Collectors.toList());
             }
         } catch (Exception e) {
             System.out.println("Error getting roi list from " + datasetLabel + ".");
             e.printStackTrace();
         }
-
 
 
         return rois;
