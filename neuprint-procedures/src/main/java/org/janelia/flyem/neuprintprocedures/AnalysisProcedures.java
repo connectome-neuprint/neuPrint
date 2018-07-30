@@ -392,18 +392,27 @@ public class AnalysisProcedures {
     }
 
 
-    private Node acquireNeuronFromDatabase(Long nodeBodyId, String datasetLabel) {
+    private Node acquireNeuronFromDatabase(Long nodeBodyId, String datasetLabel) throws Error {
 
         Map<String, Object> parametersMap = new HashMap<>();
         parametersMap.put("nodeBodyId", nodeBodyId);
         Map<String, Object> nodeQueryResult = null;
+        Node foundNode = null;
+
         try {
             nodeQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId}) RETURN node", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
-            log.error("Error using analysis procedures: Node must exist in the dataset and be labeled :Neuron.");
+            throw new Error("Error using analysis procedures: Node must exist in the dataset and be labeled :Neuron.");
         }
 
-        return (Node) nodeQueryResult.get("node");
+        try {
+            foundNode = (Node) nodeQueryResult.get("node");
+        } catch (NullPointerException npe) {
+            throw new Error("Error using analysis procedures: Node must exist in the dataset and be labeled :Neuron.");
+        }
+
+        return foundNode;
+
     }
 
     private Node getSynapseSetForNode(final Node node) {
