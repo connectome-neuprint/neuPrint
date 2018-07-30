@@ -59,6 +59,8 @@ public class InputAndOutputCountsForRoisTest {
                 bws.setNeuronParts();
             }
             neo4jImporter.addNeuronParts(dataset, bodyList);
+            neo4jImporter.createMetaNode(dataset);
+            neo4jImporter.addAutoNames(dataset);
 
 
             String jsonData = session.writeTransaction(tx -> {

@@ -135,6 +135,8 @@ public class GetLineGraphTests {
                 bws.setNeuronParts();
             }
             neo4jImporter.addNeuronParts(dataset, bodyList);
+            neo4jImporter.createMetaNode(dataset);
+            neo4jImporter.addAutoNames(dataset);
             neo4jImporter.addSkeletonNodes("test", skeletonList);
 
 

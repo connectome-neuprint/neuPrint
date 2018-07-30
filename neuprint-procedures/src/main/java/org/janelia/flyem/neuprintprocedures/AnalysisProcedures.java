@@ -4,6 +4,7 @@ import apoc.result.LongResult;
 import apoc.result.MapResult;
 import apoc.result.NodeResult;
 import apoc.result.StringResult;
+import org.apache.commons.lang.ObjectUtils;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.neo4j.graphdb.*;
 import org.neo4j.logging.Log;
@@ -332,19 +333,41 @@ public class AnalysisProcedures {
 
     private List<String> getRoiListForDataset(String datasetLabel) {
 
+        String getRoiFromMeta = "MATCH (n:Meta:" + datasetLabel + ") RETURN n.rois AS rois";
+        String getRoiFromNeurons = "MATCH (n:Neuron:" + datasetLabel + ") WITH labels(n) AS labs UNWIND labs AS labels WITH DISTINCT labels ORDER BY labels RETURN collect(labels) AS rois";
+
         Map<String, Object> roiListQueryResult = null;
+        List<String> rois = null;
         try {
-            roiListQueryResult = dbService.execute("MATCH (n:Neuron:" + datasetLabel + ") WITH labels(n) AS labs UNWIND labs AS labels WITH DISTINCT labels RETURN collect(labels)").next();
+            try {
+                roiListQueryResult = dbService.execute(getRoiFromMeta).next();
+                List<String> labels = (ArrayList<String>) roiListQueryResult.get("rois");
+                rois = labels.stream()
+                        .filter( (l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+                        .collect(Collectors.toList());
+            } catch (NoSuchElementException nse) {
+                System.out.println("No Meta node found for this dataset. Acquiring rois from Neuron nodes...");
+                roiListQueryResult = dbService.execute(getRoiFromNeurons).next();
+                List<String> labels = (ArrayList<String>) roiListQueryResult.get("rois");
+                rois = labels.stream()
+                        .filter((l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+                        .collect(Collectors.toList());
+            } catch (NullPointerException npe) {
+                System.out.println("No rois property found on Meta node for this dataset. Acquiring rois from Neuron nodes...");
+                roiListQueryResult = dbService.execute(getRoiFromNeurons).next();
+                List<String> labels = (ArrayList<String>) roiListQueryResult.get("rois");
+                rois = labels.stream()
+                        .filter( (l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+                        .collect(Collectors.toList());
+            }
         } catch (Exception e) {
             System.out.println("Error getting roi list from " + datasetLabel + ".");
             e.printStackTrace();
         }
 
-        List<String> labels = (ArrayList<String>) roiListQueryResult.get("collect(labels)");
 
-        return labels.stream()
-                .filter( (l) -> (!l.equals("Neuron") && !l.equals(datasetLabel) && !l.equals("Big") && !l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
-                .collect(Collectors.toList());
+
+        return rois;
 
     }
 
