@@ -21,7 +21,6 @@ import org.neo4j.harness.junit.Neo4jRule;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class InputAndOutputCountsForRoisTest {
 
@@ -63,29 +62,27 @@ public class InputAndOutputCountsForRoisTest {
             neo4jImporter.addAutoNames(dataset);
 
 
-            String jsonData = session.writeTransaction(tx -> {
-                String json = tx.run("CALL analysis.getInputAndOutputCountsForRois(8426959,\"test\") YIELD value AS dataJson RETURN dataJson").single().get(0).asString();
-                return json;
+            String jsonData = session.readTransaction(tx -> {
+                return tx.run("CALL analysis.getInputAndOutputCountsForRois(8426959,\"test\") YIELD value AS dataJson RETURN dataJson").single().get(0).asString();
             });
 
             Gson gson = new Gson();
 
-            RoiSynapseCount[] roiSynapseCountsArray = gson.fromJson(jsonData,RoiSynapseCount[].class);
+            RoiSynapseCount[] roiSynapseCountsArray = gson.fromJson(jsonData, RoiSynapseCount[].class);
             List<RoiSynapseCount> roiSynapseCountList = Arrays.asList(roiSynapseCountsArray);
 
             //is 4 due to overlapping rois which should not occur in real data
-            Assert.assertEquals(new Long(4),roiSynapseCountList.get(2).getOutputCount());
+            Assert.assertEquals(new Long(4), roiSynapseCountList.get(2).getOutputCount());
 
-            Assert.assertEquals(new Long(2),roiSynapseCountList.get(1).getOutputCount());
+            Assert.assertEquals(new Long(2), roiSynapseCountList.get(1).getOutputCount());
 
-            String featureVectorJson = session.writeTransaction(tx -> {
-                String json = tx.run("CALL analysis.getInputAndOutputFeatureVectorsForNeuronsInRoi(\"roiA\",\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asString();
-                return json;
+            String featureVectorJson = session.readTransaction(tx -> {
+                return tx.run("CALL analysis.getInputAndOutputFeatureVectorsForNeuronsInRoi(\"roiA\",\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asString();
             });
 
-            ClusteringFeatureVector[] clusteringFeatureVectors = gson.fromJson(featureVectorJson,ClusteringFeatureVector[].class);
+            ClusteringFeatureVector[] clusteringFeatureVectors = gson.fromJson(featureVectorJson, ClusteringFeatureVector[].class);
 
-            long[] expectedInputVector = { 0 , 0 , 1};
+            long[] expectedInputVector = {0, 0, 1};
             Assert.assertEquals(expectedInputVector[0], clusteringFeatureVectors[2].getInputFeatureVector()[0]);
             Assert.assertEquals(expectedInputVector[1], clusteringFeatureVectors[2].getInputFeatureVector()[1]);
             Assert.assertEquals(expectedInputVector[2], clusteringFeatureVectors[2].getInputFeatureVector()[2]);
