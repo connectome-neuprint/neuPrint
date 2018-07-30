@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.time.LocalDate;
+import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -685,7 +686,7 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("createMetaNode: enter");
 
         final String metaNodeString = "MERGE (m:Meta:" + dataset + " {dataset:$dataset}) ON CREATE SET m.lastDatabaseEdit=$timeStamp," +
-                "m.dataset=$dataset, m.totalPreCount=$totalPre, m.totalPostCount=$totalPost";
+                "m.dataset=$dataset, m.totalPreCount=$totalPre, m.totalPostCount=$totalPost, m.rois=$rois";
 
 
         long totalPre;
@@ -696,13 +697,14 @@ public class Neo4jImporter implements AutoCloseable {
         try (Session session = driver.session()) {
             totalPre = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
-            roiNameList = session.readTransaction(tx -> getAllRois(tx, dataset));
+            roiNameList = session.readTransaction(tx -> getAllRois(tx, dataset))
+                    .stream()
+                    .filter((l) -> (!l.equals("NeuronPart") && !l.equals(dataset)))
+                    .collect(Collectors.toList());
             for (String roi : roiNameList) {
-                if (!roi.equals("NeuronPart") && !roi.equals(dataset)) {
                     long roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
                     long roiPostCount = session.readTransaction(tx -> getRoiPostCount(tx, dataset, roi));
                     roiSet.add(new Roi(roi,roiPreCount,roiPostCount));
-                }
             }
         }
 
@@ -710,7 +712,11 @@ public class Neo4jImporter implements AutoCloseable {
             batch.addStatement(new Statement(metaNodeString, parameters("dataset", dataset,
                     "totalPre", totalPre,
                     "totalPost", totalPost,
-                    "timeStamp", timeStamp
+                    "timeStamp", timeStamp,
+                    "rois", roiNameList
+                            .stream()
+                            .filter( (l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+                            .collect(Collectors.toList())
             )));
 
             for (Roi roi : roiSet) {
@@ -721,7 +727,8 @@ public class Neo4jImporter implements AutoCloseable {
                 batch.addStatement(new Statement(metaNodeRoiString,
                         parameters("dataset",dataset,
                                 "roiPreCount", roi.getPreCount(),
-                                "roiPostCount", roi.getPostCount())));
+                                "roiPostCount", roi.getPostCount()
+                        )));
             }
 
             batch.writeTransaction();
@@ -754,7 +761,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<String> getAllRois(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ") WITH distinct labels(n) AS labels UNWIND labels AS label RETURN DISTINCT label");
+        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label RETURN DISTINCT label");
         List<String> roiList = new ArrayList<>();
         while (result.hasNext()) {
             roiList.add(result.next().asMap().get("label").toString());

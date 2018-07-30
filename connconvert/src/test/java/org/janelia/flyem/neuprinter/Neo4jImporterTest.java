@@ -332,6 +332,10 @@ public class Neo4jImporterTest {
             // test to handle ' characters predictably
             Assert.assertEquals(0L,metaNode.asMap().get("roi_CPreCount"));
             Assert.assertEquals(1L,metaNode.asMap().get("roi_CPostCount"));
+            // test that all rois are listed in meta
+            List<String> rois = (List<String>) metaNode.asMap().get("rois");
+            Assert.assertEquals(3, rois.size());
+            Assert.assertEquals("roiA",rois.get(0));
 
 
             String neuronName = session.run("MATCH (n:Neuron:test{bodyId:8426959}) RETURN n.name").single().get(0).asString();
