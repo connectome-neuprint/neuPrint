@@ -6,7 +6,6 @@ import org.neo4j.graphdb.event.TransactionData;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 
 
 public class TriggersRunnable implements Runnable {
@@ -54,7 +53,6 @@ public class TriggersRunnable implements Runnable {
 
 
         }
-
 
 
     }

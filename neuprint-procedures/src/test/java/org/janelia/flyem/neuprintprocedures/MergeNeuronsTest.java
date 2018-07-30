@@ -1,7 +1,7 @@
 package org.janelia.flyem.neuprintprocedures;
 
-import apoc.refactor.GraphRefactoring;
 import apoc.create.Create;
+import apoc.refactor.GraphRefactoring;
 import org.janelia.flyem.neuprinter.ConnConvert;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.SynapseMapper;
@@ -298,24 +298,23 @@ public class MergeNeuronsTest {
 
             Node newNode = session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset) YIELD node RETURN node", parameters("bodyId1", 8426959, "bodyId2", 26311, "dataset", dataset)).single().get(0).asNode();
 
-            Map<String,Object> newNodeProperties = newNode.asMap();
+            Map<String, Object> newNodeProperties = newNode.asMap();
 
             Assert.assertEquals(3L, newNodeProperties.get("pre"));
             Assert.assertEquals(3L, newNodeProperties.get("post"));
-            Assert.assertEquals(3158061L+14766999L,newNodeProperties.get("size"));
-            Assert.assertEquals("Dm12-4",newNodeProperties.get( "name"));
-            Assert.assertEquals(8426959L,newNodeProperties.get("bodyId"));
-            Assert.assertEquals("Dm",newNodeProperties.get("type"));
-            Assert.assertEquals("final",newNodeProperties.get("status"));
+            Assert.assertEquals(3158061L + 14766999L, newNodeProperties.get("size"));
+            Assert.assertEquals("Dm12-4", newNodeProperties.get("name"));
+            Assert.assertEquals(8426959L, newNodeProperties.get("bodyId"));
+            Assert.assertEquals("Dm", newNodeProperties.get("type"));
+            Assert.assertEquals("final", newNodeProperties.get("status"));
             Assert.assertNull(newNodeProperties.get("somaLocation"));
-
 
 
         }
     }
 
     @Test
-    public void shouldConvertOldNodePropertiesToMergedAndRemoveLabelsAndRelationshipsExceptMergedTo () {
+    public void shouldConvertOldNodePropertiesToMergedAndRemoveLabelsAndRelationshipsExceptMergedTo() {
 
 
         List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
@@ -346,8 +345,8 @@ public class MergeNeuronsTest {
 
             Node newNode = session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset) YIELD node RETURN node", parameters("bodyId1", 8426959, "bodyId2", 26311, "dataset", dataset)).single().get(0).asNode();
 
-            Node node1 = session.run("MATCH (n{mergedBodyId:$bodyId}) RETURN n", parameters("bodyId",8426959)).single().get(0).asNode();
-            Node node2 = session.run("MATCH (n{mergedBodyId:$bodyId}) RETURN n", parameters("bodyId",26311)).single().get(0).asNode();
+            Node node1 = session.run("MATCH (n{mergedBodyId:$bodyId}) RETURN n", parameters("bodyId", 8426959)).single().get(0).asNode();
+            Node node2 = session.run("MATCH (n{mergedBodyId:$bodyId}) RETURN n", parameters("bodyId", 26311)).single().get(0).asNode();
 
             Map<String, Object> node1Properties = node1.asMap();
             Map<String, Object> node2Properties = node2.asMap();
@@ -367,16 +366,16 @@ public class MergeNeuronsTest {
             Assert.assertFalse(node1.labels().iterator().hasNext());
             Assert.assertFalse(node2.labels().iterator().hasNext());
 
-            List<Record> node1Relationships = session.run("MATCH (n{mergedBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId",8426959)).list();
-            List<Record> node2Relationships = session.run("MATCH (n{mergedBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId",26311)).list();
+            List<Record> node1Relationships = session.run("MATCH (n{mergedBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId", 8426959)).list();
+            List<Record> node2Relationships = session.run("MATCH (n{mergedBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId", 26311)).list();
 
-            Assert.assertEquals(1,node1Relationships.size());
-            Assert.assertEquals(1,node2Relationships.size());
+            Assert.assertEquals(1, node1Relationships.size());
+            Assert.assertEquals(1, node2Relationships.size());
 
             Relationship r1 = (Relationship) node1Relationships.get(0).asMap().get("r");
-            Assert.assertTrue(r1.hasType("MergedTo") && r1.endNodeId()==newNode.id());
+            Assert.assertTrue(r1.hasType("MergedTo") && r1.endNodeId() == newNode.id());
             Relationship r2 = (Relationship) node2Relationships.get(0).asMap().get("r");
-            Assert.assertTrue(r2.hasType("MergedTo") && r2.endNodeId()==newNode.id());
+            Assert.assertTrue(r2.hasType("MergedTo") && r2.endNodeId() == newNode.id());
         }
     }
 

@@ -44,7 +44,7 @@ public class TimeStampTest {
 
             session.run("CREATE (n{id:1}) RETURN id(n)");
 
-            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
 
             session.run("MATCH (n{id:1}) SET n:test");
 
@@ -64,7 +64,7 @@ public class TimeStampTest {
 
             session.run("CREATE (n:test{id:1}) RETURN id(n)");
 
-            session.run("MATCH (n:test{id:1}) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+            session.run("MATCH (n:test{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
 
             session.run("MATCH (n{id:1}) REMOVE n:test");
 
@@ -84,7 +84,7 @@ public class TimeStampTest {
 
             session.run("CREATE (n{id:1}) RETURN id(n)");
 
-            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
 
             session.run("MATCH (n{id:1}) SET n.testProperty=\"testValue\"");
 
@@ -106,7 +106,7 @@ public class TimeStampTest {
 
             session.run("MATCH (n{id:1}) SET n.testProperty=\"testValue\"");
 
-            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
 
             session.run("MATCH (n{id:1}) REMOVE n.testProperty");
 
@@ -128,7 +128,7 @@ public class TimeStampTest {
                     "CREATE (m{id:2}) \n" +
                     "CREATE (n)-[:RelatesTo]->(m)");
 
-            session.run("MATCH (n) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+            session.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
 
             session.run("MATCH (n)-[r:RelatesTo]->() SET r.testProperty=\"testValue\"");
 
@@ -158,7 +158,7 @@ public class TimeStampTest {
 
             session.run("MATCH (n)-[r:RelatesTo]-() SET r.testProperty=\"testValue\"");
 
-            session.run("MATCH (n) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+            session.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
 
             session.run("MATCH (n)-[r:RelatesTo]->() REMOVE r.testProperty");
 
@@ -184,7 +184,7 @@ public class TimeStampTest {
             session.run("CREATE (n{id:1})  \n" +
                     "CREATE (m{id:2})");
 
-            session.run("MATCH (n) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+            session.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
 
             session.run("MATCH (n{id:1}) \n" +
                     "MATCH (m{id:2}) \n" +
@@ -213,7 +213,7 @@ public class TimeStampTest {
                     "CREATE (m{id:2}) \n" +
                     "CREATE (n)-[:RelatesTo]->(m)");
 
-            session.run("MATCH (n) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+            session.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
 
             session.run("MATCH (n{id:1})  \n" +
                     "MATCH (m{id:2}) \n" +
@@ -242,13 +242,13 @@ public class TimeStampTest {
                     "CREATE (m{id:2}) \n" +
                     "CREATE (n)-[:RelatesTo]->(m)");
 
-            session.run("MATCH (n) SET n.timeStamp=$yesterday",parameters("yesterday",LocalDate.of(2000,1,1)));
+            session.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
 
             session.run("MATCH (n{id:1}) RETURN n");
 
             LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
 
-            Assert.assertEquals(LocalDate.of(2000,1,1),timeStamp);
+            Assert.assertEquals(LocalDate.of(2000, 1, 1), timeStamp);
 
         }
     }
