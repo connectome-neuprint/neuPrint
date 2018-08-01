@@ -259,9 +259,9 @@ public class ConnConvert {
         return bodyList;
     }
 
-    public static List<Skeleton> createSkeletonListFromSwcFileList(File[] listOfSwcFiles) {
+    public static List<Skeleton> createSkeletonListFromSwcFileArray(File[] arrayOfSwcFiles) {
         List<Skeleton> skeletonList = new ArrayList<>();
-        for (File swcFile : listOfSwcFiles) {
+        for (File swcFile : arrayOfSwcFiles) {
             String filepath = swcFile.getAbsolutePath();
             Long associatedBodyId = setSkeletonAssociatedBodyId(filepath);
             Skeleton skeleton = new Skeleton();
@@ -462,7 +462,7 @@ public class ConnConvert {
 
             LOG.info("Reading in " + arrayOfSwcFiles.length + " swc files.");
 
-            List<Skeleton> skeletonList = createSkeletonListFromSwcFileList(arrayOfSwcFiles);
+            List<Skeleton> skeletonList = createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
