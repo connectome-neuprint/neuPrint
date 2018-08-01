@@ -402,12 +402,14 @@ public class AnalysisProcedures {
         try {
             nodeQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId}) RETURN node", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
+            nse.printStackTrace();
             throw new Error("Error using analysis procedures: Node must exist in the dataset and be labeled :Neuron.");
         }
 
         try {
             foundNode = (Node) nodeQueryResult.get("node");
         } catch (NullPointerException npe) {
+            npe.printStackTrace();
             throw new Error("Error using analysis procedures: Node must exist in the dataset and be labeled :Neuron.");
         }
 
