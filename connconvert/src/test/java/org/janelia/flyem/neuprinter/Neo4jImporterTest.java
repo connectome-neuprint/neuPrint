@@ -35,25 +35,9 @@ public class Neo4jImporterTest {
 
         File swcFile1 = new File("src/test/resources/101.swc");
         File swcFile2 = new File("src/test/resources/102.swc");
-        List<File> listOfSwcFiles = new ArrayList<>();
-        listOfSwcFiles.add(swcFile1);
-        listOfSwcFiles.add(swcFile2);
+        File[] arrayOfSwcFiles = new File[]{swcFile1,swcFile2};
 
-        List<Skeleton> skeletonList = new ArrayList<>();
-
-        for (File swcFile : listOfSwcFiles) {
-            String filepath = swcFile.getAbsolutePath();
-            Long associatedBodyId = ConnConvert.setSkeletonAssociatedBodyId(filepath);
-            Skeleton skeleton = new Skeleton();
-
-            try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
-                skeleton.fromSwc(reader, associatedBodyId);
-                skeletonList.add(skeleton);
-                System.out.println("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileList(arrayOfSwcFiles);
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 

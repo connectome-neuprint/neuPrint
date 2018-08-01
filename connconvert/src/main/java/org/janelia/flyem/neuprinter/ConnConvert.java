@@ -259,6 +259,23 @@ public class ConnConvert {
         return bodyList;
     }
 
+    public static List<Skeleton> createSkeletonListFromSwcFileList(File[] listOfSwcFiles) {
+        List<Skeleton> skeletonList = new ArrayList<>();
+        for (File swcFile : listOfSwcFiles) {
+            String filepath = swcFile.getAbsolutePath();
+            Long associatedBodyId = setSkeletonAssociatedBodyId(filepath);
+            Skeleton skeleton = new Skeleton();
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
+                skeleton.fromSwc(reader, associatedBodyId);
+                skeletonList.add(skeleton);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return skeletonList;
+    }
+
 
     public static Long setSkeletonAssociatedBodyId(String swcFilePath) {
 
@@ -441,24 +458,11 @@ public class ConnConvert {
         if (parameters.addSkeletons) {
 
             File folder = new File(parameters.skeletonDirectory);
-            File[] listOfSwcFiles = folder.listFiles((dir,name) -> name.toLowerCase().endsWith(".swc"));
-            List<Skeleton> skeletonList = new ArrayList<>();
+            File[] arrayOfSwcFiles = folder.listFiles((dir,name) -> name.toLowerCase().endsWith(".swc"));
 
-            LOG.info("Reading in " + listOfSwcFiles.length + " swc files.");
+            LOG.info("Reading in " + arrayOfSwcFiles.length + " swc files.");
 
-            for (File swcFile : listOfSwcFiles) {
-                String filepath = swcFile.getAbsolutePath();
-                Long associatedBodyId = setSkeletonAssociatedBodyId(filepath);
-                Skeleton skeleton = new Skeleton();
-
-                try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
-                    skeleton.fromSwc(reader, associatedBodyId);
-                    skeletonList.add(skeleton);
-                    //LOG.info("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+            List<Skeleton> skeletonList = createSkeletonListFromSwcFileList(arrayOfSwcFiles);
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
