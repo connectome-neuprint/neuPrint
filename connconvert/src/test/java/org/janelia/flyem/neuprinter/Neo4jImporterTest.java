@@ -15,9 +15,7 @@ import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +35,7 @@ public class Neo4jImporterTest {
         File swcFile2 = new File("src/test/resources/102.swc");
         File[] arrayOfSwcFiles = new File[]{swcFile1,swcFile2};
 
-        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileList(arrayOfSwcFiles);
+        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
