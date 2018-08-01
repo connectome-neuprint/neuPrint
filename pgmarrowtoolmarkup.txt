@@ -44,8 +44,7 @@
     <span class="type">SynapsesTo</span>
   </li>
   <li class="relationship" data-from="0" data-to="4">
-    <span class="type">ConnectsTo</span>
-  </li>
+    <span class="type">ConnectsTo</span><dl class="properties"><dt>weight</dt><dd>int</dd></dl></li>
   <li class="relationship" data-from="1" data-to="5">
     <span class="type">SynapsesTo</span>
   </li>
