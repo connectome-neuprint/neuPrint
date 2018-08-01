@@ -138,7 +138,7 @@ Usage: java -cp neuprinter.jar ConnConvert
 * rowNumber: row number within swc file
 
 ### :ConnectsTo properties
-* weight: number of psds per connection
+* weight: number of presynaptic densities per connection
 
 ## neuPrint Neo4j Stored Procedures
 
