@@ -17,9 +17,7 @@ import org.neo4j.driver.v1.types.Node;
 import org.neo4j.driver.v1.types.Relationship;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -128,25 +126,8 @@ public class MergeNeuronsTest {
 
         File swcFile1 = new File("src/test/resources/101.swc");
         File swcFile2 = new File("src/test/resources/102.swc");
-        List<File> listOfSwcFiles = new ArrayList<>();
-        listOfSwcFiles.add(swcFile1);
-        listOfSwcFiles.add(swcFile2);
 
-        List<Skeleton> skeletonList = new ArrayList<>();
-
-        for (File swcFile : listOfSwcFiles) {
-            String filepath = swcFile.getAbsolutePath();
-            Long associatedBodyId = ConnConvert.setSkeletonAssociatedBodyId(filepath);
-            Skeleton skeleton = new Skeleton();
-
-            try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
-                skeleton.fromSwc(reader, associatedBodyId);
-                skeletonList.add(skeleton);
-                System.out.println("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(new File[]{swcFile1, swcFile2});
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -408,15 +389,70 @@ public class MergeNeuronsTest {
             }
             neo4jImporter.addNeuronParts(dataset, bodyList);
 
-            Node newNode = session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset) YIELD node RETURN node", parameters("bodyId1", 8426959, "bodyId2", 26311, "dataset", dataset)).single().get(0).asNode();
+            Node newNode = session.readTransaction(tx -> {
+                return tx.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset) YIELD node RETURN node", parameters("bodyId1", 8426959, "bodyId2", 26311, "dataset", dataset)).single().get(0).asNode();
+            });
 
-            Node mergedNode1 = session.run("MATCH (n{mergedBodyId:8426959}) RETURN n").single().get(0).asNode();
+            Node mergedNode1 = session.readTransaction(tx -> {
+                return tx.run("MATCH (n{mergedBodyId:8426959}) RETURN n").single().get(0).asNode();
+            });
 
             Assert.assertTrue(mergedNode1.asMap().containsKey("timeStamp"));
 
 
         }
     }
+
+    @Test
+    public void shouldMergeNeuronsFromJson() {
+
+
+        List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        bodyList.sort(new SortBodyByNumberOfSynapses());
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+            String dataset = "test";
+
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+            neo4jImporter.prepDatabase(dataset);
+
+            neo4jImporter.addNeurons(dataset, neuronList);
+
+            neo4jImporter.addConnectsTo(dataset, bodyList, 10);
+            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+            neo4jImporter.addSynapsesTo(dataset, preToPost);
+            neo4jImporter.addNeuronRois(dataset, bodyList);
+            neo4jImporter.addSynapseSets(dataset, bodyList);
+            for (BodyWithSynapses bws : bodyList) {
+                bws.setNeuronParts();
+            }
+            neo4jImporter.addNeuronParts(dataset, bodyList);
+            neo4jImporter.createMetaNode(dataset);
+            neo4jImporter.addAutoNames(dataset);
+
+            Node value = session.writeTransaction(tx -> {
+                return tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", mergeInstructionJson)).single().get(0).asNode();
+            });
+        }
+
+    }
+
+    final String mergeInstructionJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311, 2589725, 831744], " +
+            "\"ResultBodySize\": 216685762, \"ResultBodySynapses\": [" +
+            "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
+            "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
+            "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
+            "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
+            "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
+            "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}," +
+            "{\"Type\": \"post\", \"Location\": [ 4298, 2294, 1542 ]}," +
+            "{\"Type\": \"post\", \"Location\": [ 4292, 2261, 1542 ]}" +
+            "]}";
 }
 
 

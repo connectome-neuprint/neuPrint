@@ -18,10 +18,7 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -47,20 +44,7 @@ public class DeleteNeuronTest {
 
         File swcFile = new File("src/test/resources/8426959.swc");
 
-        List<Skeleton> skeletonList = new ArrayList<>();
-
-        String filepath = swcFile.getAbsolutePath();
-        Long associatedBodyId = ConnConvert.setSkeletonAssociatedBodyId(filepath);
-        Skeleton skeleton = new Skeleton();
-
-        try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
-            skeleton.fromSwc(reader, associatedBodyId);
-            System.out.println("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        skeletonList.add(skeleton);
+        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(new File[]{swcFile});
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -88,35 +72,35 @@ public class DeleteNeuronTest {
 
             int deletedNeuronNodeCount = session.run("MATCH (n:Neuron{bodyId:8426959}) RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(0,deletedNeuronNodeCount);
+            Assert.assertEquals(0, deletedNeuronNodeCount);
 
             int deletedSSNodeCount = session.run("MATCH (n:SynapseSet{datasetBodyId:\"test:8426959\"}) RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(0,deletedSSNodeCount);
+            Assert.assertEquals(0, deletedSSNodeCount);
 
             int deletedSynapse1NodeCount = session.run("MATCH (n:Synapse{datasetLocation:\"test:4287:2277:1542\"}) RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(0,deletedSynapse1NodeCount);
+            Assert.assertEquals(0, deletedSynapse1NodeCount);
 
             int deletedSynapse2NodeCount = session.run("MATCH (n:Synapse{datasetLocation:\"test:4222:2402:1688\"}) RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(0,deletedSynapse2NodeCount);
+            Assert.assertEquals(0, deletedSynapse2NodeCount);
 
             int deletedSynapse3NodeCount = session.run("MATCH (n:Synapse{datasetLocation:\"test:4287:2277:1502\"}) RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(0,deletedSynapse3NodeCount);
+            Assert.assertEquals(0, deletedSynapse3NodeCount);
 
             int deletedNeuronPartNodeCount = session.run("MATCH (n:NeuronPart) WHERE n.neuronPartId STARTS WITH \"test:8426959\" RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(0,deletedNeuronPartNodeCount);
+            Assert.assertEquals(0, deletedNeuronPartNodeCount);
 
             int deletedSkelNodeCount = session.run("MATCH (n:SkelNode) WHERE n.skelNodeId STARTS WITH \"test:8426959\" RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(0,deletedSkelNodeCount);
+            Assert.assertEquals(0, deletedSkelNodeCount);
 
             int deletedSkeletonCount = session.run("MATCH (n:Skeleton{skeletonId:\"test:8426959\"}) RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(0,deletedSkeletonCount);
+            Assert.assertEquals(0, deletedSkeletonCount);
 
 
         }

@@ -15,10 +15,7 @@ import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.util.ArrayList;
 import java.util.List;
 
 public class SkeletonDistanceTest {
@@ -29,38 +26,13 @@ public class SkeletonDistanceTest {
             .withProcedure(GraphRefactoring.class)
             .withProcedure(Create.class);
 
-    public List<Skeleton> readSkeletonsFromSwcFileList(List<File> listOfSwcFiles) {
-        List<Skeleton> skeletonList = new ArrayList<>();
-
-        for (File swcFile : listOfSwcFiles) {
-            String filepath = swcFile.getAbsolutePath();
-            Long associatedBodyId = ConnConvert.setSkeletonAssociatedBodyId(filepath);
-            Skeleton skeleton = new Skeleton();
-
-            try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
-                skeleton.fromSwc(reader, associatedBodyId);
-                skeletonList.add(skeleton);
-                System.out.println("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        return skeletonList;
-
-    }
-
 
     @Test
     public void shouldCalculateCorrectDistanceAndFindClosestPoint() {
         File swcFile1 = new File("src/test/resources/101.swc");
         File swcFile2 = new File("src/test/resources/102.swc");
-        List<File> listOfSwcFiles = new ArrayList<>();
-        listOfSwcFiles.add(swcFile1);
-        listOfSwcFiles.add(swcFile2);
 
-        List<Skeleton> skeletonList = readSkeletonsFromSwcFileList(listOfSwcFiles);
-
+        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(new File[]{swcFile1, swcFile2});
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 

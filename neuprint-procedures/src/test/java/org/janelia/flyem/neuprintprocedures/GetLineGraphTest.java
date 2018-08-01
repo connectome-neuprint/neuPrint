@@ -19,12 +19,13 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-public class GetLineGraphTests {
+public class GetLineGraphTest {
 
     @Rule
     public Neo4jRule neo4j = new Neo4jRule()
@@ -63,8 +64,8 @@ public class GetLineGraphTests {
             neo4jImporter.addNeuronParts(dataset, bodyList);
 
 
-            Map<String,Object> jsonData = session.writeTransaction(tx -> {
-                Map<String,Object> jsonMap = tx.run("CALL analysis.getLineGraphForRoi(\"seven_column_roi\",\"test\",0,1) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
+            Map<String, Object> jsonData = session.writeTransaction(tx -> {
+                Map<String, Object> jsonMap = tx.run("CALL analysis.getLineGraphForRoi(\"seven_column_roi\",\"test\",0,1) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
                 return jsonMap;
             });
 
@@ -74,27 +75,27 @@ public class GetLineGraphTests {
 
             Gson gson = new Gson();
 
-            SynapticConnectionVertex[] nodeArray = gson.fromJson(nodes,SynapticConnectionVertex[].class);
+            SynapticConnectionVertex[] nodeArray = gson.fromJson(nodes, SynapticConnectionVertex[].class);
             List<SynapticConnectionVertex> nodeList = Arrays.asList(nodeArray);
 
             Assert.assertEquals(4, nodeList.size());
-            Assert.assertEquals("8426959_to_26311",nodeList.get(2).getConnectionDescription());
+            Assert.assertEquals("8426959_to_26311", nodeList.get(2).getConnectionDescription());
             Assert.assertEquals(new Integer(2), nodeList.get(2).getPre());
             Assert.assertEquals(new Integer(2), nodeList.get(2).getPost());
-            Assert.assertEquals(new Location(4219L,2458L,1520L).getLocation(), nodeList.get(2).getCentroidLocation());
+            Assert.assertEquals(new Location(4219L, 2458L, 1520L).getLocation(), nodeList.get(2).getCentroidLocation());
 
-            Assert.assertEquals("8426959_to_2589725",nodeList.get(3).getConnectionDescription());
+            Assert.assertEquals("8426959_to_2589725", nodeList.get(3).getConnectionDescription());
             Assert.assertEquals(new Integer(2), nodeList.get(3).getPre());
             Assert.assertEquals(new Integer(1), nodeList.get(3).getPost());
-            Assert.assertEquals(new Location(4291L,2283L,1529L).getLocation(), nodeList.get(3).getCentroidLocation());
+            Assert.assertEquals(new Location(4291L, 2283L, 1529L).getLocation(), nodeList.get(3).getCentroidLocation());
 
-            SynapticConnectionEdge[] edgeArray = gson.fromJson(edges,SynapticConnectionEdge[].class);
+            SynapticConnectionEdge[] edgeArray = gson.fromJson(edges, SynapticConnectionEdge[].class);
             List<SynapticConnectionEdge> edgeList = Arrays.asList(edgeArray);
 
             Assert.assertEquals(6, edgeList.size());
             Assert.assertEquals("8426959_to_2589725", edgeList.get(1).getSourceName());
             Assert.assertEquals("8426959_to_26311", edgeList.get(1).getTargetName());
-            Assert.assertEquals(new Long(189),edgeList.get(1).getDistance());
+            Assert.assertEquals(new Long(189), edgeList.get(1).getDistance());
 
         }
 
@@ -110,11 +111,8 @@ public class GetLineGraphTests {
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         File swcFile1 = new File("src/test/resources/8426959.swc");
-        List<File> listOfSwcFiles = new ArrayList<>();
-        listOfSwcFiles.add(swcFile1);
 
-        List<Skeleton> skeletonList = readSkeletonsFromSwcFileList(listOfSwcFiles);
-
+        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(new File[]{swcFile1});
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -140,8 +138,8 @@ public class GetLineGraphTests {
             neo4jImporter.addSkeletonNodes("test", skeletonList);
 
 
-            Map<String,Object> jsonData = session.writeTransaction(tx -> {
-                Map<String,Object> jsonMap = tx.run("CALL analysis.getLineGraphForNeuron(8426959,\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
+            Map<String, Object> jsonData = session.writeTransaction(tx -> {
+                Map<String, Object> jsonMap = tx.run("CALL analysis.getLineGraphForNeuron(8426959,\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
                 return jsonMap;
             });
 
@@ -150,46 +148,46 @@ public class GetLineGraphTests {
 
             Gson gson = new Gson();
 
-            SynapticConnectionVertex[] nodeArray = gson.fromJson(nodes,SynapticConnectionVertex[].class);
+            SynapticConnectionVertex[] nodeArray = gson.fromJson(nodes, SynapticConnectionVertex[].class);
             List<SynapticConnectionVertex> nodeList = Arrays.asList(nodeArray);
 
             Assert.assertEquals(4, nodeList.size());
-            Assert.assertEquals("8426959_to_26311",nodeList.get(2).getConnectionDescription());
+            Assert.assertEquals("8426959_to_26311", nodeList.get(2).getConnectionDescription());
             Assert.assertEquals(new Integer(2), nodeList.get(2).getPre());
             Assert.assertEquals(new Integer(2), nodeList.get(2).getPost());
-            Assert.assertEquals(new Location(4219L,2458L,1520L).getLocation(), nodeList.get(2).getCentroidLocation());
+            Assert.assertEquals(new Location(4219L, 2458L, 1520L).getLocation(), nodeList.get(2).getCentroidLocation());
 
-            Assert.assertEquals("8426959_to_2589725",nodeList.get(3).getConnectionDescription());
+            Assert.assertEquals("8426959_to_2589725", nodeList.get(3).getConnectionDescription());
             Assert.assertEquals(new Integer(2), nodeList.get(3).getPre());
             Assert.assertEquals(new Integer(1), nodeList.get(3).getPost());
-            Assert.assertEquals(new Location(4291L,2283L,1529L).getLocation(), nodeList.get(3).getCentroidLocation());
+            Assert.assertEquals(new Location(4291L, 2283L, 1529L).getLocation(), nodeList.get(3).getCentroidLocation());
 
-            SynapticConnectionEdge[] edgeArray = gson.fromJson(edges,SynapticConnectionEdge[].class);
+            SynapticConnectionEdge[] edgeArray = gson.fromJson(edges, SynapticConnectionEdge[].class);
             List<SynapticConnectionEdge> edgeList = Arrays.asList(edgeArray);
 
             Assert.assertEquals(6, edgeList.size());
             Assert.assertEquals("8426959_to_2589725", edgeList.get(1).getSourceName());
             Assert.assertEquals("8426959_to_26311", edgeList.get(1).getTargetName());
-            Assert.assertEquals(new Long(189),edgeList.get(1).getDistance());
+            Assert.assertEquals(new Long(189), edgeList.get(1).getDistance());
 
-            Map<String,Object> jsonDataWithCableLength = session.writeTransaction(tx -> {
-                Map<String,Object> jsonMap = tx.run("CALL analysis.getLineGraphForNeuron(8426959,\"test\",0,true) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
+            Map<String, Object> jsonDataWithCableLength = session.writeTransaction(tx -> {
+                Map<String, Object> jsonMap = tx.run("CALL analysis.getLineGraphForNeuron(8426959,\"test\",0,true) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
                 return jsonMap;
             });
 
             String nodesFromCableLength = (String) jsonDataWithCableLength.get("Vertices");
             String edgesFromCableLength = (String) jsonDataWithCableLength.get("Edges");
 
-            SynapticConnectionVertex[] nodeArrayFromCableLength = gson.fromJson(nodesFromCableLength,SynapticConnectionVertex[].class);
+            SynapticConnectionVertex[] nodeArrayFromCableLength = gson.fromJson(nodesFromCableLength, SynapticConnectionVertex[].class);
             List<SynapticConnectionVertex> nodeListFromCableLength = Arrays.asList(nodeArrayFromCableLength);
-            SynapticConnectionEdge[] edgeArrayFromCableLength = gson.fromJson(edgesFromCableLength,SynapticConnectionEdge[].class);
+            SynapticConnectionEdge[] edgeArrayFromCableLength = gson.fromJson(edgesFromCableLength, SynapticConnectionEdge[].class);
             List<SynapticConnectionEdge> edgeListFromCableLength = Arrays.asList(edgeArrayFromCableLength);
 
-            Assert.assertEquals(new Long(212),edgeListFromCableLength.get(1).getDistance());
+            Assert.assertEquals(new Long(212), edgeListFromCableLength.get(1).getDistance());
 
 
-            Map<String,Object> jsonCentroidAndSkeleton = session.writeTransaction(tx -> {
-                Map<String,Object> jsonMap = tx.run("CALL analysis.getConnectionCentroidsAndSkeleton(8426959,\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
+            Map<String, Object> jsonCentroidAndSkeleton = session.writeTransaction(tx -> {
+                Map<String, Object> jsonMap = tx.run("CALL analysis.getConnectionCentroidsAndSkeleton(8426959,\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
                 return jsonMap;
             });
 
@@ -204,28 +202,6 @@ public class GetLineGraphTests {
         }
 
     }
-
-    public List<Skeleton> readSkeletonsFromSwcFileList(List<File> listOfSwcFiles) {
-        List<Skeleton> skeletonList = new ArrayList<>();
-
-        for (File swcFile : listOfSwcFiles) {
-            String filepath = swcFile.getAbsolutePath();
-            Long associatedBodyId = ConnConvert.setSkeletonAssociatedBodyId(filepath);
-            Skeleton skeleton = new Skeleton();
-
-            try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
-                skeleton.fromSwc(reader, associatedBodyId);
-                skeletonList.add(skeleton);
-                System.out.println("Loaded skeleton associated with bodyId " + associatedBodyId + " and size " + skeleton.getSkelNodeList().size());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        return skeletonList;
-
-    }
-
 
 
 }
