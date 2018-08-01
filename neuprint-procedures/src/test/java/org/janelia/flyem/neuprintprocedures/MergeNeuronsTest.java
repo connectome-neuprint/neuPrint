@@ -19,8 +19,9 @@ import org.neo4j.driver.v1.types.Relationship;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -380,27 +381,27 @@ public class MergeNeuronsTest {
             neo4jImporter.addNeuronParts(dataset, bodyList);
             neo4jImporter.createMetaNode(dataset);
             neo4jImporter.addAutoNames(dataset);
-            neo4jImporter.addSkeletonNodes(dataset,skeletonList);
+            neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 
             Gson gson = new Gson();
-            MergeAction mergeAction = gson.fromJson(mergeInstructionJson,MergeAction.class);
+            MergeAction mergeAction = gson.fromJson(mergeInstructionJson, MergeAction.class);
 
             Node neuron = session.writeTransaction(tx ->
                     tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", mergeInstructionJson)).single().get(0).asNode());
 
             //check properties on neuron node
-            Map<String,Object> neuronProperties = neuron.asMap();
+            Map<String, Object> neuronProperties = neuron.asMap();
             Assert.assertEquals(3L, neuronProperties.get("pre"));
             Assert.assertEquals(5L, neuronProperties.get("post"));
-            Assert.assertEquals(mergeAction.getResultBodySize(),neuronProperties.get("size"));
-            Assert.assertEquals(mergeAction.getResultBodyId(),neuronProperties.get("bodyId"));
-            Assert.assertEquals("Dm",neuronProperties.get("type"));
-            Assert.assertEquals("final",neuronProperties.get("status"));
+            Assert.assertEquals(mergeAction.getResultBodySize(), neuronProperties.get("size"));
+            Assert.assertEquals(mergeAction.getResultBodyId(), neuronProperties.get("bodyId"));
+            Assert.assertEquals("Dm", neuronProperties.get("type"));
+            Assert.assertEquals("final", neuronProperties.get("status"));
 
             //check labels
             Assert.assertTrue(neuron.hasLabel("Neuron"));
             Assert.assertTrue(neuron.hasLabel(dataset));
-            String[] roiArray = new String[]{"seven_column_roi", "roiB","roiA","anotherRoi"};
+            String[] roiArray = new String[]{"seven_column_roi", "roiB", "roiA", "anotherRoi"};
             for (String roi : roiArray) {
                 Assert.assertTrue(neuron.hasLabel(roi));
             }
@@ -409,8 +410,8 @@ public class MergeNeuronsTest {
             List<Record> connectsToRelationshipList = session.writeTransaction(tx ->
                     tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:ConnectsTo]-(m) RETURN r.weight").list());
 
-            Assert.assertEquals(1,connectsToRelationshipList.size());
-            Assert.assertEquals(8,connectsToRelationshipList.get(0).get("r.weight").asInt());
+            Assert.assertEquals(1, connectsToRelationshipList.size());
+            Assert.assertEquals(8, connectsToRelationshipList.get(0).get("r.weight").asInt());
 
             //check neuron parts
             List<Record> neuronPartList = session.writeTransaction(tx ->
@@ -423,7 +424,7 @@ public class MergeNeuronsTest {
                     tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:Contains]-(m:SynapseSet)-[:Contains]->(l:Synapse) RETURN m,count(l)").list());
 
             Assert.assertEquals(1, synapseSetList.size());
-            Assert.assertEquals(8,synapseSetList.get(0).get("count(l)").asInt());
+            Assert.assertEquals(8, synapseSetList.get(0).get("count(l)").asInt());
 
             //no skeleton
             List<Record> skeletonCountList = session.writeTransaction(tx ->
