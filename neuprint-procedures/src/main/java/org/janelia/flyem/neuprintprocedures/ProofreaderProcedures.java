@@ -58,6 +58,7 @@ public class ProofreaderProcedures {
 
         Node newNode = recursivelyMergeNodes(resultBody, mergedBodies, mergeAction.getResultBodySize(), datasetLabel);
 
+        // throws an error if the synapses from the json and the synapses in the database for the resulting body do not match
         compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction);
 
         return Stream.of(new NodeResult(newNode));
@@ -254,9 +255,16 @@ public class ProofreaderProcedures {
 
         //get the resulting bodies synapse set from the database
         Set<Synapse> resultingBodySynapseSet = new HashSet<>();
-        for (Relationship synapseRelationship : synapseSet.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
-            Node synapse = synapseRelationship.getEndNode();
-            resultingBodySynapseSet.add(new Synapse((String) synapse.getProperty("type"), (int) (long) synapse.getProperty("x"), (int) (long) synapse.getProperty("y"), (int) (long) synapse.getProperty("z")));
+        if (synapseSet!=null && synapseSet.hasRelationship(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+            for (Relationship synapseRelationship : synapseSet.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+                Node synapse = synapseRelationship.getEndNode();
+                try {
+                    resultingBodySynapseSet.add(new Synapse((String) synapse.getProperty("type"), (int) (long) synapse.getProperty("x"), (int) (long) synapse.getProperty("y"), (int) (long) synapse.getProperty("z")));
+                } catch (org.neo4j.graphdb.NotFoundException nfe) {
+                    nfe.printStackTrace();
+                    throw new Error("synapse does not have type,x,y,or z properties: " + synapse.getAllProperties());
+                }
+            }
         }
 
         //compare the two sets
@@ -268,7 +276,7 @@ public class ProofreaderProcedures {
         if (mergeActionSynapseSet.size() == 0 && databaseSynapseSet.size() == 0) {
             log.info("Database and merge action synapses match.");
         } else {
-            log.error("Found the following differences between the database and merge action synapse sets: \n" +
+            throw new Error("Found the following differences between the database and merge action synapse sets: \n" +
                     "* Synapses in merge action but not in database: " + mergeActionSynapseSet + "\n" +
                     "* Synapses in database but not in merge action: " + databaseSynapseSet);
         }

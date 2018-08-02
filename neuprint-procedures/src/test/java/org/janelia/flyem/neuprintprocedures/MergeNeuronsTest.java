@@ -100,9 +100,13 @@ public class MergeNeuronsTest {
             Session session = driver.session();
 
             String synapseSetTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 1, \"BodiesMerged\": [2], " +
-                    "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[]}";
+                    "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[" +
+                    "{\"Type\": \"pre\", \"Location\": [ 1, 2, 3 ]}," +
+                    "{\"Type\": \"post\", \"Location\": [ 4, 5, 6 ]}," +
+                    "{\"Type\": \"pre\", \"Location\": [ 7, 8, 9 ]}" +
+                    "]}";
 
-            session.writeTransaction(tx -> tx.run("CREATE (n:Neuron:test{bodyId:$id1}), (m:Neuron:test{bodyId:$id2}), (o:SynapseSet{datasetBodyId:$ssid1}), (p:SynapseSet{datasetBodyId:$ssid2}), (q:Synapse{location:\"1:2:3\"}), (r:Synapse{location:\"4:5:6\"}), (s:Synapse{location:\"7:8:9\"}) \n" +
+            session.writeTransaction(tx -> tx.run("CREATE (n:Neuron:test{bodyId:$id1}), (m:Neuron:test{bodyId:$id2}), (o:SynapseSet{datasetBodyId:$ssid1}), (p:SynapseSet{datasetBodyId:$ssid2}), (q:Synapse{type:\"pre\",location:\"1:2:3\",x:1,y:2,z:3}), (r:Synapse{type:\"post\",location:\"4:5:6\",x:4,y:5,z:6}), (s:Synapse{type:\"pre\",location:\"7:8:9\",x:7,y:8,z:9}) \n" +
                             "CREATE (n)-[:Contains]->(o) \n" +
                             "CREATE (m)-[:Contains]->(p) \n" +
                             "CREATE (o)-[:Contains]->(q) \n" +
@@ -172,7 +176,14 @@ public class MergeNeuronsTest {
     public void shouldCombineNeuronParts() {
 
         String neuronPartsTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311], " +
-                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[]}";
+                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[" +
+                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
+                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
+                "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}" +
+                "]}";
 
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
@@ -196,7 +207,6 @@ public class MergeNeuronsTest {
             }
             neo4jImporter.addNeuronParts(dataset, bodyList);
 
-            //session.run("CALL proofreader.mergeNeurons($bodyId1,$bodyId2,$dataset)", parameters("bodyId1", 8426959, "bodyId2", 26311, "dataset", dataset));
             Node neuron = session.writeTransaction(tx ->
                     tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", neuronPartsTestJson)).single().get(0).asNode());
 
@@ -233,7 +243,14 @@ public class MergeNeuronsTest {
     public void shouldConvertOldNodePropertiesToMergedAndRemoveLabelsAndRelationshipsExceptMergedToHistoryNode() {
 
         String neuronPartsTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311], " +
-                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[]}";
+                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[" +
+                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
+                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
+                "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}" +
+                "]}";
 
         List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
@@ -307,7 +324,14 @@ public class MergeNeuronsTest {
     public void shouldApplyTimeStampToAllNodesAfterMerge() {
 
         String timeStampTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311], " +
-                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[]}";
+                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[" +
+                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
+                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
+                "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}" +
+                "]}";
 
         List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
