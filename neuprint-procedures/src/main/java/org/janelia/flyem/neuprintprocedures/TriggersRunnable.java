@@ -20,7 +20,6 @@ public class TriggersRunnable implements Runnable {
 
     @Override
     public void run() {
-        //TODO: separate class for organizing transaction data, then run time stamp on relevant nodes, keep track of total number of pre and post for the whole volume and per ROI--> update the meta data node
 
         TransactionDataHandler transactionDataHandler = new TransactionDataHandler(transactionData);
         List<Node> metaNodeList = new ArrayList<>();
