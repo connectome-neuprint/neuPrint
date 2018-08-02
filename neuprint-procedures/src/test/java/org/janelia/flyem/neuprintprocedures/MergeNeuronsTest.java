@@ -432,6 +432,64 @@ public class MergeNeuronsTest {
 
             Assert.assertEquals(0, skeletonCountList.get(0).get("count(s)").asInt());
 
+            //check history
+            List<Record>   m1HistoryList = session.writeTransaction(tx ->
+                    tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-(m1) RETURN count(h),m1.mergedBodyId,m1.mergedPost,m1.mergedPre").list());
+
+            Assert.assertEquals(2,m1HistoryList.size());
+            Assert.assertEquals(1,m1HistoryList.get(0).get("count(h)").asInt());
+
+            Long m11BodyId = m1HistoryList.get(0).get("m1.mergedBodyId").asLong();
+            Long m11Pre = m1HistoryList.get(0).get("m1.mergedPre").asLong();
+            Long m11Post = m1HistoryList.get(0).get("m1.mergedPost").asLong();
+
+            Long m12BodyId = m1HistoryList.get(1).get("m1.mergedBodyId").asLong();
+            Long m12Pre = m1HistoryList.get(1).get("m1.mergedPre").asLong();
+            Long m12Post = m1HistoryList.get(1).get("m1.mergedPost").asLong();
+
+            Assert.assertEquals(neuronProperties.get("pre"),m11Pre+m12Pre);
+            Assert.assertEquals(neuronProperties.get("post"),m11Post+m12Post);
+            Assert.assertEquals(new Long(8426959), m12BodyId);
+            Assert.assertEquals(new Long(831744) ,m11BodyId);
+
+            List<Record> m2HistoryList = session.writeTransaction(tx ->
+                    tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-(m2) RETURN m2.mergedBodyId,m2.mergedPost,m2.mergedPre").list());
+
+            Assert.assertEquals(2,m2HistoryList.size());
+
+            Long m21BodyId = m2HistoryList.get(0).get("m2.mergedBodyId").asLong();
+            Long m21Pre = m2HistoryList.get(0).get("m2.mergedPre").asLong();
+            Long m21Post = m2HistoryList.get(0).get("m2.mergedPost").asLong();
+
+            Long m22BodyId = m2HistoryList.get(1).get("m2.mergedBodyId").asLong();
+            Long m22Pre = m2HistoryList.get(1).get("m2.mergedPre").asLong();
+            Long m22Post = m2HistoryList.get(1).get("m2.mergedPost").asLong();
+
+            Assert.assertEquals((long) m12Pre,m21Pre+m22Pre);
+            Assert.assertEquals((long) m12Post,m21Post+m22Post);
+            Assert.assertEquals(new Long(8426959), m22BodyId);
+            Assert.assertEquals(new Long(2589725) ,m21BodyId);
+
+            List<Record> m3HistoryList = session.writeTransaction(tx ->
+                    tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-()<-[:MergedTo]-(m3) RETURN m3.mergedBodyId,m3.mergedPost,m3.mergedPre").list());
+
+            Assert.assertEquals(2,m2HistoryList.size());
+
+            Long m31BodyId = m3HistoryList.get(0).get("m3.mergedBodyId").asLong();
+            Long m31Pre = m3HistoryList.get(0).get("m3.mergedPre").asLong();
+            Long m31Post = m3HistoryList.get(0).get("m3.mergedPost").asLong();
+
+            Long m32BodyId = m3HistoryList.get(1).get("m3.mergedBodyId").asLong();
+            Long m32Pre = m3HistoryList.get(1).get("m3.mergedPre").asLong();
+            Long m32Post = m3HistoryList.get(1).get("m3.mergedPost").asLong();
+
+            Assert.assertEquals((long) m22Pre,m31Pre+m32Pre);
+            Assert.assertEquals((long) m22Post,m31Post+m32Post);
+            Assert.assertEquals(new Long(8426959), m32BodyId);
+            Assert.assertEquals(new Long(26311) ,m31BodyId);
+
+
+
 
         }
 

@@ -18,9 +18,9 @@ public class MergeAction {
     private Long resultBodySize;
 
     @SerializedName("ResultBodySynapses")
-    private List<Synapse> resultBodySynapses;
+    private Set<Synapse> resultBodySynapses;
 
-    public List<Synapse> getResultBodySynapses() {
+    public Set<Synapse> getResultBodySynapses() {
         return resultBodySynapses;
     }
 

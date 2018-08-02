@@ -41,16 +41,28 @@ public class Synapse {
         }
     }
 
+    public Synapse (String type, Integer x, Integer y, Integer z) {
+        this.type = type;
+        this.confidence = 0.0F;
+
+        List<Integer> location = new ArrayList<>();
+        location.add(x);
+        location.add(y);
+        location.add(z);
+        this.location = location;
+
+    }
+
 
     @Override
     public String toString() {
-        return "Synapse{" + "type= " + type +
-                ", confidence= " + confidence +
-                ", location list= " + locationToStringKey(location) +
-                ", rois= " + rois +
-                ", connectsto= " + connectsTo +
-                ", connectsfrom= " + connectsFrom +
-                "}";
+        return "Synapse { " + "type=" + type +
+                ", confidence=" + confidence +
+                ", location=" + locationToStringKey(location) +
+                ", rois=" + rois +
+                ", connectsto=" + connectsTo +
+                ", connectsfrom=" + connectsFrom +
+                " }";
 
     }
 

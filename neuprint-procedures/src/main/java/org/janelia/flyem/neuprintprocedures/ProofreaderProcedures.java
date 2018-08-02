@@ -4,6 +4,7 @@ import apoc.result.NodeResult;
 import com.google.gson.Gson;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
+import org.janelia.flyem.neuprinter.model.Synapse;
 import org.neo4j.graphdb.*;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
@@ -13,10 +14,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -36,7 +34,8 @@ public class ProofreaderProcedures {
     public Stream<NodeResult> mergeNeuronsFromJson(@Name("mergeJson") String mergeJson, @Name("datasetLabel") String datasetLabel) {
         if (mergeJson == null || datasetLabel == null) return Stream.empty();
 
-        // TODO: history nodes need to have unique ids
+        // TODO: history nodes need to have unique ids?
+        // TODO: can make more efficient by never transferring anything from result node
 
         final Gson gson = new Gson();
         MergeAction mergeAction = gson.fromJson(mergeJson, MergeAction.class);
@@ -57,9 +56,9 @@ public class ProofreaderProcedures {
             tx.success();
         }
 
-        Node newNode = recursivelyMergeNodes(resultBody,mergedBodies,mergeAction.getResultBodySize(),datasetLabel);
+        Node newNode = recursivelyMergeNodes(resultBody, mergedBodies, mergeAction.getResultBodySize(), datasetLabel);
 
-        //TODO: implement self verification
+        compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction);
 
         return Stream.of(new NodeResult(newNode));
     }
@@ -192,7 +191,7 @@ public class ProofreaderProcedures {
             return resultNode;
         } else {
             Node mergedNode = mergeTwoNodesOntoNewNode(resultNode, mergedBodies.get(0), newNodeSize, datasetLabel);
-            return recursivelyMergeNodes(mergedNode, mergedBodies.subList(1,mergedBodies.size()), newNodeSize, datasetLabel);
+            return recursivelyMergeNodes(mergedNode, mergedBodies.subList(1, mergedBodies.size()), newNodeSize, datasetLabel);
         }
     }
 
@@ -203,13 +202,7 @@ public class ProofreaderProcedures {
         final Node newNode = copyPropertiesToNewNode(node1);
         // add size property from json to new node
         newNode.setProperty("size", newNodeSize);
-        System.out.println("Merging " + node1.getProperty("bodyId") + " with " + node2.getProperty("bodyId") + "...");
-//        for (Relationship rel : node1.getRelationships(RelationshipType.withName("ConnectsTo"))) {
-//            System.out.println("existing connectsto: " + rel.getStartNode().getAllProperties());
-//        }
-//        for (Relationship rel : node2.getRelationships(RelationshipType.withName("ConnectsTo"))) {
-//            System.out.println("existing connectsto: " + rel.getStartNode().getAllProperties());
-//        }
+        log.info("Merging " + node1.getProperty("bodyId") + " with " + node2.getProperty("bodyId") + "...");
 
         //move all relationships from original result body Id (A) to new node
         //move all relationships from 1st merged node (B) to new node
@@ -252,8 +245,35 @@ public class ProofreaderProcedures {
         removeAllRelationshipsExceptTypeWithName(node2, "MergedTo");
 
 
-
         return newNode;
+    }
+
+    private void compareMergeActionSynapseSetWithDatabaseSynapseSet(Node neuron, MergeAction mergeAction) {
+
+        Node synapseSet = getSynapseSetForNode(neuron);
+
+        //get the resulting bodies synapse set from the database
+        Set<Synapse> resultingBodySynapseSet = new HashSet<>();
+        for (Relationship synapseRelationship : synapseSet.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+            Node synapse = synapseRelationship.getEndNode();
+            resultingBodySynapseSet.add(new Synapse((String) synapse.getProperty("type"), (int) (long) synapse.getProperty("x"), (int) (long) synapse.getProperty("y"), (int) (long) synapse.getProperty("z")));
+        }
+
+        //compare the two sets
+        Set<Synapse> mergeActionSynapseSet = new HashSet<>(mergeAction.getResultBodySynapses());
+        Set<Synapse> databaseSynapseSet = new HashSet<>(resultingBodySynapseSet);
+        databaseSynapseSet.removeAll(mergeAction.getResultBodySynapses());
+        mergeActionSynapseSet.removeAll(resultingBodySynapseSet);
+
+        if (mergeActionSynapseSet.size() == 0 && databaseSynapseSet.size() == 0) {
+            log.info("Database and merge action synapses match.");
+        } else {
+            log.error("Found the following differences between the database and merge action synapse sets: \n" +
+                    "* Synapses in merge action but not in database: " + mergeActionSynapseSet + "\n" +
+                    "* Synapses in database but not in merge action: " + databaseSynapseSet);
+        }
+
+
     }
 
     private void collectPreviousHistoryOntoGhostAndDeleteExistingHistoryNode(Node node) {
@@ -331,6 +351,17 @@ public class ProofreaderProcedures {
                 nodeSynapseSetNode = containedNode;
                 //delete Contains connection to original node
                 nodeRelationship.delete();
+            }
+        }
+        return nodeSynapseSetNode;
+    }
+
+    private Node getSynapseSetForNode(final Node node) {
+        Node nodeSynapseSetNode = null;
+        for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName("Contains"))) {
+            Node containedNode = nodeRelationship.getEndNode();
+            if (containedNode.hasLabel(Label.label("SynapseSet"))) {
+                nodeSynapseSetNode = containedNode;
             }
         }
         return nodeSynapseSetNode;
@@ -447,9 +478,9 @@ public class ProofreaderProcedures {
         Map<String, Object> originalNodeProperties = originalNode.getAllProperties();
         for (String property : originalNodeProperties.keySet()) {
             String propertyWithoutMerged = property;
-            if (property.startsWith("merged")){
-                propertyWithoutMerged = property.replaceFirst("merged","");
-                propertyWithoutMerged = propertyWithoutMerged.substring(0,1).toLowerCase() + propertyWithoutMerged.substring(1);
+            if (property.startsWith("merged")) {
+                propertyWithoutMerged = property.replaceFirst("merged", "");
+                propertyWithoutMerged = propertyWithoutMerged.substring(0, 1).toLowerCase() + propertyWithoutMerged.substring(1);
             }
             newNode.setProperty(propertyWithoutMerged, originalNodeProperties.get(property));
         }
