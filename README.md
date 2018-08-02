@@ -102,7 +102,7 @@ Usage: java -cp neuprinter.jar ConnConvert
 
 ## Neo4j Property Graph Model
 
-![Property Graph Model](PGMv4.png)
+![Property Graph Model](pgmv1.svg)
 
 ### :Neuron properties
 * pre: number of presynaptic terminals
@@ -136,6 +136,9 @@ Usage: java -cp neuprinter.jar ConnConvert
 * z: z coordinate
 * radius: radius
 * rowNumber: row number within swc file
+
+### :ConnectsTo properties
+* weight: number of presynaptic densities per connection
 
 ## neuPrint Neo4j Stored Procedures
 
