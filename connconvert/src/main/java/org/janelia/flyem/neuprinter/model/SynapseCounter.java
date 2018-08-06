@@ -4,7 +4,7 @@ public class SynapseCounter {
     private int preCount;
     private int postCount;
 
-    public SynapseCounter(){
+    public SynapseCounter() {
         this.preCount = 0;
         this.postCount = 0;
     }

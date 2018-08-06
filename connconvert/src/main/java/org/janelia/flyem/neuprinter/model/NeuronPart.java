@@ -17,7 +17,7 @@ public class NeuronPart {
         return roi + " : pre=" + pre + " post=" + post;
     }
 
-    public String getRoi(){
+    public String getRoi() {
         return this.roi;
     }
 
@@ -28,6 +28,5 @@ public class NeuronPart {
     public int getPost() {
         return this.post;
     }
-
 
 }

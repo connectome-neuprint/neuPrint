@@ -44,13 +44,11 @@ public class Synapse {
     public Synapse (String type, Integer x, Integer y, Integer z) {
         this.type = type;
         this.confidence = 0.0F;
-
         List<Integer> location = new ArrayList<>();
         location.add(x);
         location.add(y);
         location.add(z);
         this.location = location;
-
     }
 
 
@@ -171,6 +169,10 @@ public class Synapse {
         } else {
             return this.rois;
         }
+    }
+
+    public void addRoiList(List<String> rois) {
+        this.rois=rois;
     }
 
     public static List<Synapse> fromJsonArray(final String jsonString) {
