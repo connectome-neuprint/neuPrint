@@ -110,7 +110,7 @@ public class ProofreaderProcedures {
         final Node cleavedNewBody = dbService.createNode();
         cleavedNewBody.setProperty("bodyId", cleaveAction.getNewBodyId());
         cleavedNewBody.setProperty("size", cleaveAction.getNewBodySize());
-        System.out.println("Cleaving " + cleavedNewBody.getProperty("bodyId") + " from " + cleavedOriginalBody.getProperty("bodyId") + "...");
+        log.info("Cleaving " + cleavedNewBody.getProperty("bodyId") + " from " + cleavedOriginalBody.getProperty("bodyId") + "...");
 
         // original neuron synapse set
         Node originalSynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNode(originalBody);
@@ -139,13 +139,11 @@ public class ProofreaderProcedures {
         if (originalSynapseSetNode.hasRelationship(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
             for (Relationship synapseRelationship : originalSynapseSetNode.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
                 Node synapseNode = synapseRelationship.getEndNode();
-                System.out.println("Synapse Node: " + synapseNode.getAllProperties());
                 try {
                     //create a synapse object from synapse node
                     Synapse synapse = new Synapse((String) synapseNode.getProperty("type"), (int) (long) synapseNode.getProperty("x"), (int) (long) synapseNode.getProperty("y"), (int) (long) synapseNode.getProperty("z"));
                     //add roi from database
                     setSynapseRoisFromDatabase(synapse, datasetLabel);
-                    System.out.println("Synapse Object: " + synapse);
                     if (newBodySynapseSet.contains(synapse)) {
                         //delete connection to original synapse set
                         synapseRelationship.delete();
@@ -176,11 +174,9 @@ public class ProofreaderProcedures {
         //recreate neuron parts
         //cleavedNewBody
         List<NeuronPart> newBodyNeuronParts = BodyWithSynapses.getNeuronPartsFromSynapseSet(newBodySynapseSet);
-        System.out.println(newBodyNeuronParts);
         createNeuronPartNodesAndConnectToGivenNeuron(newBodyNeuronParts, datasetLabel, cleavedNewBody);
         //cleavedOriginalBody
         List<NeuronPart> originalBodyNeuronParts = BodyWithSynapses.getNeuronPartsFromSynapseSet(originalBodySynapseSet);
-        System.out.println(originalBodyNeuronParts);
         createNeuronPartNodesAndConnectToGivenNeuron(originalBodyNeuronParts, datasetLabel, cleavedOriginalBody);
 
         //add proper roi labels to Neuron
