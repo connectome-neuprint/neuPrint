@@ -1,25 +1,44 @@
 package org.janelia.flyem.neuprintprocedures;
 
+import apoc.result.NodeListResult;
 import apoc.result.NodeResult;
 import com.google.gson.Gson;
+import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
+import org.janelia.flyem.neuprinter.model.NeuronPart;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
-import org.neo4j.graphdb.*;
+import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.logging.Log;
-import org.neo4j.procedure.*;
+import org.neo4j.procedure.Context;
+import org.neo4j.procedure.Description;
+import org.neo4j.procedure.Mode;
+import org.neo4j.procedure.Name;
+import org.neo4j.procedure.Procedure;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 
 public class ProofreaderProcedures {
 
@@ -32,20 +51,23 @@ public class ProofreaderProcedures {
     @Procedure(value = "proofreader.mergeNeuronsFromJson", mode = Mode.WRITE)
     @Description("proofreader.mergeNeuronsFromJson(mergeJson,datasetLabel) : merge neurons from json file containing single mergeaction json")
     public Stream<NodeResult> mergeNeuronsFromJson(@Name("mergeJson") String mergeJson, @Name("datasetLabel") String datasetLabel) {
-        if (mergeJson == null || datasetLabel == null) return Stream.empty();
+
+        if (mergeJson == null || datasetLabel == null) {
+            throw new Error("Missing input arguments.");
+        }
 
         // TODO: history nodes need to have unique ids?
         // TODO: can make more efficient by never transferring anything from result node
+        // TODO: how does this work with batched transactions if there is a conflict?
 
         final Gson gson = new Gson();
-        MergeAction mergeAction = gson.fromJson(mergeJson, MergeAction.class);
+        final MergeAction mergeAction = gson.fromJson(mergeJson, MergeAction.class);
 
-        List<Node> mergedBodies = mergeAction.getBodiesMerged()
+        final List<Node> mergedBodies = mergeAction.getBodiesMerged()
                 .stream()
                 .map((id) -> acquireNeuronFromDatabase(id, datasetLabel))
                 .collect(Collectors.toList());
-        Node resultBody = acquireNeuronFromDatabase(mergeAction.getResultBodyId(), datasetLabel);
-
+        final Node resultBody = acquireNeuronFromDatabase(mergeAction.getResultBodyId(), datasetLabel);
 
         // grab write locks upfront
         try (Transaction tx = dbService.beginTx()) {
@@ -56,12 +78,172 @@ public class ProofreaderProcedures {
             tx.success();
         }
 
-        Node newNode = recursivelyMergeNodes(resultBody, mergedBodies, mergeAction.getResultBodySize(), datasetLabel);
+        final Node newNode = recursivelyMergeNodes(resultBody, mergedBodies, mergeAction.getResultBodySize(), datasetLabel);
 
         // throws an error if the synapses from the json and the synapses in the database for the resulting body do not match
         compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction);
 
         return Stream.of(new NodeResult(newNode));
+    }
+
+    @Procedure(value = "proofreader.cleaveNeuronFromJson", mode = Mode.WRITE)
+    @Description("proofreader.cleaveNeuronFromJson(cleaveJson,datasetLabel) : cleave neuron from json file containing a single cleaveaction json")
+    public Stream<NodeListResult> cleaveNeuronFromJson(@Name("cleaveJson") String cleaveJson, @Name("datasetLabel") String datasetLabel) {
+
+        if (cleaveJson == null || datasetLabel == null) {
+            throw new Error("Missing input arguments.");
+        }
+
+        final Gson gson = new Gson();
+        final CleaveAction cleaveAction = gson.fromJson(cleaveJson, CleaveAction.class);
+
+        final Node originalBody = acquireNeuronFromDatabase(cleaveAction.getOriginalBodyId(), datasetLabel);
+
+        // create two new bodies : one is copy of original body minus some synapses which are moved to two which has the newbodyid
+        // old body becomes a ghost with two cleavedto relationships pointing to history nodes for each resulting body
+
+        // grab write locks upfront
+        try (Transaction tx = dbService.beginTx()) {
+            tx.acquireWriteLock(originalBody);
+            tx.success();
+        }
+
+        final Node cleavedOriginalBody = copyPropertiesToNewNodeForCleaveOrMerge(originalBody, "cleave");
+        final Node cleavedNewBody = dbService.createNode();
+        cleavedNewBody.setProperty("bodyId", cleaveAction.getNewBodyId());
+        cleavedNewBody.setProperty("size", cleaveAction.getNewBodySize());
+        System.out.println("Cleaving " + cleavedNewBody.getProperty("bodyId") + " from " + cleavedOriginalBody.getProperty("bodyId") + "...");
+
+        //can remove all relationships/labels for the original body
+        //move synapses to new node and original cleaved node
+        //from the synapse set, can calculate and produce neuron parts
+        //connects to
+
+        Node originalSynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNode(originalBody);
+        if (originalSynapseSetNode == null) {
+            throw new Error("No synapse set node on original body.");
+        }
+
+        //create a synapse set for the new body
+        Node newBodySynapseSetNode = dbService.createNode(Label.label("SynapseSet"),Label.label(datasetLabel));
+        //needs a unique ID
+        newBodySynapseSetNode.setProperty("datasetBodyId", datasetLabel + ":" + cleaveAction.getNewBodyId());
+
+        //connect both synapse sets to the cleaved nodes
+        cleavedOriginalBody.createRelationshipTo(originalSynapseSetNode, RelationshipType.withName("Contains"));
+        cleavedNewBody.createRelationshipTo(newBodySynapseSetNode, RelationshipType.withName("Contains"));
+
+        //move synapses when necessary
+        final ConnectsToRelationshipMap connectsToRelationshipMap = new ConnectsToRelationshipMap();
+
+        final Set<Synapse> originalBodySynapseSet = new HashSet<>();
+        final Set<Synapse> newBodySynapseSet = cleaveAction.getNewBodySynapses();
+        //need to set roi for synapses from database
+
+
+        for (Synapse synapse : newBodySynapseSet){
+            List<String> roiList = getRoisFromSynapse(synapse,datasetLabel);
+            if (roiList.size()==0) {
+                throw new Error("No roi found on synapse: " + synapse);
+            }
+            synapse.addRoiList(roiList);
+        }
+
+        SynapseCounter originalBodySynapseCounter = new SynapseCounter();
+        SynapseCounter newBodySynapseCounter = new SynapseCounter();
+        if (originalSynapseSetNode.hasRelationship(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+            for (Relationship synapseRelationship : originalSynapseSetNode.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+                Node synapseNode = synapseRelationship.getEndNode();
+                System.out.println("Synapse Node: " + synapseNode.getAllProperties());
+                try {
+                    Synapse synapse = new Synapse((String) synapseNode.getProperty("type"), (int) (long) synapseNode.getProperty("x"), (int) (long) synapseNode.getProperty("y"), (int) (long) synapseNode.getProperty("z"));
+                    List<String> roiList = getRoisFromSynapse(synapse,datasetLabel);
+                    if (roiList.size()==0) {
+                        throw new Error("No roi found on synapse: " + synapse);
+                    }
+                    synapse.addRoiList(roiList);
+                    System.out.println("Synapse Object: " + synapse);
+                    if (newBodySynapseSet.contains(synapse)) {
+                        //delete connection to original synapse set
+                        synapseRelationship.delete();
+                        //add connection to new synapse set
+                        newBodySynapseSetNode.createRelationshipTo(synapseNode, RelationshipType.withName("Contains"));
+                        //store connects to relationship to add later
+                        addSynapseToConnectsToRelationshipMap(synapseNode, synapse, cleavedNewBody, connectsToRelationshipMap);
+                        incrementSynapseCounterWithSynapse(synapse, newBodySynapseCounter);
+                    } else {
+                        //keep synapse in place but keep track of which synapse this is. necessary?
+                        originalBodySynapseSet.add(synapse);
+                        addSynapseToConnectsToRelationshipMap(synapseNode, synapse, cleavedOriginalBody, connectsToRelationshipMap);
+                        incrementSynapseCounterWithSynapse(synapse, originalBodySynapseCounter);
+                    }
+                } catch (org.neo4j.graphdb.NotFoundException nfe) {
+                    nfe.printStackTrace();
+                    throw new Error("synapse does not have type, x, y, or z properties: " + synapseNode.getAllProperties());
+                }
+            }
+        }
+
+        //recreate connects to relationships
+        addConnectsToRelationshipsFromMap(connectsToRelationshipMap);
+
+        //delete neuron parts
+        removeNeuronPartsForNode(originalBody);
+        //recreate neuron parts
+        //cleavedNewBody
+        List<NeuronPart> newBodyNeuronParts = BodyWithSynapses.getNeuronPartsFromSynapseSet(newBodySynapseSet);
+        System.out.println(newBodyNeuronParts);
+        createNeuronPartNodesAndConnectToGivenNeuron(newBodyNeuronParts, datasetLabel, cleavedNewBody);
+        //cleavedOriginalBody
+        List<NeuronPart> originalBodyNeuronParts = BodyWithSynapses.getNeuronPartsFromSynapseSet(originalBodySynapseSet);
+        System.out.println(originalBodyNeuronParts);
+        createNeuronPartNodesAndConnectToGivenNeuron(originalBodyNeuronParts, datasetLabel, cleavedOriginalBody);
+        //add proper roi labels
+        addRoiLabelsToNeuronGivenNeuronParts(cleavedNewBody, newBodyNeuronParts);
+        addRoiLabelsToNeuronGivenNeuronParts(cleavedOriginalBody, originalBodyNeuronParts);
+
+        //update pre, post, size properties for new nodes
+        cleavedNewBody.setProperty("pre", newBodySynapseCounter.getPreCount());
+        cleavedNewBody.setProperty("post", newBodySynapseCounter.getPostCount());
+        cleavedOriginalBody.setProperty("pre", originalBodySynapseCounter.getPreCount());
+        cleavedOriginalBody.setProperty("post", originalBodySynapseCounter.getPostCount());
+
+        //delete old skeleton
+        deleteSkeletonForNode(originalBody);
+        //delete connects to
+        removeConnectsToRelationshipsForNode(originalBody);
+
+        collectPreviousHistoryOntoGhostAndDeleteExistingHistoryNode(originalBody);
+
+        // create a new history node
+        Node newBodyHistoryNode = dbService.createNode(Label.label("History"), Label.label(datasetLabel));
+        Node originalBodyHistoryNode = dbService.createNode(Label.label("History"), Label.label(datasetLabel));
+        // connect history node to new neuron
+        cleavedNewBody.createRelationshipTo(newBodyHistoryNode, RelationshipType.withName("From"));
+        cleavedOriginalBody.createRelationshipTo(originalBodyHistoryNode, RelationshipType.withName("From"));
+        // connect ghost nodes to history neuron
+        originalBody.createRelationshipTo(originalBodyHistoryNode, RelationshipType.withName("CleavedTo"));
+        originalBody.createRelationshipTo(newBodyHistoryNode, RelationshipType.withName("CleavedTo"));
+
+        //remove labels, all properties to cleaved
+        convertAllPropertiesToCleavedProperties(originalBody);
+        removeAllLabels(originalBody);
+        List<String> except = new ArrayList<>();
+        except.add("MergedTo");
+        except.add("CleavedTo");
+        removeAllRelationshipsExceptTypesWithName(originalBody, except);
+
+        //add dataset and Neuron labels to new nodes
+        cleavedOriginalBody.addLabel(Label.label("Neuron"));
+        cleavedOriginalBody.addLabel(Label.label(datasetLabel));
+        cleavedNewBody.addLabel(Label.label("Neuron"));
+        cleavedNewBody.addLabel(Label.label(datasetLabel));
+
+        List<Node> listOfCleavedNodes = new ArrayList<>();
+        listOfCleavedNodes.add(cleavedNewBody);
+        listOfCleavedNodes.add(cleavedOriginalBody);
+        return Stream.of(new NodeListResult(listOfCleavedNodes));
+
     }
 
 //    @Procedure(value = "proofreader.mergeNeurons", mode = Mode.WRITE)
@@ -127,7 +309,6 @@ public class ProofreaderProcedures {
         Skeleton skeleton = new Skeleton();
         URL fileUrl = null;
 
-
         try {
             fileUrl = new URL(fileUrlString);
         } catch (MalformedURLException e) {
@@ -139,7 +320,6 @@ public class ProofreaderProcedures {
         } catch (IOException e) {
             throw new Error("IOException: " + e.getMessage());
         }
-
 
         final Node neuron = acquireNeuronFromDatabase(neuronBodyId, datasetLabel);
 
@@ -153,9 +333,7 @@ public class ProofreaderProcedures {
 
         return Stream.of(new NodeResult(skeletonNode));
 
-
     }
-
 
     @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
     @Description("proofreader.deleteNeuron(neuronBodyId,datasetLabel) : delete neuron with body Id and associated nodes from given dataset. ")
@@ -177,13 +355,12 @@ public class ProofreaderProcedures {
         removeSynapseSetsAndSynapses(neuron);
 
         //delete neuron parts
-        removeNeuronParts(neuron);
+        removeNeuronPartsForNode(neuron);
 
         //delete skeleton
         deleteSkeletonForNode(neuron);
 
         neuron.delete();
-
 
     }
 
@@ -200,7 +377,7 @@ public class ProofreaderProcedures {
 
         //create a new node that will be a copy of node1
         //copy properties over to new node (note: must add properties before adding labels or will violate uniqueness constraint)
-        final Node newNode = copyPropertiesToNewNode(node1);
+        final Node newNode = copyPropertiesToNewNodeForCleaveOrMerge(node1, "merge");
         // add size property from json to new node
         newNode.setProperty("size", newNodeSize);
         log.info("Merging " + node1.getProperty("bodyId") + " with " + node2.getProperty("bodyId") + "...");
@@ -211,7 +388,6 @@ public class ProofreaderProcedures {
         mergeSynapseSetsOntoNewNodeAndRemoveFromPreviousNodes(node1, node2, newNode, datasetLabel);
         mergeNeuronPartsOntoNewNodeAndDeletePreviousConnections(node1, node2, newNode, datasetLabel);
 
-
         //add pre and post count from merged node to new node
         setSummedLongProperty("pre", newNode, node2, newNode);
         setSummedLongProperty("post", newNode, node2, newNode);
@@ -221,7 +397,6 @@ public class ProofreaderProcedures {
         deleteSkeletonForNode(node1);
 
         //store history
-
         collectPreviousHistoryOntoGhostAndDeleteExistingHistoryNode(node1);
         collectPreviousHistoryOntoGhostAndDeleteExistingHistoryNode(node2);
 
@@ -233,7 +408,6 @@ public class ProofreaderProcedures {
         node1.createRelationshipTo(newHistoryNode, RelationshipType.withName("MergedTo"));
         node2.createRelationshipTo(newHistoryNode, RelationshipType.withName("MergedTo"));
 
-
         // create ghost nodes for original bodies: property names converted to "merged" property names, all labels removed, all relationships removed (except need to deal with history)
         convertAllPropertiesToMergedProperties(node1);
         convertAllPropertiesToMergedProperties(node2);
@@ -242,27 +416,257 @@ public class ProofreaderProcedures {
         transferLabelsToNode(node2, newNode);
         removeAllLabels(node1);
         removeAllLabels(node2);
-        removeAllRelationshipsExceptTypeWithName(node1, "MergedTo");
-        removeAllRelationshipsExceptTypeWithName(node2, "MergedTo");
-
+        List<String> except = new ArrayList<>();
+        except.add("MergedTo");
+        except.add("CleavedTo");
+        removeAllRelationshipsExceptTypesWithName(node1, except);
+        removeAllRelationshipsExceptTypesWithName(node2, except);
 
         return newNode;
+    }
+
+    private Node copyPropertiesToNewNodeForCleaveOrMerge(Node originalNode, String typeOfCopy) throws IllegalArgumentException {
+        // typeOfCopy can be "merge" or "cleave"
+        final Node newNode = dbService.createNode();
+
+        String ghostNodePropertiesPrefix = null;
+        if (typeOfCopy.equals("merge")) {
+            ghostNodePropertiesPrefix = "merged";
+        } else if (typeOfCopy.equals("cleave")) {
+            ghostNodePropertiesPrefix = "cleaved";
+        } else {
+            throw new IllegalArgumentException("Illegal typeOfCopy: must be \"merge\" or \"cleave\"");
+        }
+
+        //copy all the properties to the new node. if they start with merged/cleaved then remove merged/cleaved
+        Map<String, Object> originalNodeProperties = originalNode.getAllProperties();
+        for (String property : originalNodeProperties.keySet()) {
+            String propertyWithoutMerged = property;
+            if (property.startsWith(ghostNodePropertiesPrefix)) {
+                propertyWithoutMerged = property.replaceFirst(ghostNodePropertiesPrefix, "");
+                propertyWithoutMerged = propertyWithoutMerged.substring(0, 1).toLowerCase() + propertyWithoutMerged.substring(1);
+            }
+            newNode.setProperty(propertyWithoutMerged, originalNodeProperties.get(property));
+        }
+
+        return newNode;
+
+    }
+
+    private void mergeConnectsToRelationshipsToNewNodeAndDeletePreviousConnectsToRelationships(Node node1, Node node2, Node newNode) {
+        //duplicate all relationships for this body from the other two bodies
+        //get a map of all relationships to add
+        ConnectsToRelationshipMap connectsToRelationshipMap = getConnectsToRelationshipMapForNodesAndDeletePreviousRelationships(node1, node2, newNode);
+        addConnectsToRelationshipsFromMap(connectsToRelationshipMap);
+        log.info("Merged ConnectsTo relationships from original neurons onto new neuron.");
+    }
+
+    private void addConnectsToRelationshipsFromMap(ConnectsToRelationshipMap connectsToRelationshipMap) {
+        //add relationships to new node
+        for (String stringKey : connectsToRelationshipMap.getNodeIdToConnectsToRelationshipHashMap().keySet()) {
+            ConnectsToRelationship connectsToRelationship = connectsToRelationshipMap.getConnectsToRelationshipByKey(stringKey);
+            Node startNode = connectsToRelationship.getStartNode();
+            Node endNode = connectsToRelationship.getEndNode();
+            Relationship relationship = startNode.createRelationshipTo(endNode, RelationshipType.withName("ConnectsTo"));
+            relationship.setProperty("weight", connectsToRelationship.getWeight());
+        }
+    }
+
+    private void addSynapseToConnectsToRelationshipMap(Node synapseNode, Synapse synapse, Node neuronWithSynapse, ConnectsToRelationshipMap connectsToRelationshipMap) {
+        // get the node that this synapse connects to
+        List<Node> listOfConnectedNeurons = getPostOrPreSynapticNeuronsGivenSynapse(synapseNode);
+        // add to the connectsToRelationshipMap
+        for (Node connectedNeuron : listOfConnectedNeurons) {
+            if (synapse.getType().equals("pre")) {
+                connectsToRelationshipMap.insertConnectsToRelationship(neuronWithSynapse, connectedNeuron, 1L);
+            } else if (synapse.getType().equals("post")) {
+                connectsToRelationshipMap.insertConnectsToRelationship(connectedNeuron, neuronWithSynapse, 1L);
+            }
+        }
+    }
+
+    private void createNeuronPartNodesAndConnectToGivenNeuron(List<NeuronPart> neuronPartList, String datasetLabel, Node neuron) {
+        for (NeuronPart neuronPart : neuronPartList) {
+            Node neuronPartNode = dbService.createNode(Label.label("NeuronPart"),Label.label(datasetLabel));
+            String neuronPartId = datasetLabel + ":" + neuron.getProperty("bodyId") + ":" + neuronPart.getRoi();
+            neuronPartNode.setProperty("neuronPartId", neuronPartId);
+            neuronPartNode.addLabel(Label.label(neuronPart.getRoi()));
+            neuronPartNode.setProperty("pre", neuronPart.getPre());
+            neuronPartNode.setProperty("post", neuronPart.getPost());
+            neuronPartNode.setProperty("size", neuronPart.getPre() + neuronPart.getPost());
+            neuronPartNode.createRelationshipTo(neuron, RelationshipType.withName("PartOf"));
+        }
+    }
+
+    private void mergeSynapseSetsOntoNewNodeAndRemoveFromPreviousNodes(Node node1, Node node2, Node newNode, String datasetLabel) {
+
+        //get the synapse sets for node1 and node2, remove them from original nodes
+        Node node1SynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNode(node1);
+        Node node2SynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNode(node2);
+
+        //add both synapse sets to the new node, collect them for adding to apoc merge procedure
+        Map<String, Object> parametersMap = new HashMap<>();
+        if (node1SynapseSetNode != null) {
+            newNode.createRelationshipTo(node1SynapseSetNode, RelationshipType.withName("Contains"));
+            parametersMap.put("ssnode1", node1SynapseSetNode);
+        }
+        if (node2SynapseSetNode != null) {
+            newNode.createRelationshipTo(node2SynapseSetNode, RelationshipType.withName("Contains"));
+            parametersMap.put("ssnode2", node2SynapseSetNode);
+        }
+
+        // merge the two synapse nodes using apoc if there are two synapseset nodes. inherits the datasetBodyId of the first node
+        if (parametersMap.containsKey("ssnode1") && parametersMap.containsKey("ssnode2")) {
+            Node newSynapseSetNode = (Node) dbService.execute("CALL apoc.refactor.mergeNodes([$ssnode1, $ssnode2], {properties:{datasetBodyId:\"discard\"}}) YIELD node RETURN node", parametersMap).next().get("node");
+            newSynapseSetNode.addLabel(Label.label(datasetLabel));
+
+            //delete the extra relationship between new node and new synapse set node
+            newNode.getRelationships(RelationshipType.withName("Contains")).iterator().next().delete();
+        }
+
+        log.info("Merged SynapseSet nodes from original neurons onto new neuron.");
+    }
+
+    private void mergeNeuronPartsOntoNewNodeAndDeletePreviousConnections(final Node node1, final Node node2, final Node newNode, final String datasetLabel) {
+
+        // node1 neuron parts
+        Map<String, Node> node1RoiLabelToNeuronParts = new HashMap<>();
+        for (Relationship node1NeuronPartRelationship : node1.getRelationships(RelationshipType.withName("PartOf"))) {
+            //get the neuronpart
+            Node neuronPart = node1NeuronPartRelationship.getStartNode();
+            //connect to the new node
+            neuronPart.createRelationshipTo(newNode, RelationshipType.withName("PartOf"));
+            //delete the old node relationship
+            node1NeuronPartRelationship.delete();
+            //create a map of labels to neuron parts for node1
+            for (Label neuronPartLabel : neuronPart.getLabels()) {
+                if (!neuronPartLabel.name().equals("NeuronPart") && !neuronPartLabel.name().equals(datasetLabel)) {
+                    node1RoiLabelToNeuronParts.put(neuronPartLabel.name(), neuronPart);
+                }
+            }
+        }
+
+        // node 2 neuron parts
+        for (Relationship node2NeuronPartRelationship : node2.getRelationships(RelationshipType.withName("PartOf"))) {
+            //get the neuronpart
+            Node neuronPart = node2NeuronPartRelationship.getStartNode();
+            //connect to the new node
+            neuronPart.createRelationshipTo(newNode, RelationshipType.withName("PartOf"));
+            //delete the old node relationship
+            node2NeuronPartRelationship.delete();
+
+            //if node1 neuronpart already exists for a given roi, add pre, post, and size from node2 to node1 neuronpart then delete node2 neuronpart
+            for (Label neuronPartLabel : neuronPart.getLabels()) {
+                if (!neuronPartLabel.name().equals("NeuronPart") && !neuronPartLabel.name().equals(datasetLabel)) {
+
+                    //get the properties for the matching neuron part for node1 if it exists
+                    Node node1NeuronPart = node1RoiLabelToNeuronParts.get(neuronPartLabel.name());
+
+                    if (node1NeuronPart != null) {
+                        Map<String, Object> node1NeuronPartProperties = node1NeuronPart.getProperties("pre", "post", "size");
+                        Map<String, Object> node2NeuronPartProperties = neuronPart.getProperties("pre", "post", "size");
+
+                        for (String propertyName : node1NeuronPartProperties.keySet()) {
+                            node1NeuronPart.setProperty(propertyName, (Long) node1NeuronPartProperties.get(propertyName) + (Long) node2NeuronPartProperties.get(propertyName));
+                        }
+
+                        // found a matching roi for node1 so delete node2 neuronpart
+                        neuronPart.getRelationships().forEach(Relationship::delete);
+                        neuronPart.delete();
+                    }
+                }
+            }
+        }
+        log.info("Merged NeuronPart nodes from original neurons onto new neuron.");
+    }
+
+    private void deleteSkeletonForNode(final Node node) {
+
+        Node nodeSkeletonNode = null;
+        for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName("Contains"))) {
+            Node containedNode = nodeRelationship.getEndNode();
+            if (containedNode.hasLabel(Label.label("Skeleton"))) {
+                nodeSkeletonNode = containedNode;
+                //delete Contains connection to original node
+                nodeRelationship.delete();
+            }
+        }
+
+        if (nodeSkeletonNode != null) {
+            for (Relationship skeletonRelationship : nodeSkeletonNode.getRelationships(RelationshipType.withName("Contains"))) {
+                Node skelNode = skeletonRelationship.getEndNode();
+                //delete LinksTo relationships
+                for (Relationship skelNodeLinksToRelationship : skelNode.getRelationships(RelationshipType.withName("LinksTo"))) {
+                    skelNodeLinksToRelationship.delete();
+                }
+                //delete SkelNode Contains relationship to Skeleton
+                skeletonRelationship.delete();
+                //delete SkelNode
+                skelNode.delete();
+            }
+            //delete Skeleton
+            nodeSkeletonNode.delete();
+        }
+        log.info("Deleted skeletons for original nodes.");
+    }
+
+    private void collectPreviousHistoryOntoGhostAndDeleteExistingHistoryNode(Node node) {
+
+        Node existingHistoryNode = getHistoryNodeForNode(node);
+
+        if (existingHistoryNode != null) {
+            for (Relationship mergedToRelationship : existingHistoryNode.getRelationships(RelationshipType.withName("MergedTo"))) {
+                //get the preexisting ghost node
+                Node ghostNode = mergedToRelationship.getStartNode();
+                //connect it to result body ghost
+                ghostNode.createRelationshipTo(node, RelationshipType.withName("MergedTo"));
+                //remove its connection to the old history node
+                mergedToRelationship.delete();
+            }
+            for (Relationship cleavedToRelationship : existingHistoryNode.getRelationships(RelationshipType.withName("CleavedTo"))) {
+                //get the preexisting ghost node
+                Node ghostNode = cleavedToRelationship.getStartNode();
+                //connect it to result body ghost
+                ghostNode.createRelationshipTo(node, RelationshipType.withName("CleavedTo"));
+                //remove its connection to the old history node
+                cleavedToRelationship.delete();
+            }
+            //delete the old history node
+            existingHistoryNode.delete();
+        }
+
+    }
+
+    private Node getHistoryNodeForNode(Node node) {
+
+        Node historyNode = null;
+
+        for (Relationship historyRelationship : node.getRelationships(RelationshipType.withName("From"))) {
+            historyNode = historyRelationship.getEndNode();
+        }
+
+        return historyNode;
+
     }
 
     private void compareMergeActionSynapseSetWithDatabaseSynapseSet(Node neuron, MergeAction mergeAction) {
 
         Node synapseSet = getSynapseSetForNode(neuron);
+        if (synapseSet == null) {
+            throw new Error("No synapse set on the resulting body.");
+        }
 
         //get the resulting bodies synapse set from the database
         Set<Synapse> resultingBodySynapseSet = new HashSet<>();
-        if (synapseSet!=null && synapseSet.hasRelationship(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+        //make sure their are synapses attached to the synapse set
+        if (synapseSet.hasRelationship(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
             for (Relationship synapseRelationship : synapseSet.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
                 Node synapse = synapseRelationship.getEndNode();
                 try {
                     resultingBodySynapseSet.add(new Synapse((String) synapse.getProperty("type"), (int) (long) synapse.getProperty("x"), (int) (long) synapse.getProperty("y"), (int) (long) synapse.getProperty("z")));
                 } catch (org.neo4j.graphdb.NotFoundException nfe) {
                     nfe.printStackTrace();
-                    throw new Error("synapse does not have type,x,y,or z properties: " + synapse.getAllProperties());
+                    throw new Error("synapse does not have type, x, y, or z properties: " + synapse.getAllProperties());
                 }
             }
         }
@@ -281,38 +685,24 @@ public class ProofreaderProcedures {
                     "* Synapses in database but not in merge action: " + databaseSynapseSet);
         }
 
-
     }
 
-    private void collectPreviousHistoryOntoGhostAndDeleteExistingHistoryNode(Node node) {
+    private List<String> getRoisFromSynapse(Synapse synapse, String datasetLabel) {
 
-        Node existingHistoryNode = getHistoryNodeForNode(node);
+        Map<String, Object> roiQueryResult = null;
+        Map<String, Object> parametersMap = new HashMap<>();
+        parametersMap.put("datasetLocation",datasetLabel+":"+synapse.getLocationString());
 
-        if (existingHistoryNode != null) {
-            for (Relationship mergedToRelationship : existingHistoryNode.getRelationships(RelationshipType.withName("MergedTo"))) {
-                //get the preexisting ghost node
-                Node ghostNode = mergedToRelationship.getStartNode();
-                //connect it to result body ghost
-                ghostNode.createRelationshipTo(node, RelationshipType.withName("MergedTo"));
-                //remove its connection to the old history node
-                mergedToRelationship.delete();
-            }
-            //delete the old history node
-            existingHistoryNode.delete();
+        try {
+            roiQueryResult = dbService.execute("MATCH (s:Synapse:" + datasetLabel + "{datasetLocation:$datasetLocation}) WITH labels(s) AS labels RETURN filter(label IN labels WHERE NOT label=\"Synapse\" AND NOT label=\"PreSyn\" AND NOT label=\"PostSyn\" AND NOT label=\""+ datasetLabel +"\") AS l",parametersMap).next();
+        } catch (java.util.NoSuchElementException nse) {
+            nse.printStackTrace();
+            throw new Error("Error using proofreader procedures: Synapse not found in the dataset.");
         }
 
-    }
+        List<String> roiList = (ArrayList<String>) roiQueryResult.get("l");
 
-    private Node getHistoryNodeForNode(Node node) {
-
-        Node historyNode = null;
-
-        for (Relationship historyRelationship : node.getRelationships(RelationshipType.withName("From"))) {
-            historyNode = historyRelationship.getEndNode();
-        }
-
-        return historyNode;
-
+        return roiList;
     }
 
     private ConnectsToRelationshipMap getConnectsToRelationshipMapForNodesAndDeletePreviousRelationships(final Node node1, final Node node2, final Node newNode) {
@@ -375,128 +765,6 @@ public class ProofreaderProcedures {
         return nodeSynapseSetNode;
     }
 
-    private void deleteSkeletonForNode(final Node node) {
-        Node nodeSkeletonNode = null;
-        for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName("Contains"))) {
-            Node containedNode = nodeRelationship.getEndNode();
-            if (containedNode.hasLabel(Label.label("Skeleton"))) {
-                nodeSkeletonNode = containedNode;
-                //delete Contains connection to original node
-                nodeRelationship.delete();
-            }
-        }
-
-
-        if (nodeSkeletonNode != null) {
-            for (Relationship skeletonRelationship : nodeSkeletonNode.getRelationships(RelationshipType.withName("Contains"))) {
-
-                Node skelNode = skeletonRelationship.getEndNode();
-                //delete LinksTo relationships
-                for (Relationship skelNodeLinksToRelationship : skelNode.getRelationships(RelationshipType.withName("LinksTo"))) {
-                    skelNodeLinksToRelationship.delete();
-                }
-                //delete SkelNode Contains relationship to Skeleton
-                skeletonRelationship.delete();
-                //delete SkelNode
-                skelNode.delete();
-            }
-            //delete Skeleton
-            nodeSkeletonNode.delete();
-        }
-        log.info("Deleted skeletons for original nodes.");
-
-    }
-
-    private void mergeNeuronPartsOntoNewNodeAndDeletePreviousConnections(final Node node1, final Node node2, final Node newNode, final String datasetLabel) {
-
-        // node1 neuron parts
-        Map<String, Node> node1RoiLabelToNeuronParts = new HashMap<>();
-        for (Relationship node1NeuronPartRelationship : node1.getRelationships(RelationshipType.withName("PartOf"))) {
-            //get the neuronpart
-            Node neuronPart = node1NeuronPartRelationship.getStartNode();
-            //connect to the new node
-            neuronPart.createRelationshipTo(newNode, RelationshipType.withName("PartOf"));
-            //delete the old node relationship
-            node1NeuronPartRelationship.delete();
-            //create a map of labels to neuron parts for node1
-            for (Label neuronPartLabel : neuronPart.getLabels()) {
-                if (!neuronPartLabel.name().equals("NeuronPart") && !neuronPartLabel.name().equals(datasetLabel)) {
-                    node1RoiLabelToNeuronParts.put(neuronPartLabel.name(), neuronPart);
-                }
-            }
-        }
-
-        // node 2 neuron parts
-        for (Relationship node2NeuronPartRelationship : node2.getRelationships(RelationshipType.withName("PartOf"))) {
-            //get the neuronpart
-            Node neuronPart = node2NeuronPartRelationship.getStartNode();
-            //connect to the new node
-            neuronPart.createRelationshipTo(newNode, RelationshipType.withName("PartOf"));
-            //delete the old node relationship
-            node2NeuronPartRelationship.delete();
-
-            //if node1 neuronpart already exists for a given roi, add pre, post, and size from node2 to node1 neuronpart then delete node2 neuronpart
-            for (Label neuronPartLabel : neuronPart.getLabels()) {
-                if (!neuronPartLabel.name().equals("NeuronPart") && !neuronPartLabel.name().equals(datasetLabel)) {
-
-                    //get the properties for the matching neuron part for node1 if it exists
-                    Node node1NeuronPart = node1RoiLabelToNeuronParts.get(neuronPartLabel.name());
-
-                    if (node1NeuronPart != null) {
-                        Map<String, Object> node1NeuronPartProperties = node1NeuronPart.getProperties("pre", "post", "size");
-                        Map<String, Object> node2NeuronPartProperties = neuronPart.getProperties("pre", "post", "size");
-
-                        for (String propertyName : node1NeuronPartProperties.keySet()) {
-                            node1NeuronPart.setProperty(propertyName, (Long) node1NeuronPartProperties.get(propertyName) + (Long) node2NeuronPartProperties.get(propertyName));
-                        }
-
-                        // found a matching roi for node1 so delete node2 neuronpart
-                        neuronPart.getRelationships().forEach(Relationship::delete);
-                        neuronPart.delete();
-                    }
-                }
-            }
-        }
-        log.info("Merged NeuronPart nodes from original neurons onto new neuron.");
-    }
-
-
-    private void mergeConnectsToRelationshipsToNewNodeAndDeletePreviousConnectsToRelationships(Node node1, Node node2, Node newNode) {
-        //duplicate all relationships for this body from the other two bodies
-
-        //get a map of all relationships to add
-        ConnectsToRelationshipMap connectsToRelationshipMap = getConnectsToRelationshipMapForNodesAndDeletePreviousRelationships(node1, node2, newNode);
-
-        //add relationships to new node
-        for (String stringKey : connectsToRelationshipMap.getNodeIdToConnectsToRelationshipHashMap().keySet()) {
-            ConnectsToRelationship connectsToRelationship = connectsToRelationshipMap.getConnectsToRelationshipByKey(stringKey);
-            Node startNode = connectsToRelationship.getStartNode();
-            Node endNode = connectsToRelationship.getEndNode();
-            Relationship relationship = startNode.createRelationshipTo(endNode, RelationshipType.withName("ConnectsTo"));
-            relationship.setProperty("weight", connectsToRelationship.getWeight());
-        }
-        log.info("Merged ConnectsTo relationships from original neurons onto new neuron.");
-    }
-
-    private Node copyPropertiesToNewNode(Node originalNode) {
-
-        final Node newNode = dbService.createNode();
-
-        //copy all the properties to the new node. if they start with merged then remove merged
-        Map<String, Object> originalNodeProperties = originalNode.getAllProperties();
-        for (String property : originalNodeProperties.keySet()) {
-            String propertyWithoutMerged = property;
-            if (property.startsWith("merged")) {
-                propertyWithoutMerged = property.replaceFirst("merged", "");
-                propertyWithoutMerged = propertyWithoutMerged.substring(0, 1).toLowerCase() + propertyWithoutMerged.substring(1);
-            }
-            newNode.setProperty(propertyWithoutMerged, originalNodeProperties.get(property));
-        }
-
-        return newNode;
-
-    }
-
     private void transferLabelsToNode(Node originalNode, Node transferToNode) {
         for (Label originalNodeLabel : originalNode.getLabels()) {
             transferToNode.addLabel(originalNodeLabel);
@@ -530,7 +798,6 @@ public class ProofreaderProcedures {
         return newNode;
     }
 
-
     private Node acquireNeuronFromDatabase(Long nodeBodyId, String datasetLabel) throws Error {
         Map<String, Object> parametersMap = new HashMap<>();
         parametersMap.put("nodeBodyId", nodeBodyId);
@@ -540,49 +807,51 @@ public class ProofreaderProcedures {
             nodeQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$nodeBodyId}) RETURN node", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
             nse.printStackTrace();
-            throw new Error("Error using proofreader procedures: Node must exist in the dataset and be labeled :Neuron.");
+            throw new Error("Error using proofreader procedures: All neuron nodes must exist in the dataset and be labeled :Neuron.");
         }
 
         try {
             foundNode = (Node) nodeQueryResult.get("node");
         } catch (NullPointerException npe) {
             npe.printStackTrace();
-            throw new Error("Error using proofreader procedures: Node must exist in the dataset and be labeled :Neuron.");
+            throw new Error("Error using proofreader procedures: All neuron nodes must exist in the dataset and be labeled :Neuron.");
         }
 
         return foundNode;
     }
 
-
-    private void mergeSynapseSetsOntoNewNodeAndRemoveFromPreviousNodes(Node node1, Node node2, Node newNode, String datasetLabel) {
-
-        //get the synapse sets for node1 and node2, remove them from original nodes
-        Node node1SynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNode(node1);
-        Node node2SynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNode(node2);
-
-        //add both synapse sets to the new node, collect them for adding to apoc merge procedure
-        Map<String, Object> parametersMap = new HashMap<>();
-        if (node1SynapseSetNode != null) {
-            newNode.createRelationshipTo(node1SynapseSetNode, RelationshipType.withName("Contains"));
-            parametersMap.put("ssnode1", node1SynapseSetNode);
+    private List<Node> getPostOrPreSynapticNeuronsGivenSynapse(Node synapse) {
+        // list so that multiple connections per neuron are each counted as 1 additional weight
+        List<Node> listOfConnectedNeurons = new ArrayList<>();
+        if (synapse.hasRelationship(RelationshipType.withName("SynapsesTo"))) {
+            for (Relationship synapsesToRelationship : synapse.getRelationships(RelationshipType.withName("SynapsesTo"))) {
+                Node connectedSynapse = synapsesToRelationship.getOtherNode(synapse);
+                Node connectedNeuron = null;
+                try {
+                    Node connectedSynapseSet = connectedSynapse.getSingleRelationship(RelationshipType.withName("Contains"), Direction.INCOMING).getStartNode();
+                    connectedNeuron = connectedSynapseSet.getSingleRelationship(RelationshipType.withName("Contains"), Direction.INCOMING).getStartNode();
+                } catch (NoSuchElementException nse) {
+                    throw new Error("Connected synapse has no synapse set or connected neuron: " + connectedSynapse.getAllProperties());
+                }
+                listOfConnectedNeurons.add(connectedNeuron);
+            }
         }
-        if (node2SynapseSetNode != null) {
-            newNode.createRelationshipTo(node2SynapseSetNode, RelationshipType.withName("Contains"));
-            parametersMap.put("ssnode2", node2SynapseSetNode);
-        }
-
-        // merge the two synapse nodes using apoc if there are two synapseset nodes. inherits the datasetBodyId of the first node
-        if (parametersMap.containsKey("ssnode1") && parametersMap.containsKey("ssnode2")) {
-            Node newSynapseSetNode = (Node) dbService.execute("CALL apoc.refactor.mergeNodes([$ssnode1, $ssnode2], {properties:{datasetBodyId:\"discard\"}}) YIELD node RETURN node", parametersMap).next().get("node");
-            newSynapseSetNode.addLabel(Label.label(datasetLabel));
-
-            //delete the extra relationship between new node and new synapse set node
-            newNode.getRelationships(RelationshipType.withName("Contains")).iterator().next().delete();
-        }
-
-        log.info("Merged SynapseSet nodes from original neurons onto new neuron.");
+        return listOfConnectedNeurons;
     }
 
+    private void incrementSynapseCounterWithSynapse(Synapse synapse, SynapseCounter synapseCounter) {
+        if (synapse.getType().equals("pre")) {
+            synapseCounter.incrementPreCount();
+        } else if (synapse.getType().equals("post")) {
+            synapseCounter.incrementPostCount();
+        }
+    }
+
+    private void addRoiLabelsToNeuronGivenNeuronParts(Node neuron, List<NeuronPart> neuronPartList) {
+        for (NeuronPart neuronPart : neuronPartList) {
+            neuron.addLabel(Label.label(neuronPart.getRoi()));
+        }
+    }
 
     private void combinePropertiesOntoMergedNeuron(Node node1, Node node2, Node newNode) {
 
@@ -601,9 +870,7 @@ public class ProofreaderProcedures {
 
         log.info("Properties from merged neurons added to new neuron.");
 
-
     }
-
 
     private void setNode1InheritedProperty(String propertyName, Node node1, Node node2, Node newNode) {
         if (node1.hasProperty(propertyName)) {
@@ -654,18 +921,6 @@ public class ProofreaderProcedures {
             newNode.setProperty(propertyName, node2Property);
         }
 
-//        if (node1SId!=null && node2SId!=null) {
-//            Integer newNodeSId = node1SId <= node2SId ? node1SId : node2SId;
-//            newNode.setProperty("sId",newNodeSId);
-//        } else if (node1SId!=null) {
-//            Integer newNodeSId = node1SId;
-//            newNode.setProperty("sId",newNodeSId);
-//        } else if (node2SId!=null) {
-//            Integer newNodeSId = node2SId;
-//            newNode.setProperty("sId",newNodeSId);
-//        }
-
-
     }
 
     private void convertPropertyNameToNewPropertyName(String propertyName, String newPropertyName, Node node) {
@@ -687,6 +942,16 @@ public class ProofreaderProcedures {
         }
     }
 
+    private void convertAllPropertiesToCleavedProperties(Node node) {
+        Map<String, Object> nodeProperties = node.getAllProperties();
+        for (String propertyName : nodeProperties.keySet()) {
+            if (!propertyName.startsWith("cleaved")) {
+                String cleavedPropertyName = "cleaved" + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
+                convertPropertyNameToNewPropertyName(propertyName, cleavedPropertyName, node);
+            }
+        }
+    }
+
     private void removeAllLabels(Node node) {
         Iterable<Label> nodeLabels = node.getLabels();
         for (Label label : nodeLabels) {
@@ -694,10 +959,10 @@ public class ProofreaderProcedures {
         }
     }
 
-    private void removeAllRelationshipsExceptTypeWithName(Node node, String except) {
+    private void removeAllRelationshipsExceptTypesWithName(Node node, List<String> except) {
         Iterable<Relationship> nodeRelationships = node.getRelationships();
         for (Relationship relationship : nodeRelationships) {
-            if (!relationship.isType(RelationshipType.withName(except))) {
+            if (!except.contains(relationship.getType().name())) {
                 relationship.delete();
             }
         }
@@ -709,7 +974,6 @@ public class ProofreaderProcedures {
             relationship.delete();
         }
     }
-
 
     private Node addSkeletonNode(final String dataset, final Skeleton skeleton) {
 
@@ -729,7 +993,6 @@ public class ProofreaderProcedures {
                 "MERGE (c:SkelNode:" + dataset + " {skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.x=$childX, c.y=$childY, c.z=$childZ, c.rowNumber=$childRowNumber \n" +
                 "MERGE (p)-[:LinksTo]-(c)";
 
-
         Long associatedBodyId = skeleton.getAssociatedBodyId();
         List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
 
@@ -738,9 +1001,7 @@ public class ProofreaderProcedures {
             put("skeletonId", dataset + ":" + associatedBodyId);
         }};
 
-
         dbService.execute(neuronToSkeletonConnectionString, neuronToSkeletonParametersMap);
-
 
         for (SkelNode skelNode : skelNodeList) {
 
@@ -772,7 +1033,6 @@ public class ProofreaderProcedures {
 
             dbService.execute(parentNodeString, parentNodeStringParametersMap);
 
-
             for (SkelNode child : skelNode.getChildren()) {
                 String childNodeId = dataset + ":" + associatedBodyId + ":" + child.getLocationString();
 
@@ -797,7 +1057,6 @@ public class ProofreaderProcedures {
                 dbService.execute(childNodeString, childNodeStringParametersMap);
 
             }
-
 
         }
         Map<String, Object> getSkeletonParametersMap = new HashMap<String, Object>() {{
@@ -826,7 +1085,7 @@ public class ProofreaderProcedures {
         log.info("Removed all SynapseSets and Synapses for node.");
     }
 
-    private void removeNeuronParts(Node node) {
+    private void removeNeuronPartsForNode(Node node) {
         for (Relationship nodeNeuronPartRelationship : node.getRelationships(RelationshipType.withName("PartOf"))) {
             Node neuronPart = nodeNeuronPartRelationship.getStartNode();
             nodeNeuronPartRelationship.delete();
