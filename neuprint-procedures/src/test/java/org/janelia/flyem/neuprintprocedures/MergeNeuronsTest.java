@@ -13,7 +13,11 @@ import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
-import org.neo4j.driver.v1.*;
+import org.neo4j.driver.v1.Config;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Record;
+import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.driver.v1.types.Relationship;
 import org.neo4j.harness.junit.Neo4jRule;
@@ -33,6 +37,8 @@ public class MergeNeuronsTest {
             .withProcedure(GraphRefactoring.class)
             .withProcedure(Create.class);
 
+    //TODO: write tests for exception/error handling.
+    //TODO: consolidate this into fewer tests
 
     @Test
     public void shouldGetConnectsToForBothNodesWithSummedWeights() {
@@ -44,7 +50,9 @@ public class MergeNeuronsTest {
             String connectsToTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 1, \"BodiesMerged\": [2], " +
                     "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[]}";
 
-            session.writeTransaction(tx -> tx.run("CREATE (n:Neuron:test{bodyId:$id1}), (m:Neuron:test{bodyId:$id2}), (o{bodyId:$id3}), (p{bodyId:$id4}) \n" +
+            session.writeTransaction(tx -> tx.run("CREATE (n:Neuron:test{bodyId:$id1}), (m:Neuron:test{bodyId:$id2})," +
+                            " (o{bodyId:$id3}), (p{bodyId:$id4}), (s:SynapseSet{datasetBodyId:\"test:1\"})," +
+                            " (ss:SynapseSet{datasetBodyId:\"test:2\"}) \n" +
                             "CREATE (n)-[:ConnectsTo{weight:7}]->(o) \n" +
                             "CREATE (m)-[:ConnectsTo{weight:23}]->(o) \n" +
                             "CREATE (o)-[:ConnectsTo{weight:13}]->(n) \n" +
@@ -53,12 +61,13 @@ public class MergeNeuronsTest {
                             "CREATE (n)-[:ConnectsTo{weight:2}]->(n) \n" +
                             "CREATE (m)-[:ConnectsTo{weight:3}]->(m) \n" +
                             "CREATE (m)-[:ConnectsTo{weight:37}]->(n) \n " +
-                            "CREATE (n)-[:ConnectsTo{weight:5}]->(m)",
+                            "CREATE (n)-[:ConnectsTo{weight:5}]->(m) \n" +
+                            "CREATE (n)-[:Contains]->(s) \n" +
+                            "CREATE (m)-[:Contains]->(ss) ",
                     parameters("id1", 1, "id2", 2, "id3", 3, "id4", 4)));
 
-
-            Node neuron = session.writeTransaction(tx ->
-                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", connectsToTestJson)).single().get(0).asNode());
+            session.writeTransaction(tx ->
+                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", connectsToTestJson)));
 
             Long newTo1Weight = session.run("MATCH (n)-[r:ConnectsTo]->(m{bodyId:1}) WHERE id(n)=20 RETURN r.weight").single().get(0).asLong();
 
@@ -90,7 +99,6 @@ public class MergeNeuronsTest {
 
         }
     }
-
 
     @Test
     public void shouldContainMergedSynapseSet() {
@@ -133,43 +141,6 @@ public class MergeNeuronsTest {
             Assert.assertEquals(3, numberOfRelationships);
 
         }
-    }
-
-    @Test
-    public void shouldDeleteEntireSkeletonUponMerge() {
-
-        String skeletonTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 101, \"BodiesMerged\": [102], " +
-                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[]}";
-
-        File swcFile1 = new File("src/test/resources/101.swc");
-        File swcFile2 = new File("src/test/resources/102.swc");
-
-        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(new File[]{swcFile1, swcFile2});
-
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
-
-            Session session = driver.session();
-
-            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-
-            neo4jImporter.addSkeletonNodes("test", skeletonList);
-
-            Assert.assertEquals("test:101", session.run("MATCH (n{bodyId:101})-[:Contains]->(s:Skeleton) RETURN s.skeletonId").single().get(0).asString());
-
-            Node neuron = session.writeTransaction(tx ->
-                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", skeletonTestJson)).single().get(0).asNode());
-
-            Assert.assertFalse(session.run("MATCH (n{bodyId:101})-[:Contains]->(s:Skeleton) RETURN s.skeletonId").hasNext());
-
-            Assert.assertFalse(session.run("MATCH (n{bodyId:102})-[:Contains]->(s:Skeleton) RETURN s.skeletonId").hasNext());
-
-            Assert.assertFalse(session.run("MATCH (n:Skeleton) RETURN n").hasNext());
-
-            Assert.assertFalse(session.run("MATCH (n:SkelNode) RETURN n").hasNext());
-
-
-        }
-
     }
 
     @Test
@@ -233,7 +204,6 @@ public class MergeNeuronsTest {
             int neuronPartCountForOldBody = session.run("MATCH (n{mergedBodyId:8426959})<-[:PartOf]-(np) RETURN count(np)").single().get(0).asInt();
 
             Assert.assertEquals(0, neuronPartCountForOldBody);
-
 
         }
 
@@ -306,7 +276,6 @@ public class MergeNeuronsTest {
             List<Record> node2Relationships = session.run("MATCH (n{mergedBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId", 26311)).list();
             List<Record> neuronHistoryNode = session.run("MATCH (n{bodyId:$bodyId})-[:From]->(h:History) RETURN h", parameters("bodyId", 8426959)).list();
 
-
             Assert.assertEquals(1, node1Relationships.size());
             Assert.assertEquals(1, node2Relationships.size());
             Assert.assertEquals(1, neuronHistoryNode.size());
@@ -321,7 +290,7 @@ public class MergeNeuronsTest {
     }
 
     @Test
-    public void shouldApplyTimeStampToAllNodesAfterMerge() {
+    public void shouldApplyTimeStampToAllNodesAfterMergeAndAllNonGhostNodesLabeledWithDataset() {
 
         String timeStampTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311], " +
                 "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[" +
@@ -362,18 +331,35 @@ public class MergeNeuronsTest {
             Node neuron = session.writeTransaction(tx ->
                     tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", timeStampTestJson)).single().get(0).asNode());
 
-            Node mergedNode1 = session.readTransaction(tx -> {
-                return tx.run("MATCH (n{mergedBodyId:8426959}) RETURN n").single().get(0).asNode();
+            Integer countOfNodesWithoutTimeStamp = session.readTransaction(tx -> {
+                return tx.run("MATCH (n) WHERE NOT exists(n.timeStamp) RETURN count(n)").single().get(0).asInt();
             });
 
-            Assert.assertTrue(mergedNode1.asMap().containsKey("timeStamp"));
+            Assert.assertEquals(new Integer(0), countOfNodesWithoutTimeStamp);
 
+            Integer countOfNodesWithoutDatasetLabel = session.readTransaction(tx -> {
+                return tx.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
+            });
+
+            Assert.assertEquals(new Integer(2), countOfNodesWithoutDatasetLabel);
 
         }
     }
 
     @Test
     public void shouldAddAppropriatePropertiesLabelsAndRelationshipsToResultingBodyUponRecursiveMerge() {
+
+        String mergeInstructionJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311, 2589725, 831744], " +
+                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\": [" +
+                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
+                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
+                "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4298, 2294, 1542 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4292, 2261, 1542 ]}" +
+                "]}";
 
         List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
@@ -455,13 +441,15 @@ public class MergeNeuronsTest {
                     tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:Contains]-(s:Skeleton) RETURN count(s)").list());
 
             Assert.assertEquals(0, skeletonCountList.get(0).get("count(s)").asInt());
+            Assert.assertFalse(session.run("MATCH (n:Skeleton) RETURN n").hasNext());
+            Assert.assertFalse(session.run("MATCH (n:SkelNode) RETURN n").hasNext());
 
             //check history
-            List<Record>   m1HistoryList = session.writeTransaction(tx ->
+            List<Record> m1HistoryList = session.writeTransaction(tx ->
                     tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-(m1) RETURN count(h),m1.mergedBodyId,m1.mergedPost,m1.mergedPre").list());
 
-            Assert.assertEquals(2,m1HistoryList.size());
-            Assert.assertEquals(1,m1HistoryList.get(0).get("count(h)").asInt());
+            Assert.assertEquals(2, m1HistoryList.size());
+            Assert.assertEquals(1, m1HistoryList.get(0).get("count(h)").asInt());
 
             Long m11BodyId = m1HistoryList.get(0).get("m1.mergedBodyId").asLong();
             Long m11Pre = m1HistoryList.get(0).get("m1.mergedPre").asLong();
@@ -471,15 +459,15 @@ public class MergeNeuronsTest {
             Long m12Pre = m1HistoryList.get(1).get("m1.mergedPre").asLong();
             Long m12Post = m1HistoryList.get(1).get("m1.mergedPost").asLong();
 
-            Assert.assertEquals(neuronProperties.get("pre"),m11Pre+m12Pre);
-            Assert.assertEquals(neuronProperties.get("post"),m11Post+m12Post);
+            Assert.assertEquals(neuronProperties.get("pre"), m11Pre + m12Pre);
+            Assert.assertEquals(neuronProperties.get("post"), m11Post + m12Post);
             Assert.assertEquals(new Long(8426959), m12BodyId);
-            Assert.assertEquals(new Long(831744) ,m11BodyId);
+            Assert.assertEquals(new Long(831744), m11BodyId);
 
             List<Record> m2HistoryList = session.writeTransaction(tx ->
                     tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-(m2) RETURN m2.mergedBodyId,m2.mergedPost,m2.mergedPre").list());
 
-            Assert.assertEquals(2,m2HistoryList.size());
+            Assert.assertEquals(2, m2HistoryList.size());
 
             Long m21BodyId = m2HistoryList.get(0).get("m2.mergedBodyId").asLong();
             Long m21Pre = m2HistoryList.get(0).get("m2.mergedPre").asLong();
@@ -489,15 +477,15 @@ public class MergeNeuronsTest {
             Long m22Pre = m2HistoryList.get(1).get("m2.mergedPre").asLong();
             Long m22Post = m2HistoryList.get(1).get("m2.mergedPost").asLong();
 
-            Assert.assertEquals((long) m12Pre,m21Pre+m22Pre);
-            Assert.assertEquals((long) m12Post,m21Post+m22Post);
+            Assert.assertEquals((long) m12Pre, m21Pre + m22Pre);
+            Assert.assertEquals((long) m12Post, m21Post + m22Post);
             Assert.assertEquals(new Long(8426959), m22BodyId);
-            Assert.assertEquals(new Long(2589725) ,m21BodyId);
+            Assert.assertEquals(new Long(2589725), m21BodyId);
 
             List<Record> m3HistoryList = session.writeTransaction(tx ->
                     tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-()<-[:MergedTo]-(m3) RETURN m3.mergedBodyId,m3.mergedPost,m3.mergedPre").list());
 
-            Assert.assertEquals(2,m2HistoryList.size());
+            Assert.assertEquals(2, m2HistoryList.size());
 
             Long m31BodyId = m3HistoryList.get(0).get("m3.mergedBodyId").asLong();
             Long m31Pre = m3HistoryList.get(0).get("m3.mergedPre").asLong();
@@ -507,29 +495,15 @@ public class MergeNeuronsTest {
             Long m32Pre = m3HistoryList.get(1).get("m3.mergedPre").asLong();
             Long m32Post = m3HistoryList.get(1).get("m3.mergedPost").asLong();
 
-            Assert.assertEquals((long) m22Pre,m31Pre+m32Pre);
-            Assert.assertEquals((long) m22Post,m31Post+m32Post);
+            Assert.assertEquals((long) m22Pre, m31Pre + m32Pre);
+            Assert.assertEquals((long) m22Post, m31Post + m32Post);
             Assert.assertEquals(new Long(8426959), m32BodyId);
-            Assert.assertEquals(new Long(26311) ,m31BodyId);
-
-
-
+            Assert.assertEquals(new Long(26311), m31BodyId);
 
         }
 
     }
 
-    final String mergeInstructionJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311, 2589725, 831744], " +
-            "\"ResultBodySize\": 216685762, \"ResultBodySynapses\": [" +
-            "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
-            "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
-            "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
-            "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
-            "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
-            "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}," +
-            "{\"Type\": \"post\", \"Location\": [ 4298, 2294, 1542 ]}," +
-            "{\"Type\": \"post\", \"Location\": [ 4292, 2261, 1542 ]}" +
-            "]}";
 }
 
 
