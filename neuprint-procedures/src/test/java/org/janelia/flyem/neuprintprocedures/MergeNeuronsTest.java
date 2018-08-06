@@ -332,7 +332,7 @@ public class MergeNeuronsTest {
                     tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", timeStampTestJson)).single().get(0).asNode());
 
             Integer countOfNodesWithoutTimeStamp = session.readTransaction(tx -> {
-                return tx.run("MATCH (n) WHERE NOT exists(n.timeStamp) RETURN count(n)").single().get(0).asInt();
+                return tx.run("MATCH (n) WHERE (NOT exists(n.timeStamp) AND NOT n:Meta) RETURN count(n)").single().get(0).asInt();
             });
 
             Assert.assertEquals(new Integer(0), countOfNodesWithoutTimeStamp);
