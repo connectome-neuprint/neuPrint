@@ -542,15 +542,15 @@ public class Neo4jImporter implements AutoCloseable {
                 "MERGE (n)-[:Contains]->(r) \n";
 
         final String rootNodeString = "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
-                "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.rowNumber=$rowNumber \n" +
+                "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type \n" +
                 "MERGE (r)-[:Contains]->(s) \n";
 
         final String parentNodeString = "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.timeStamp=$timeStamp \n" +
-                "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber \n" +
+                "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
                 "MERGE (r)-[:Contains]->(p) ";
 
-        final String childNodeString = "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber \n" +
-                "MERGE (c:SkelNode:" + dataset + " {skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.rowNumber=$childRowNumber \n" +
+        final String childNodeString = "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
+                "MERGE (c:SkelNode:" + dataset + " {skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.rowNumber=$childRowNumber, c.type=$childType \n" +
                 "MERGE (p)-[:LinksTo]-(c)";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -574,6 +574,7 @@ public class Neo4jImporter implements AutoCloseable {
                                 "skeletonId", dataset + ":" + associatedBodyId,
                                 "skelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString(),
                                 "rowNumber", skelNode.getRowNumber(),
+                                "type", skelNode.getType(),
                                 "timeStamp", timeStamp
                         )));
                     }
@@ -584,6 +585,7 @@ public class Neo4jImporter implements AutoCloseable {
                             "skeletonId", dataset + ":" + associatedBodyId,
                             "parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString(),
                             "pRowNumber", skelNode.getRowNumber(),
+                            "pType", skelNode.getType(),
                             "timeStamp", timeStamp
                     )));
 
@@ -594,11 +596,13 @@ public class Neo4jImporter implements AutoCloseable {
                                 "pLocation", skelNode.getLocationAsPoint(),
                                 "pRadius", skelNode.getRadius(),
                                 "pRowNumber", skelNode.getRowNumber(),
+                                "pType", skelNode.getType(),
                                 "timeStamp", timeStamp,
                                 "childNodeId", childNodeId,
                                 "childLocation", child.getLocationAsPoint(),
                                 "childRadius", child.getRadius(),
-                                "childRowNumber", child.getRowNumber()
+                                "childRowNumber", child.getRowNumber(),
+                                "childType", child.getType()
                         )));
                     }
                 }

@@ -63,9 +63,10 @@ public class Neo4jImporterTest {
             Assert.assertEquals(new Integer(4), skelNode101NumberOfRoots);
             Assert.assertEquals(new Integer(1), skelNode102RootDegree);
 
-            Map<String, Object> skelNodeProperties = session.run("MATCH (n:Skeleton{skeletonId:\"test:101\"})-[:Contains]->(s:SkelNode{rowNumber:13}) RETURN s.location, s.radius, s.skelNodeId, s.x, s.y, s.z").list().get(0).asMap();
+            Map<String, Object> skelNodeProperties = session.run("MATCH (n:Skeleton{skeletonId:\"test:101\"})-[:Contains]->(s:SkelNode{rowNumber:13}) RETURN s.location, s.radius, s.skelNodeId, s.type").list().get(0).asMap();
             Assert.assertEquals(Values.point(9157, 5096, 9281, 1624).asPoint(), skelNodeProperties.get("s.location"));
             Assert.assertEquals(28D, skelNodeProperties.get("s.radius"));
+            Assert.assertEquals(0L, skelNodeProperties.get("s.type"));
             Assert.assertEquals("test:101:5096:9281:1624", skelNodeProperties.get("s.skelNodeId"));
 
             int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
