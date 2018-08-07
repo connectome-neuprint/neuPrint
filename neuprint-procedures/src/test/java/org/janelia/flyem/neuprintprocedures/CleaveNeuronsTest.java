@@ -191,7 +191,7 @@ public class CleaveNeuronsTest {
             Assert.assertEquals(1, newSynapseSetList.size());
             Assert.assertEquals(2, newSynapseSetList.get(0).get("count(l)").asInt());
 
-            //check that everything except Meta node has time stamp and all have dataset label
+            //check that everything except Meta node has time stamp and all have dataset label except the cleaved ghost body
             Integer countOfNodesWithoutTimeStamp = session.readTransaction(tx -> {
                 return tx.run("MATCH (n) WHERE (NOT exists(n.timeStamp) AND NOT n:Meta) RETURN count(n)").single().get(0).asInt();
             });

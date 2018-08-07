@@ -19,7 +19,6 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.types.Node;
-import org.neo4j.driver.v1.types.Relationship;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
@@ -210,143 +209,6 @@ public class MergeNeuronsTest {
     }
 
     @Test
-    public void shouldConvertOldNodePropertiesToMergedAndRemoveLabelsAndRelationshipsExceptMergedToHistoryNode() {
-
-        String neuronPartsTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311], " +
-                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[" +
-                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
-                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
-                "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}" +
-                "]}";
-
-        List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
-        SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
-        bodyList.sort(new SortBodyByNumberOfSynapses());
-
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
-
-            Session session = driver.session();
-            String dataset = "test";
-
-            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-            neo4jImporter.prepDatabase(dataset);
-
-            neo4jImporter.addNeurons(dataset, neuronList);
-
-            neo4jImporter.addConnectsTo(dataset, bodyList, 0);
-            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
-            neo4jImporter.addSynapsesTo(dataset, preToPost);
-            neo4jImporter.addNeuronRois(dataset, bodyList);
-            neo4jImporter.addSynapseSets(dataset, bodyList);
-            for (BodyWithSynapses bws : bodyList) {
-                bws.setNeuronParts();
-            }
-            neo4jImporter.addNeuronParts(dataset, bodyList);
-
-            Node neuron = session.writeTransaction(tx ->
-                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", neuronPartsTestJson)).single().get(0).asNode());
-
-            Node node1 = session.run("MATCH (n{mergedBodyId:$bodyId}) RETURN n", parameters("bodyId", 8426959)).single().get(0).asNode();
-            Node node2 = session.run("MATCH (n{mergedBodyId:$bodyId}) RETURN n", parameters("bodyId", 26311)).single().get(0).asNode();
-
-            Map<String, Object> node1Properties = node1.asMap();
-            Map<String, Object> node2Properties = node2.asMap();
-
-            for (String propertyName : node1Properties.keySet()) {
-                if (!propertyName.equals("timeStamp")) {
-                    Assert.assertTrue(propertyName.startsWith("merged"));
-                }
-            }
-
-            for (String propertyName : node2Properties.keySet()) {
-                if (!propertyName.equals("timeStamp")) {
-                    Assert.assertTrue(propertyName.startsWith("merged"));
-                }
-            }
-
-            Assert.assertFalse(node1.labels().iterator().hasNext());
-            Assert.assertFalse(node2.labels().iterator().hasNext());
-
-            List<Record> node1Relationships = session.run("MATCH (n{mergedBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId", 8426959)).list();
-            List<Record> node2Relationships = session.run("MATCH (n{mergedBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId", 26311)).list();
-            List<Record> neuronHistoryNode = session.run("MATCH (n{bodyId:$bodyId})-[:From]->(h:History) RETURN h", parameters("bodyId", 8426959)).list();
-
-            Assert.assertEquals(1, node1Relationships.size());
-            Assert.assertEquals(1, node2Relationships.size());
-            Assert.assertEquals(1, neuronHistoryNode.size());
-
-            Node historyNode = (Node) neuronHistoryNode.get(0).asMap().get("h");
-
-            Relationship r1 = (Relationship) node1Relationships.get(0).asMap().get("r");
-            Assert.assertTrue(r1.hasType("MergedTo") && r1.endNodeId() == historyNode.id());
-            Relationship r2 = (Relationship) node2Relationships.get(0).asMap().get("r");
-            Assert.assertTrue(r2.hasType("MergedTo") && r2.endNodeId() == historyNode.id());
-        }
-    }
-
-    @Test
-    public void shouldApplyTimeStampToAllNodesAfterMergeAndAllNonGhostNodesLabeledWithDataset() {
-
-        String timeStampTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311], " +
-                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[" +
-                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
-                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
-                "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}" +
-                "]}";
-
-        List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
-        SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
-        bodyList.sort(new SortBodyByNumberOfSynapses());
-
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
-
-            Session session = driver.session();
-            String dataset = "test";
-
-            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-            neo4jImporter.prepDatabase(dataset);
-
-            neo4jImporter.addNeurons(dataset, neuronList);
-
-            neo4jImporter.addConnectsTo(dataset, bodyList, 10);
-            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
-            neo4jImporter.addSynapsesTo(dataset, preToPost);
-            neo4jImporter.addNeuronRois(dataset, bodyList);
-            neo4jImporter.addSynapseSets(dataset, bodyList);
-            for (BodyWithSynapses bws : bodyList) {
-                bws.setNeuronParts();
-            }
-            neo4jImporter.addNeuronParts(dataset, bodyList);
-
-            Node neuron = session.writeTransaction(tx ->
-                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", timeStampTestJson)).single().get(0).asNode());
-
-            Integer countOfNodesWithoutTimeStamp = session.readTransaction(tx -> {
-                return tx.run("MATCH (n) WHERE (NOT exists(n.timeStamp) AND NOT n:Meta) RETURN count(n)").single().get(0).asInt();
-            });
-
-            Assert.assertEquals(new Integer(0), countOfNodesWithoutTimeStamp);
-
-            Integer countOfNodesWithoutDatasetLabel = session.readTransaction(tx -> {
-                return tx.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
-            });
-
-            Assert.assertEquals(new Integer(2), countOfNodesWithoutDatasetLabel);
-
-        }
-    }
-
-    @Test
     public void shouldAddAppropriatePropertiesLabelsAndRelationshipsToResultingBodyUponRecursiveMerge() {
 
         String mergeInstructionJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311, 2589725, 831744], " +
@@ -461,8 +323,9 @@ public class MergeNeuronsTest {
 
             Assert.assertEquals(neuronProperties.get("pre"), m11Pre + m12Pre);
             Assert.assertEquals(neuronProperties.get("post"), m11Post + m12Post);
-            Assert.assertEquals(new Long(8426959), m12BodyId);
-            Assert.assertEquals(new Long(831744), m11BodyId);
+            Long bodyId1 = 8426959L;
+            Long bodyId2 = 831744L;
+            Assert.assertTrue( (m12BodyId.equals(bodyId1) && m11BodyId.equals(bodyId2)) || (m12BodyId.equals(bodyId2) && m11BodyId.equals(bodyId1)));
 
             List<Record> m2HistoryList = session.writeTransaction(tx ->
                     tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-(m2) RETURN m2.mergedBodyId,m2.mergedPost,m2.mergedPre").list());
@@ -479,8 +342,8 @@ public class MergeNeuronsTest {
 
             Assert.assertEquals((long) m12Pre, m21Pre + m22Pre);
             Assert.assertEquals((long) m12Post, m21Post + m22Post);
-            Assert.assertEquals(new Long(8426959), m22BodyId);
-            Assert.assertEquals(new Long(2589725), m21BodyId);
+            Long bodyId3 = 2589725L;
+            Assert.assertTrue( (m22BodyId.equals(bodyId1) && m21BodyId.equals(bodyId3)) || (m22BodyId.equals(bodyId3) && m21BodyId.equals(bodyId1)));
 
             List<Record> m3HistoryList = session.writeTransaction(tx ->
                     tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-()<-[:MergedTo]-(m3) RETURN m3.mergedBodyId,m3.mergedPost,m3.mergedPre").list());
@@ -497,8 +360,39 @@ public class MergeNeuronsTest {
 
             Assert.assertEquals((long) m22Pre, m31Pre + m32Pre);
             Assert.assertEquals((long) m22Post, m31Post + m32Post);
-            Assert.assertEquals(new Long(8426959), m32BodyId);
-            Assert.assertEquals(new Long(26311), m31BodyId);
+            Long bodyId4 = 26311L;
+            Assert.assertTrue( (m32BodyId.equals(bodyId1) && m31BodyId.equals(bodyId4)) || (m32BodyId.equals(bodyId4) && m31BodyId.equals(bodyId1)));
+
+            //check that all nodes except Meta have time stamps and dataset labels on everything except ghost bodies
+            Integer countOfNodesWithoutTimeStamp = session.readTransaction(tx -> {
+                return tx.run("MATCH (n) WHERE (NOT exists(n.timeStamp) AND NOT n:Meta) RETURN count(n)").single().get(0).asInt();
+            });
+            Assert.assertEquals(new Integer(0), countOfNodesWithoutTimeStamp);
+
+            Integer countOfNodesWithoutDatasetLabel = session.readTransaction(tx -> {
+                return tx.run("MATCH (n) WHERE (NOT n:test AND NOT exists(n.mergedBodyId)) RETURN count(n)").single().get(0).asInt();
+            });
+
+            Assert.assertEquals(new Integer(0), countOfNodesWithoutDatasetLabel);
+
+            //check that ghost nodes have "merged" properties and no labels
+            Node mergedNode8426959 = session.run("MATCH (n{mergedBodyId:$bodyId})-[:MergedTo]->(h:History) RETURN n", parameters("bodyId", 8426959)).single().get(0).asNode();
+            Node mergedNode26311 = session.run("MATCH (n{mergedBodyId:$bodyId}) RETURN n", parameters("bodyId", 26311)).single().get(0).asNode();
+
+            Map<String, Object> node8426959Properties = mergedNode8426959.asMap();
+            Map<String, Object> node26311Properties = mergedNode26311.asMap();
+            for (String propertyName : node8426959Properties.keySet()) {
+                if (!propertyName.equals("timeStamp")) {
+                    Assert.assertTrue(propertyName.startsWith("merged"));
+                }
+            }
+            for (String propertyName : node26311Properties.keySet()) {
+                if (!propertyName.equals("timeStamp")) {
+                    Assert.assertTrue(propertyName.startsWith("merged"));
+                }
+            }
+            Assert.assertFalse(mergedNode8426959.labels().iterator().hasNext());
+            Assert.assertFalse(mergedNode26311.labels().iterator().hasNext());
 
         }
 
