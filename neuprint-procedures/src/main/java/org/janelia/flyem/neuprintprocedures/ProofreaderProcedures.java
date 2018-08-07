@@ -70,9 +70,9 @@ public class ProofreaderProcedures {
         final Node resultBody = acquireNeuronFromDatabase(mergeAction.getResultBodyId(), datasetLabel);
 
         // grab write locks upfront
-        acquireWriteLockForNode(resultBody);
+        acquireWriteLockForNeuronSubgraph(resultBody);
         for (Node body : mergedBodies) {
-        acquireWriteLockForNode(body);
+            acquireWriteLockForNeuronSubgraph(body);
         }
 
         final Node newNode = recursivelyMergeNodes(resultBody, mergedBodies, mergeAction.getResultBodySize(), datasetLabel);
@@ -97,7 +97,7 @@ public class ProofreaderProcedures {
         final Node originalBody = acquireNeuronFromDatabase(cleaveAction.getOriginalBodyId(), datasetLabel);
 
         // grab write locks upfront
-        acquireWriteLockForNode(originalBody);
+        acquireWriteLockForNeuronSubgraph(originalBody);
 
         // create new neuron nodes with properties
         final Node cleavedOriginalBody = copyPropertiesToNewNodeForCleaveOrMerge(originalBody, "cleave");
@@ -251,7 +251,7 @@ public class ProofreaderProcedures {
         final Node neuron = acquireNeuronFromDatabase(neuronBodyId, datasetLabel);
 
         // grab write locks upfront
-        acquireWriteLockForNode(neuron);
+        acquireWriteLockForNeuronSubgraph(neuron);
 
         Node skeletonNode = addSkeletonNode(datasetLabel, skeleton);
 
@@ -267,7 +267,7 @@ public class ProofreaderProcedures {
         final Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
 
         // grab write locks upfront
-        acquireWriteLockForNode(neuron);
+        acquireWriteLockForNeuronSubgraph(neuron);
 
         //delete connectsTo relationships
         removeConnectsToRelationshipsForNode(neuron);
@@ -1031,6 +1031,42 @@ public class ProofreaderProcedures {
         try (Transaction tx = dbService.beginTx()) {
             tx.acquireWriteLock(relationship);
             tx.success();
+        }
+    }
+
+    private void acquireWriteLockForNeuronSubgraph(Node neuron) {
+        // neuron
+        acquireWriteLockForNode(neuron);
+        // connects to relationships and 1-degree connections
+        for (Relationship connectsToRelationship : neuron.getRelationships(RelationshipType.withName("ConnectsTo"))) {
+            acquireWriteLockForRelationship(connectsToRelationship);
+            acquireWriteLockForNode(connectsToRelationship.getOtherNode(neuron));
+        }
+        // neuronpart
+        for (Relationship partOfRelationship : neuron.getRelationships(RelationshipType.withName("PartOf"))) {
+            acquireWriteLockForRelationship(partOfRelationship);
+            acquireWriteLockForNode(partOfRelationship.getStartNode());
+        }
+        // skeleton and synapse set
+        for (Relationship containsRelationship : neuron.getRelationships(RelationshipType.withName("Contains"))) {
+            acquireWriteLockForRelationship(containsRelationship);
+            Node skeletonOrSynapseSetNode = containsRelationship.getEndNode();
+            acquireWriteLockForNode(skeletonOrSynapseSetNode);
+            // skel nodes and synapses
+            for (Relationship skelNodeOrSynapseRelationship : skeletonOrSynapseSetNode.getRelationships(RelationshipType.withName("Contains"),Direction.OUTGOING)) {
+                acquireWriteLockForRelationship(skelNodeOrSynapseRelationship);
+                Node skelNodeOrSynapseNode = skelNodeOrSynapseRelationship.getEndNode();
+                acquireWriteLockForNode(skelNodeOrSynapseNode);
+                // first degree relationships to synapses
+                for (Relationship synapsesToRelationship : skelNodeOrSynapseNode.getRelationships(RelationshipType.withName("SynapsesTo"))) {
+                    acquireWriteLockForRelationship(synapsesToRelationship);
+                    acquireWriteLockForNode(synapsesToRelationship.getOtherNode(skelNodeOrSynapseNode));
+                }
+                // links to relationships for skel nodes
+                for (Relationship linksToRelationship : skelNodeOrSynapseNode.getRelationships(RelationshipType.withName("LinksTo"),Direction.OUTGOING)) {
+                    acquireWriteLockForRelationship(linksToRelationship);
+                }
+            }
         }
     }
 }
