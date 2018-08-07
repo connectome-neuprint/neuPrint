@@ -327,11 +327,23 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addNeuronParts: entry");
 
         final String neuronPartText = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforneuronpart, n.timeStamp=$timeStamp, n.status=$notAnnotated \n" +
-                "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.pre=$pre, p.post=$post, p.size=$size, p.timeStamp=$timeStamp \n" +
+                "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.timeStamp=$timeStamp \n" +
                 "MERGE (p)-[:PartOf]->(n) \n" +
                 "WITH p \n" +
                 "CALL apoc.create.addLabels(id(p),[$roi, \"" + dataset + "\" ]) YIELD node \n" +
                 "RETURN node";
+
+//        for (Roi roi : roiSet) {
+//
+//            String metaNodeRoiString = "MATCH (m:Meta:" + dataset + " {dataset:$dataset}) SET m." + roi.getRoiName() +
+//                    "PreCount=$roiPreCount, m." + roi.getRoiName() + "PostCount=$roiPostCount ";
+//
+//            batch.addStatement(new Statement(metaNodeRoiString,
+//                    parameters("dataset", dataset,
+//                            "roiPreCount", roi.getPreCount(),
+//                            "roiPostCount", roi.getPostCount()
+//                    )));
+//        }
 
         try (final TransactionBatch batch = getBatch()) {
             for (BodyWithSynapses bws : bodyList) {

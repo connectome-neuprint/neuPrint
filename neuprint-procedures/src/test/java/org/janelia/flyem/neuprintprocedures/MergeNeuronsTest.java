@@ -46,8 +46,8 @@ public class MergeNeuronsTest {
 
             Session session = driver.session();
 
-            String connectsToTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 1, \"BodiesMerged\": [2], " +
-                    "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[]}";
+            String connectsToTestJson = "{\"Action\": \"merge\", \"TargetBodyID\": 1, \"BodiesMerged\": [2], " +
+                    "\"TargetBodySize\": 216685762, \"TargetBodySynapses\":[]}";
 
             session.writeTransaction(tx -> tx.run("CREATE (n:Neuron:test{bodyId:$id1}), (m:Neuron:test{bodyId:$id2})," +
                             " (o{bodyId:$id3}), (p{bodyId:$id4}), (s:SynapseSet{datasetBodyId:\"test:1\"})," +
@@ -106,8 +106,8 @@ public class MergeNeuronsTest {
 
             Session session = driver.session();
 
-            String synapseSetTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 1, \"BodiesMerged\": [2], " +
-                    "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[" +
+            String synapseSetTestJson = "{\"Action\": \"merge\", \"TargetBodyID\": 1, \"BodiesMerged\": [2], " +
+                    "\"TargetBodySize\": 216685762, \"TargetBodySynapses\":[" +
                     "{\"Type\": \"pre\", \"Location\": [ 1, 2, 3 ]}," +
                     "{\"Type\": \"post\", \"Location\": [ 4, 5, 6 ]}," +
                     "{\"Type\": \"pre\", \"Location\": [ 7, 8, 9 ]}" +
@@ -145,8 +145,8 @@ public class MergeNeuronsTest {
     @Test
     public void shouldCombineNeuronParts() {
 
-        String neuronPartsTestJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311], " +
-                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\":[" +
+        String neuronPartsTestJson = "{\"Action\": \"merge\", \"TargetBodyID\": 8426959, \"BodiesMerged\": [26311], " +
+                "\"TargetBodySize\": 216685762, \"TargetBodySynapses\":[" +
                 "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
                 "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
                 "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
@@ -211,8 +211,8 @@ public class MergeNeuronsTest {
     @Test
     public void shouldAddAppropriatePropertiesLabelsAndRelationshipsToResultingBodyUponRecursiveMerge() {
 
-        String mergeInstructionJson = "{\"Action\": \"merge\", \"ResultBodyID\": 8426959, \"BodiesMerged\": [26311, 2589725, 831744], " +
-                "\"ResultBodySize\": 216685762, \"ResultBodySynapses\": [" +
+        String mergeInstructionJson = "{\"Action\": \"merge\", \"TargetBodyID\": 8426959, \"BodiesMerged\": [26311, 2589725, 831744], " +
+                "\"TargetBodySize\": 216685762, \"TargetBodySynapses\": [" +
                 "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
                 "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
                 "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
@@ -265,8 +265,8 @@ public class MergeNeuronsTest {
             Map<String, Object> neuronProperties = neuron.asMap();
             Assert.assertEquals(3L, neuronProperties.get("pre"));
             Assert.assertEquals(5L, neuronProperties.get("post"));
-            Assert.assertEquals(mergeAction.getResultBodySize(), neuronProperties.get("size"));
-            Assert.assertEquals(mergeAction.getResultBodyId(), neuronProperties.get("bodyId"));
+            Assert.assertEquals(mergeAction.getTargetBodySize(), neuronProperties.get("size"));
+            Assert.assertEquals(mergeAction.getTargetBodyId(), neuronProperties.get("bodyId"));
             Assert.assertEquals("Dm", neuronProperties.get("type"));
             Assert.assertEquals("final", neuronProperties.get("status"));
 

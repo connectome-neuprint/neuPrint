@@ -67,15 +67,15 @@ public class ProofreaderProcedures {
                 .stream()
                 .map((id) -> acquireNeuronFromDatabase(id, datasetLabel))
                 .collect(Collectors.toList());
-        final Node resultBody = acquireNeuronFromDatabase(mergeAction.getResultBodyId(), datasetLabel);
+        final Node targetBody = acquireNeuronFromDatabase(mergeAction.getTargetBodyId(), datasetLabel);
 
         // grab write locks upfront
-        acquireWriteLockForNeuronSubgraph(resultBody);
+        acquireWriteLockForNeuronSubgraph(targetBody);
         for (Node body : mergedBodies) {
             acquireWriteLockForNeuronSubgraph(body);
         }
 
-        final Node newNode = recursivelyMergeNodes(resultBody, mergedBodies, mergeAction.getResultBodySize(), datasetLabel);
+        final Node newNode = recursivelyMergeNodes(targetBody, mergedBodies, mergeAction.getTargetBodySize(), datasetLabel);
 
         // throws an error if the synapses from the json and the synapses in the database for the resulting body do not match
         compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction);
@@ -590,9 +590,9 @@ public class ProofreaderProcedures {
         }
 
         //compare the two sets
-        Set<Synapse> mergeActionSynapseSet = new HashSet<>(mergeAction.getResultBodySynapses());
+        Set<Synapse> mergeActionSynapseSet = new HashSet<>(mergeAction.getTargetBodySynapses());
         Set<Synapse> databaseSynapseSet = new HashSet<>(resultingBodySynapseSet);
-        databaseSynapseSet.removeAll(mergeAction.getResultBodySynapses());
+        databaseSynapseSet.removeAll(mergeAction.getTargetBodySynapses());
         mergeActionSynapseSet.removeAll(resultingBodySynapseSet);
 
         if (mergeActionSynapseSet.size() == 0 && databaseSynapseSet.size() == 0) {
