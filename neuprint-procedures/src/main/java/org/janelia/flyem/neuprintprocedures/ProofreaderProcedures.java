@@ -70,12 +70,9 @@ public class ProofreaderProcedures {
         final Node resultBody = acquireNeuronFromDatabase(mergeAction.getResultBodyId(), datasetLabel);
 
         // grab write locks upfront
-        try (Transaction tx = dbService.beginTx()) {
-            tx.acquireWriteLock(resultBody);
-            for (Node body : mergedBodies) {
-                tx.acquireWriteLock(body);
-            }
-            tx.success();
+        acquireWriteLockForNode(resultBody);
+        for (Node body : mergedBodies) {
+        acquireWriteLockForNode(body);
         }
 
         final Node newNode = recursivelyMergeNodes(resultBody, mergedBodies, mergeAction.getResultBodySize(), datasetLabel);
@@ -100,10 +97,7 @@ public class ProofreaderProcedures {
         final Node originalBody = acquireNeuronFromDatabase(cleaveAction.getOriginalBodyId(), datasetLabel);
 
         // grab write locks upfront
-        try (Transaction tx = dbService.beginTx()) {
-            tx.acquireWriteLock(originalBody);
-            tx.success();
-        }
+        acquireWriteLockForNode(originalBody);
 
         // create new neuron nodes with properties
         final Node cleavedOriginalBody = copyPropertiesToNewNodeForCleaveOrMerge(originalBody, "cleave");
@@ -257,10 +251,7 @@ public class ProofreaderProcedures {
         final Node neuron = acquireNeuronFromDatabase(neuronBodyId, datasetLabel);
 
         // grab write locks upfront
-        try (Transaction tx = dbService.beginTx()) {
-            tx.acquireWriteLock(neuron);
-            tx.success();
-        }
+        acquireWriteLockForNode(neuron);
 
         Node skeletonNode = addSkeletonNode(datasetLabel, skeleton);
 
@@ -276,10 +267,7 @@ public class ProofreaderProcedures {
         final Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
 
         // grab write locks upfront
-        try (Transaction tx = dbService.beginTx()) {
-            tx.acquireWriteLock(neuron);
-            tx.success();
-        }
+        acquireWriteLockForNode(neuron);
 
         //delete connectsTo relationships
         removeConnectsToRelationshipsForNode(neuron);
@@ -452,7 +440,6 @@ public class ProofreaderProcedures {
         if (parametersMap.containsKey("ssnode1") && parametersMap.containsKey("ssnode2")) {
             Node newSynapseSetNode = (Node) dbService.execute("CALL apoc.refactor.mergeNodes([$ssnode1, $ssnode2], {properties:{datasetBodyId:\"discard\"}}) YIELD node RETURN node", parametersMap).next().get("node");
             newSynapseSetNode.addLabel(Label.label(datasetLabel));
-
             //delete the extra relationship between new node and new synapse set node
             newNode.getRelationships(RelationshipType.withName("Contains")).iterator().next().delete();
         }
@@ -1031,6 +1018,20 @@ public class ProofreaderProcedures {
             neuronPart.delete();
         }
         log.info("Removed all NeuronParts for node.");
+    }
+
+    private void acquireWriteLockForNode(Node node) {
+        try (Transaction tx = dbService.beginTx()) {
+            tx.acquireWriteLock(node);
+            tx.success();
+        }
+    }
+
+    private void acquireWriteLockForRelationship(Relationship relationship) {
+        try (Transaction tx = dbService.beginTx()) {
+            tx.acquireWriteLock(relationship);
+            tx.success();
+        }
     }
 }
 
