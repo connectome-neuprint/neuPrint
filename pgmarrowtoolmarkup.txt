@@ -1,8 +1,8 @@
 <ul class="graph-diagram-markup" data-internal-scale="5" data-external-scale="1">
   <li class="node" data-node-id="0" data-x="-409.69970764389296" data-y="-220.74850161021072">
-    <span class="caption">Neuron :ROI        :Dataset</span><dl class="properties"><dt>bodyId</dt><dd>int64</dd><dt>pre</dt><dd>int</dd><dt>post</dt><dd>int</dd><dt>size</dt><dd>int64</dd><dt>name</dt><dd>"string"</dd><dt>type</dt><dd>"string"</dd><dt>sId</dt><dd>int</dd><dt>status</dt><dd>"string"</dd><dt>somaLocation</dt><dd>int array</dd><dt>somaRadius</dt><dd>float</dd></dl></li>
+    <span class="caption">Neuron :ROI        :Dataset</span><dl class="properties"><dt>bodyId</dt><dd>int64</dd><dt>pre</dt><dd>int</dd><dt>post</dt><dd>int</dd><dt>size</dt><dd>int64</dd><dt>name</dt><dd>"string"</dd><dt>type</dt><dd>"string"</dd><dt>sId</dt><dd>int</dd><dt>status</dt><dd>"string"</dd><dt>somaLocation</dt><dd>Cartesian 3D point</dd><dt>somaRadius</dt><dd>float</dd></dl></li>
   <li class="node" data-node-id="1" data-x="-216.55922460192042" data-y="45.772489859311605">
-    <span class="caption">Synapse :PreSyn :ROI        :Dataset</span><dl class="properties"><dt>type</dt><dd>"string"</dd><dt>confidence</dt><dd>float</dd><dt>location</dt><dd>"string"</dd><dt>x</dt><dd>int</dd><dt>y</dt><dd>int</dd><dt>z</dt><dd>int</dd></dl></li>
+    <span class="caption">Synapse :PreSyn :ROI        :Dataset</span><dl class="properties"><dt>type</dt><dd>"string"</dd><dt>confidence</dt><dd>float</dd><dt>location</dt><dd>Cartesian 3D point</dd></dl></li>
   <li class="node" data-node-id="2" data-x="-409.69970764389296" data-y="45.772489859311605">
     <span class="caption">SkelNode  :Dataset</span>
   </li>
@@ -19,7 +19,7 @@
     <span class="caption">Skeleton :Dataset</span>
   </li>
   <li class="node" data-node-id="7" data-x="-660.0006727844709" data-y="-177.57403733058604">
-    <span class="caption">SkelNode  :Dataset</span><dl class="properties"><dt>location</dt><dd>"string"</dd><dt>x</dt><dd>int</dd><dt>y</dt><dd>int</dd><dt>z</dt><dd>int</dd><dt>radius</dt><dd>float</dd><dt>rowNumber</dt><dd>int</dd></dl></li>
+    <span class="caption">SkelNode  :Dataset</span><dl class="properties"><dt>location</dt><dd>Cartesian 3D point</dd><dt>radius</dt><dd>float</dd><dt>rowNumber</dt><dd>int</dd><dt>type</dt><dd>int</dd></dl></li>
   <li class="node" data-node-id="8" data-x="-788.9335300125242" data-y="-5.577902291567298">
     <span class="caption">SkelNode  :Dataset</span>
   </li>
