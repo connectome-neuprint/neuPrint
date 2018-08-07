@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.json.JsonUtils;
+import org.neo4j.driver.v1.Values;
+import org.neo4j.driver.v1.types.Point;
 
 public class Synapse {
 
@@ -104,6 +106,10 @@ public class Synapse {
 
     public List<Integer> getLocation() {
         return this.location;
+    }
+
+    public Point getLocationAsPoint() {
+        return Values.point(9157,this.location.get(0),this.location.get(1),this.location.get(2)).asPoint();
     }
 
     public float getConfidence() {

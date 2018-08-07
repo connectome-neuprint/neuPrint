@@ -246,9 +246,7 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(1.0, preSynNode.asMap().get("confidence"));
             Assert.assertEquals("pre", preSynNode.asMap().get("type"));
-            Assert.assertEquals(4287L, preSynNode.asMap().get("x"));
-            Assert.assertEquals(2277L, preSynNode.asMap().get("y"));
-            Assert.assertEquals(1502L, preSynNode.asMap().get("z"));
+            Assert.assertEquals(Values.point(9157,4287,2277,1502).asPoint(), preSynNode.asMap().get("location"));
             Assert.assertTrue(preSynNode.hasLabel("seven_column_roi"));
             Assert.assertTrue(preSynNode.hasLabel("roiA"));
 
@@ -257,9 +255,7 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(1.0, postSynNode.asMap().get("confidence"));
             Assert.assertEquals("post", postSynNode.asMap().get("type"));
-            Assert.assertEquals(4301L, postSynNode.asMap().get("x"));
-            Assert.assertEquals(2276L, postSynNode.asMap().get("y"));
-            Assert.assertEquals(1535L, postSynNode.asMap().get("z"));
+            Assert.assertEquals(Values.point(9157,4301,2276,1535).asPoint(), postSynNode.asMap().get("location"));
             Assert.assertTrue(postSynNode.hasLabel("seven_column_roi"));
             Assert.assertTrue(postSynNode.hasLabel("roiA"));
 

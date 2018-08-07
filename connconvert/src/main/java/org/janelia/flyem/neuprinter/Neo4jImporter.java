@@ -65,7 +65,7 @@ public class Neo4jImporter implements AutoCloseable {
     public void prepDatabase(String dataset) {
 
         LOG.info("prepDatabase: entry");
-
+        // TODO: set spatial index
         final String[] prepTextArray = {
                 "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.bodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.sId IS UNIQUE",
@@ -79,10 +79,8 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE CONSTRAINT ON (m:Meta) ASSERT m.dataset IS UNIQUE",
                 "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.autoName is UNIQUE",
                 "CREATE INDEX ON :Neuron(status)",
+                "CREATE INDEX ON :Neuron(somaLocation)",
                 "CREATE INDEX ON :Neuron(name)",
-                "CREATE INDEX ON :Synapse(x)",
-                "CREATE INDEX ON :Synapse(y)",
-                "CREATE INDEX ON :Synapse(z)",
                 "CREATE INDEX ON :Synapse(location)"
         };
 
@@ -198,9 +196,6 @@ public class Neo4jImporter implements AutoCloseable {
                         " s.datasetLocation = $datasetLocation," +
                         " s.confidence=$confidence, " +
                         " s.type=$type, " +
-                        " s.x=$x, " +
-                        " s.y=$y, " +
-                        " s.z=$z, " +
                         " s.timeStamp=$timeStamp \n" +
                         " WITH s \n" +
                         " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
@@ -212,9 +207,6 @@ public class Neo4jImporter implements AutoCloseable {
                         " s.datasetLocation = $datasetLocation," +
                         " s.confidence=$confidence, " +
                         " s.type=$type, " +
-                        " s.x=$x, " +
-                        " s.y=$y, " +
-                        " s.z=$z, " +
                         " s.timeStamp=$timeStamp \n" +
                         " WITH s \n" +
                         " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
@@ -229,26 +221,20 @@ public class Neo4jImporter implements AutoCloseable {
 
                             batch.addStatement(new Statement(
                                     preSynapseText,
-                                    parameters("location", synapse.getLocationString(),
+                                    parameters("location", synapse.getLocationAsPoint(),
                                             "datasetLocation", dataset + ":" + synapse.getLocationString(),
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType(),
-                                            "x", synapse.getLocation().get(0),
-                                            "y", synapse.getLocation().get(1),
-                                            "z", synapse.getLocation().get(2),
                                             "timeStamp", timeStamp,
                                             "rois", synapse.getRois()))
                             );
                         } else if (synapse.getType().equals("post")) {
                             batch.addStatement(new Statement(
                                     postSynapseText,
-                                    parameters("location", synapse.getLocationString(),
+                                    parameters("location", synapse.getLocationAsPoint(),
                                             "datasetLocation", dataset + ":" + synapse.getLocationString(),
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType(),
-                                            "x", synapse.getLocation().get(0),
-                                            "y", synapse.getLocation().get(1),
-                                            "z", synapse.getLocation().get(2),
                                             "timeStamp", timeStamp,
                                             "rois", synapse.getRois()))
                             );
