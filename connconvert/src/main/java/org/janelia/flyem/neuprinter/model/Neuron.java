@@ -4,6 +4,7 @@ import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
 import org.janelia.flyem.neuprinter.json.JsonUtils;
+import org.neo4j.driver.v1.types.Point;
 
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
@@ -93,12 +94,11 @@ public class Neuron {
         return soma;
     }
 
-    public List<Integer> getSomaLocation() {
+    public Point getSomaLocation() {
         if (soma != null) {
-            return soma.getLocation();
+            return soma.getLocationAsPoint();
         } else {
-            List<Integer> emptyList = null;
-            return emptyList;
+            return null;
         }
     }
 
@@ -106,8 +106,7 @@ public class Neuron {
         if (soma != null) {
             return soma.getRadius();
         } else {
-            Float nullFloat = null;
-            return nullFloat;
+            return null;
         }
     }
 

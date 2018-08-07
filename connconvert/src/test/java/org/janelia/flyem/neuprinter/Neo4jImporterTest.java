@@ -12,6 +12,7 @@ import org.neo4j.driver.v1.Config;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.Values;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
@@ -117,12 +118,7 @@ public class Neo4jImporterTest {
             Assert.assertEquals("KC-5", bodyId100569.asMap().get("name"));
             Assert.assertEquals("KC", bodyId100569.asMap().get("type"));
 
-            List<Long> locationList = new ArrayList<>();
-            locationList.add(1L);
-            locationList.add(2L);
-            locationList.add(3L);
-
-            Assert.assertEquals(locationList, bodyId100569.asMap().get("somaLocation"));
+            Assert.assertEquals(Values.point(9157,1.0,2.0,3.0).asPoint(), bodyId100569.asMap().get("somaLocation"));
             Assert.assertEquals(5.0, bodyId100569.asMap().get("somaRadius"));
 
             Assert.assertTrue(bodyId100569.hasLabel("roi1"));
