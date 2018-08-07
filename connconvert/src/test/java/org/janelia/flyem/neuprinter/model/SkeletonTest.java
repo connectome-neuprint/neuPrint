@@ -20,7 +20,7 @@ public class SkeletonTest {
         BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
         Skeleton skeleton = new Skeleton();
 
-        skeleton.fromSwc(bufferedReader,new Long(10));
+        skeleton.fromSwc(bufferedReader, new Long(10));
 
         List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
 
@@ -30,9 +30,9 @@ public class SkeletonTest {
 
         Assert.assertEquals(new Integer(3117), skelNodeList.get(5).getLocation().get(0));
 
-        Assert.assertEquals(22.5f, skelNodeList.get(21).getRadius(),.00001);
+        Assert.assertEquals(22.5f, skelNodeList.get(21).getRadius(), .00001);
 
-        Assert.assertEquals(skelNodeList.get(9),skelNodeList.get(10).getParent());
+        Assert.assertEquals(skelNodeList.get(9), skelNodeList.get(10).getParent());
 
         Assert.assertEquals(null, skelNodeList.get(0).getParent());
 
@@ -44,8 +44,7 @@ public class SkeletonTest {
         childList.add(skelNodeList.get(9));
         childList.add(skelNodeList.get(26));
         Assert.assertEquals(childList, skelNodeList.get(8).getChildren());
-        Assert.assertEquals( new ArrayList<>(), skelNodeList.get(28).getChildren());
-
+        Assert.assertEquals(new ArrayList<>(), skelNodeList.get(28).getChildren());
 
         String filepath2 = "src/test/resources/multipleRootsSkeleton.swc";
 
@@ -53,16 +52,14 @@ public class SkeletonTest {
         BufferedReader bufferedReader2 = new BufferedReader(new FileReader(file2));
         Skeleton skeleton2 = new Skeleton();
 
-        skeleton2.fromSwc(bufferedReader2,new Long(10));
+        skeleton2.fromSwc(bufferedReader2, new Long(10));
 
         List<SkelNode> skelNodeList2 = skeleton2.getSkelNodeList();
 
-        Assert.assertTrue(skelNodeList2.get(13122).getParent()==null && skelNodeList2.get(13123).getParent()==null && skelNodeList2.get(13124).getParent()==null && skelNodeList2.get(0).getParent()==null);
+        Assert.assertTrue(skelNodeList2.get(13122).getParent() == null && skelNodeList2.get(13123).getParent() == null && skelNodeList2.get(13124).getParent() == null && skelNodeList2.get(0).getParent() == null);
 
-        Assert.assertEquals(skelNodeList2.get(13124),skelNodeList2.get(13125).getParent());
-
+        Assert.assertEquals(skelNodeList2.get(13124), skelNodeList2.get(13125).getParent());
 
     }
-
 
 }

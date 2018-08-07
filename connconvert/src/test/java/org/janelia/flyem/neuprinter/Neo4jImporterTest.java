@@ -17,13 +17,11 @@ import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class Neo4jImporterTest {
-
 
     @Rule
     public Neo4jRule neo4j = new Neo4jRule()
@@ -34,7 +32,7 @@ public class Neo4jImporterTest {
 
         File swcFile1 = new File("src/test/resources/101.swc");
         File swcFile2 = new File("src/test/resources/102.swc");
-        File[] arrayOfSwcFiles = new File[]{swcFile1,swcFile2};
+        File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2};
 
         List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
@@ -65,18 +63,13 @@ public class Neo4jImporterTest {
             Assert.assertEquals(new Integer(4), skelNode101NumberOfRoots);
             Assert.assertEquals(new Integer(1), skelNode102RootDegree);
 
-
             Map<String, Object> skelNodeProperties = session.run("MATCH (n:Skeleton{skeletonId:\"test:101\"})-[:Contains]->(s:SkelNode{rowNumber:13}) RETURN s.location, s.radius, s.skelNodeId, s.x, s.y, s.z").list().get(0).asMap();
-            Assert.assertEquals("5096:9281:1624", skelNodeProperties.get("s.location"));
+            Assert.assertEquals(Values.point(9157, 5096, 9281, 1624).asPoint(), skelNodeProperties.get("s.location"));
             Assert.assertEquals(28D, skelNodeProperties.get("s.radius"));
             Assert.assertEquals("test:101:5096:9281:1624", skelNodeProperties.get("s.skelNodeId"));
-            Assert.assertEquals(5096L, skelNodeProperties.get("s.x"));
-            Assert.assertEquals(9281L, skelNodeProperties.get("s.y"));
-            Assert.assertEquals(1624L, skelNodeProperties.get("s.z"));
 
             int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
             Assert.assertEquals(0, noStatusCount);
-
 
         }
     }
@@ -87,7 +80,6 @@ public class Neo4jImporterTest {
         String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
 
         List<Neuron> neuronList = ConnConvert.readNeuronsJson(neuronsJsonPath);
-
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -112,13 +104,12 @@ public class Neo4jImporterTest {
 
             Node bodyId100569 = session.run("MATCH (n:Neuron{bodyId:100569}) RETURN n").single().get(0).asNode();
 
-
             Assert.assertEquals("final", bodyId100569.asMap().get("status"));
             Assert.assertEquals(1031L, bodyId100569.asMap().get("size"));
             Assert.assertEquals("KC-5", bodyId100569.asMap().get("name"));
             Assert.assertEquals("KC", bodyId100569.asMap().get("type"));
 
-            Assert.assertEquals(Values.point(9157,1.0,2.0,3.0).asPoint(), bodyId100569.asMap().get("somaLocation"));
+            Assert.assertEquals(Values.point(9157, 1.0, 2.0, 3.0).asPoint(), bodyId100569.asMap().get("somaLocation"));
             Assert.assertEquals(5.0, bodyId100569.asMap().get("somaRadius"));
 
             Assert.assertTrue(bodyId100569.hasLabel("roi1"));
@@ -127,25 +118,20 @@ public class Neo4jImporterTest {
             int labelCount = 0;
             Iterable<String> bodyLabels = bodyId100569.labels();
 
-
             for (String roi : bodyLabels) {
                 labelCount++;
             }
             Assert.assertEquals(4, labelCount);
 
-
         }
 
-
     }
-
 
     @Test
     public void testAddConnectsTo() {
 
         String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
         String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
-
 
         List<Neuron> neuronList = ConnConvert.readNeuronsJson(neuronsJsonPath);
 
@@ -155,7 +141,6 @@ public class Neo4jImporterTest {
         HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
 
         bodyList.sort(new SortBodyByNumberOfSynapses());
-
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -186,7 +171,6 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(10, neuronCount);
 
-
         }
     }
 
@@ -196,7 +180,6 @@ public class Neo4jImporterTest {
         String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
         String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
 
-
         List<Neuron> neuronList = ConnConvert.readNeuronsJson(neuronsJsonPath);
 
         SynapseMapper mapper = new SynapseMapper();
@@ -205,7 +188,6 @@ public class Neo4jImporterTest {
         HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
 
         bodyList.sort(new SortBodyByNumberOfSynapses());
-
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -246,19 +228,17 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(1.0, preSynNode.asMap().get("confidence"));
             Assert.assertEquals("pre", preSynNode.asMap().get("type"));
-            Assert.assertEquals(Values.point(9157,4287,2277,1502).asPoint(), preSynNode.asMap().get("location"));
+            Assert.assertEquals(Values.point(9157, 4287, 2277, 1502).asPoint(), preSynNode.asMap().get("location"));
             Assert.assertTrue(preSynNode.hasLabel("seven_column_roi"));
             Assert.assertTrue(preSynNode.hasLabel("roiA"));
-
 
             Node postSynNode = session.run("MATCH (s:Synapse:PostSyn{datasetLocation:\"test:4301:2276:1535\"}) RETURN s").single().get(0).asNode();
 
             Assert.assertEquals(1.0, postSynNode.asMap().get("confidence"));
             Assert.assertEquals("post", postSynNode.asMap().get("type"));
-            Assert.assertEquals(Values.point(9157,4301,2276,1535).asPoint(), postSynNode.asMap().get("location"));
+            Assert.assertEquals(Values.point(9157, 4301, 2276, 1535).asPoint(), postSynNode.asMap().get("location"));
             Assert.assertTrue(postSynNode.hasLabel("seven_column_roi"));
             Assert.assertTrue(postSynNode.hasLabel("roiA"));
-
 
             int synapsesToCount = session.run("MATCH (s:Synapse:PreSyn{datasetLocation:\"test:4287:2277:1502\"})-[:SynapsesTo]->(l) RETURN count(l)").single().get(0).asInt();
 
@@ -288,7 +268,6 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(1L, synapseSetContainedCount);
 
-
             int noDatasetLabelCount = session.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
             int noTimeStampCount = session.run("MATCH (n) WHERE NOT exists(n.timeStamp) RETURN count(n)").single().get(0).asInt();
             int noStatusCount = session.run("MATCH (n:Neuron) WHERE NOT exists(n.status) RETURN count(n)").single().get(0).asInt();
@@ -313,7 +292,6 @@ public class Neo4jImporterTest {
             Assert.assertEquals(3, rois.size());
             Assert.assertEquals("roi'C", rois.get(0));
 
-
             String neuronName = session.run("MATCH (n:Neuron:test{bodyId:8426959}) RETURN n.name").single().get(0).asString();
             String neuronAutoName = session.run("MATCH (n:Neuron:test{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();
 
@@ -326,9 +304,7 @@ public class Neo4jImporterTest {
             Assert.assertEquals("Dm12-4", neuronName2);
             Assert.assertEquals("ROIA-ROIA-1", neuronAutoName2);
 
-
         }
-
 
     }
 }

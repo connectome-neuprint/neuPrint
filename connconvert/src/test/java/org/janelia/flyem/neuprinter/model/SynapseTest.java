@@ -1,10 +1,10 @@
 package org.janelia.flyem.neuprinter.model;
 
-import java.util.List;
-
 import org.janelia.flyem.neuprinter.json.JsonUtils;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.List;
 
 /**
  * Tests the {@link Synapse} class.
@@ -17,7 +17,7 @@ public class SynapseTest {
         final List<Synapse> parsedList = Synapse.fromJsonArray(SYNAPSE_JSON);
 
         Assert.assertEquals("invalid number of synapses parsed",
-                            4, parsedList.size());
+                4, parsedList.size());
 
         final Synapse firstSynapse = parsedList.get(0);
         final Synapse secondSynapse = parsedList.get(1);
@@ -27,13 +27,13 @@ public class SynapseTest {
         final List<Integer> location = firstSynapse.getLocation();
 
         Assert.assertNotNull("roiNames not parsed for " + firstSynapse,
-                             roiNames);
+                roiNames);
         Assert.assertEquals("invalid number of roiNames parsed for " + firstSynapse,
-                            2, roiNames.size());
+                2, roiNames.size());
         Assert.assertEquals("invalid roiName parsed for " + firstSynapse,
-                            "seven_column_roi", roiNames.get(0));
+                "seven_column_roi", roiNames.get(0));
 
-        Assert.assertEquals("incorrect synapse type for " + firstSynapse, "pre", firstSynapse.getType() );
+        Assert.assertEquals("incorrect synapse type for " + firstSynapse, "pre", firstSynapse.getType());
 
         Assert.assertEquals("incorrect confidence for " + firstSynapse, 1.0, firstSynapse.getConfidence(), .00001);
 
@@ -48,7 +48,7 @@ public class SynapseTest {
         final String serializedJson = JsonUtils.GSON.toJson(parsedList);
 
         Assert.assertEquals("serialized result does not match original",
-                            SYNAPSE_JSON.replaceAll("[\\n\\t\\r\\s+]+"," "), serializedJson.replaceAll("[\\n\\t\\r\\s+]+"," "));
+                SYNAPSE_JSON.replaceAll("[\\n\\t\\r\\s+]+", " "), serializedJson.replaceAll("[\\n\\t\\r\\s+]+", " "));
     }
 
     @Test
@@ -69,7 +69,7 @@ public class SynapseTest {
         //symmetric
         Assert.assertTrue(synapse1.equals(synapse2) && synapse2.equals(synapse1));
         //transitive
-        Assert.assertTrue(synapse1.equals(synapse2)  && synapse2.equals(synapse3) && synapse3.equals(synapse1));
+        Assert.assertTrue(synapse1.equals(synapse2) && synapse2.equals(synapse3) && synapse3.equals(synapse1));
         //consistent
         Assert.assertTrue(synapse2.equals(synapse1) && synapse2.equals(synapse1));
         //not equal to null
@@ -77,7 +77,6 @@ public class SynapseTest {
 
         Assert.assertNotSame(synapse1, synapse2);
         Assert.assertTrue(synapse1.hashCode() == synapse2.hashCode());
-
 
     }
 
@@ -100,10 +99,10 @@ public class SynapseTest {
                     "      {\n" +
                     "        \"Type\": \"pre\",\n" +
                     "        \"Location\": [\n" +
-                             "          4657,\n" +
-                             "          2648,\n" +
-                             "          1509\n" +
-                             "        ],\n" +
+                    "          4657,\n" +
+                    "          2648,\n" +
+                    "          1509\n" +
+                    "        ],\n" +
                     "        \"Confidence\": 1.0,\n" +
                     "        \"rois\": [\n" +
                     "          \"seven_column_roi\",\n" +
@@ -207,6 +206,6 @@ public class SynapseTest {
                     "          ]\n" +
                     "       ]\n" +
                     "      }\n" +
-            "]";
+                    "]";
 
 }

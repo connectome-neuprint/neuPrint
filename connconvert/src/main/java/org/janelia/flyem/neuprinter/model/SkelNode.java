@@ -1,6 +1,8 @@
 package org.janelia.flyem.neuprinter.model;
 
 import com.google.gson.Gson;
+import org.neo4j.driver.v1.Values;
+import org.neo4j.driver.v1.types.Point;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,9 +17,7 @@ public class SkelNode {
     private transient List<SkelNode> children = new ArrayList<>(); //no children means leaf node
     private int rowNumber;
 
-
-
-    public SkelNode (Long associatedBodyId, List<Integer> location, float radius, int type, SkelNode parent, int rowNumber) {
+    public SkelNode(Long associatedBodyId, List<Integer> location, float radius, int type, SkelNode parent, int rowNumber) {
         this.associatedBodyId = associatedBodyId;
         this.location = location;
         this.radius = radius;
@@ -26,7 +26,7 @@ public class SkelNode {
         this.rowNumber = rowNumber;
     }
 
-    public SkelNode (Long associatedBodyId, String locationString, float radius, int rowNumber) {
+    public SkelNode(Long associatedBodyId, String locationString, float radius, int rowNumber) {
         this.associatedBodyId = associatedBodyId;
         String[] locationStringComponents = locationString.split(":");
         this.location = new ArrayList<>();
@@ -37,15 +37,14 @@ public class SkelNode {
         this.rowNumber = rowNumber;
     }
 
-    public SkelNode() {}
-
+    public SkelNode() {
+    }
 
     public static String getSkelNodeListJson(List<SkelNode> skelNodeList) {
         final Gson gson = new Gson();
         String json = gson.toJson(skelNodeList);
         return json;
     }
-
 
     @Override
     public String toString() {
@@ -88,15 +87,20 @@ public class SkelNode {
         return this.location;
     }
 
-    public int getRowNumber() {return this.rowNumber; }
+    public int getRowNumber() {
+        return this.rowNumber;
+    }
 
     public String locationToStringKey(List<Integer> location) {
         return location.get(0) + ":" + location.get(1) + ":" + location.get(2);
     }
 
-
     public String getLocationString() {
         return locationToStringKey(this.location);
+    }
+
+    public Point getLocationAsPoint() {
+        return Values.point(9157, this.location.get(0), this.location.get(1), this.location.get(2)).asPoint();
     }
 
     public float getRadius() {
@@ -114,7 +118,6 @@ public class SkelNode {
     public void addChild(SkelNode child) {
         this.children.add(child);
     }
-
 
 }
 

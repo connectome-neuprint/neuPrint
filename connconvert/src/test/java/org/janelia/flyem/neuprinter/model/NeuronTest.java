@@ -1,10 +1,10 @@
 package org.janelia.flyem.neuprinter.model;
 
-import java.util.List;
-
 import org.janelia.flyem.neuprinter.json.JsonUtils;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.List;
 
 /**
  * Tests the {@link Neuron} class.
@@ -17,16 +17,16 @@ public class NeuronTest {
         final List<Neuron> parsedList = Neuron.fromJson(NEURON_JSON);
 
         Assert.assertEquals("invalid number of synapses parsed",
-                            11, parsedList.size());
+                11, parsedList.size());
 
         final Neuron thirdNeuron = parsedList.get(2);
         Assert.assertEquals("invalid name parsed for " + thirdNeuron,
-                            "unknown", thirdNeuron.getName());
+                "unknown", thirdNeuron.getName());
 
         final String serializedJson = JsonUtils.GSON.toJson(parsedList);
 
         Assert.assertEquals("serialized result does not match original",
-                            NEURON_JSON, serializedJson);
+                NEURON_JSON, serializedJson);
     }
 
     @Test
@@ -38,16 +38,16 @@ public class NeuronTest {
         Neuron y = parsedList.get(1);
         Neuron z = parsedList.get(2);
 
-        Neuron neuron1 = new Neuron(new Long(85), x.getStatus(), x.getName(), x.getNeuronType(), x.getSize(), x.getRois(), x.getSoma() );
-        Neuron neuron2 = new Neuron(new Long(85), y.getStatus(), y.getName(), y.getNeuronType(), y.getSize(), y.getRois(), y.getSoma() );
-        Neuron neuron3 = new Neuron(new Long(85), z.getStatus(), z.getName(), z.getNeuronType(), z.getSize(), z.getRois(), z.getSoma() );
+        Neuron neuron1 = new Neuron(new Long(85), x.getStatus(), x.getName(), x.getNeuronType(), x.getSize(), x.getRois(), x.getSoma());
+        Neuron neuron2 = new Neuron(new Long(85), y.getStatus(), y.getName(), y.getNeuronType(), y.getSize(), y.getRois(), y.getSoma());
+        Neuron neuron3 = new Neuron(new Long(85), z.getStatus(), z.getName(), z.getNeuronType(), z.getSize(), z.getRois(), z.getSoma());
 
         //reflexive
         Assert.assertTrue(neuron1.equals(neuron1));
         //symmetric
         Assert.assertTrue(neuron1.equals(neuron2) && neuron2.equals(neuron1));
         //transitive
-        Assert.assertTrue(neuron1.equals(neuron2)  && neuron2.equals(neuron3) && neuron3.equals(neuron1));
+        Assert.assertTrue(neuron1.equals(neuron2) && neuron2.equals(neuron3) && neuron3.equals(neuron1));
         //consistent
         Assert.assertTrue(neuron2.equals(neuron1) && neuron2.equals(neuron1));
         //not equal to null
@@ -160,6 +160,5 @@ public class NeuronTest {
                     "    \"Name\": \"unknown\"\n" +
                     "  }\n" +
                     "]";
-
 
 }

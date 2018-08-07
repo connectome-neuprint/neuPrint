@@ -1,11 +1,11 @@
 package org.janelia.flyem.neuprinter.model;
 
-import java.util.HashMap;
-import java.util.List;
-
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * Tests the {@link SynapseMapper} class.
@@ -21,14 +21,14 @@ public class SynapseMapperTest {
         final List<BodyWithSynapses> parsedBodyList = mapper.loadAndMapBodies(bodyJsonFilePath);
 
         Assert.assertEquals("invalid number of bodies parsed",
-                            4, parsedBodyList.size());
+                4, parsedBodyList.size());
 
         int totalSynapseCount = 0;
         for (final BodyWithSynapses body : parsedBodyList) {
             final int numberOfConnections = body.getNumberOfPreSynapses() +
-                                            body.getNumberOfPostSynapses();
+                    body.getNumberOfPostSynapses();
             Assert.assertTrue("no connections for body " + body,
-                              numberOfConnections > 0);
+                    numberOfConnections > 0);
             totalSynapseCount += body.getSynapseSet().size();
         }
 
@@ -37,22 +37,19 @@ public class SynapseMapperTest {
         BodyWithSynapses body1 = parsedBodyList.get(0);
 
         Assert.assertEquals("Incorrect connectsto weight for " + body1, new Integer(1), body1.getConnectsTo().get(new Long(26311)));
-        Assert.assertEquals("Incorrect number of connections for "+ body1, 3, body1.getConnectsTo().keySet().size());
+        Assert.assertEquals("Incorrect number of connections for " + body1, 3, body1.getConnectsTo().keySet().size());
 
         SynapseLocationToBodyIdMap postToBody = mapper.getSynapseLocationToBodyIdMap();
 
-        Assert.assertEquals(4,postToBody.getAllLocationKeys().size());
-        Assert.assertEquals(new Long(831744),postToBody.getBodyId("4292:2261:1542"));
+        Assert.assertEquals(4, postToBody.getAllLocationKeys().size());
+        Assert.assertEquals(new Long(831744), postToBody.getBodyId("4292:2261:1542"));
 
-        HashMap<String,List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
 
         Assert.assertEquals(3, preToPost.get("4287:2277:1542").size());
         Assert.assertEquals("4298:2294:1542", preToPost.get("4287:2277:1542").get(0));
 
-
-
     }
-
 
     private static final String BODY_LIST_JSON =
             "[\n" +
@@ -94,6 +91,5 @@ public class SynapseMapperTest {
                     "    ]\n" +
                     "  }\n" +
                     "]";
-
 
 }

@@ -1,13 +1,14 @@
 package org.janelia.flyem.neuprinter.model;
 
-import java.lang.reflect.Type;
-import java.util.List;
-import java.util.ArrayList;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.json.JsonUtils;
 import org.neo4j.driver.v1.Values;
 import org.neo4j.driver.v1.types.Point;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Synapse {
 
@@ -29,10 +30,7 @@ public class Synapse {
     @SerializedName("ConnectsFrom")
     private List<List<Integer>> connectsFrom;
 
-
-
-
-    public Synapse (String type, float confidence, List<Integer> location, List<List<Integer>> connections) {
+    public Synapse(String type, float confidence, List<Integer> location, List<List<Integer>> connections) {
         this.type = type;
         this.confidence = confidence;
         this.location = location;
@@ -43,7 +41,7 @@ public class Synapse {
         }
     }
 
-    public Synapse (String type, Integer x, Integer y, Integer z) {
+    public Synapse(String type, Integer x, Integer y, Integer z) {
         this.type = type;
         this.confidence = 0.0F;
         List<Integer> location = new ArrayList<>();
@@ -52,7 +50,6 @@ public class Synapse {
         location.add(z);
         this.location = location;
     }
-
 
     @Override
     public String toString() {
@@ -85,7 +82,6 @@ public class Synapse {
         return result;
     }
 
-
     public List<String> locationListToStringKeys(List<List<Integer>> locationList) {
         List<String> locationStringList = new ArrayList<>();
         for (List<Integer> location : locationList) {
@@ -99,7 +95,6 @@ public class Synapse {
         return location.get(0) + ":" + location.get(1) + ":" + location.get(2);
     }
 
-
     public String getLocationString() {
         return locationToStringKey(this.location);
     }
@@ -109,7 +104,12 @@ public class Synapse {
     }
 
     public Point getLocationAsPoint() {
-        return Values.point(9157,this.location.get(0),this.location.get(1),this.location.get(2)).asPoint();
+        return Values.point(9157, this.location.get(0), this.location.get(1), this.location.get(2)).asPoint();
+    }
+
+    public static Point convertLocationStringToPoint(String locationString) {
+        String[] locationArray = locationString.split(":");
+        return Values.point(9157, Double.parseDouble(locationArray[0]), Double.parseDouble(locationArray[1]), Double.parseDouble(locationArray[2])).asPoint();
     }
 
     public float getConfidence() {
@@ -162,7 +162,7 @@ public class Synapse {
 
     public List<String> getRois() {
         // remove -lm tag on rois
-        if (this.rois!=null) {
+        if (this.rois != null) {
             List<String> newRoiList = new ArrayList<>();
             for (String roi : rois) {
                 if (roi.endsWith("-lm")) {
@@ -178,14 +178,14 @@ public class Synapse {
     }
 
     public void addRoiList(List<String> rois) {
-        this.rois=rois;
+        this.rois = rois;
     }
 
     public static List<Synapse> fromJsonArray(final String jsonString) {
         return JsonUtils.GSON.fromJson(jsonString, SYNAPSE_LIST_TYPE);
     }
 
-    private static final Type SYNAPSE_LIST_TYPE = new TypeToken<List<Synapse>>(){}.getType();
-
+    private static final Type SYNAPSE_LIST_TYPE = new TypeToken<List<Synapse>>() {
+    }.getType();
 
 }

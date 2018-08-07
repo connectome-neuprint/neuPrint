@@ -28,6 +28,6 @@ public class Soma {
     }
 
     public Point getLocationAsPoint() {
-        return Values.point(9157,this.location.get(0),this.location.get(1),this.location.get(2)).asPoint();
+        return Values.point(9157, this.location.get(0), this.location.get(1), this.location.get(2)).asPoint();
     }
 }
