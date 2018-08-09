@@ -1,6 +1,5 @@
 package org.janelia.flyem.neuprinter;
 
-import apoc.convert.Convert;
 import apoc.convert.Json;
 import apoc.create.Create;
 import com.google.gson.Gson;
@@ -40,7 +39,7 @@ public class Neo4jImporterTest {
         File swcFile2 = new File("src/test/resources/102.swc");
         File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2};
 
-        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
+        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -86,7 +85,7 @@ public class Neo4jImporterTest {
 
         String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
 
-        List<Neuron> neuronList = ConnConvert.readNeuronsJson(neuronsJsonPath);
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -141,7 +140,7 @@ public class Neo4jImporterTest {
         String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
         Gson gson = new Gson();
 
-        List<Neuron> neuronList = ConnConvert.readNeuronsJson(neuronsJsonPath);
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
 
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
@@ -160,7 +159,7 @@ public class Neo4jImporterTest {
 
             neo4jImporter.addNeurons("test", neuronList);
 
-            neo4jImporter.addConnectsTo("test", bodyList, 0);
+            neo4jImporter.addConnectsTo("test", bodyList);
 
             Node bodyId8426959 = session.run("MATCH (n:Neuron{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN s").single().get(0).asNode();
 
@@ -173,8 +172,6 @@ public class Neo4jImporterTest {
             Assert.assertEquals(2,synapseCountPerRoi.get("roiA").getPre());
             Assert.assertEquals(0,synapseCountPerRoi.get("seven_column_roi").getPost());
             Assert.assertEquals(1,synapseCountPerRoi.get("roiB").getTotal());
-            Assert.assertNotNull(bodyId8426959.asMap().get("sId"));
-            Assert.assertTrue(bodyId8426959.hasLabel("Big"));
 
             int weight = session.run("MATCH (n:Neuron{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN r.weight").single().get(0).asInt();
 
@@ -198,7 +195,7 @@ public class Neo4jImporterTest {
         String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
         String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
 
-        List<Neuron> neuronList = ConnConvert.readNeuronsJson(neuronsJsonPath);
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
 
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
@@ -217,7 +214,7 @@ public class Neo4jImporterTest {
 
             neo4jImporter.addNeurons("test", neuronList);
 
-            neo4jImporter.addConnectsTo("test", bodyList, 0);
+            neo4jImporter.addConnectsTo("test", bodyList);
 
             neo4jImporter.addSynapsesWithRois("test", bodyList);
 
@@ -229,7 +226,7 @@ public class Neo4jImporterTest {
 
             neo4jImporter.createMetaNode("test");
 
-            neo4jImporter.addAutoNames("test");
+            neo4jImporter.addAutoNames("test",0);
 
             Node preSynNode = session.run("MATCH (s:Synapse:PreSyn{datasetLocation:\"test:4287:2277:1502\"}) RETURN s").single().get(0).asNode();
 

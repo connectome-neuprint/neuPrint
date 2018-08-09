@@ -34,4 +34,9 @@ public class AutoName {
     public long getBodyId() {
         return bodyId;
     }
+
+    @Override
+    public String toString() {
+        return "bodyId: " + this.bodyId + " " + getAutoName();
+    }
 }

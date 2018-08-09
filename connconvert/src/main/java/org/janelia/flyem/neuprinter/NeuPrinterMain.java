@@ -1,38 +1,34 @@
 package org.janelia.flyem.neuprinter;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Stopwatch;
-
-
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashMap;
-import java.io.File;
-import java.util.logging.*;
-import java.util.logging.Logger;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import org.janelia.flyem.neuprinter.db.DbConfig;
 import org.janelia.flyem.neuprinter.json.JsonUtils;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
-import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.logging.FileHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class ConnConvert {
-
+public class NeuPrinterMain {
 
     @Parameters(separators = "=")
-    public static class ConverterParameters {
+    public static class NeuPrinterParameters {
 
         @Parameter(
                 names = "--dbProperties",
@@ -96,7 +92,6 @@ public class ConnConvert {
                 arity = 0)
         public boolean addNeuronRois;
 
-
         @Parameter(
                 names = "--addSynapseSets",
                 description = "Indicates that synapse set nodes should be added (omit to skip)",
@@ -122,12 +117,6 @@ public class ConnConvert {
                 description = "Dataset value for all nodes (required)",
                 required = true)
         public String datasetLabel;
-
-        @Parameter(
-                names = "--bigThreshold",
-                description = "Total number of synapses for a body must be greater than this value for the body to be considered \"Big\" and be given an sId (must be an integer; default is 10)",
-                required = false)
-        public Integer bigThreshold;
 
         @Parameter(
                 names = "--synapseJson",
@@ -163,11 +152,22 @@ public class ConnConvert {
         public boolean addMetaNodeOnly;
 
         @Parameter(
-                names = "--addAutoNamesOnly",
-                description = "Indicates that only the auto-names should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. (omit to skip)",
+                names = "--addAutoNames",
+                description = "Indicates that automatically generated names should be added for this dataset. Auto-names are in the format " +
+                        "ROIA-ROIB-8 where ROIA is the roi in which a given neuron has the most inputs (postsynaptic densities) " +
+                        "and ROIB is the roi in which a neuron has the most outputs (presynaptic densities). The final number renders " +
+                        "this name unique per dataset. Names are only generated for neurons that have greater than the number of synapses " +
+                        "indicated by autoNameThreshold. If neurons do not already have a name, the auto-name is added to the name property. (skip to omit)",
                 required = false,
                 arity = 0)
-        public boolean addAutoNamesOnly;
+        public boolean addAutoNames;
+
+        @Parameter(
+                names = "--autoNameThreshold",
+                description = "Integer indicating the number of (presynaptic densities + postsynaptic densities) a neuron should have to be given an " +
+                        "auto-name (default is 10). Must have --addAutoName enabled.",
+                required = false)
+        public Integer autoNameThreshold;
 
         @Parameter(
                 names = "--help",
@@ -184,11 +184,9 @@ public class ConnConvert {
         }
     }
 
-
     private static List<Neuron> neuronList;
     private static List<BodyWithSynapses> bodyList;
     private static String dataset;
-
 
     public static List<Neuron> readNeuronsJson(String filepath) {
 
@@ -198,7 +196,6 @@ public class ConnConvert {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
 
 //        try (JsonReader reader = new JsonReader(new FileReader(filepath)) ) {
 //            neuronList = new ArrayList<>();
@@ -228,7 +225,6 @@ public class ConnConvert {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
 
 //        try (JsonReader reader = new JsonReader(new FileReader(filepath)) ) {
 //            Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
@@ -269,7 +265,6 @@ public class ConnConvert {
         return skeletonList;
     }
 
-
     public static Long setSkeletonAssociatedBodyId(String swcFilePath) {
 
         String patternSurroundingId = ".*/(.*?).swc";
@@ -281,12 +276,10 @@ public class ConnConvert {
 
     }
 
-
     public static void main(String[] args) throws Exception {
-        final ConverterParameters parameters = new ConverterParameters();
+        final NeuPrinterParameters parameters = new NeuPrinterParameters();
         final JCommander jCommander = new JCommander(parameters);
-        jCommander.setProgramName("java -cp neuprinter.jar " + ConnConvert.class.getName());
-
+        jCommander.setProgramName("java -cp neuprinter.jar " + NeuPrinterMain.class.getName());
 
         boolean parseFailed = true;
         try {
@@ -308,7 +301,6 @@ public class ConnConvert {
 
         dataset = parameters.datasetLabel;
 
-
         if (parameters.createLog) {
 
             FileHandler fh;
@@ -326,9 +318,7 @@ public class ConnConvert {
 
         }
 
-
         LOG.info("Dataset is: " + dataset);
-
 
         if (parameters.loadNeurons || parameters.doAll) {
 
@@ -351,7 +341,6 @@ public class ConnConvert {
             }
         }
 
-
         if (parameters.loadSynapses || parameters.doAll) {
 
             Stopwatch timer = Stopwatch.createStarted();
@@ -364,11 +353,7 @@ public class ConnConvert {
             //TODO: do I need to worry about duplicates here?
             HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
 
-            //can now sort bodyList by synapse count for sId use
-            bodyList.sort(new SortBodyByNumberOfSynapses());
-
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
 
                 if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll)) {
                     neo4jImporter.prepDatabase(dataset);
@@ -377,11 +362,7 @@ public class ConnConvert {
                 if (parameters.addConnectsTo || parameters.doAll) {
 
                     timer.start();
-                    if (parameters.bigThreshold != null) {
-                        neo4jImporter.addConnectsTo(dataset, bodyList, parameters.bigThreshold);
-                    } else {
-                        neo4jImporter.addConnectsTo(dataset, bodyList, 10);
-                    }
+                    neo4jImporter.addConnectsTo(dataset, bodyList);
                     LOG.info("Loading all ConnectsTo took: " + timer.stop());
                     timer.reset();
 
@@ -409,10 +390,16 @@ public class ConnConvert {
                     LOG.info("Loading all Neuron ROI labels took: " + timer.stop());
                     timer.reset();
 
-                    timer.start();
-                    neo4jImporter.addAutoNames(dataset);
-                    LOG.info("Adding autoNames took: " + timer.stop());
-                    timer.reset();
+                    if (parameters.addAutoNames) {
+                        timer.start();
+                        if (parameters.autoNameThreshold != null) {
+                            neo4jImporter.addAutoNames(dataset,parameters.autoNameThreshold);
+                        } else {
+                            neo4jImporter.addAutoNames(dataset,10);
+                        }
+                        LOG.info("Adding autoNames took: " + timer.stop());
+                        timer.reset();
+                    }
 
                 }
 
@@ -434,7 +421,7 @@ public class ConnConvert {
         if (parameters.addSkeletons) {
 
             File folder = new File(parameters.skeletonDirectory);
-            File[] arrayOfSwcFiles = folder.listFiles((dir,name) -> name.toLowerCase().endsWith(".swc"));
+            File[] arrayOfSwcFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".swc"));
 
             LOG.info("Reading in " + arrayOfSwcFiles.length + " swc files.");
 
@@ -452,24 +439,14 @@ public class ConnConvert {
                 timer.reset();
             }
 
-
         }
 
-
-        if ( parameters.addMetaNodeOnly ) {
+        if (parameters.addMetaNodeOnly) {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
                 neo4jImporter.prepDatabase(dataset);
                 neo4jImporter.createMetaNode(dataset);
             }
         }
-
-        if ( parameters.addAutoNamesOnly ) {
-            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-                neo4jImporter.prepDatabase(dataset);
-                neo4jImporter.addAutoNames(dataset);
-            }
-        }
-
 
         if (parameters.editMode) {
 
@@ -494,7 +471,6 @@ public class ConnConvert {
 //            }
 
 //            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
-
 
 //                List<Skeleton> mbonSkeletons = new ArrayList<>();
 //                for (Skeleton skeleton : skeletonList) {
@@ -523,7 +499,7 @@ public class ConnConvert {
         }
     }
 
-    private static final Logger LOG = Logger.getLogger("ConnConvert.class");
+    private static final Logger LOG = Logger.getLogger("NeuPrinterMain.class");
 
 }
 

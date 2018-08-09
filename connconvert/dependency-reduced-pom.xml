@@ -29,7 +29,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>org.janelia.flyem.neuprinter.ConnConvert</mainClass>
+                  <mainClass>org.janelia.flyem.neuprinter.NeuPrinterMain</mainClass>
                 </transformer>
               </transformers>
             </configuration>
