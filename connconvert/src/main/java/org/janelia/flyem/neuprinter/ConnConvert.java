@@ -105,13 +105,6 @@ public class ConnConvert {
         public boolean addSynapseSets;
 
         @Parameter(
-                names = "--addNeuronParts",
-                description = "Indicates that neuron parts nodes should be added (omit to skip)",
-                required = false,
-                arity = 0)
-        public boolean addNeuronParts;
-
-        @Parameter(
                 names = "--addSkeletons",
                 description = "Indicates that skeleton nodes should be added (omit to skip)",
                 required = false,
@@ -371,10 +364,8 @@ public class ConnConvert {
             //TODO: do I need to worry about duplicates here?
             HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
 
-
             //can now sort bodyList by synapse count for sId use
             bodyList.sort(new SortBodyByNumberOfSynapses());
-
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
@@ -384,6 +375,7 @@ public class ConnConvert {
                 }
 
                 if (parameters.addConnectsTo || parameters.doAll) {
+
                     timer.start();
                     if (parameters.bigThreshold != null) {
                         neo4jImporter.addConnectsTo(dataset, bodyList, parameters.bigThreshold);
@@ -392,6 +384,9 @@ public class ConnConvert {
                     }
                     LOG.info("Loading all ConnectsTo took: " + timer.stop());
                     timer.reset();
+
+                    //TODO: figure out how to refactor this so it makes sense
+
                 }
 
                 if (parameters.addSynapses || parameters.doAll) {
@@ -413,6 +408,12 @@ public class ConnConvert {
                     neo4jImporter.addNeuronRois(dataset, bodyList);
                     LOG.info("Loading all Neuron ROI labels took: " + timer.stop());
                     timer.reset();
+
+                    timer.start();
+                    neo4jImporter.addAutoNames(dataset);
+                    LOG.info("Adding autoNames took: " + timer.stop());
+                    timer.reset();
+
                 }
 
                 if (parameters.addSynapseSets || parameters.doAll) {
@@ -422,38 +423,13 @@ public class ConnConvert {
                     timer.reset();
                 }
 
-
-            }
-
-            if (parameters.addNeuronParts || parameters.doAll) {
-
                 timer.start();
-                for (BodyWithSynapses bws : bodyList) {
-                    bws.setNeuronParts();
+                neo4jImporter.createMetaNode(dataset);
+                LOG.info("Adding :Meta node took: " + timer.stop());
+                timer.reset();
 
-                }
-                LOG.info("Setting neuron parts took: " + timer.stop());
-
-
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                    timer.start();
-                    neo4jImporter.addNeuronParts(dataset, bodyList);
-                    LOG.info("Loading all NeuronParts took: " + timer.stop());
-                    timer.reset();
-
-                    neo4jImporter.createMetaNode(dataset);
-
-                    timer.start();
-                    neo4jImporter.addAutoNames(dataset);
-                    LOG.info("Adding autoNames took: " + timer.stop());
-                    timer.reset();
-                }
             }
-
-
         }
-
 
         if (parameters.addSkeletons) {
 

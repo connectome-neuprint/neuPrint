@@ -1,5 +1,7 @@
 package org.janelia.flyem.neuprinter;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.db.DbConfig;
 import org.janelia.flyem.neuprinter.db.DbTransactionBatch;
 import org.janelia.flyem.neuprinter.db.StdOutTransactionBatch;
@@ -7,13 +9,13 @@ import org.janelia.flyem.neuprinter.db.TransactionBatch;
 import org.janelia.flyem.neuprinter.model.AutoName;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
-import org.janelia.flyem.neuprinter.model.NeuronPart;
 import org.janelia.flyem.neuprinter.model.NeuronType;
 import org.janelia.flyem.neuprinter.model.NeuronTypeTree;
 import org.janelia.flyem.neuprinter.model.Roi;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
+import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
@@ -26,11 +28,14 @@ import org.slf4j.LoggerFactory;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -92,7 +97,6 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.sId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:SynapseSet) ASSERT s.datasetBodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:Synapse) ASSERT s.datasetLocation IS UNIQUE",
-                "CREATE CONSTRAINT ON (p:NeuronPart) ASSERT p.neuronPartId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:SkelNode) ASSERT s.skelNodeId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:Skeleton) ASSERT s.skeletonId IS UNIQUE",
                 "CREATE CONSTRAINT ON (c:NeuronClass) ASSERT c.neuronClassId IS UNIQUE",
@@ -104,6 +108,7 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE INDEX ON :Neuron(name)",
                 "CREATE INDEX ON :Synapse(location)",
                 "CREATE INDEX ON :SkelNode(location)",
+                // TODO: get rid of big add index on pre post
         };
 
         for (final String prepText : prepTextArray) {
@@ -163,41 +168,50 @@ public class Neo4jImporter implements AutoCloseable {
                 "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.status=$notAnnotated\n" +
                         "MERGE (m:Neuron:" + dataset + " {bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m.status=$notAnnotated \n" +
                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m)";
-        final String terminalCountText = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.sId=$sId, n:Big, n.timeStamp=$timeStamp";
+        final String terminalCountText = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.sId=$sId, n:Big, n.timeStamp=$timeStamp, n.synapseCountPerRoi=$synapseCountPerRoi";
 
-        final String terminalCountTextWithoutSId = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp";
+        final String terminalCountTextWithoutSId = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp, n.synapseCountPerRoi=$synapseCountPerRoi";
+
 
         int sId = 0;
 
         try (final TransactionBatch batch = getBatch()) {
-            for (final BodyWithSynapses bws : bodyList) {
-                for (final Long postsynapticBodyId : bws.getConnectsTo().keySet()) {
+            for (final BodyWithSynapses body : bodyList) {
+
+                //set synapse counts per roi before adding to database
+                body.setSynapseCountsPerRoi();
+
+                for (final Long postsynapticBodyId : body.getConnectsTo().keySet()) {
                     batch.addStatement(
                             new Statement(connectsToText,
-                                    parameters("bodyId1", bws.getBodyId(),
+                                    parameters("bodyId1", body.getBodyId(),
                                             "bodyId2", postsynapticBodyId,
                                             "timeStamp", timeStamp,
                                             "notAnnotated", "not annotated",
-                                            "weight", bws.getConnectsTo().get(postsynapticBodyId)))
+                                            "weight", body.getConnectsTo().get(postsynapticBodyId)))
                     );
                 }
-                if (bws.getNumberOfPostSynapses() + bws.getNumberOfPreSynapses() > bigThreshold) {
+                if (body.getNumberOfPostSynapses() + body.getNumberOfPreSynapses() > bigThreshold) {
                     batch.addStatement(
                             new Statement(terminalCountText,
-                                    parameters("pre", bws.getNumberOfPreSynapses(),
-                                            "post", bws.getNumberOfPostSynapses(),
-                                            "bodyId", bws.getBodyId(),
+                                    parameters("pre", body.getNumberOfPreSynapses(),
+                                            "post", body.getNumberOfPostSynapses(),
+                                            "bodyId", body.getBodyId(),
                                             "sId", sId,
-                                            "timeStamp", timeStamp))
+                                            "timeStamp", timeStamp,
+                                            "synapseCountPerRoi", body.getSynapseCountsPerRoi().getSynapseCountsPerRoiAsJsonString()
+                                    ))
                     );
                     sId++;
                 } else {
                     batch.addStatement(
                             new Statement(terminalCountTextWithoutSId,
-                                    parameters("pre", bws.getNumberOfPreSynapses(),
-                                            "post", bws.getNumberOfPostSynapses(),
-                                            "bodyId", bws.getBodyId(),
-                                            "timeStamp", timeStamp))
+                                    parameters("pre", body.getNumberOfPreSynapses(),
+                                            "post", body.getNumberOfPostSynapses(),
+                                            "bodyId", body.getBodyId(),
+                                            "timeStamp", timeStamp,
+                                            "synapseCountPerRoi", body.getSynapseCountsPerRoi().getSynapseCountsPerRoiAsJsonString()
+                                    ))
                     );
                 }
             }
@@ -320,49 +334,6 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addNeuronRois: exit");
 
-    }
-
-    public void addNeuronParts(final String dataset, final List<BodyWithSynapses> bodyList) {
-
-        LOG.info("addNeuronParts: entry");
-
-        final String neuronPartText = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:createdforneuronpart, n.timeStamp=$timeStamp, n.status=$notAnnotated \n" +
-                "MERGE (p:NeuronPart {neuronPartId:$neuronPartId}) ON CREATE SET p.neuronPartId = $neuronPartId, p.timeStamp=$timeStamp \n" +
-                "MERGE (p)-[:PartOf]->(n) \n" +
-                "WITH p \n" +
-                "CALL apoc.create.addLabels(id(p),[$roi, \"" + dataset + "\" ]) YIELD node \n" +
-                "RETURN node";
-
-//        for (Roi roi : roiSet) {
-//
-//            String metaNodeRoiString = "MATCH (m:Meta:" + dataset + " {dataset:$dataset}) SET m." + roi.getRoiName() +
-//                    "PreCount=$roiPreCount, m." + roi.getRoiName() + "PostCount=$roiPostCount ";
-//
-//            batch.addStatement(new Statement(metaNodeRoiString,
-//                    parameters("dataset", dataset,
-//                            "roiPreCount", roi.getPreCount(),
-//                            "roiPostCount", roi.getPostCount()
-//                    )));
-//        }
-
-        try (final TransactionBatch batch = getBatch()) {
-            for (BodyWithSynapses bws : bodyList) {
-                for (NeuronPart np : bws.getNeuronParts()) {
-                    String neuronPartId = dataset + ":" + bws.getBodyId() + ":" + np.getRoi();
-                    batch.addStatement(new Statement(neuronPartText, parameters("bodyId", bws.getBodyId(),
-                            "roi", np.getRoi(),
-                            "neuronPartId", neuronPartId,
-                            "pre", np.getPre(),
-                            "post", np.getPost(),
-                            "size", np.getPre() + np.getPost(),
-                            "notAnnotated", "not annotated",
-                            "timeStamp", timeStamp)));
-
-                }
-            }
-            batch.writeTransaction();
-        }
-        LOG.info("addNeuronParts: exit");
     }
 
     public void addAutoNames(final String dataset) {
@@ -672,7 +643,7 @@ public class Neo4jImporter implements AutoCloseable {
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
             roiNameList = session.readTransaction(tx -> getAllRois(tx, dataset))
                     .stream()
-                    .filter((l) -> (!l.equals("NeuronPart") && !l.equals(dataset)))
+                    .filter((l) -> (!l.equals("Neuron") && !l.equals(dataset) && !l.equals("Big")))
                     .collect(Collectors.toList());
             for (String roi : roiNameList) {
                 long roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
@@ -690,6 +661,7 @@ public class Neo4jImporter implements AutoCloseable {
                             .stream()
                             .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
                             .collect(Collectors.toList())
+                    //TODO: might be able to get rid of roi list since can get from keys on json for meta node
             )));
 
             for (Roi roi : roiSet) {
@@ -723,17 +695,17 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static long getRoiPreCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ":`" + roi + "`) RETURN sum(n.pre)");
+        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ":`" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS pre RETURN sum(pre)");
         return result.single().get(0).asLong();
     }
 
     private static long getRoiPostCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ":`" + roi + "`) RETURN sum(n.post)");
+        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ":`" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS post RETURN sum(post)");
         return result.single().get(0).asLong();
     }
 
     private static List<String> getAllRois(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:NeuronPart:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
+        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
         List<String> roiList = new ArrayList<>();
         while (result.hasNext()) {
             roiList.add(result.next().asMap().get("label").toString());
@@ -742,43 +714,36 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static String getMaxInputRoi(final Transaction tx, final String dataset, Long bodyId) {
-        TreeSet<String> maxPostLabelList = new TreeSet<>();
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WITH max(np.post) AS maxPost " +
-                "MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WHERE np.post=maxPost WITH DISTINCT labels(np) AS labels " +
-                "UNWIND labels AS label RETURN DISTINCT label", parameters("bodyId", bodyId));
-        while (result.hasNext()) {
-            String roiName = result.next().asMap().get("label").toString();
-            if (!roiName.equals("NeuronPart") && !roiName.equals(dataset)) {
-                maxPostLabelList.add(roiName);
-            }
-        }
+
+        Gson gson = new Gson();
+        StatementResult result = tx.run("MATCH (n:" + dataset + "{bodyId:$bodyId}) WITH n.synapseCountPerRoi AS roiJson RETURN roiJson",parameters("bodyId", bodyId));
+
+        String synapseCountPerRoiJson = result.single().get(0).asString();
+        Map<String,SynapseCounter> synapseCountPerRoi = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String,SynapseCounter>>(){}.getType());
 
         try {
-            return maxPostLabelList.first();
+            return sortRoisByPostCount(synapseCountPerRoi).first().getKey();
         } catch (NoSuchElementException nse) {
             LOG.info(("No max input roi found for " + bodyId));
             return "NONE";
         }
+
     }
 
     private static String getMaxOutputRoi(final Transaction tx, final String dataset, Long bodyId) {
-        TreeSet<String> maxPreLabelList = new TreeSet<>();
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WITH max(np.pre) AS maxPre " +
-                "MATCH (n:Neuron:" + dataset + "{bodyId:$bodyId})<-[:PartOf]-(np:NeuronPart) WHERE np.pre=maxPre WITH DISTINCT labels(np) AS labels " +
-                "UNWIND labels AS label RETURN DISTINCT label", parameters("bodyId", bodyId));
-        while (result.hasNext()) {
-            String roiName = result.next().asMap().get("label").toString();
-            if (!roiName.equals("NeuronPart") && !roiName.equals(dataset)) {
-                maxPreLabelList.add(roiName);
-            }
-        }
+        Gson gson = new Gson();
+        StatementResult result = tx.run("MATCH (n:" + dataset + "{bodyId:$bodyId}) WITH n.synapseCountPerRoi AS roiJson RETURN roiJson",parameters("bodyId", bodyId));
+
+        String synapseCountPerRoiJson = result.single().get(0).asString();
+        Map<String,SynapseCounter> synapseCountPerRoi = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String,SynapseCounter>>(){}.getType());
 
         try {
-            return maxPreLabelList.first();
+            return sortRoisByPreCount(synapseCountPerRoi).first().getKey();
         } catch (NoSuchElementException nse) {
             LOG.info(("No max output roi found for " + bodyId));
             return "NONE";
         }
+
     }
 
     private static List<Long> getAllBigNeuronBodyIds(final Transaction tx, final String dataset) {
@@ -797,6 +762,24 @@ public class Neo4jImporter implements AutoCloseable {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
         }
         return bodyIdList;
+    }
+
+    private static SortedSet<Map.Entry<String,SynapseCounter>> entriesSortedByComparator(Map<String,SynapseCounter> map, Comparator<Map.Entry<String,SynapseCounter>> comparator) {
+        SortedSet<Map.Entry<String,SynapseCounter>> sortedEntries = new TreeSet<>(comparator);
+        sortedEntries.addAll(map.entrySet());
+        return sortedEntries;
+    }
+
+    private static SortedSet<Map.Entry<String,SynapseCounter>> sortRoisByPostCount(Map<String,SynapseCounter> roiSynapseCountMap) {
+        Comparator<Map.Entry<String,SynapseCounter>> comparator = (e1, e2) ->
+                e1.getValue().getPost()==e2.getValue().getPost() ? e1.getKey().compareTo(e2.getKey()) : e2.getValue().getPost() - e1.getValue().getPost();
+        return entriesSortedByComparator(roiSynapseCountMap,comparator);
+    }
+
+    private static SortedSet<Map.Entry<String,SynapseCounter>> sortRoisByPreCount(Map<String,SynapseCounter> roiSynapseCountMap) {
+        Comparator<Map.Entry<String,SynapseCounter>> comparator = (e1, e2) ->
+                e1.getValue().getPre()==e2.getValue().getPre() ? e1.getKey().compareTo(e2.getKey()) : e2.getValue().getPre() - e1.getValue().getPre();
+        return entriesSortedByComparator(roiSynapseCountMap,comparator);
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(Neo4jImporter.class);

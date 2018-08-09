@@ -1,10 +1,15 @@
 package org.janelia.flyem.neuprinter;
 
+import apoc.convert.Convert;
+import apoc.convert.Json;
 import apoc.create.Create;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
+import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,6 +30,7 @@ public class Neo4jImporterTest {
 
     @Rule
     public Neo4jRule neo4j = new Neo4jRule()
+            .withFunction(Json.class)
             .withProcedure(Create.class);
 
     @Test
@@ -133,6 +139,7 @@ public class Neo4jImporterTest {
 
         String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
         String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
+        Gson gson = new Gson();
 
         List<Neuron> neuronList = ConnConvert.readNeuronsJson(neuronsJsonPath);
 
@@ -161,6 +168,11 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(1L, bodyId8426959.asMap().get("post"));
             Assert.assertEquals(2L, bodyId8426959.asMap().get("pre"));
+            Map<String,SynapseCounter> synapseCountPerRoi = gson.fromJson((String) bodyId8426959.asMap().get("synapseCountPerRoi"),new TypeToken<Map<String,SynapseCounter>>() {}.getType());
+            Assert.assertEquals(3,synapseCountPerRoi.keySet().size());
+            Assert.assertEquals(2,synapseCountPerRoi.get("roiA").getPre());
+            Assert.assertEquals(0,synapseCountPerRoi.get("seven_column_roi").getPost());
+            Assert.assertEquals(1,synapseCountPerRoi.get("roiB").getTotal());
             Assert.assertNotNull(bodyId8426959.asMap().get("sId"));
             Assert.assertTrue(bodyId8426959.hasLabel("Big"));
 
@@ -172,11 +184,16 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(10, neuronCount);
 
+            // all neurons with synapses have a synapseCountPerRoi property
+            int synapseCountPerRoiCount = session.run("MATCH (n:Neuron) WHERE exists(n.synapseCountPerRoi) RETURN count(n)").single().get(0).asInt();
+
+            Assert.assertEquals(4, synapseCountPerRoiCount);
+
         }
     }
 
     @Test
-    public void testSynapsesNeuronPartsSynapseSetsMetaAutoName() {
+    public void testSynapsesSynapseSetsMetaAutoName() {
 
         String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
         String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
@@ -208,22 +225,11 @@ public class Neo4jImporterTest {
 
             neo4jImporter.addNeuronRois("test", bodyList);
 
-            for (BodyWithSynapses bws : bodyList) {
-                bws.setNeuronParts();
-
-            }
-
-            neo4jImporter.addNeuronParts("test", bodyList);
-
             neo4jImporter.addSynapseSets("test", bodyList);
 
             neo4jImporter.createMetaNode("test");
 
-            try {
-                neo4jImporter.addAutoNames("test");
-            } catch (Exception e) {
-                System.out.println("auto names failed");
-            }
+            neo4jImporter.addAutoNames("test");
 
             Node preSynNode = session.run("MATCH (s:Synapse:PreSyn{datasetLocation:\"test:4287:2277:1502\"}) RETURN s").single().get(0).asNode();
 
@@ -250,16 +256,6 @@ public class Neo4jImporterTest {
             Assert.assertTrue(neuronNode.hasLabel("seven_column_roi"));
             Assert.assertTrue(neuronNode.hasLabel("roiA"));
             Assert.assertTrue(neuronNode.hasLabel("roiB"));
-
-            Node neuronPart = session.run("MATCH (p:NeuronPart {neuronPartId:\"test:8426959:seven_column_roi\"}) RETURN p").single().get(0).asNode();
-
-            Assert.assertEquals(2L, neuronPart.asMap().get("pre"));
-            Assert.assertEquals(0L, neuronPart.asMap().get("post"));
-            Assert.assertEquals(2L, neuronPart.asMap().get("size"));
-
-            Node neuronPartNeuron = session.run("MATCH (p:NeuronPart {neuronPartId:\"test:8426959:seven_column_roi\"})-[:PartOf]->(n) RETURN n").single().get(0).asNode();
-
-            Assert.assertEquals(8426959L, neuronPartNeuron.asMap().get("bodyId"));
 
             int synapseSetContainsCount = session.run("MATCH (t:SynapseSet{datasetBodyId:\"test:8426959\"})-[:Contains]->(s) RETURN count(s)").single().get(0).asInt();
 
@@ -290,7 +286,7 @@ public class Neo4jImporterTest {
             Assert.assertEquals(1L, metaNode.asMap().get("roi_CPostCount"));
             // test that all rois are listed in meta
             List<String> rois = (List<String>) metaNode.asMap().get("rois");
-            Assert.assertEquals(3, rois.size());
+            Assert.assertEquals(5, rois.size());
             Assert.assertEquals("roi'C", rois.get(0));
 
             String neuronName = session.run("MATCH (n:Neuron:test{bodyId:8426959}) RETURN n.name").single().get(0).asString();

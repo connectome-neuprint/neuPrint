@@ -30,8 +30,7 @@ public class BodyWithSynapses {
     private transient Integer numberOfPreSynapses;
     private transient Integer numberOfPostSynapses;
 
-    // body divided into multiple neuron parts based on roi
-    private transient List<NeuronPart> neuronParts;
+    private transient SynapseCountsPerRoi synapseCountsPerRoi;
 
     public BodyWithSynapses(Long bodyId, Set<Synapse> synapseSet) {
         this.bodyId = bodyId;
@@ -60,8 +59,8 @@ public class BodyWithSynapses {
         return this.numberOfPostSynapses;
     }
 
-    public List<NeuronPart> getNeuronParts() {
-        return this.neuronParts;
+    public SynapseCountsPerRoi getSynapseCountsPerRoi() {
+        return this.synapseCountsPerRoi;
     }
 
     public Set<Synapse> getSynapseSet() {
@@ -96,7 +95,6 @@ public class BodyWithSynapses {
 
     @Override
     public int hashCode() {
-        //noinspection ConstantConditions
         int result = 17;
         result = 31 * result + bodyId.hashCode();
         return result;
@@ -208,38 +206,22 @@ public class BodyWithSynapses {
         return postsynapticPartnerIds;
     }
 
-    public void setNeuronParts() {
-        this.neuronParts = getNeuronPartsFromSynapseSet(this.synapseSet);
+    public void setSynapseCountsPerRoi() {
+        this.synapseCountsPerRoi = getSynapseCountersPerRoiFromSynapseSet(this.synapseSet);
     }
 
-    public static List<NeuronPart> getNeuronPartsFromSynapseSet(Set<Synapse> synapseSet) {
-        List<NeuronPart> neuronPartList = new ArrayList<>();
-
-        HashMap<String, SynapseCounter> roiToPrePostCount = new HashMap<>();
+    public static SynapseCountsPerRoi getSynapseCountersPerRoiFromSynapseSet(Set<Synapse> synapseSet) {
+        SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
         for (Synapse synapse : synapseSet) {
             for (String roi : synapse.getRois()) {
                 if (synapse.getType().equals("pre")) {
-                    if (roiToPrePostCount.containsKey(roi)) {
-                        roiToPrePostCount.get(roi).incrementPreCount();
-                    } else {
-                        roiToPrePostCount.put(roi, new SynapseCounter());
-                        roiToPrePostCount.get(roi).incrementPreCount();
-                    }
+                    synapseCountsPerRoi.incrementPreForRoi(roi);
                 } else if (synapse.getType().equals("post")) {
-                    if (roiToPrePostCount.containsKey(roi)) {
-                        roiToPrePostCount.get(roi).incrementPostCount();
-                    } else {
-                        roiToPrePostCount.put(roi, new SynapseCounter());
-                        roiToPrePostCount.get(roi).incrementPostCount();
-                    }
+                    synapseCountsPerRoi.incrementPostForRoi(roi);
                 }
             }
         }
-
-        for (String roi : roiToPrePostCount.keySet()) {
-            neuronPartList.add(new NeuronPart(roi, roiToPrePostCount.get(roi).getPreCount(), roiToPrePostCount.get(roi).getPostCount()));
-        }
-        return neuronPartList;
+        return synapseCountsPerRoi;
     }
 
     public static List<BodyWithSynapses> fromJson(final String jsonString) {

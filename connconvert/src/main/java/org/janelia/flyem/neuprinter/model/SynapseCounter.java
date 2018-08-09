@@ -1,33 +1,48 @@
 package org.janelia.flyem.neuprinter.model;
 
 public class SynapseCounter {
-    private int preCount;
-    private int postCount;
+
+    private int pre;
+    private int post;
+    private int total;
 
     public SynapseCounter() {
-        this.preCount = 0;
-        this.postCount = 0;
+        this.pre = 0;
+        this.post = 0;
+        this.total = 0;
     }
 
-    public int getPreCount() {
-        return this.preCount;
+    public SynapseCounter(int pre, int post) {
+        this.pre = pre;
+        this.post = post;
+        this.total = pre+post;
     }
 
-    public int getPostCount() {
-        return this.postCount;
+    public int getPre() {
+        return this.pre;
     }
 
-    public void incrementPreCount() {
-        this.preCount++;
+    public int getPost() {
+        return this.post;
     }
 
-    public void incrementPostCount() {
-        this.postCount++;
+    public int getTotal() {
+        return this.total;
+    }
+
+    public void incrementPre() {
+        this.pre++;
+        this.total++;
+    }
+
+    public void incrementPost() {
+        this.post++;
+        this.total++;
     }
 
     @Override
     public String toString() {
-        return "pre: " + preCount + " post: " + postCount;
+        return "pre: " + this.pre + " post: " + this.post + " total: " + this.total;
     }
 
 }
