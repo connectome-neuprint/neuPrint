@@ -87,25 +87,22 @@ public class Neo4jImporter implements AutoCloseable {
 
     public void prepDatabase(String dataset) {
         //TODO: add dataset id  as prefix to all labels
+        //TODO: synapse uniqueness is on location so can get rid of datasetlocation
         LOG.info("prepDatabase: entry");
         final String[] prepTextArray = {
-                "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.bodyId IS UNIQUE",
-                "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.sId IS UNIQUE",
-                "CREATE CONSTRAINT ON (s:SynapseSet) ASSERT s.datasetBodyId IS UNIQUE",
-                "CREATE CONSTRAINT ON (s:Synapse) ASSERT s.datasetLocation IS UNIQUE",
-                "CREATE CONSTRAINT ON (s:SkelNode) ASSERT s.skelNodeId IS UNIQUE",
-                "CREATE CONSTRAINT ON (s:Skeleton) ASSERT s.skeletonId IS UNIQUE",
-                "CREATE CONSTRAINT ON (c:NeuronClass) ASSERT c.neuronClassId IS UNIQUE",
-                "CREATE CONSTRAINT ON (t:NeuronType) ASSERT t.neuronTypeId IS UNIQUE",
+                "CREATE CONSTRAINT ON (n:`" + dataset + "-Neuron`) ASSERT n.bodyId IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-SynapseSet`) ASSERT s.datasetBodyId IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-Synapse`) ASSERT s.location IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-SkelNode`) ASSERT s.skelNodeId IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-Skeleton`) ASSERT s.skeletonId IS UNIQUE",
                 "CREATE CONSTRAINT ON (m:Meta) ASSERT m.dataset IS UNIQUE",
                 "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.autoName is UNIQUE",
-                "CREATE INDEX ON :Neuron(status)",
-                "CREATE INDEX ON :Neuron(somaLocation)",
-                "CREATE INDEX ON :Neuron(name)",
-                "CREATE INDEX ON :Synapse(location)",
-                "CREATE INDEX ON :SkelNode(location)",
-                "CREATE INDEX ON :Neuron(pre)",
-                "CREATE INDEX ON :Neuron(post)"
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(status)",
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(somaLocation)",
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(name)",
+                "CREATE INDEX ON :`" + dataset + "-SkelNode`(location)",
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(pre)",
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(post)"
         };
 
         for (final String prepText : prepTextArray) {
