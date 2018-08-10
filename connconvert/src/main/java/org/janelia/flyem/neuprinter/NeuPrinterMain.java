@@ -119,6 +119,12 @@ public class NeuPrinterMain {
         public String datasetLabel;
 
         @Parameter(
+                names = "--datasetId",
+                description = "Three-digit numerical ID for dataset (as string, required)",
+                required = true)
+        public String datasetId;
+
+        @Parameter(
                 names = "--synapseJson",
                 description = "JSON file containing body synapse data to import",
                 required = false)
@@ -187,6 +193,7 @@ public class NeuPrinterMain {
     private static List<Neuron> neuronList;
     private static List<BodyWithSynapses> bodyList;
     private static String dataset;
+    private static String datasetId;
 
     public static List<Neuron> readNeuronsJson(String filepath) {
 
@@ -300,6 +307,7 @@ public class NeuPrinterMain {
         LOG.info("running with parameters: " + parameters);
 
         dataset = parameters.datasetLabel;
+        datasetId = parameters.datasetId;
 
         if (parameters.createLog) {
 
@@ -319,6 +327,7 @@ public class NeuPrinterMain {
         }
 
         LOG.info("Dataset is: " + dataset);
+        LOG.info("Dataset ID is: " + datasetId);
 
         if (parameters.loadNeurons || parameters.doAll) {
 
@@ -331,7 +340,7 @@ public class NeuPrinterMain {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
                 if (parameters.prepDatabase || parameters.doAll) {
-                    neo4jImporter.prepDatabase(dataset);
+                    neo4jImporter.prepDatabase(dataset,datasetId);
                 }
 
                 Stopwatch timer = Stopwatch.createStarted();
@@ -356,7 +365,7 @@ public class NeuPrinterMain {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
                 if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll)) {
-                    neo4jImporter.prepDatabase(dataset);
+                    neo4jImporter.prepDatabase(dataset,datasetId);
                 }
 
                 if (parameters.addConnectsTo || parameters.doAll) {
@@ -430,7 +439,7 @@ public class NeuPrinterMain {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
                 if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll || parameters.loadSynapses)) {
-                    neo4jImporter.prepDatabase(dataset);
+                    neo4jImporter.prepDatabase(dataset,datasetId);
                 }
 
                 Stopwatch timer = Stopwatch.createStarted();
@@ -443,7 +452,7 @@ public class NeuPrinterMain {
 
         if (parameters.addMetaNodeOnly) {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-                neo4jImporter.prepDatabase(dataset);
+                neo4jImporter.prepDatabase(dataset,datasetId);
                 neo4jImporter.createMetaNode(dataset);
             }
         }
