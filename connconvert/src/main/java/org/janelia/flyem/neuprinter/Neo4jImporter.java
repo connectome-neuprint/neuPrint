@@ -90,7 +90,6 @@ public class Neo4jImporter implements AutoCloseable {
     public void prepDatabase(String dataset) {
 
         LOG.info("prepDatabase: entry");
-        // TODO: set spatial index
         final String[] prepTextArray = {
                 "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.bodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.sId IS UNIQUE",
@@ -152,7 +151,7 @@ public class Neo4jImporter implements AutoCloseable {
                                         "somaLocation", neuron.getSomaLocation(),
                                         "somaRadius", neuron.getSomaRadius(),
                                         "timeStamp", timeStamp,
-                                        "rois", neuron.getRois()))
+                                        "rois", neuron.getNeuRois()))
                 );
             }
             batch.writeTransaction();
@@ -243,7 +242,7 @@ public class Neo4jImporter implements AutoCloseable {
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType(),
                                             "timeStamp", timeStamp,
-                                            "rois", synapse.getRois()))
+                                            "rois", synapse.getSynRois()))
                             );
                         } else if (synapse.getType().equals("post")) {
                             batch.addStatement(new Statement(
@@ -253,7 +252,7 @@ public class Neo4jImporter implements AutoCloseable {
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType(),
                                             "timeStamp", timeStamp,
-                                            "rois", synapse.getRois()))
+                                            "rois", synapse.getSynRois()))
                             );
 
                         }
@@ -303,7 +302,7 @@ public class Neo4jImporter implements AutoCloseable {
         try (final TransactionBatch batch = getBatch()) {
             for (BodyWithSynapses bws : bodyList) {
                 for (Synapse synapse : bws.getSynapseSet()) {
-                    List<String> roiList = synapse.getRois();
+                    List<String> roiList = synapse.getNeuRois();
                     batch.addStatement(new Statement(roiNeuronText, parameters("bodyId", bws.getBodyId(),
                             "timeStamp", timeStamp,
                             "notAnnotated", "not annotated",
@@ -647,12 +646,12 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static long getRoiPreCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ":`" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS pre RETURN sum(pre)");
+        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ":`Neu-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS pre RETURN sum(pre)");
         return result.single().get(0).asLong();
     }
 
     private static long getRoiPostCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ":`" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS post RETURN sum(post)");
+        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ":`Neu-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS post RETURN sum(post)");
         return result.single().get(0).asLong();
     }
 
@@ -660,7 +659,7 @@ public class Neo4jImporter implements AutoCloseable {
         StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
         List<String> roiList = new ArrayList<>();
         while (result.hasNext()) {
-            roiList.add(result.next().asMap().get("label").toString());
+            roiList.add(result.next().asMap().get("label").toString().replace("Neu-",""));
         }
         return roiList;
     }

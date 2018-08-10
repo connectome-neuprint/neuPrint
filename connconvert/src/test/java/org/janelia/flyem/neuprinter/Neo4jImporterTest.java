@@ -118,8 +118,8 @@ public class Neo4jImporterTest {
             Assert.assertEquals(Values.point(9157, 1.0, 2.0, 3.0).asPoint(), bodyId100569.asMap().get("somaLocation"));
             Assert.assertEquals(5.0, bodyId100569.asMap().get("somaRadius"));
 
-            Assert.assertTrue(bodyId100569.hasLabel("roi1"));
-            Assert.assertTrue(bodyId100569.hasLabel("roi2"));
+            Assert.assertTrue(bodyId100569.hasLabel("Neu-roi1"));
+            Assert.assertTrue(bodyId100569.hasLabel("Neu-roi2"));
 
             int labelCount = 0;
             Iterable<String> bodyLabels = bodyId100569.labels();
@@ -233,16 +233,16 @@ public class Neo4jImporterTest {
             Assert.assertEquals(1.0, preSynNode.asMap().get("confidence"));
             Assert.assertEquals("pre", preSynNode.asMap().get("type"));
             Assert.assertEquals(Values.point(9157, 4287, 2277, 1502).asPoint(), preSynNode.asMap().get("location"));
-            Assert.assertTrue(preSynNode.hasLabel("seven_column_roi"));
-            Assert.assertTrue(preSynNode.hasLabel("roiA"));
+            Assert.assertTrue(preSynNode.hasLabel("Syn-seven_column_roi"));
+            Assert.assertTrue(preSynNode.hasLabel("Syn-roiA"));
 
             Node postSynNode = session.run("MATCH (s:Synapse:PostSyn{datasetLocation:\"test:4301:2276:1535\"}) RETURN s").single().get(0).asNode();
 
             Assert.assertEquals(1.0, postSynNode.asMap().get("confidence"));
             Assert.assertEquals("post", postSynNode.asMap().get("type"));
             Assert.assertEquals(Values.point(9157, 4301, 2276, 1535).asPoint(), postSynNode.asMap().get("location"));
-            Assert.assertTrue(postSynNode.hasLabel("seven_column_roi"));
-            Assert.assertTrue(postSynNode.hasLabel("roiA"));
+            Assert.assertTrue(postSynNode.hasLabel("Syn-seven_column_roi"));
+            Assert.assertTrue(postSynNode.hasLabel("Syn-roiA"));
 
             int synapsesToCount = session.run("MATCH (s:Synapse:PreSyn{datasetLocation:\"test:4287:2277:1502\"})-[:SynapsesTo]->(l) RETURN count(l)").single().get(0).asInt();
 
@@ -250,9 +250,9 @@ public class Neo4jImporterTest {
 
             Node neuronNode = session.run("MATCH (n{bodyId:8426959}) RETURN n").single().get(0).asNode();
 
-            Assert.assertTrue(neuronNode.hasLabel("seven_column_roi"));
-            Assert.assertTrue(neuronNode.hasLabel("roiA"));
-            Assert.assertTrue(neuronNode.hasLabel("roiB"));
+            Assert.assertTrue(neuronNode.hasLabel("Neu-seven_column_roi"));
+            Assert.assertTrue(neuronNode.hasLabel("Neu-roiA"));
+            Assert.assertTrue(neuronNode.hasLabel("Neu-roiB"));
 
             int synapseSetContainsCount = session.run("MATCH (t:SynapseSet{datasetBodyId:\"test:8426959\"})-[:Contains]->(s) RETURN count(s)").single().get(0).asInt();
 

@@ -134,7 +134,7 @@ public class Neo4jEditor implements AutoCloseable {
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
-                if (neuron.getRois() != null) {
+                if (neuron.getNeuRois() != null) {
                     LOG.error("Found neuron with rois listed. bodyId: " + neuron.getId());
                 }
                 batch.addStatement(

@@ -73,15 +73,15 @@ public class Neuron {
         return size;
     }
 
-    public List<String> getRois() {
+    public List<String> getNeuRois() {
         // remove -lm tag on rois
         if (this.rois!=null) {
             List<String> newRoiList = new ArrayList<>();
             for (String roi : rois) {
                 if (roi.endsWith("-lm")) {
-                    newRoiList.add(roi.replace("-lm", ""));
+                    newRoiList.add("Neu-" + roi.replace("-lm", ""));
                 } else {
-                    newRoiList.add(roi);
+                    newRoiList.add("Neu-" + roi);
                 }
             }
             return newRoiList;

@@ -1,5 +1,6 @@
 package org.janelia.flyem.neuprintprocedures;
 
+import apoc.convert.Json;
 import apoc.create.Create;
 import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
@@ -23,6 +24,7 @@ import java.util.List;
 public class MetaNodeUpdaterTest {
     @Rule
     public Neo4jRule neo4j = new Neo4jRule()
+            .withFunction(Json.class)
             .withProcedure(Create.class);
 
     @Test
@@ -59,14 +61,8 @@ public class MetaNodeUpdaterTest {
 
             //TODO: write this to use roi synapse count property
             session.writeTransaction(tx -> {
-                tx.run("CREATE (n:Neuron:test{bodyId:50})<-[:PartOf]-(p:NeuronPart:newRoi:test) SET n.pre=5, n.post=2 RETURN n,p");
+                tx.run("CREATE (n:Neuron:test:`Neu-roiA`:`Neu-newRoi`{bodyId:50}) SET n.synapseCountPerRoi=\"{'roiA':{'pre':5,'post':2,'total':7},'newRoi':{'pre':5,'post':2,'total':7}}\", n.pre=10, n.post=4 RETURN n");
                 return 1;
-            });
-
-            Node neuronPart = session.writeTransaction(tx -> {
-                Node node = tx.run(
-                        "CREATE (np:NeuronPart:test:roiA{neuronPartId:\"test:50:roiA\"}) SET np.pre=5, np.post=2 RETURN np").single().get(0).asNode();
-                return node;
             });
 
         }
@@ -79,15 +75,15 @@ public class MetaNodeUpdaterTest {
                 return node;
             });
 
-            Assert.assertEquals(7L, metaNode.asMap().get("totalPostCount"));
-            Assert.assertEquals(8L, metaNode.asMap().get("totalPreCount"));
+            Assert.assertEquals(9L, metaNode.asMap().get("totalPostCount"));
+            Assert.assertEquals(13L, metaNode.asMap().get("totalPreCount"));
 
             Assert.assertEquals(7L, metaNode.asMap().get("roiAPreCount"));
             Assert.assertEquals(5L, metaNode.asMap().get("roiAPostCount"));
 
             List<String> roiList = (List<String>) metaNode.asMap().get("rois");
             Assert.assertEquals(4, roiList.size());
-            Assert.assertEquals("anotherRoi", roiList.get(0));
+            Assert.assertTrue(roiList.contains("roiA") && roiList.contains("roiB") && roiList.contains("anotherRoi") && roiList.contains("newRoi"));
 
         }
 

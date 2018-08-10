@@ -77,12 +77,12 @@ public class MetaNodeUpdater {
     }
 
     private static long getRoiPreCount(GraphDatabaseService dbService, final String dataset, final String roi) {
-        Result roiPreCountQuery = dbService.execute("MATCH (n:Neuron:" + dataset + ":" + roi + ") WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS preCounts RETURN sum(preCounts) AS pre");
+        Result roiPreCountQuery = dbService.execute("MATCH (n:Neuron:" + dataset + ":`Neu-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS preCounts RETURN sum(preCounts) AS pre");
         return (long) roiPreCountQuery.next().get("pre");
     }
 
     private static long getRoiPostCount(GraphDatabaseService dbService, final String dataset, final String roi) {
-        Result roiPostCountQuery = dbService.execute("MATCH (n:Neuron:" + dataset + ":" + roi + ") WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS postCounts RETURN sum(postCounts) AS post");
+        Result roiPostCountQuery = dbService.execute("MATCH (n:Neuron:" + dataset + ":`Neu-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS postCounts RETURN sum(postCounts) AS post");
         return (long) roiPostCountQuery.next().get("post");
     }
 
@@ -91,7 +91,7 @@ public class MetaNodeUpdater {
         Result roiLabelQuery = dbService.execute("MATCH (n:Neuron:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
 
         while (roiLabelQuery.hasNext()) {
-            roiList.add((String) roiLabelQuery.next().get("label"));
+            roiList.add(roiLabelQuery.next().get("label").toString().replace("Neu-",""));
         }
         return roiList;
     }

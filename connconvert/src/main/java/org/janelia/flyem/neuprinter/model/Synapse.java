@@ -179,6 +179,40 @@ public class Synapse {
         }
     }
 
+    public List<String> getSynRois() {
+        // remove -lm tag on rois
+        if (this.rois != null) {
+            List<String> newRoiList = new ArrayList<>();
+            for (String roi : rois) {
+                if (roi.endsWith("-lm")) {
+                    newRoiList.add("Syn-" + roi.replace("-lm", ""));
+                } else {
+                    newRoiList.add("Syn-" + roi);
+                }
+            }
+            return newRoiList;
+        } else {
+            return this.rois;
+        }
+    }
+
+    public List<String> getNeuRois() {
+        // remove -lm tag on rois
+        if (this.rois != null) {
+            List<String> newRoiList = new ArrayList<>();
+            for (String roi : rois) {
+                if (roi.endsWith("-lm")) {
+                    newRoiList.add("Neu-" + roi.replace("-lm", ""));
+                } else {
+                    newRoiList.add("Neu-" + roi);
+                }
+            }
+            return newRoiList;
+        } else {
+            return this.rois;
+        }
+    }
+
     public void addRoiList(List<String> rois) {
         this.rois = rois;
     }
