@@ -11,11 +11,11 @@ import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.NeuronType;
 import org.janelia.flyem.neuprinter.model.NeuronTypeTree;
-import org.janelia.flyem.neuprinter.model.Roi;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprinter.model.SynapseCountsPerRoi;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
@@ -30,11 +30,9 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -88,7 +86,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     public void prepDatabase(String dataset) {
-
+        //TODO: add dataset id  as prefix to all labels
         LOG.info("prepDatabase: entry");
         final String[] prepTextArray = {
                 "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.bodyId IS UNIQUE",
@@ -582,24 +580,25 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("createMetaNode: enter");
 
         final String metaNodeString = "MERGE (m:Meta:" + dataset + " {dataset:$dataset}) ON CREATE SET m.lastDatabaseEdit=$timeStamp," +
-                "m.dataset=$dataset, m.totalPreCount=$totalPre, m.totalPostCount=$totalPost, m.rois=$rois";
+                "m.dataset=$dataset, m.totalPreCount=$totalPre, m.totalPostCount=$totalPost";
 
         long totalPre;
         long totalPost;
         List<String> roiNameList;
-        Set<Roi> roiSet = new HashSet<>();
-
+        SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
+        //TODO: change the many properties to a json
+        //TODO: dataset node that points to all dataset metas. has a version of the datamodel (1.0)
         try (Session session = driver.session()) {
             totalPre = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
             roiNameList = session.readTransaction(tx -> getAllRois(tx, dataset))
                     .stream()
-                    .filter((l) -> (!l.equals("Neuron") && !l.equals(dataset) ))
+                    .filter((l) -> (!l.equals("Neuron") && !l.equals(dataset)))
                     .collect(Collectors.toList());
             for (String roi : roiNameList) {
-                long roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
-                long roiPostCount = session.readTransaction(tx -> getRoiPostCount(tx, dataset, roi));
-                roiSet.add(new Roi(roi, roiPreCount, roiPostCount));
+                int roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
+                int roiPostCount = session.readTransaction(tx -> getRoiPostCount(tx, dataset, roi));
+                synapseCountsPerRoi.addSynapseCountsForRoi(roi, roiPreCount, roiPostCount);
             }
         }
 
@@ -607,25 +606,20 @@ public class Neo4jImporter implements AutoCloseable {
             batch.addStatement(new Statement(metaNodeString, parameters("dataset", dataset,
                     "totalPre", totalPre,
                     "totalPost", totalPost,
-                    "timeStamp", timeStamp,
-                    "rois", roiNameList
-                            .stream()
-                            .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
-                            .collect(Collectors.toList())
+                    "timeStamp", timeStamp
+//                    "rois", roiNameList
+//                            .stream()
+//                            .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+//                            .collect(Collectors.toList())
                     //TODO: might be able to get rid of roi list since can get from keys on json for meta node
             )));
 
-            for (Roi roi : roiSet) {
+            String metaNodeRoiString = "MATCH (m:Meta:" + dataset + " {dataset:$dataset}) SET m.synapseCountPerRoi=$synapseCountPerRoi ";
 
-                String metaNodeRoiString = "MATCH (m:Meta:" + dataset + " {dataset:$dataset}) SET m." + roi.getRoiName() +
-                        "PreCount=$roiPreCount, m." + roi.getRoiName() + "PostCount=$roiPostCount ";
-
-                batch.addStatement(new Statement(metaNodeRoiString,
-                        parameters("dataset", dataset,
-                                "roiPreCount", roi.getPreCount(),
-                                "roiPostCount", roi.getPostCount()
-                        )));
-            }
+            batch.addStatement(new Statement(metaNodeRoiString,
+                    parameters("dataset", dataset,
+                            "synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString()
+                    )));
 
             batch.writeTransaction();
 
@@ -645,21 +639,21 @@ public class Neo4jImporter implements AutoCloseable {
         return result.single().get(0).asLong();
     }
 
-    private static long getRoiPreCount(final Transaction tx, final String dataset, final String roi) {
+    private static int getRoiPreCount(final Transaction tx, final String dataset, final String roi) {
         StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ":`Neu-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS pre RETURN sum(pre)");
-        return result.single().get(0).asLong();
+        return result.single().get(0).asInt();
     }
 
-    private static long getRoiPostCount(final Transaction tx, final String dataset, final String roi) {
+    private static int getRoiPostCount(final Transaction tx, final String dataset, final String roi) {
         StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ":`Neu-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS post RETURN sum(post)");
-        return result.single().get(0).asLong();
+        return result.single().get(0).asInt();
     }
 
     private static List<String> getAllRois(final Transaction tx, final String dataset) {
         StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
         List<String> roiList = new ArrayList<>();
         while (result.hasNext()) {
-            roiList.add(result.next().asMap().get("label").toString().replace("Neu-",""));
+            roiList.add(result.next().asMap().get("label").toString().replace("Neu-", ""));
         }
         return roiList;
     }
@@ -709,7 +703,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<Long> getAllNeuronBodyIdsWithGreaterThanThresholdSynapsesAndWithoutNames(final Transaction tx, final String dataset, final int synapseThreshold) {
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ") WHERE (n.pre+n.post)>"+ synapseThreshold + " AND (NOT exists(n.name) OR n.name=\"unknown\") RETURN n.bodyId ");
+        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ") WHERE (n.pre+n.post)>" + synapseThreshold + " AND (NOT exists(n.name) OR n.name=\"unknown\") RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));

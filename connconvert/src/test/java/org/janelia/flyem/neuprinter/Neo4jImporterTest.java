@@ -9,6 +9,7 @@ import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprinter.model.SynapseCountsPerRoi;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -274,17 +275,19 @@ public class Neo4jImporterTest {
             Assert.assertEquals(2L, metaNode.asMap().get("totalPreCount"));
             Assert.assertEquals(4L, metaNode.asMap().get("totalPostCount"));
 
-            Assert.assertEquals(3L, metaNode.asMap().get("roiAPostCount"));
-            Assert.assertEquals(2L, metaNode.asMap().get("roiAPreCount"));
-            Assert.assertEquals(0L, metaNode.asMap().get("roiBPreCount"));
-            Assert.assertEquals(3L, metaNode.asMap().get("roiBPostCount"));
+            String metaSynapseCountPerRoi = (String) metaNode.asMap().get("synapseCountPerRoi");
+            Gson gson = new Gson();
+            Map<String,SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi,new TypeToken<Map<String,SynapseCounter>>(){}.getType());
+
+            Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiA").getPost());
+            Assert.assertEquals(2L, metaSynapseCountPerRoiMap.get("roiA").getPre());
+            Assert.assertEquals(0L, metaSynapseCountPerRoiMap.get("roiB").getPre());
+            Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiB").getPost());
             // test to handle ' characters predictably
-            Assert.assertEquals(0L, metaNode.asMap().get("roi_CPreCount"));
-            Assert.assertEquals(1L, metaNode.asMap().get("roi_CPostCount"));
+            Assert.assertEquals(0L, metaSynapseCountPerRoiMap.get("roi'C").getPre());
+            Assert.assertEquals(1L, metaSynapseCountPerRoiMap.get("roi'C").getPost());
             // test that all rois are listed in meta
-            List<String> rois = (List<String>) metaNode.asMap().get("rois");
-            Assert.assertEquals(5, rois.size());
-            Assert.assertEquals("roi'C", rois.get(0));
+            Assert.assertEquals(6, metaSynapseCountPerRoiMap.keySet().size());
 
             String neuronName = session.run("MATCH (n:Neuron:test{bodyId:8426959}) RETURN n.name").single().get(0).asString();
             String neuronAutoName = session.run("MATCH (n:Neuron:test{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();

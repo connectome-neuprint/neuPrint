@@ -1,6 +1,6 @@
 package org.janelia.flyem.neuprintprocedures;
 
-import org.janelia.flyem.neuprinter.model.Roi;
+import org.janelia.flyem.neuprinter.model.SynapseCountsPerRoi;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
@@ -29,33 +29,29 @@ public class MetaNodeUpdater {
                     .stream()
                     .filter((l) -> (!l.equals("Neuron") && !l.equals(dataset)))
                     .collect(Collectors.toList());
-            Set<Roi> roiSet = new HashSet<>();
+            SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
+
 
             for (String roi : roiNameList) {
                 long roiPreCount = getRoiPreCount(dbService, dataset, roi);
                 long roiPostCount = getRoiPostCount(dbService, dataset, roi);
-                roiSet.add(new Roi(roi, roiPreCount, roiPostCount));
+                synapseCountsPerRoi.addSynapseCountsForRoi(roi, Math.toIntExact(roiPreCount), Math.toIntExact(roiPostCount));
             }
 
 
-            List<String> roiNameListWithoutNonDisjointRois = roiNameList
-                    .stream()
-                    .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
-                    .collect(Collectors.toList());
+//            List<String> roiNameListWithoutNonDisjointRois = roiNameList
+//                    .stream()
+//                    .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+//                    .collect(Collectors.toList());
 
             metaNode.setProperty("lastDatabaseEdit", LocalDate.now());
             metaNode.setProperty("totalPreCount", preCount);
             metaNode.setProperty("totalPostCount", postCount);
-            metaNode.setProperty("rois", roiNameListWithoutNonDisjointRois
-                    .toArray(new String[roiNameListWithoutNonDisjointRois.size()]));
+            metaNode.setProperty("synapseCountPerRoi",synapseCountsPerRoi.getAsJsonString());
+            System.out.println("Setting synapseCountPerRoi on Meta node: " + synapseCountsPerRoi.getAsJsonString() );
 
-
-            for (Roi roi : roiSet) {
-                System.out.println("setting " + roi.getRoiName() + " pre:" + roi.getPreCount() + " post:" + roi.getPostCount());
-                metaNode.setProperty(roi.getRoiName() + "PreCount", roi.getPreCount());
-                metaNode.setProperty(roi.getRoiName() + "PostCount", roi.getPostCount());
-
-            }
+//            metaNode.setProperty("rois", roiNameListWithoutNonDisjointRois
+//                    .toArray(new String[roiNameListWithoutNonDisjointRois.size()]));
 
 
         } catch (Exception e) {
