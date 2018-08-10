@@ -1,15 +1,18 @@
 package org.janelia.flyem.neuprintprocedures;
 
+import apoc.convert.Json;
 import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
 import com.google.gson.Gson;
-import org.janelia.flyem.neuprinter.ConnConvert;
+import com.google.gson.reflect.TypeToken;
+import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
+import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,6 +38,7 @@ public class CleaveNeuronsTest {
     public Neo4jRule neo4j = new Neo4jRule()
             .withProcedure(ProofreaderProcedures.class)
             .withProcedure(GraphRefactoring.class)
+            .withFunction(Json.class)
             .withProcedure(Create.class);
 
     //TODO: write tests for exception/error handling.
@@ -47,14 +51,14 @@ public class CleaveNeuronsTest {
                 "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}" +
                 "]}";
 
-        List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
         HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         File swcFile1 = new File("src/test/resources/8426959.swc");
-        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(new File[]{swcFile1});
+        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1});
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -66,17 +70,13 @@ public class CleaveNeuronsTest {
 
             neo4jImporter.addNeurons(dataset, neuronList);
 
-            neo4jImporter.addConnectsTo(dataset, bodyList, 10);
+            neo4jImporter.addConnectsTo(dataset, bodyList);
             neo4jImporter.addSynapsesWithRois(dataset, bodyList);
             neo4jImporter.addSynapsesTo(dataset, preToPost);
             neo4jImporter.addNeuronRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
-            for (BodyWithSynapses bws : bodyList) {
-                bws.setNeuronParts();
-            }
-            neo4jImporter.addNeuronParts(dataset, bodyList);
             neo4jImporter.createMetaNode(dataset);
-            neo4jImporter.addAutoNames(dataset);
+            neo4jImporter.addAutoNames(dataset,0);
             neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 
             List<Object> neurons = session.writeTransaction(tx ->
@@ -143,8 +143,9 @@ public class CleaveNeuronsTest {
 
             Relationship r1 = (Relationship) prevOrigNodeRelationships.get(0).asMap().get("r");
             Relationship r2 = (Relationship) prevOrigNodeRelationships.get(1).asMap().get("r");
-            Assert.assertTrue(r1.hasType("CleavedTo") && r1.endNodeId() == historyNodeOrig.id());
-            Assert.assertTrue(r2.hasType("CleavedTo") && r2.endNodeId() == historyNodeNew.id());
+            Assert.assertTrue(r1.hasType("CleavedTo") && r2.hasType("CleavedTo"));
+            Assert.assertTrue( (r1.endNodeId() == historyNodeOrig.id() && r2.endNodeId() == historyNodeNew.id()) ||
+                    (r2.endNodeId() == historyNodeOrig.id() && r1.endNodeId() == historyNodeNew.id()));
 
             //check connectsto relationships
             Long origTo26311Weight = session.run("MATCH (n{bodyId:8426959})-[r:ConnectsTo]->(m{bodyId:26311}) RETURN r.weight").single().get(0).asLong();
@@ -161,24 +162,21 @@ public class CleaveNeuronsTest {
             Long newTo831744Weight = session.run("MATCH (n{bodyId:5555})-[r:ConnectsTo]->(m{bodyId:831744}) RETURN r.weight").single().get(0).asLong();
             Assert.assertEquals(new Long(1), newTo831744Weight);
 
-            //check neuron parts
-            int origNeuronPartCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np) RETURN count(np)").single().get(0).asInt();
-            Assert.assertEquals(2, origNeuronPartCount);
-            Long origRoiAPreCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.pre").single().get(0).asLong();
-            Assert.assertEquals(new Long(1), origRoiAPreCount);
-            Long origRoiAPostCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.post").single().get(0).asLong();
-            Assert.assertEquals(new Long(0), origRoiAPostCount);
-            Long origRoiASizeCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.size").single().get(0).asLong();
-            Assert.assertEquals(new Long(1), origRoiASizeCount);
+            //check synapseCountsPerRoi
+            String newSynapseCountPerRoi = session.writeTransaction(tx ->
+                    tx.run("MATCH (n:test{bodyId:5555}) RETURN n.synapseCountPerRoi").single().get(0).asString());
+            String origSynapseCountPerRoi = session.writeTransaction(tx ->
+                    tx.run("MATCH (n:test{bodyId:8426959}) RETURN n.synapseCountPerRoi").single().get(0).asString());
+            Map<String,SynapseCounter> newSynapseCountMap = gson.fromJson(newSynapseCountPerRoi, new TypeToken<Map<String,SynapseCounter>>() {}.getType());
+            Map<String,SynapseCounter> origSynapseCountMap = gson.fromJson(origSynapseCountPerRoi, new TypeToken<Map<String,SynapseCounter>>() {}.getType());
 
-            int newNeuronPartCount = session.run("MATCH (n{bodyId:5555})<-[:PartOf]-(np) RETURN count(np)").single().get(0).asInt();
-            Assert.assertEquals(3, newNeuronPartCount);
-            Long newRoiAPreCount = session.run("MATCH (n{bodyId:5555})<-[:PartOf]-(np:roiA) RETURN np.pre").single().get(0).asLong();
-            Assert.assertEquals(new Long(1), newRoiAPreCount);
-            Long newRoiAPostCount = session.run("MATCH (n{bodyId:5555})<-[:PartOf]-(np:roiA) RETURN np.post").single().get(0).asLong();
-            Assert.assertEquals(new Long(0), newRoiAPostCount);
-            Long newRoiASizeCount = session.run("MATCH (n{bodyId:5555})<-[:PartOf]-(np:roiA) RETURN np.size").single().get(0).asLong();
-            Assert.assertEquals(new Long(1), newRoiASizeCount);
+            Assert.assertEquals(3, newSynapseCountMap.keySet().size());
+            Assert.assertEquals(1, newSynapseCountMap.get("roiA").getPre());
+            Assert.assertEquals(1, newSynapseCountMap.get("roiB").getPost());
+
+            Assert.assertEquals(2, origSynapseCountMap.keySet().size());
+            Assert.assertEquals(0, origSynapseCountMap.get("seven_column_roi").getPost());
+            Assert.assertEquals(1, origSynapseCountMap.get("roiA").getPre());
 
             //check synapse sets
             List<Record> origSynapseSetList = session.writeTransaction(tx ->

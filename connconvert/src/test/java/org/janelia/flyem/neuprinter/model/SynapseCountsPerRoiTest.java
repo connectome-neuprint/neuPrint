@@ -37,7 +37,7 @@ public class SynapseCountsPerRoiTest {
         synapseCountsPerRoi.incrementPreForRoi("testRoi");
         synapseCountsPerRoi.incrementPostForRoi("testRoi");
 
-        String synapseCountsPerRoiJson = synapseCountsPerRoi.getSynapseCountsPerRoiAsJsonString();
+        String synapseCountsPerRoiJson = synapseCountsPerRoi.getAsJsonString();
 
         Gson gson = new Gson();
         Map<String,SynapseCounter> deserializedSynapseCountsPerRoi = gson.fromJson(synapseCountsPerRoiJson, new TypeToken<Map<String,SynapseCounter>>() {}.getType());

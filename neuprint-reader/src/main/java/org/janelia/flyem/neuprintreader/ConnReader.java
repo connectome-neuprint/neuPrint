@@ -101,7 +101,7 @@ public class ConnReader {
 
     }
 
-    private static final Logger LOG = Logger.getLogger("ConnConvert.class");
+    private static final Logger LOG = Logger.getLogger("NeuPrinterMain.class");
 
 }
 

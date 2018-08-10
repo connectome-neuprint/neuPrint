@@ -25,9 +25,9 @@ public class MetaNodeUpdater {
             long preCount = getTotalPreCount(dbService, dataset);
             long postCount = getTotalPostCount(dbService, dataset);
 
-            List<String> roiNameList = getAllRoisFromNeuronParts(dbService, dataset)
+            List<String> roiNameList = getAllRoisFromNeurons(dbService, dataset)
                     .stream()
-                    .filter((l) -> (!l.equals("NeuronPart") && !l.equals(dataset)))
+                    .filter((l) -> (!l.equals("Neuron") && !l.equals(dataset)))
                     .collect(Collectors.toList());
             Set<Roi> roiSet = new HashSet<>();
 
@@ -77,18 +77,18 @@ public class MetaNodeUpdater {
     }
 
     private static long getRoiPreCount(GraphDatabaseService dbService, final String dataset, final String roi) {
-        Result roiPreCountQuery = dbService.execute("MATCH (n:NeuronPart:" + dataset + ":" + roi + ") RETURN sum(n.pre) AS pre");
+        Result roiPreCountQuery = dbService.execute("MATCH (n:Neuron:" + dataset + ":" + roi + ") WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS preCounts RETURN sum(preCounts) AS pre");
         return (long) roiPreCountQuery.next().get("pre");
     }
 
     private static long getRoiPostCount(GraphDatabaseService dbService, final String dataset, final String roi) {
-        Result roiPostCountQuery = dbService.execute("MATCH (n:NeuronPart:" + dataset + ":" + roi + ") RETURN sum(n.post) AS post");
+        Result roiPostCountQuery = dbService.execute("MATCH (n:Neuron:" + dataset + ":" + roi + ") WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS postCounts RETURN sum(postCounts) AS post");
         return (long) roiPostCountQuery.next().get("post");
     }
 
-    private static List<String> getAllRoisFromNeuronParts(GraphDatabaseService dbService, final String dataset) {
+    private static List<String> getAllRoisFromNeurons(GraphDatabaseService dbService, final String dataset) {
         List<String> roiList = new ArrayList<>();
-        Result roiLabelQuery = dbService.execute("MATCH (n:NeuronPart:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
+        Result roiLabelQuery = dbService.execute("MATCH (n:Neuron:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
 
         while (roiLabelQuery.hasNext()) {
             roiList.add((String) roiLabelQuery.next().get("label"));

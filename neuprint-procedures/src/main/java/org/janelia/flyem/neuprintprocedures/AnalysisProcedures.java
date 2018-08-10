@@ -125,6 +125,7 @@ public class AnalysisProcedures {
         Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
         List<Node> nodeList = getSkelNodesForSkeleton(neuron);
         List<SkelNode> skelNodeList = nodeList.stream()
+                // TODO: use spatial point type for location
                 .map((node) -> new SkelNode(bodyId, (String) node.getProperty("location"), (float) ((double) node.getProperty("radius")), (int) ((long) node.getProperty("rowNumber"))))
                 .collect(Collectors.toList());
         String skeletonJson = SkelNode.getSkelNodeListJson(skelNodeList);
@@ -234,7 +235,7 @@ public class AnalysisProcedures {
     }
 
     private RoiCounts getRoiCountsForNeuron(Node neuron, String datasetLabel) {
-
+        //TODO: use synapseCountPerRoi for this
         Long totalInputCount = 0L;
         Long totalOutputCount = 0L;
         RoiCounts roiCounts = new RoiCounts();

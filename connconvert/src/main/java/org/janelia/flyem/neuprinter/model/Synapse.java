@@ -9,6 +9,7 @@ import org.neo4j.driver.v1.types.Point;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Synapse {
 
@@ -41,7 +42,7 @@ public class Synapse {
         }
     }
 
-    public Synapse(String type, Integer x, Integer y, Integer z) {
+    public Synapse(String type, Integer x, Integer y, Integer z, List<String> roiList) {
         this.type = type;
         this.confidence = 0.0F;
         List<Integer> location = new ArrayList<>();
@@ -49,6 +50,7 @@ public class Synapse {
         location.add(y);
         location.add(z);
         this.location = location;
+        this.rois = roiList;
     }
 
     @Override

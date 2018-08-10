@@ -2,7 +2,7 @@ package org.janelia.flyem.neuprintprocedures;
 
 import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
-import org.janelia.flyem.neuprinter.ConnConvert;
+import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.junit.Assert;
@@ -32,7 +32,7 @@ public class SkeletonDistanceTest {
         File swcFile1 = new File("src/test/resources/101.swc");
         File swcFile2 = new File("src/test/resources/102.swc");
 
-        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(new File[]{swcFile1, swcFile2});
+        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1, swcFile2});
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 

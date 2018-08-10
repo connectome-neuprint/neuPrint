@@ -87,7 +87,6 @@ public class Neo4jImporter implements AutoCloseable {
         return batch;
     }
 
-    //TODO: convert location to spatial point values
     public void prepDatabase(String dataset) {
 
         LOG.info("prepDatabase: entry");
@@ -194,7 +193,7 @@ public class Neo4jImporter implements AutoCloseable {
                                         "post", body.getNumberOfPostSynapses(),
                                         "bodyId", body.getBodyId(),
                                         "timeStamp", timeStamp,
-                                        "synapseCountPerRoi", body.getSynapseCountsPerRoi().getSynapseCountsPerRoiAsJsonString()
+                                        "synapseCountPerRoi", body.getSynapseCountsPerRoi().getAsJsonString()
                                 ))
                 );
             }

@@ -1,9 +1,10 @@
 package org.janelia.flyem.neuprintprocedures;
 
+import apoc.convert.Json;
 import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
 import com.google.gson.Gson;
-import org.janelia.flyem.neuprinter.ConnConvert;
+import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
@@ -34,6 +35,7 @@ public class MergeNeuronsTest {
     public Neo4jRule neo4j = new Neo4jRule()
             .withProcedure(ProofreaderProcedures.class)
             .withProcedure(GraphRefactoring.class)
+            .withFunction(Json.class)
             .withProcedure(Create.class);
 
     //TODO: write tests for exception/error handling.
@@ -99,114 +101,48 @@ public class MergeNeuronsTest {
         }
     }
 
-    @Test
-    public void shouldContainMergedSynapseSet() {
-
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
-
-            Session session = driver.session();
-
-            String synapseSetTestJson = "{\"Action\": \"merge\", \"TargetBodyID\": 1, \"BodiesMerged\": [2], " +
-                    "\"TargetBodySize\": 216685762, \"TargetBodySynapses\":[" +
-                    "{\"Type\": \"pre\", \"Location\": [ 1, 2, 3 ]}," +
-                    "{\"Type\": \"post\", \"Location\": [ 4, 5, 6 ]}," +
-                    "{\"Type\": \"pre\", \"Location\": [ 7, 8, 9 ]}" +
-                    "]}";
-
-            session.writeTransaction(tx -> tx.run("CREATE (n:Neuron:test{bodyId:$id1}), (m:Neuron:test{bodyId:$id2}), (o:SynapseSet{datasetBodyId:$ssid1}), (p:SynapseSet{datasetBodyId:$ssid2}), (q:Synapse{type:\"pre\",location:\"1:2:3\",x:1,y:2,z:3}), (r:Synapse{type:\"post\",location:\"4:5:6\",x:4,y:5,z:6}), (s:Synapse{type:\"pre\",location:\"7:8:9\",x:7,y:8,z:9}) \n" +
-                            "CREATE (n)-[:Contains]->(o) \n" +
-                            "CREATE (m)-[:Contains]->(p) \n" +
-                            "CREATE (o)-[:Contains]->(q) \n" +
-                            "CREATE (o)-[:Contains]->(r) \n" +
-                            "CREATE (p)-[:Contains]->(s) ",
-                    parameters("id1", 1, "id2", 2, "ssid1", "test:1", "ssid2", "test:2")));
-
-            Node neuron = session.writeTransaction(tx ->
-                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", synapseSetTestJson)).single().get(0).asNode());
-
-            Node newSSNode = session.run("MATCH (o:SynapseSet:test{datasetBodyId:$ssid1}) RETURN o", parameters("ssid1", "test:1")).single().get(0).asNode();
-
-            //should inherit the id from the first listed synapse set
-            Assert.assertEquals("test:1", newSSNode.get("datasetBodyId").asString());
-
-            Long newSSNodeNeuronId = session.run("MATCH (o:SynapseSet:test{datasetBodyId:$ssid1})<-[r:Contains]-(n) RETURN n.bodyId", parameters("ssid1", "test:1")).single().get(0).asLong();
-
-            //should only be contained by the new node
-            Assert.assertEquals(new Long(1), newSSNodeNeuronId);
-
-            int numberOfRelationships = session.run("MATCH (o:SynapseSet:test{datasetBodyId:$ssid1})-[r:Contains]->(n) RETURN count(n)", parameters("ssid1", "test:1")).single().get(0).asInt();
-
-            //number of relationships to synapses should be equal to sum from node1 and node2
-            Assert.assertEquals(3, numberOfRelationships);
-
-        }
-    }
-
-    @Test
-    public void shouldCombineNeuronParts() {
-
-        String neuronPartsTestJson = "{\"Action\": \"merge\", \"TargetBodyID\": 8426959, \"BodiesMerged\": [26311], " +
-                "\"TargetBodySize\": 216685762, \"TargetBodySynapses\":[" +
-                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
-                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
-                "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}" +
-                "]}";
-
-        SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
-        bodyList.sort(new SortBodyByNumberOfSynapses());
-
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
-
-            Session session = driver.session();
-            String dataset = "test";
-
-            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-            neo4jImporter.prepDatabase(dataset);
-            neo4jImporter.addConnectsTo(dataset, bodyList, 10);
-            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
-            neo4jImporter.addSynapsesTo(dataset, preToPost);
-            neo4jImporter.addNeuronRois(dataset, bodyList);
-            neo4jImporter.addSynapseSets(dataset, bodyList);
-            for (BodyWithSynapses bws : bodyList) {
-                bws.setNeuronParts();
-            }
-            neo4jImporter.addNeuronParts(dataset, bodyList);
-
-            Node neuron = session.writeTransaction(tx ->
-                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", neuronPartsTestJson)).single().get(0).asNode());
-
-            int neuronPartCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np) RETURN count(np)").single().get(0).asInt();
-
-            Assert.assertEquals(4, neuronPartCount);
-
-            Long roiAPreCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.pre").single().get(0).asLong();
-
-            Assert.assertEquals(new Long(2), roiAPreCount);
-
-            Long roiAPostCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.post").single().get(0).asLong();
-
-            Assert.assertEquals(new Long(2), roiAPostCount);
-
-            Long roiASizeCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:roiA) RETURN np.size").single().get(0).asLong();
-
-            Assert.assertEquals(new Long(4), roiASizeCount);
-
-            Long scRoiSizeCount = session.run("MATCH (n{bodyId:8426959})<-[:PartOf]-(np:seven_column_roi) RETURN np.size").single().get(0).asLong();
-
-            Assert.assertEquals(new Long(5), scRoiSizeCount);
-
-            int neuronPartCountForOldBody = session.run("MATCH (n{mergedBodyId:8426959})<-[:PartOf]-(np) RETURN count(np)").single().get(0).asInt();
-
-            Assert.assertEquals(0, neuronPartCountForOldBody);
-
-        }
-
-    }
+//    @Test
+//    public void shouldContainMergedSynapseSet() {
+//
+//        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+//
+//            Session session = driver.session();
+//
+//            String synapseSetTestJson = "{\"Action\": \"merge\", \"TargetBodyID\": 1, \"BodiesMerged\": [2], " +
+//                    "\"TargetBodySize\": 216685762, \"TargetBodySynapses\":[" +
+//                    "{\"Type\": \"pre\", \"Location\": [ 1, 2, 3 ]}," +
+//                    "{\"Type\": \"post\", \"Location\": [ 4, 5, 6 ]}," +
+//                    "{\"Type\": \"pre\", \"Location\": [ 7, 8, 9 ]}" +
+//                    "]}";
+//
+//            session.writeTransaction(tx -> tx.run("CREATE (n:Neuron:test{bodyId:$id1}), (m:Neuron:test{bodyId:$id2}), (o:SynapseSet{datasetBodyId:$ssid1}), (p:SynapseSet{datasetBodyId:$ssid2}), (q:Synapse{type:\"pre\",location:\"1:2:3\",x:1,y:2,z:3}), (r:Synapse{type:\"post\",location:\"4:5:6\",x:4,y:5,z:6}), (s:Synapse{type:\"pre\",location:\"7:8:9\",x:7,y:8,z:9}) \n" +
+//                            "CREATE (n)-[:Contains]->(o) \n" +
+//                            "CREATE (m)-[:Contains]->(p) \n" +
+//                            "CREATE (o)-[:Contains]->(q) \n" +
+//                            "CREATE (o)-[:Contains]->(r) \n" +
+//                            "CREATE (p)-[:Contains]->(s) ",
+//                    parameters("id1", 1, "id2", 2, "ssid1", "test:1", "ssid2", "test:2")));
+//
+//            Node neuron = session.writeTransaction(tx ->
+//                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", synapseSetTestJson)).single().get(0).asNode());
+//
+//            Node newSSNode = session.run("MATCH (o:SynapseSet:test{datasetBodyId:$ssid1}) RETURN o", parameters("ssid1", "test:1")).single().get(0).asNode();
+//
+//            //should inherit the id from the first listed synapse set
+//            Assert.assertEquals("test:1", newSSNode.get("datasetBodyId").asString());
+//
+//            Long newSSNodeNeuronId = session.run("MATCH (o:SynapseSet:test{datasetBodyId:$ssid1})<-[r:Contains]-(n) RETURN n.bodyId", parameters("ssid1", "test:1")).single().get(0).asLong();
+//
+//            //should only be contained by the new node
+//            Assert.assertEquals(new Long(1), newSSNodeNeuronId);
+//
+//            int numberOfRelationships = session.run("MATCH (o:SynapseSet:test{datasetBodyId:$ssid1})-[r:Contains]->(n) RETURN count(n)", parameters("ssid1", "test:1")).single().get(0).asInt();
+//
+//            //number of relationships to synapses should be equal to sum from node1 and node2
+//            Assert.assertEquals(3, numberOfRelationships);
+//
+//        }
+//    }
 
     @Test
     public void shouldAddAppropriatePropertiesLabelsAndRelationshipsToResultingBodyUponRecursiveMerge() {
@@ -223,14 +159,14 @@ public class MergeNeuronsTest {
                 "{\"Type\": \"post\", \"Location\": [ 4292, 2261, 1542 ]}" +
                 "]}";
 
-        List<Neuron> neuronList = ConnConvert.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
         HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         File swcFile1 = new File("src/test/resources/8426959.swc");
-        List<Skeleton> skeletonList = ConnConvert.createSkeletonListFromSwcFileArray(new File[]{swcFile1});
+        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1});
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -242,17 +178,13 @@ public class MergeNeuronsTest {
 
             neo4jImporter.addNeurons(dataset, neuronList);
 
-            neo4jImporter.addConnectsTo(dataset, bodyList, 10);
+            neo4jImporter.addConnectsTo(dataset, bodyList);
             neo4jImporter.addSynapsesWithRois(dataset, bodyList);
             neo4jImporter.addSynapsesTo(dataset, preToPost);
             neo4jImporter.addNeuronRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
-            for (BodyWithSynapses bws : bodyList) {
-                bws.setNeuronParts();
-            }
-            neo4jImporter.addNeuronParts(dataset, bodyList);
             neo4jImporter.createMetaNode(dataset);
-            neo4jImporter.addAutoNames(dataset);
+            neo4jImporter.addAutoNames(dataset,0);
             neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 
             Gson gson = new Gson();
@@ -269,6 +201,7 @@ public class MergeNeuronsTest {
             Assert.assertEquals(mergeAction.getTargetBodyId(), neuronProperties.get("bodyId"));
             Assert.assertEquals("Dm", neuronProperties.get("type"));
             Assert.assertEquals("final", neuronProperties.get("status"));
+            //TODO: test synapseCountPerRoi
 
             //check labels
             Assert.assertTrue(neuron.hasLabel("Neuron"));
@@ -284,12 +217,6 @@ public class MergeNeuronsTest {
 
             Assert.assertEquals(1, connectsToRelationshipList.size());
             Assert.assertEquals(8, connectsToRelationshipList.get(0).get("r.weight").asInt());
-
-            //check neuron parts
-            List<Record> neuronPartList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:PartOf]-(m:NeuronPart) RETURN m").list());
-
-            Assert.assertEquals(4, neuronPartList.size());
 
             //check synapse set
             List<Record> synapseSetList = session.writeTransaction(tx ->

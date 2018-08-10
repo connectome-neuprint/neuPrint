@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class SynapseCountsPerRoi {
 
@@ -15,6 +16,10 @@ public class SynapseCountsPerRoi {
 
     public Map<String, SynapseCounter> getSynapseCountsPerRoi() {
         return this.synapseCountsPerRoi;
+    }
+
+    public Set<String> getSetOfRois() {
+        return this.synapseCountsPerRoi.keySet();
     }
 
     public void addSynapseCountsForRoi(String roi) {
@@ -43,7 +48,7 @@ public class SynapseCountsPerRoi {
         this.synapseCountsPerRoi.get(roi).incrementPost();
     }
 
-    public String getSynapseCountsPerRoiAsJsonString() {
+    public String getAsJsonString() {
         Gson gson = new Gson();
         return gson.toJson(this.synapseCountsPerRoi);
     }
