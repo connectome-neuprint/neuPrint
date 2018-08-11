@@ -173,7 +173,7 @@ public class Neo4jImporterTest {
 
             neo4jImporter.addConnectsTo("test", bodyList);
 
-            Node bodyId8426959 = session.run("MATCH (n:Neuron{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN s").single().get(0).asNode();
+            Node bodyId8426959 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN s").single().get(0).asNode();
 
             Assert.assertEquals(8426959L, bodyId8426959.asMap().get("bodyId"));
 
@@ -185,21 +185,24 @@ public class Neo4jImporterTest {
             Assert.assertEquals(0,synapseCountPerRoi.get("seven_column_roi").getPost());
             Assert.assertEquals(1,synapseCountPerRoi.get("roiB").getTotal());
 
-            int weight = session.run("MATCH (n:Neuron{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN r.weight").single().get(0).asInt();
+            int weight = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN r.weight").single().get(0).asInt();
 
             Assert.assertEquals(2, weight);
 
-            int neuronCount = session.run("MATCH (n:Neuron) RETURN count(n)").single().get(0).asInt();
+            int neuronCount = session.run("MATCH (n:Neuron:test:`test-Neuron`) RETURN count(n)").single().get(0).asInt();
 
             Assert.assertEquals(10, neuronCount);
 
             // all neurons with synapses have a synapseCountPerRoi property
-            int synapseCountPerRoiCount = session.run("MATCH (n:Neuron) WHERE exists(n.synapseCountPerRoi) RETURN count(n)").single().get(0).asInt();
+            int synapseCountPerRoiCount = session.run("MATCH (n:Neuron:test:`test-Neuron`) WHERE exists(n.synapseCountPerRoi) RETURN count(n)").single().get(0).asInt();
 
             Assert.assertEquals(4, synapseCountPerRoiCount);
 
             int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
             Assert.assertEquals(0, noStatusCount);
+
+            int noDatasetLabel = session.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
+            Assert.assertEquals(0, noDatasetLabel);
 
         }
     }
