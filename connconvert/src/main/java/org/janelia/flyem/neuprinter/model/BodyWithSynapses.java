@@ -123,7 +123,7 @@ public class BodyWithSynapses {
     public List<String> getBodyRois() {
         List<String> bodyRois = new ArrayList<>();
         for (Synapse synapse : this.synapseSet) {
-            bodyRois.addAll(synapse.getRoisWithAndWithoutDatasetPrefix());
+            bodyRois.addAll(synapse.getRois());
         }
         return bodyRois;
     }

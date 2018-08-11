@@ -385,20 +385,20 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSkeletonNodes: entry");
 
-        final String neuronToSkeletonConnectionString = "MERGE (n:Neuron:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
-                "MERGE (r:Skeleton:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
+        final String neuronToSkeletonConnectionString = "MERGE (n:Neuron:" + dataset + ":`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
+                "MERGE (r:Skeleton:" + dataset + ":`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
                 "MERGE (n)-[:Contains]->(r) \n";
 
-        final String rootNodeString = "MERGE (r:Skeleton:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
-                "MERGE (s:SkelNode:`" + dataset + "-SkelNode`{skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type \n" +
+        final String rootNodeString = "MERGE (r:Skeleton:" + dataset + ":`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
+                "MERGE (s:SkelNode:" + dataset + ":`" + dataset + "-SkelNode`{skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type \n" +
                 "MERGE (r)-[:Contains]->(s) \n";
 
-        final String parentNodeString = "MERGE (r:Skeleton:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.timeStamp=$timeStamp \n" +
-                "MERGE (p:SkelNode:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
+        final String parentNodeString = "MERGE (r:Skeleton:" + dataset + ":`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.timeStamp=$timeStamp \n" +
+                "MERGE (p:SkelNode:" + dataset + ":`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
                 "MERGE (r)-[:Contains]->(p) ";
 
-        final String childNodeString = "MERGE (p:SkelNode:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
-                "MERGE (c:SkelNode:`" + dataset + "-SkelNode`{skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.rowNumber=$childRowNumber, c.type=$childType \n" +
+        final String childNodeString = "MERGE (p:SkelNode:" + dataset + ":`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
+                "MERGE (c:SkelNode:" + dataset + ":`" + dataset + "-SkelNode`{skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.rowNumber=$childRowNumber, c.type=$childType \n" +
                 "MERGE (p)-[:LinksTo]-(c)";
 
         try (final TransactionBatch batch = getBatch()) {

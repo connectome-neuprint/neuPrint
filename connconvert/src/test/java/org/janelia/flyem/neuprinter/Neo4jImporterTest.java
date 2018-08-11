@@ -51,25 +51,25 @@ public class Neo4jImporterTest {
             neo4jImporter.prepDatabase("test");
             neo4jImporter.addSkeletonNodes("test", skeletonList);
 
-            Long skeleton101ContainedByBodyId = session.run("MATCH (n:Skeleton{skeletonId:\"test:101\"})<-[:Contains]-(s) RETURN s.bodyId").single().get(0).asLong();
-            Long skeleton102ContainedByBodyId = session.run("MATCH (n:Skeleton{skeletonId:\"test:102\"})<-[:Contains]-(s) RETURN s.bodyId").single().get(0).asLong();
+            Long skeleton101ContainedByBodyId = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:101\"})<-[:Contains]-(s) RETURN s.bodyId").single().get(0).asLong();
+            Long skeleton102ContainedByBodyId = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:102\"})<-[:Contains]-(s) RETURN s.bodyId").single().get(0).asLong();
 
             Assert.assertEquals(new Long(101), skeleton101ContainedByBodyId);
             Assert.assertEquals(new Long(102), skeleton102ContainedByBodyId);
 
-            Integer skeleton101Degree = session.run("MATCH (n:Skeleton{skeletonId:\"test:101\"}) WITH n, size((n)-[:Contains]->()) as degree RETURN degree ").single().get(0).asInt();
-            Integer skeleton102Degree = session.run("MATCH (n:Skeleton{skeletonId:\"test:102\"}) WITH n, size((n)-[:Contains]->()) as degree RETURN degree ").single().get(0).asInt();
+            Integer skeleton101Degree = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:101\"}) WITH n, size((n)-[:Contains]->()) as degree RETURN degree ").single().get(0).asInt();
+            Integer skeleton102Degree = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:102\"}) WITH n, size((n)-[:Contains]->()) as degree RETURN degree ").single().get(0).asInt();
 
             Assert.assertEquals(new Integer(50), skeleton101Degree);
             Assert.assertEquals(new Integer(29), skeleton102Degree);
 
-            Integer skelNode101NumberOfRoots = session.run("MATCH (n:Skeleton{skeletonId:\"test:101\"})-[:Contains]->(s:SkelNode) WHERE NOT (s)<-[:LinksTo]-() RETURN count(s) ").single().get(0).asInt();
-            Integer skelNode102RootDegree = session.run("MATCH (n:Skeleton{skeletonId:\"test:102\"})-[:Contains]->(s:SkelNode{rowNumber:1}) WITH s, size((s)-[:LinksTo]->()) as degree RETURN degree ").single().get(0).asInt();
+            Integer skelNode101NumberOfRoots = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:101\"})-[:Contains]->(s:SkelNode:`test-SkelNode`) WHERE NOT (s)<-[:LinksTo]-() RETURN count(s) ").single().get(0).asInt();
+            Integer skelNode102RootDegree = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:102\"})-[:Contains]->(s:SkelNode:`test-SkelNode`{rowNumber:1}) WITH s, size((s)-[:LinksTo]->()) as degree RETURN degree ").single().get(0).asInt();
 
             Assert.assertEquals(new Integer(4), skelNode101NumberOfRoots);
             Assert.assertEquals(new Integer(1), skelNode102RootDegree);
 
-            Map<String, Object> skelNodeProperties = session.run("MATCH (n:Skeleton{skeletonId:\"test:101\"})-[:Contains]->(s:SkelNode{rowNumber:13}) RETURN s.location, s.radius, s.skelNodeId, s.type").list().get(0).asMap();
+            Map<String, Object> skelNodeProperties = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:101\"})-[:Contains]->(s:SkelNode:`test-SkelNode`{rowNumber:13}) RETURN s.location, s.radius, s.skelNodeId, s.type").list().get(0).asMap();
             Assert.assertEquals(Values.point(9157, 5096, 9281, 1624).asPoint(), skelNodeProperties.get("s.location"));
             Assert.assertEquals(28D, skelNodeProperties.get("s.radius"));
             Assert.assertEquals(0L, skelNodeProperties.get("s.type"));
@@ -77,6 +77,9 @@ public class Neo4jImporterTest {
 
             int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
             Assert.assertEquals(0, noStatusCount);
+
+            int noDatasetLabel = session.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
+            Assert.assertEquals(0, noDatasetLabel);
 
         }
     }
@@ -129,6 +132,9 @@ public class Neo4jImporterTest {
                 labelCount++;
             }
             Assert.assertEquals(4, labelCount);
+
+            int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
+            Assert.assertEquals(0, noStatusCount);
 
         }
 
@@ -186,6 +192,9 @@ public class Neo4jImporterTest {
             int synapseCountPerRoiCount = session.run("MATCH (n:Neuron) WHERE exists(n.synapseCountPerRoi) RETURN count(n)").single().get(0).asInt();
 
             Assert.assertEquals(4, synapseCountPerRoiCount);
+
+            int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
+            Assert.assertEquals(0, noStatusCount);
 
         }
     }
