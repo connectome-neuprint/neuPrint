@@ -352,12 +352,12 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSynapseSets: entry");
 
-        final String neuronContainsSSText = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
-                "MERGE (s:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId, s.timeStamp=$timeStamp \n" +
+        final String neuronContainsSSText = "MERGE (n:Neuron:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
+                "MERGE (s:SynapseSet:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId, s.timeStamp=$timeStamp \n" +
                 "MERGE (n)-[:Contains]->(s)";
 
-        final String ssContainsSynapseText = "MERGE (s:`" + dataset + "-Synapse`{location:$location}) ON CREATE SET s.location=$location \n" +
-                "MERGE (t:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET t.datasetBodyId=$datasetBodyId \n" +
+        final String ssContainsSynapseText = "MERGE (s:Synapse:`" + dataset + "-Synapse`{location:$location}) ON CREATE SET s.location=$location \n" +
+                "MERGE (t:SynapseSet:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET t.datasetBodyId=$datasetBodyId \n" +
                 "MERGE (t)-[:Contains]->(s) \n";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -381,99 +381,24 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSynapseSets: exit");
     }
 
-    public void addSkeletonNodesOld(final String dataset, final List<Skeleton> skeletonList) {
-
-        LOG.info("addSkeletonNodesOld: entry");
-
-        final String rootNodeString =
-                "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId \n" +
-                        "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
-                        "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.x=$x, s.y=$y, s.z=$z, s.rowNumber=$rowNumber \n" +
-                        "MERGE (n)-[:Contains]->(r) \n" +
-                        "MERGE (r)-[:Contains]->(s) \n";
-
-        final String parentNodeString = "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.timeStamp=$timeStamp \n" +
-                "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.x=$pX, p.y=$pY, p.z=$pZ, p.rowNumber=$pRowNumber \n" +
-                "MERGE (r)-[:Contains]->(p) ";
-
-        try (final TransactionBatch batch = getBatch()) {
-            for (Skeleton skeleton : skeletonList) {
-
-                Long associatedBodyId = skeleton.getAssociatedBodyId();
-                List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
-
-                for (SkelNode skelNode : skelNodeList) {
-
-                    if (skelNode.getParent() == null) {
-                        batch.addStatement(new Statement(rootNodeString, parameters("bodyId", associatedBodyId,
-                                "location", skelNode.getLocationString(),
-                                "radius", skelNode.getRadius(),
-                                "skeletonId", dataset + ":" + associatedBodyId,
-                                "skelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString(),
-                                "x", skelNode.getLocation().get(0),
-                                "y", skelNode.getLocation().get(1),
-                                "z", skelNode.getLocation().get(2),
-                                "rowNumber", skelNode.getRowNumber(),
-                                "timeStamp", timeStamp
-                        )));
-                    }
-
-                    String addChildrenString = parentNodeString;
-
-                    int childNodeCount = 1;
-                    for (SkelNode child : skelNode.getChildren()) {
-                        String childNodeId = dataset + ":" + associatedBodyId + ":" + child.getLocationString();
-                        final String childNodeString = "MERGE (c" + childNodeCount + ":SkelNode:" + dataset + " {skelNodeId:\"" + childNodeId + "\"}) ON CREATE SET c" + childNodeCount +
-                                ".skelNodeId=\"" + childNodeId + "\", c" + childNodeCount + ".location=\"" + child.getLocationString() + "\", c" + childNodeCount + ".radius=" + child.getRadius() +
-                                ", c" + childNodeCount + ".x=" + child.getLocation().get(0) + ", c" + childNodeCount + ".y=" + child.getLocation().get(1) + ", c" + childNodeCount + ".z=" + child.getLocation().get(2) +
-                                ", c" + childNodeCount + ".rowNumber=" + child.getRowNumber() + " \n" +
-                                "MERGE (p)-[:LinksTo]-(c" + childNodeCount + ") \n";
-
-                        addChildrenString = addChildrenString + childNodeString;
-
-                        childNodeCount++;
-
-                    }
-
-                    batch.addStatement(new Statement(addChildrenString, parameters("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString(),
-                            "skeletonId", dataset + ":" + associatedBodyId,
-                            "pLocation", skelNode.getLocationString(),
-                            "pRadius", skelNode.getRadius(),
-                            "pX", skelNode.getLocation().get(0),
-                            "pY", skelNode.getLocation().get(1),
-                            "pZ", skelNode.getLocation().get(2),
-                            "pRowNumber", skelNode.getRowNumber(),
-                            "timeStamp", timeStamp
-                    )));
-
-                }
-
-                LOG.info("Added full skeleton for bodyId: " + skeleton.getAssociatedBodyId());
-            }
-            batch.writeTransaction();
-        }
-
-        LOG.info("addSkeletonNodesOld: exit");
-    }
-
     public void addSkeletonNodes(final String dataset, final List<Skeleton> skeletonList) {
 
         LOG.info("addSkeletonNodes: entry");
 
-        final String neuronToSkeletonConnectionString = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
-                "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
+        final String neuronToSkeletonConnectionString = "MERGE (n:Neuron:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
+                "MERGE (r:Skeleton:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
                 "MERGE (n)-[:Contains]->(r) \n";
 
-        final String rootNodeString = "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
-                "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type \n" +
+        final String rootNodeString = "MERGE (r:Skeleton:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
+                "MERGE (s:SkelNode:`" + dataset + "-SkelNode`{skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type \n" +
                 "MERGE (r)-[:Contains]->(s) \n";
 
-        final String parentNodeString = "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) ON CREATE SET r.timeStamp=$timeStamp \n" +
-                "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
+        final String parentNodeString = "MERGE (r:Skeleton:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.timeStamp=$timeStamp \n" +
+                "MERGE (p:SkelNode:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
                 "MERGE (r)-[:Contains]->(p) ";
 
-        final String childNodeString = "MERGE (p:SkelNode:" + dataset + " {skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
-                "MERGE (c:SkelNode:" + dataset + " {skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.rowNumber=$childRowNumber, c.type=$childType \n" +
+        final String childNodeString = "MERGE (p:SkelNode:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
+                "MERGE (c:SkelNode:`" + dataset + "-SkelNode`{skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.rowNumber=$childRowNumber, c.type=$childType \n" +
                 "MERGE (p)-[:LinksTo]-(c)";
 
         try (final TransactionBatch batch = getBatch()) {
