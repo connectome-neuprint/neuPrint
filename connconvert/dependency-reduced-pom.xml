@@ -90,7 +90,7 @@
     <dependency>
       <groupId>org.neo4j.test</groupId>
       <artifactId>neo4j-harness</artifactId>
-      <version>3.4.0</version>
+      <version>3.4.5</version>
       <scope>test</scope>
       <exclusions>
         <exclusion>
