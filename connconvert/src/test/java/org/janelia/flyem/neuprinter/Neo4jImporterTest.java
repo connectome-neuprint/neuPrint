@@ -101,18 +101,18 @@ public class Neo4jImporterTest {
 
             neo4jImporter.addNeurons("test", neuronList);
 
-            int numberOfNeurons = session.run("MATCH (n:Neuron:test) RETURN count(n)").single().get(0).asInt();
+            int numberOfNeurons = session.run("MATCH (n:Neuron:test:`test-Neuron`) RETURN count(n)").single().get(0).asInt();
 
             Assert.assertEquals(8, numberOfNeurons);
 
             // test uniqueness constraint by trying to add again
             neo4jImporter.addNeurons("test", neuronList);
 
-            int numberOfNeurons2 = session.run("MATCH (n:Neuron:test) RETURN count(n)").single().get(0).asInt();
+            int numberOfNeurons2 = session.run("MATCH (n:Neuron:test:`test-Neuron`) RETURN count(n)").single().get(0).asInt();
 
             Assert.assertEquals(8, numberOfNeurons2);
 
-            Node bodyId100569 = session.run("MATCH (n:Neuron{bodyId:100569}) RETURN n").single().get(0).asNode();
+            Node bodyId100569 = session.run("MATCH (n:Neuron:`test-Neuron`:test{bodyId:100569}) RETURN n").single().get(0).asNode();
 
             Assert.assertEquals("final", bodyId100569.asMap().get("status"));
             Assert.assertEquals(1031L, bodyId100569.asMap().get("size"));
@@ -122,8 +122,10 @@ public class Neo4jImporterTest {
             Assert.assertEquals(Values.point(9157, 1.0, 2.0, 3.0).asPoint(), bodyId100569.asMap().get("somaLocation"));
             Assert.assertEquals(5.0, bodyId100569.asMap().get("somaRadius"));
 
-            Assert.assertTrue(bodyId100569.hasLabel("Neu-roi1"));
-            Assert.assertTrue(bodyId100569.hasLabel("Neu-roi2"));
+            Assert.assertTrue(bodyId100569.hasLabel("test-roi1"));
+            Assert.assertTrue(bodyId100569.hasLabel("test-roi2"));
+            Assert.assertTrue(bodyId100569.hasLabel("roi1"));
+            Assert.assertTrue(bodyId100569.hasLabel("roi2"));
 
             int labelCount = 0;
             Iterable<String> bodyLabels = bodyId100569.labels();
@@ -131,10 +133,13 @@ public class Neo4jImporterTest {
             for (String roi : bodyLabels) {
                 labelCount++;
             }
-            Assert.assertEquals(4, labelCount);
+            Assert.assertEquals(7, labelCount);
 
             int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
             Assert.assertEquals(0, noStatusCount);
+
+            int noDatasetLabel = session.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
+            Assert.assertEquals(0, noDatasetLabel);
 
         }
 

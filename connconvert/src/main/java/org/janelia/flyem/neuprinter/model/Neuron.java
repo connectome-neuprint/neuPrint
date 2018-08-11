@@ -93,8 +93,12 @@ public class Neuron {
 
     public List<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
         List<String> rois = getRois();
-        rois.addAll(rois.stream().map(r -> dataset + "-" + r).collect(Collectors.toList()));
-        return rois;
+        if (rois!=null) {
+            rois.addAll(rois.stream().map(r -> dataset + "-" + r).collect(Collectors.toList()));
+            return rois;
+        } else {
+            return rois;
+        }
     }
 
     public Soma getSoma() {
