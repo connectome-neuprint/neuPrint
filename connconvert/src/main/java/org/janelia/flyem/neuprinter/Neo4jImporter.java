@@ -312,8 +312,8 @@ public class Neo4jImporter implements AutoCloseable {
 
         List<AutoName> autoNameList = new ArrayList<>();
         List<Long> bodyIdsWithoutNames;
-        final String autoNameText = "MATCH (n:" + dataset + "{bodyId:$bodyId}) SET n.autoName=$autoName";
-        final String autoNameToNameText = "MATCH (n:" + dataset + "{bodyId:$bodyId}) SET n.autoName=$autoName, n.name=$autoName ";
+        final String autoNameText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) SET n.autoName=$autoName";
+        final String autoNameToNameText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) SET n.autoName=$autoName, n.name=$autoName ";
 
         try (Session session = driver.session()) {
 
@@ -585,7 +585,7 @@ public class Neo4jImporter implements AutoCloseable {
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
             roiNameList = session.readTransaction(tx -> getAllRois(tx, dataset))
                     .stream()
-                    .filter((l) -> (!l.equals("Neuron") && !l.equals(dataset)))
+                    .filter((l) -> (!l.equals("Neuron") && !l.startsWith(dataset)))
                     .collect(Collectors.toList());
             for (String roi : roiNameList) {
                 int roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
@@ -622,30 +622,30 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static long getTotalPreCount(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ") RETURN sum(n.pre)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) RETURN sum(n.pre)");
         return result.single().get(0).asLong();
     }
 
     private static long getTotalPostCount(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ") RETURN sum(n.post)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) RETURN sum(n.post)");
         return result.single().get(0).asLong();
     }
 
     private static int getRoiPreCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ":`Neu-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS pre RETURN sum(pre)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS pre RETURN sum(pre)");
         return result.single().get(0).asInt();
     }
 
     private static int getRoiPostCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ":`Neu-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS post RETURN sum(post)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS post RETURN sum(post)");
         return result.single().get(0).asInt();
     }
 
     private static List<String> getAllRois(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ") WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
         List<String> roiList = new ArrayList<>();
         while (result.hasNext()) {
-            roiList.add(result.next().asMap().get("label").toString().replace("Neu-", ""));
+            roiList.add(result.next().asMap().get("label").toString());
         }
         return roiList;
     }
@@ -653,7 +653,7 @@ public class Neo4jImporter implements AutoCloseable {
     private static String getMaxInputRoi(final Transaction tx, final String dataset, Long bodyId) {
 
         Gson gson = new Gson();
-        StatementResult result = tx.run("MATCH (n:" + dataset + "{bodyId:$bodyId}) WITH n.synapseCountPerRoi AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) WITH n.synapseCountPerRoi AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
 
         String synapseCountPerRoiJson = result.single().get(0).asString();
         Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String, SynapseCounter>>() {
@@ -670,7 +670,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     private static String getMaxOutputRoi(final Transaction tx, final String dataset, Long bodyId) {
         Gson gson = new Gson();
-        StatementResult result = tx.run("MATCH (n:" + dataset + "{bodyId:$bodyId}) WITH n.synapseCountPerRoi AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) WITH n.synapseCountPerRoi AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
 
         String synapseCountPerRoiJson = result.single().get(0).asString();
         Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String, SynapseCounter>>() {
@@ -686,7 +686,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<Long> getAllNeuronBodyIdsWithGreaterThanThresholdSynapses(final Transaction tx, final String dataset, final int synapseThreshold) {
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ") WHERE (n.pre+n.post)>" + synapseThreshold + " RETURN n.bodyId ");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) WHERE (n.pre+n.post)>" + synapseThreshold + " RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
@@ -695,7 +695,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<Long> getAllNeuronBodyIdsWithGreaterThanThresholdSynapsesAndWithoutNames(final Transaction tx, final String dataset, final int synapseThreshold) {
-        StatementResult result = tx.run("MATCH (n:Neuron:" + dataset + ") WHERE (n.pre+n.post)>" + synapseThreshold + " AND (NOT exists(n.name) OR n.name=\"unknown\") RETURN n.bodyId ");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) WHERE (n.pre+n.post)>" + synapseThreshold + " AND (NOT exists(n.name) OR n.name=\"unknown\") RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
