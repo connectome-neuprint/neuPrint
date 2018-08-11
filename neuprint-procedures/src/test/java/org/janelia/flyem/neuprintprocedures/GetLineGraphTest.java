@@ -4,8 +4,8 @@ import apoc.convert.Json;
 import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
 import com.google.gson.Gson;
-import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
+import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
@@ -35,7 +35,6 @@ public class GetLineGraphTest {
             .withFunction(Json.class)
             .withProcedure(Create.class);
 
-
     @Test
     public void shouldProduceLineGraphForRoi() {
 
@@ -61,7 +60,6 @@ public class GetLineGraphTest {
             neo4jImporter.addNeuronRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
 
-
             Map<String, Object> jsonData = session.writeTransaction(tx -> {
                 Map<String, Object> jsonMap = tx.run("CALL analysis.getLineGraphForRoi(\"seven_column_roi\",\"test\",0,1) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
                 return jsonMap;
@@ -69,7 +67,6 @@ public class GetLineGraphTest {
 
             String nodes = (String) jsonData.get("Vertices");
             String edges = (String) jsonData.get("Edges");
-
 
             Gson gson = new Gson();
 
@@ -127,10 +124,9 @@ public class GetLineGraphTest {
             neo4jImporter.addSynapsesTo(dataset, preToPost);
             neo4jImporter.addNeuronRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
-            neo4jImporter.createMetaNode(dataset);
+            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
             neo4jImporter.addAutoNames(dataset, 0);
             neo4jImporter.addSkeletonNodes("test", skeletonList);
-
 
             Map<String, Object> jsonData = session.writeTransaction(tx -> {
                 Map<String, Object> jsonMap = tx.run("CALL analysis.getLineGraphForNeuron(8426959,\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
@@ -179,7 +175,6 @@ public class GetLineGraphTest {
 
             Assert.assertEquals(new Long(212), edgeListFromCableLength.get(1).getDistance());
 
-
             Map<String, Object> jsonCentroidAndSkeleton = session.writeTransaction(tx -> {
                 Map<String, Object> jsonMap = tx.run("CALL analysis.getConnectionCentroidsAndSkeleton(8426959,\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap();
                 return jsonMap;
@@ -188,14 +183,11 @@ public class GetLineGraphTest {
             String centroids = (String) jsonCentroidAndSkeleton.get("Centroids");
             String skeleton = (String) jsonCentroidAndSkeleton.get("Skeleton");
 
-
             Assert.assertEquals(nodesFromCableLength, centroids);
             // TODO: write test for this procedure
-
 
         }
 
     }
-
 
 }

@@ -5,8 +5,8 @@ import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
+import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
@@ -75,8 +75,8 @@ public class CleaveNeuronsTest {
             neo4jImporter.addSynapsesTo(dataset, preToPost);
             neo4jImporter.addNeuronRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
-            neo4jImporter.createMetaNode(dataset);
-            neo4jImporter.addAutoNames(dataset,0);
+            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
+            neo4jImporter.addAutoNames(dataset, 0);
             neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 
             List<Object> neurons = session.writeTransaction(tx ->
@@ -144,7 +144,7 @@ public class CleaveNeuronsTest {
             Relationship r1 = (Relationship) prevOrigNodeRelationships.get(0).asMap().get("r");
             Relationship r2 = (Relationship) prevOrigNodeRelationships.get(1).asMap().get("r");
             Assert.assertTrue(r1.hasType("CleavedTo") && r2.hasType("CleavedTo"));
-            Assert.assertTrue( (r1.endNodeId() == historyNodeOrig.id() && r2.endNodeId() == historyNodeNew.id()) ||
+            Assert.assertTrue((r1.endNodeId() == historyNodeOrig.id() && r2.endNodeId() == historyNodeNew.id()) ||
                     (r2.endNodeId() == historyNodeOrig.id() && r1.endNodeId() == historyNodeNew.id()));
 
             //check connectsto relationships
@@ -167,8 +167,10 @@ public class CleaveNeuronsTest {
                     tx.run("MATCH (n:test{bodyId:5555}) RETURN n.synapseCountPerRoi").single().get(0).asString());
             String origSynapseCountPerRoi = session.writeTransaction(tx ->
                     tx.run("MATCH (n:test{bodyId:8426959}) RETURN n.synapseCountPerRoi").single().get(0).asString());
-            Map<String,SynapseCounter> newSynapseCountMap = gson.fromJson(newSynapseCountPerRoi, new TypeToken<Map<String,SynapseCounter>>() {}.getType());
-            Map<String,SynapseCounter> origSynapseCountMap = gson.fromJson(origSynapseCountPerRoi, new TypeToken<Map<String,SynapseCounter>>() {}.getType());
+            Map<String, SynapseCounter> newSynapseCountMap = gson.fromJson(newSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
+            }.getType());
+            Map<String, SynapseCounter> origSynapseCountMap = gson.fromJson(origSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
+            }.getType());
 
             Assert.assertEquals(3, newSynapseCountMap.keySet().size());
             Assert.assertEquals(1, newSynapseCountMap.get("roiA").getPre());

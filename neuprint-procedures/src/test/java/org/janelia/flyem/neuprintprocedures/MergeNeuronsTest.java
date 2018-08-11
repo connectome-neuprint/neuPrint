@@ -4,8 +4,8 @@ import apoc.convert.Json;
 import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
 import com.google.gson.Gson;
-import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
+import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
@@ -183,8 +183,8 @@ public class MergeNeuronsTest {
             neo4jImporter.addSynapsesTo(dataset, preToPost);
             neo4jImporter.addNeuronRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
-            neo4jImporter.createMetaNode(dataset);
-            neo4jImporter.addAutoNames(dataset,0);
+            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
+            neo4jImporter.addAutoNames(dataset, 0);
             neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 
             Gson gson = new Gson();
@@ -252,7 +252,7 @@ public class MergeNeuronsTest {
             Assert.assertEquals(neuronProperties.get("post"), m11Post + m12Post);
             Long bodyId1 = 8426959L;
             Long bodyId2 = 831744L;
-            Assert.assertTrue( (m12BodyId.equals(bodyId1) && m11BodyId.equals(bodyId2)) || (m12BodyId.equals(bodyId2) && m11BodyId.equals(bodyId1)));
+            Assert.assertTrue((m12BodyId.equals(bodyId1) && m11BodyId.equals(bodyId2)) || (m12BodyId.equals(bodyId2) && m11BodyId.equals(bodyId1)));
 
             List<Record> m2HistoryList = session.writeTransaction(tx ->
                     tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-(m2) RETURN m2.mergedBodyId,m2.mergedPost,m2.mergedPre").list());
@@ -270,7 +270,7 @@ public class MergeNeuronsTest {
             Assert.assertEquals((long) m12Pre, m21Pre + m22Pre);
             Assert.assertEquals((long) m12Post, m21Post + m22Post);
             Long bodyId3 = 2589725L;
-            Assert.assertTrue( (m22BodyId.equals(bodyId1) && m21BodyId.equals(bodyId3)) || (m22BodyId.equals(bodyId3) && m21BodyId.equals(bodyId1)));
+            Assert.assertTrue((m22BodyId.equals(bodyId1) && m21BodyId.equals(bodyId3)) || (m22BodyId.equals(bodyId3) && m21BodyId.equals(bodyId1)));
 
             List<Record> m3HistoryList = session.writeTransaction(tx ->
                     tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-()<-[:MergedTo]-(m3) RETURN m3.mergedBodyId,m3.mergedPost,m3.mergedPre").list());
@@ -288,7 +288,7 @@ public class MergeNeuronsTest {
             Assert.assertEquals((long) m22Pre, m31Pre + m32Pre);
             Assert.assertEquals((long) m22Post, m31Post + m32Post);
             Long bodyId4 = 26311L;
-            Assert.assertTrue( (m32BodyId.equals(bodyId1) && m31BodyId.equals(bodyId4)) || (m32BodyId.equals(bodyId4) && m31BodyId.equals(bodyId1)));
+            Assert.assertTrue((m32BodyId.equals(bodyId1) && m31BodyId.equals(bodyId4)) || (m32BodyId.equals(bodyId4) && m31BodyId.equals(bodyId1)));
 
             //check that all nodes except Meta have time stamps and dataset labels on everything except ghost bodies
             Integer countOfNodesWithoutTimeStamp = session.readTransaction(tx -> {

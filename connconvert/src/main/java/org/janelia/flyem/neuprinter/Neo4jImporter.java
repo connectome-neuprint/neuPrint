@@ -97,6 +97,7 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-Skeleton`) ASSERT s.skeletonId IS UNIQUE",
                 "CREATE CONSTRAINT ON (m:Meta) ASSERT m.dataset IS UNIQUE",
                 "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.autoName is UNIQUE",
+                "CREATE CONSTRAINT ON (d:DataModel) ASSERT d.dataModelVersion IS UNIQUE",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(status)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(somaLocation)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(name)",
@@ -491,12 +492,14 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    public void createMetaNode(final String dataset) {
+    public void createMetaNodeWithDataModelNode(final String dataset, final float dataModelVersion) {
 
-        LOG.info("createMetaNode: enter");
+        LOG.info("createMetaNodeWithDataModelNode: enter");
 
         final String metaNodeString = "MERGE (m:Meta:" + dataset + " {dataset:$dataset}) ON CREATE SET m.lastDatabaseEdit=$timeStamp," +
-                "m.dataset=$dataset, m.totalPreCount=$totalPre, m.totalPostCount=$totalPost";
+                "m.dataset=$dataset, m.totalPreCount=$totalPre, m.totalPostCount=$totalPost \n" +
+                "MERGE (d:DataModel{dataModelVersion:$dataModelVersion}) ON CREATE SET d.dataModelVersion=$dataModelVersion, d.timeStamp=$timeStamp \n" +
+                "MERGE (m)-[:Is]->(d)";
 
         long totalPre;
         long totalPost;
@@ -522,7 +525,8 @@ public class Neo4jImporter implements AutoCloseable {
             batch.addStatement(new Statement(metaNodeString, parameters("dataset", dataset,
                     "totalPre", totalPre,
                     "totalPost", totalPost,
-                    "timeStamp", timeStamp
+                    "timeStamp", timeStamp,
+                    "dataModelVersion", dataModelVersion
 //                    "rois", roiNameList
 //                            .stream()
 //                            .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
@@ -541,7 +545,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         }
 
-        LOG.info("createMetaNode: exit");
+        LOG.info("createMetaNodeWithDataModelNode: exit");
 
     }
 

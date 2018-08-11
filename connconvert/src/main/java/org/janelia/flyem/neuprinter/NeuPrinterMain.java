@@ -119,6 +119,12 @@ public class NeuPrinterMain {
         public String datasetLabel;
 
         @Parameter(
+                names = "--dataModelVersion",
+                description = "Data model version (required)",
+                required = true)
+        public float dataModelVersion;
+
+        @Parameter(
                 names = "--synapseJson",
                 description = "JSON file containing body synapse data to import",
                 required = false)
@@ -187,6 +193,7 @@ public class NeuPrinterMain {
     private static List<Neuron> neuronList;
     private static List<BodyWithSynapses> bodyList;
     private static String dataset;
+    private static float dataModelVersion;
 
     public static List<Neuron> readNeuronsJson(String filepath) {
 
@@ -300,6 +307,7 @@ public class NeuPrinterMain {
         LOG.info("running with parameters: " + parameters);
 
         dataset = parameters.datasetLabel;
+        dataModelVersion = parameters.dataModelVersion;
 
         if (parameters.createLog) {
 
@@ -411,7 +419,7 @@ public class NeuPrinterMain {
                 }
 
                 timer.start();
-                neo4jImporter.createMetaNode(dataset);
+                neo4jImporter.createMetaNodeWithDataModelNode(dataset,dataModelVersion);
                 LOG.info("Adding :Meta node took: " + timer.stop());
                 timer.reset();
 
@@ -444,7 +452,7 @@ public class NeuPrinterMain {
         if (parameters.addMetaNodeOnly) {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
                 neo4jImporter.prepDatabase(dataset);
-                neo4jImporter.createMetaNode(dataset);
+                neo4jImporter.createMetaNodeWithDataModelNode(dataset,dataModelVersion);
             }
         }
 
