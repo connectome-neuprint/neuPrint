@@ -352,12 +352,12 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSynapseSets: entry");
 
-        final String neuronContainsSSText = "MERGE (n:Neuron:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
-                "MERGE (s:SynapseSet:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId, s.timeStamp=$timeStamp \n" +
+        final String neuronContainsSSText = "MERGE (n:Neuron:" + dataset + ":`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
+                "MERGE (s:SynapseSet:" + dataset + ":`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId, s.timeStamp=$timeStamp \n" +
                 "MERGE (n)-[:Contains]->(s)";
 
-        final String ssContainsSynapseText = "MERGE (s:Synapse:`" + dataset + "-Synapse`{location:$location}) ON CREATE SET s.location=$location \n" +
-                "MERGE (t:SynapseSet:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET t.datasetBodyId=$datasetBodyId \n" +
+        final String ssContainsSynapseText = "MERGE (s:Synapse:" + dataset + ":`" + dataset + "-Synapse`{location:$location}) ON CREATE SET s.location=$location \n" +
+                "MERGE (t:SynapseSet:" + dataset + ":`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET t.datasetBodyId=$datasetBodyId \n" +
                 "MERGE (t)-[:Contains]->(s) \n";
 
         try (final TransactionBatch batch = getBatch()) {

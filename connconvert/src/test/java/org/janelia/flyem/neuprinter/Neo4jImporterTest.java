@@ -19,12 +19,15 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Values;
 import org.neo4j.driver.v1.types.Node;
+import org.neo4j.driver.v1.types.Point;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.neo4j.driver.v1.Values.parameters;
 
 public class Neo4jImporterTest {
 
@@ -246,37 +249,48 @@ public class Neo4jImporterTest {
 
             neo4jImporter.addAutoNames("test",0);
 
-            Node preSynNode = session.run("MATCH (s:Synapse:PreSyn{datasetLocation:\"test:4287:2277:1502\"}) RETURN s").single().get(0).asNode();
+            Point preLocationPoint = Values.point(9157, 4287, 2277, 1502).asPoint();
+            Node preSynNode = session.run("MATCH (s:Synapse:PreSyn:`test-Synapse`:`test-PreSyn`:test{location:$location}) RETURN s",
+                    parameters("location",preLocationPoint)).single().get(0).asNode();
 
             Assert.assertEquals(1.0, preSynNode.asMap().get("confidence"));
             Assert.assertEquals("pre", preSynNode.asMap().get("type"));
-            Assert.assertEquals(Values.point(9157, 4287, 2277, 1502).asPoint(), preSynNode.asMap().get("location"));
-            Assert.assertTrue(preSynNode.hasLabel("Syn-seven_column_roi"));
-            Assert.assertTrue(preSynNode.hasLabel("Syn-roiA"));
+            Assert.assertTrue(preSynNode.hasLabel("seven_column_roi-pt"));
+            Assert.assertTrue(preSynNode.hasLabel("roiA-pt"));
+            Assert.assertTrue(preSynNode.hasLabel("test-seven_column_roi-pt"));
+            Assert.assertTrue(preSynNode.hasLabel("test-roiA-pt"));
 
-            Node postSynNode = session.run("MATCH (s:Synapse:PostSyn{datasetLocation:\"test:4301:2276:1535\"}) RETURN s").single().get(0).asNode();
+            Point postLocationPoint = Values.point(9157, 4301, 2276, 1535).asPoint();
+            Node postSynNode = session.run("MATCH (s:Synapse:`test-Synapse`:`test-PostSyn`:test:PostSyn{location:$location}) RETURN s",
+                    parameters("location",postLocationPoint)).single().get(0).asNode();
 
             Assert.assertEquals(1.0, postSynNode.asMap().get("confidence"));
             Assert.assertEquals("post", postSynNode.asMap().get("type"));
-            Assert.assertEquals(Values.point(9157, 4301, 2276, 1535).asPoint(), postSynNode.asMap().get("location"));
-            Assert.assertTrue(postSynNode.hasLabel("Syn-seven_column_roi"));
-            Assert.assertTrue(postSynNode.hasLabel("Syn-roiA"));
+            Assert.assertTrue(postSynNode.hasLabel("seven_column_roi-pt"));
+            Assert.assertTrue(postSynNode.hasLabel("roiA-pt"));
+            Assert.assertTrue(postSynNode.hasLabel("test-seven_column_roi-pt"));
+            Assert.assertTrue(postSynNode.hasLabel("test-roiA-pt"));
 
-            int synapsesToCount = session.run("MATCH (s:Synapse:PreSyn{datasetLocation:\"test:4287:2277:1502\"})-[:SynapsesTo]->(l) RETURN count(l)").single().get(0).asInt();
+            Point preLocationPoint2 = Values.point(9157, 4287, 2277, 1502).asPoint();
+            int synapsesToCount = session.run("MATCH (s:Synapse:PreSyn:`test-Synapse`:`test-PreSyn`:test{location:$location})-[:SynapsesTo]->(l) RETURN count(l)",
+                    parameters("location",preLocationPoint2)).single().get(0).asInt();
 
             Assert.assertEquals(3, synapsesToCount);
 
-            Node neuronNode = session.run("MATCH (n{bodyId:8426959}) RETURN n").single().get(0).asNode();
+            Node neuronNode = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n").single().get(0).asNode();
 
-            Assert.assertTrue(neuronNode.hasLabel("Neu-seven_column_roi"));
-            Assert.assertTrue(neuronNode.hasLabel("Neu-roiA"));
-            Assert.assertTrue(neuronNode.hasLabel("Neu-roiB"));
+            Assert.assertTrue(neuronNode.hasLabel("seven_column_roi"));
+            Assert.assertTrue(neuronNode.hasLabel("roiA"));
+            Assert.assertTrue(neuronNode.hasLabel("roiB"));
+            Assert.assertTrue(neuronNode.hasLabel("test-seven_column_roi"));
+            Assert.assertTrue(neuronNode.hasLabel("test-roiA"));
+            Assert.assertTrue(neuronNode.hasLabel("test-roiB"));
 
-            int synapseSetContainsCount = session.run("MATCH (t:SynapseSet{datasetBodyId:\"test:8426959\"})-[:Contains]->(s) RETURN count(s)").single().get(0).asInt();
+            int synapseSetContainsCount = session.run("MATCH (t:SynapseSet:test:`test-SynapseSet`{datasetBodyId:\"test:8426959\"})-[:Contains]->(s) RETURN count(s)").single().get(0).asInt();
 
             Assert.assertEquals(3, synapseSetContainsCount);
 
-            int synapseSetContainedCount = session.run("MATCH (t:SynapseSet{datasetBodyId:\"test:8426959\"})<-[:Contains]-(n) RETURN count(n)").single().get(0).asInt();
+            int synapseSetContainedCount = session.run("MATCH (t:SynapseSet:test:`test-SynapseSet`{datasetBodyId:\"test:8426959\"})<-[:Contains]-(n) RETURN count(n)").single().get(0).asInt();
 
             Assert.assertEquals(1L, synapseSetContainedCount);
 
@@ -306,14 +320,14 @@ public class Neo4jImporterTest {
             // test that all rois are listed in meta
             Assert.assertEquals(6, metaSynapseCountPerRoiMap.keySet().size());
 
-            String neuronName = session.run("MATCH (n:Neuron:test{bodyId:8426959}) RETURN n.name").single().get(0).asString();
-            String neuronAutoName = session.run("MATCH (n:Neuron:test{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();
+            String neuronName = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.name").single().get(0).asString();
+            String neuronAutoName = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();
 
             Assert.assertEquals("ROIA-ROIA-0", neuronName);
             Assert.assertEquals(neuronName, neuronAutoName);
 
-            String neuronName2 = session.run("MATCH (n:Neuron:test{bodyId:26311}) RETURN n.name").single().get(0).asString();
-            String neuronAutoName2 = session.run("MATCH (n:Neuron:test{bodyId:26311}) RETURN n.autoName").single().get(0).asString();
+            String neuronName2 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN n.name").single().get(0).asString();
+            String neuronAutoName2 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN n.autoName").single().get(0).asString();
 
             Assert.assertEquals("Dm12-4", neuronName2);
             Assert.assertEquals("ROIA-ROIA-1", neuronAutoName2);
