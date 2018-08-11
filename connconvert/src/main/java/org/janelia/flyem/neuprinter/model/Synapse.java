@@ -179,15 +179,15 @@ public class Synapse {
         }
     }
 
-    public List<String> getSynRois() {
+    public List<String> getRoiPts() {
         // remove -lm tag on rois
         if (this.rois != null) {
             List<String> newRoiList = new ArrayList<>();
             for (String roi : rois) {
                 if (roi.endsWith("-lm")) {
-                    newRoiList.add("Syn-" + roi.replace("-lm", ""));
+                    newRoiList.add(roi.replace("-lm", "") + "-pt");
                 } else {
-                    newRoiList.add("Syn-" + roi);
+                    newRoiList.add(roi + "-pt");
                 }
             }
             return newRoiList;
@@ -196,21 +196,16 @@ public class Synapse {
         }
     }
 
-    public List<String> getNeuRois() {
-        // remove -lm tag on rois
-        if (this.rois != null) {
-            List<String> newRoiList = new ArrayList<>();
-            for (String roi : rois) {
-                if (roi.endsWith("-lm")) {
-                    newRoiList.add("Neu-" + roi.replace("-lm", ""));
-                } else {
-                    newRoiList.add("Neu-" + roi);
-                }
-            }
-            return newRoiList;
-        } else {
-            return this.rois;
-        }
+    public List<String> getRoiPtsWithAndWithoutDatasetPrefix(String dataset) {
+        List<String> roiPts = getRoiPts();
+        roiPts.addAll(roiPts.stream().map(r -> dataset + "-" + r).collect(Collectors.toList()));
+        return roiPts;
+    }
+
+    public List<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
+        List<String> roiList = getRois();
+        roiList.addAll(roiList.stream().map(r -> dataset + "-" + r).collect(Collectors.toList()));
+        return roiList;
     }
 
     public void addRoiList(List<String> rois) {
