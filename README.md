@@ -38,11 +38,23 @@ $ java -jar neuprinter.jar --help
 Usage: java -cp neuprinter.jar ConnConvert
       [options]
   Options:
+    --addAutoNames
+      Indicates that automatically generated names should be added for this
+      dataset. Auto-names are in the format ROIA-ROIB-8 where ROIA is the roi
+      in which a given neuron has the most inputs (postsynaptic densities) and
+      ROIB is the roi in which a neuron has the most outputs (presynaptic
+      densities). The final number renders this name unique per dataset. Names
+      are only generated for neurons that have greater than the number of
+      synapses indicated by autoNameThreshold. If neurons do not already have
+      a name, the auto-name is added to the name property. (skip to omit)
+      Default: false
     --addConnectsTo
       Indicates that ConnectsTo relations should be added (omit to skip)
       Default: false
-    --addNeuronParts
-      Indicates that neuron parts nodes should be added (omit to skip)
+    --addMetaNodeOnly
+      Indicates that only the Meta Node should be added for this dataset.
+      Requires the existing dataset to be completely loaded into neo4j. (omit
+      to skip)
       Default: false
     --addNeuronRois
       Indicates that neuron ROI labels should be added (omit to skip)
@@ -59,13 +71,16 @@ Usage: java -cp neuprinter.jar ConnConvert
     --addSynapsesTo
       Indicates that SynapsesTo relations should be added (omit to skip)
       Default: false
-    --bigThreshold
-      Total number of synapses for a body must be greater than this value for
-      the body to be considered "Big" and be given an sId (must be an integer;
-      default is 10)
+    --autoNameThreshold
+      Integer indicating the number of (presynaptic densities + postsynaptic
+      densities) a neuron should have to be given an auto-name (default is
+      10). Must have --addAutoName enabled.
     --createLog
       Indicates that log file should be created (omit to skip)
       Default: false
+  * --dataModelVersion
+      Data model version (required)
+      Default: 0.0
   * --datasetLabel
       Dataset value for all nodes (required)
   * --dbProperties
@@ -105,26 +120,21 @@ Usage: java -cp neuprinter.jar ConnConvert
 ![Property Graph Model](pgmv1.svg)
 
 ### :Neuron properties
-* pre: number of presynaptic terminals
-* post: number of postsynaptic terminals
+* pre: number of presynaptic densities
+* post: number of postsynaptic densities
 * size: size of body in voxels
 * name: name of neuron
 * type: type of neuron
 * bodyId: int64 identifier (unique per data set)
-* sId: id indicating rank of neuron by number of synapses in descending order (starts with 0; only given to bodies with > 10 synapses)
 * status: status of neuron
 * somaLocation: 3D Cartesian location
 * somaRadius: radius of soma
+* synapseCountPerRoi: string containing json map in format {"roiA":{"pre":1,"post":2,"total":3},...}
 
 ### :Synapse properties
 * type: type of synapse
 * confidence: confidence
 * location: 3D Cartesian location (unique per data set)
-
-### :NeuronPart properties
-* pre: number of presynaptic terminals in this roi
-* post: number of postsynaptic terminals in this roi
-* size: total number of synapses in this roi
 
 ### :SkelNode properties
 * location: 3D Cartesian location
@@ -134,6 +144,16 @@ Usage: java -cp neuprinter.jar ConnConvert
 
 ### :ConnectsTo properties
 * weight: number of presynaptic densities per connection
+
+### :Meta
+* lastDatabaseEdit: date of last database edit
+* dataset: string indicating dataset name
+* totalPreCount: number of presynaptic densities in dataset
+* totalPostCount: number of postsynaptic densities in dataset
+* synapseCountPerRoi: string containing json map in format {"roiA":{"pre":1,"post":2,"total":3},...}
+
+## :DataModel
+* dataModelVersion: property graph model version number for database
 
 ## neuPrint Neo4j Stored Procedures
 

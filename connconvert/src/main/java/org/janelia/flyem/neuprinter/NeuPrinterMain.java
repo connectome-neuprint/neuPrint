@@ -24,7 +24,7 @@ import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
+// TODO: clean up logging
 public class NeuPrinterMain {
 
     @Parameters(separators = "=")
@@ -397,18 +397,6 @@ public class NeuPrinterMain {
                     neo4jImporter.addNeuronRois(dataset, bodyList);
                     LOG.info("Loading all Neuron ROI labels took: " + timer.stop());
                     timer.reset();
-
-                    if (parameters.addAutoNames) {
-                        timer.start();
-                        if (parameters.autoNameThreshold != null) {
-                            neo4jImporter.addAutoNames(dataset,parameters.autoNameThreshold);
-                        } else {
-                            neo4jImporter.addAutoNames(dataset,10);
-                        }
-                        LOG.info("Adding autoNames took: " + timer.stop());
-                        timer.reset();
-                    }
-
                 }
 
                 if (parameters.addSynapseSets || parameters.doAll) {
@@ -418,11 +406,29 @@ public class NeuPrinterMain {
                     timer.reset();
                 }
 
+            }
+        }
+
+        if (parameters.doAll) {
+            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+
+                Stopwatch timer = Stopwatch.createUnstarted();
+
+                if (parameters.addAutoNames) {
+                    timer.start();
+                    if (parameters.autoNameThreshold != null) {
+                        neo4jImporter.addAutoNames(dataset, parameters.autoNameThreshold);
+                    } else {
+                        neo4jImporter.addAutoNames(dataset, 10);
+                    }
+                    LOG.info("Adding autoNames took: " + timer.stop());
+                    timer.reset();
+                }
+
                 timer.start();
                 neo4jImporter.createMetaNodeWithDataModelNode(dataset,dataModelVersion);
                 LOG.info("Adding :Meta node took: " + timer.stop());
                 timer.reset();
-
             }
         }
 
