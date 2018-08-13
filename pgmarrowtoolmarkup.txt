@@ -1,45 +1,44 @@
 <ul class="graph-diagram-markup" data-internal-scale="5" data-external-scale="1">
   <li class="node" data-node-id="0" data-x="-409.69970764389296" data-y="-220.74850161021072">
-    <span class="caption">Neuron :ROI        :Dataset</span><dl class="properties"><dt>bodyId</dt><dd>int64</dd><dt>pre</dt><dd>int</dd><dt>post</dt><dd>int</dd><dt>size</dt><dd>int64</dd><dt>name</dt><dd>"string"</dd><dt>type</dt><dd>"string"</dd><dt>sId</dt><dd>int</dd><dt>status</dt><dd>"string"</dd><dt>somaLocation</dt><dd>Cartesian 3D point</dd><dt>somaRadius</dt><dd>float</dd></dl></li>
+    <span class="caption">:Neuron :ROI        :Dataset    :Dataset-Neuron :Dataset-ROI</span><dl class="properties"><dt>bodyId</dt><dd>int64</dd><dt>pre</dt><dd>int</dd><dt>post</dt><dd>int</dd><dt>size</dt><dd>int64</dd><dt>name</dt><dd>"string"</dd><dt>type</dt><dd>"string"</dd><dt>synapseCountPerRoi</dt><dd>"string" (json)</dd><dt>status</dt><dd>"string"</dd><dt>somaLocation</dt><dd>Cartesian 3D point</dd><dt>somaRadius</dt><dd>float</dd></dl></li>
   <li class="node" data-node-id="1" data-x="-216.55922460192042" data-y="45.772489859311605">
-    <span class="caption">Synapse :PreSyn :ROI        :Dataset</span><dl class="properties"><dt>type</dt><dd>"string"</dd><dt>confidence</dt><dd>float</dd><dt>location</dt><dd>Cartesian 3D point</dd></dl></li>
+    <span class="caption">:Synapse :PreSyn :ROI-pt :Dataset       :Dataset-Synapse        :Dataset-PreSyn :Dataset-ROI-pt</span><dl class="properties"><dt>type</dt><dd>"string"</dd><dt>confidence</dt><dd>float</dd><dt>location</dt><dd>Cartesian 3D point</dd></dl></li>
   <li class="node" data-node-id="2" data-x="-409.69970764389296" data-y="45.772489859311605">
-    <span class="caption">SkelNode  :Dataset</span>
+    <span class="caption">SkelNode  :Dataset :Dataset-SkelNode</span>
   </li>
-  <li class="node" data-node-id="3" data-x="-216.55922460192042" data-y="-123.42566733323892">
-    <span class="caption">Synapse :PostSyn :ROI         :Dataset</span>
+  <li class="node" data-node-id="3" data-x="-186.30205907457668" data-y="-123.42566733323892">
+    <span class="caption">:Synapse :PostSyn :ROI-pt :Dataset       :Dataset-Synapse        :Dataset-PostSyn :Dataset-ROI-pt</span>
   </li>
-  <li class="node" data-node-id="4" data-x="-141.2787593230038" data-y="-248.99277641937113">
-    <span class="caption">Neuron :ROI      :Dataset</span>
+  <li class="node" data-node-id="4" data-x="-216.55922460192042" data-y="-275.1931426303087">
+    <span class="caption">:Neuron :ROI        :Dataset    :Dataset-Neuron :Dataset-ROI</span>
   </li>
-  <li class="node" data-node-id="5" data-x="35.71360708920996" data-y="-67.6316735653478">
-    <span class="caption">Synapse :PostSyn :ROI            :Dataset</span>
+  <li class="node" data-node-id="5" data-x="-22.812772512667784" data-y="-31.44173521085559">
+    <span class="caption">:Synapse :PostSyn :ROI-pt :Dataset       :Dataset-Synapse        :Dataset-PostSyn :Dataset-ROI-pt</span>
   </li>
-  <li class="node" data-node-id="6" data-x="-572.4490519516343" data-y="-123.42566733323892">
-    <span class="caption">Skeleton :Dataset</span>
+  <li class="node" data-node-id="6" data-x="-532.8473524719712" data-y="-123.42566733323892">
+    <span class="caption">:Skeleton :Dataset :Dataset-Skeleton</span>
   </li>
-  <li class="node" data-node-id="7" data-x="-660.0006727844709" data-y="-177.57403733058604">
-    <span class="caption">SkelNode  :Dataset</span><dl class="properties"><dt>location</dt><dd>Cartesian 3D point</dd><dt>radius</dt><dd>float</dd><dt>rowNumber</dt><dd>int</dd><dt>type</dt><dd>int</dd></dl></li>
-  <li class="node" data-node-id="8" data-x="-788.9335300125242" data-y="-5.577902291567298">
-    <span class="caption">SkelNode  :Dataset</span>
+  <li class="node" data-node-id="7" data-x="-697.017518487597" data-y="-220.74850161021072">
+    <span class="caption">SkelNode  :Dataset :Dataset-SkelNode</span><dl class="properties"><dt>location</dt><dd>Cartesian 3D point</dd><dt>radius</dt><dd>float</dd><dt>rowNumber</dt><dd>int</dd><dt>type</dt><dd>int</dd></dl></li>
+  <li class="node" data-node-id="8" data-x="-790.1200534500242" data-y="-98.72250296905759">
+    <span class="caption">SkelNode  :Dataset :Dataset-SkelNode</span>
   </li>
-  <li class="node" data-node-id="9" data-x="-532.8473524719712" data-y="45.772489859311605">
-    <span class="caption">SkelNode  :Dataset</span>
+  <li class="node" data-node-id="9" data-x="-599.8877333313463" data-y="77.2162093417335">
+    <span class="caption">SkelNode  :Dataset :Dataset-SkelNode</span>
   </li>
-  <li class="node" data-node-id="10" data-x="-631.000819268846" data-y="89.51629778447015">
-    <span class="caption">SkelNode  :Dataset</span>
+  <li class="node" data-node-id="10" data-x="-790.1200534500242" data-y="-0.6619134276880343">
+    <span class="caption">SkelNode  :Dataset :Dataset-SkelNode</span>
   </li>
-  <li class="node" data-node-id="11" data-x="35.71360708920996" data-y="-220.74850161021072">
-    <span class="caption">NeuronPart :ROI    :Dataset</span>
+  <li class="node" data-node-id="12" data-x="-22.812772512667784" data-y="-220.74850161021072">
+    <span class="caption">:SynapseSet :Dataset :Dataset-SynapseSet</span>
   </li>
-  <li class="node" data-node-id="12" data-x="-74.42793059372248" data-y="-177.57403733058604">
-    <span class="caption">SynapseSet :Dataset</span>
+  <li class="node" data-node-id="13" data-x="-893.4846762620757" data-y="-220.74850161021072">
+    <span class="caption">:Meta :Dataset</span><dl class="properties"><dt>lastDatabaseEdit</dt><dd>Date</dd><dt>dataset</dt><dd>"string"</dd><dt>totalPreCount</dt><dd>int</dd><dt>totalPostCount</dt><dd>int</dd><dt>synapseCountPerRoi</dt><dd>"string" (json)</dd></dl></li>
+  <li class="node" data-node-id="14" data-x="-354.41939515171833" data-y="-67.6316735653478">
+    <span class="caption">:SynapseSet :Dataset :Dataset-SynapseSet</span>
   </li>
-  <li class="node" data-node-id="14" data-x="-363.3185650735931" data-y="-123.42566733323892">
-    <span class="caption">SynapseSet :Dataset</span>
-  </li>
-  <li class="node" data-node-id="15" data-x="-31.81818928162169" data-y="-299.47250612374785">
-    <span class="caption">NeuronPart :ROI    :Dataset</span><dl class="properties"><dt>pre</dt><dd>int</dd><dt>post</dt><dd>int</dd><dt>size</dt><dd>int</dd></dl></li>
+  <li class="node" data-node-id="15" data-x="-893.4846762620757" data-y="-301.7072011467159">
+    <span class="caption">:DataModel</span><dl class="properties"><dt>dataModelVersion</dt><dd>float</dd></dl></li>
   <li class="relationship" data-from="1" data-to="3">
     <span class="type">SynapsesTo</span>
   </li>
@@ -78,9 +77,6 @@
   <li class="relationship" data-from="9" data-to="2">
     <span class="type">LinksTo</span>
   </li>
-  <li class="relationship" data-from="11" data-to="4">
-    <span class="type">PartOf</span>
-  </li>
   <li class="relationship" data-from="4" data-to="12">
     <span class="type">Contains</span>
   </li>
@@ -96,7 +92,7 @@
   <li class="relationship" data-from="12" data-to="5">
     <span class="type">Contains</span>
   </li>
-  <li class="relationship" data-from="15" data-to="4">
-    <span class="type">PartOf</span>
+  <li class="relationship" data-from="13" data-to="15">
+    <span class="type">Is</span>
   </li>
 </ul>
