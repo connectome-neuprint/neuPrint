@@ -2,7 +2,7 @@
 A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [neuPrintExplorer](https://github.com/janelia-flyem/neuPrintExplorer). 
 
 ## Requirements
-* Neo4j version 3.4.0
+* Neo4j version 3.4.5
 * [apoc version 3.4.0.1](https://neo4j-contrib.github.io/neo4j-apoc-procedures/)
 
 ## Example data
@@ -152,7 +152,7 @@ Usage: java -cp neuprinter.jar ConnConvert
 * totalPostCount: number of postsynaptic densities in dataset
 * synapseCountPerRoi: string containing json map in format {"roiA":{"pre":1,"post":2,"total":3},...}
 
-## :DataModel
+### :DataModel
 * dataModelVersion: property graph model version number for database
 
 ## neuPrint Neo4j Stored Procedures
