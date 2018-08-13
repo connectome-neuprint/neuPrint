@@ -10,21 +10,17 @@ import org.janelia.flyem.neuprinter.json.JsonUtils;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.logging.FileHandler;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.logging.SimpleFormatter;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-// TODO: clean up logging
 public class NeuPrinterMain {
 
     @Parameters(separators = "=")
@@ -137,13 +133,6 @@ public class NeuPrinterMain {
         public String skeletonDirectory;
 
         @Parameter(
-                names = "--createLog",
-                description = "Indicates that log file should be created (omit to skip)",
-                required = false,
-                arity = 0)
-        public boolean createLog;
-
-        @Parameter(
                 names = "--editMode",
                 description = "Indicates that neuprinter is being used in edit mode to alter data in an existing database (omit to skip).",
                 required = false,
@@ -192,8 +181,6 @@ public class NeuPrinterMain {
 
     private static List<Neuron> neuronList;
     private static List<BodyWithSynapses> bodyList;
-    private static String dataset;
-    private static float dataModelVersion;
 
     public static List<Neuron> readNeuronsJson(String filepath) {
 
@@ -283,7 +270,8 @@ public class NeuPrinterMain {
 
     }
 
-    public static void main(String[] args) throws Exception {
+    public static void main(String[] args) {
+
         final NeuPrinterParameters parameters = new NeuPrinterParameters();
         final JCommander jCommander = new JCommander(parameters);
         jCommander.setProgramName("java -cp neuprinter.jar " + NeuPrinterMain.class.getName());
@@ -295,7 +283,7 @@ public class NeuPrinterMain {
         } catch (final ParameterException pe) {
             JCommander.getConsole().println("\nERROR: failed to parse command line arguments\n\n" + pe.getMessage());
         } catch (final Throwable t) {
-            LOG.log(Level.INFO, "failed to parse command line arguments", t);
+            LOG.info("failed to parse command line arguments", t);
         }
 
         if (parameters.help || parseFailed) {
@@ -306,25 +294,8 @@ public class NeuPrinterMain {
 
         LOG.info("running with parameters: " + parameters);
 
-        dataset = parameters.datasetLabel;
-        dataModelVersion = parameters.dataModelVersion;
-
-        if (parameters.createLog) {
-
-            FileHandler fh;
-            try {
-                String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH").format(new java.util.Date());
-                fh = new FileHandler("connconvertmainlog_" + timeStamp + ".log");
-                fh.setFormatter(new SimpleFormatter());
-                LOG.addHandler(fh);
-
-                //LOG.setUseParentHandlers(false);
-
-            } catch (SecurityException e) {
-                e.printStackTrace();
-            }
-
-        }
+        String dataset = parameters.datasetLabel;
+        float dataModelVersion = parameters.dataModelVersion;
 
         LOG.info("Dataset is: " + dataset);
 
@@ -426,7 +397,7 @@ public class NeuPrinterMain {
                 }
 
                 timer.start();
-                neo4jImporter.createMetaNodeWithDataModelNode(dataset,dataModelVersion);
+                neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
                 LOG.info("Adding :Meta node took: " + timer.stop());
                 timer.reset();
             }
@@ -458,62 +429,17 @@ public class NeuPrinterMain {
         if (parameters.addMetaNodeOnly) {
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
                 neo4jImporter.prepDatabase(dataset);
-                neo4jImporter.createMetaNodeWithDataModelNode(dataset,dataModelVersion);
+                neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
             }
         }
 
         if (parameters.editMode) {
 
-//            final HashMap<String,NeuronTypeTree> neuronTypeTreeMap = NeuronTypeTree.readTypeTree("mb6_cell_types.csv");
-//
-//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-//
-//                neo4jImporter.prepDatabase(dataset);
-//
-//                neo4jImporter.addCellTypeTree(dataset,neuronTypeTreeMap);
-//
-//
-//            }
-
-//            Stopwatch timer2 = Stopwatch.createStarted();
-//            neuronList = readNeuronsJson(parameters.neuronJson);
-//            LOG.info("Reading in neurons json took: " + timer2.stop());
-//            timer2.reset();
-
-//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-//                neo4jImporter.prepDatabase(dataset);
-//            }
-
-//            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
-
-//                List<Skeleton> mbonSkeletons = new ArrayList<>();
-//                for (Skeleton skeleton : skeletonList) {
-//                    if (skeleton.getAssociatedBodyId()==1661302 || skeleton.getAssociatedBodyId()==1190582) {
-//                        mbonSkeletons.add(skeleton);
-//                    }
-//                }
-//
-//                Stopwatch timer = Stopwatch.createStarted();
-//                neo4jEditor.updateSkelNodesRowNumber(dataset, mbonSkeletons);
-//                LOG.info("Updating skelnodes took: " + timer.stop());
-//                timer.reset();
-//
-//                timer.start();
-//                neo4jEditor.linkAllSkelNodesToSkeleton(dataset, mbonSkeletons);
-//                LOG.info("Adding links to skeletons took: " + timer.stop());
-//                timer.reset();
-
-//                timer2.start();
-//                neo4jEditor.updateNeuronProperties(dataset, neuronList);
-//                LOG.info("Updating all Neuron nodes took: " + timer2.stop());
-//                timer2.reset();
-
-//            }
 
         }
     }
 
-    private static final Logger LOG = Logger.getLogger("NeuPrinterMain.class");
+    private static final Logger LOG = LoggerFactory.getLogger(NeuPrinterMain.class);
 
 }
 

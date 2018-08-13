@@ -86,8 +86,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     public void prepDatabase(String dataset) {
-        //TODO: add dataset id  as prefix to all labels
-        //TODO: synapse uniqueness is on location so can get rid of datasetlocation
+
         LOG.info("prepDatabase: entry");
         final String[] prepTextArray = {
                 "CREATE CONSTRAINT ON (n:`" + dataset + "-Neuron`) ASSERT n.bodyId IS UNIQUE",
@@ -120,9 +119,12 @@ public class Neo4jImporter implements AutoCloseable {
     //TODO: arbitrary properties
     public void addNeurons(final String dataset,
                            final List<Neuron> neuronList) {
+        LOG.info("addNeurons: entry");
 
-        final String neuronText = "MERGE (n:Neuron:" + dataset + ":`" + dataset + "-Neuron`{bodyId:$bodyId}) " +
+        final String neuronText = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) " +
                 "ON CREATE SET n.bodyId = $bodyId," +
+                " n:Neuron," +
+                " n:" + dataset + "," +
                 " n.name = $name," +
                 " n.type = $type," +
                 " n.status = $status," +
@@ -153,6 +155,7 @@ public class Neo4jImporter implements AutoCloseable {
             batch.writeTransaction();
         }
 
+        LOG.info("addNeurons: entry");
     }
 
     public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList) {
@@ -160,10 +163,10 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addConnectsTo: entry");
 
         final String connectsToText =
-                "MERGE (n:Neuron:" + dataset + ":`" + dataset + "-Neuron`{bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.status=$notAnnotated\n" +
-                        "MERGE (m:Neuron:" + dataset + ":`" + dataset + "-Neuron`{bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m.status=$notAnnotated \n" +
+                "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.status=$notAnnotated, n:Neuron, n:" + dataset + " \n" +
+                        "MERGE (m:`" + dataset + "-Neuron`{bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m.status=$notAnnotated, m:Neuron, m:" + dataset + " \n" +
                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m)";
-        final String terminalCountText = "MATCH (n:Neuron:" + dataset + " {bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp, n.synapseCountPerRoi=$synapseCountPerRoi";
+        final String terminalCountText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp, n.synapseCountPerRoi=$synapseCountPerRoi";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final BodyWithSynapses body : bodyList) {
@@ -203,8 +206,11 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSynapses: entry");
 
         final String preSynapseText =
-                "MERGE (s:Synapse:PreSyn:" + dataset + ":`" + dataset + "-Synapse`:`" + dataset + "-PreSyn`{location:$location}) " +
+                "MERGE (s:`" + dataset + "-Synapse`:`" + dataset + "-PreSyn`{location:$location}) " +
                         " ON CREATE SET s.location=$location, " +
+                        "s:Synapse," +
+                        "s:PreSyn," +
+                        "s:" + dataset + "," +
                         " s.confidence=$confidence, " +
                         " s.type=$type, " +
                         " s.timeStamp=$timeStamp \n" +
@@ -213,8 +219,11 @@ public class Neo4jImporter implements AutoCloseable {
                         " RETURN node";
 
         final String postSynapseText =
-                "MERGE (s:Synapse:PostSyn:" + dataset + ":`" + dataset + "-Synapse`:`" + dataset + "-PostSyn`{location:$location}) " +
+                "MERGE (s:`" + dataset + "-Synapse`:`" + dataset + "-PostSyn`{location:$location}) " +
                         " ON CREATE SET s.location=$location, " +
+                        "s:Synapse," +
+                        "s:PostSyn," +
+                        "s:" + dataset + "," +
                         " s.confidence=$confidence, " +
                         " s.type=$type, " +
                         " s.timeStamp=$timeStamp \n" +
@@ -262,8 +271,8 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSynapsesTo: entry");
 
-        final String synapseRelationsText = "MERGE (s:Synapse:" + dataset + ":`" + dataset + "-Synapse`{location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto, s.timeStamp=$timeStamp \n" +
-                "MERGE (t:Synapse:" + dataset + ":`" + dataset + "-Synapse`{location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto, t.timeStamp=$timeStamp \n" +
+        final String synapseRelationsText = "MERGE (s:Synapse:" + dataset + ":`" + dataset + "-Synapse`{location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto, s.timeStamp=$timeStamp, s:Synapse, s:" + dataset + " \n" +
+                "MERGE (t:`" + dataset + "-Synapse`{location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto, t.timeStamp=$timeStamp, t:Synapse, t:" + dataset + " \n" +
                 "MERGE (s)-[:SynapsesTo]->(t)";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -286,7 +295,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addNeuronRois: entry");
 
-        final String roiNeuronText = "MERGE (n:Neuron:" + dataset + ":`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId = $bodyId, n.timeStamp=$timeStamp, n.status=$notAnnotated \n" +
+        final String roiNeuronText = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId = $bodyId, n.timeStamp=$timeStamp, n.status=$notAnnotated, n:Neuron, n:" + dataset + " \n" +
                 "WITH n \n" +
                 "CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
                 "RETURN node";
@@ -353,12 +362,12 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSynapseSets: entry");
 
-        final String neuronContainsSSText = "MERGE (n:Neuron:" + dataset + ":`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
-                "MERGE (s:SynapseSet:" + dataset + ":`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId, s.timeStamp=$timeStamp \n" +
+        final String neuronContainsSSText = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated, n:Neuron, n:" + dataset + " \n" +
+                "MERGE (s:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId, s.timeStamp=$timeStamp, s:SynapseSet, s:" + dataset + " \n" +
                 "MERGE (n)-[:Contains]->(s)";
 
-        final String ssContainsSynapseText = "MERGE (s:Synapse:" + dataset + ":`" + dataset + "-Synapse`{location:$location}) ON CREATE SET s.location=$location \n" +
-                "MERGE (t:SynapseSet:" + dataset + ":`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET t.datasetBodyId=$datasetBodyId \n" +
+        final String ssContainsSynapseText = "MERGE (s:`" + dataset + "-Synapse`{location:$location}) ON CREATE SET s.location=$location, s:Synapse, s:" + dataset + " \n" +
+                "MERGE (t:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET t.datasetBodyId=$datasetBodyId, t:SynapseSet, t:" + dataset + " \n" +
                 "MERGE (t)-[:Contains]->(s) \n";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -386,20 +395,20 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSkeletonNodes: entry");
 
-        final String neuronToSkeletonConnectionString = "MERGE (n:Neuron:" + dataset + ":`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated \n" +
-                "MERGE (r:Skeleton:" + dataset + ":`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
+        final String neuronToSkeletonConnectionString = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated, n:Neuron, n:" + dataset + " \n" +
+                "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp, r:Skeleton, r:" + dataset + " \n" +
                 "MERGE (n)-[:Contains]->(r) \n";
 
-        final String rootNodeString = "MERGE (r:Skeleton:" + dataset + ":`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp \n" +
-                "MERGE (s:SkelNode:" + dataset + ":`" + dataset + "-SkelNode`{skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type \n" +
+        final String rootNodeString = "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp, r:Skeleton, r:" + dataset + " \n" +
+                "MERGE (s:`" + dataset + "-SkelNode`{skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type, s:SkelNode, s:" + dataset + " \n" +
                 "MERGE (r)-[:Contains]->(s) \n";
 
-        final String parentNodeString = "MERGE (r:Skeleton:" + dataset + ":`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.timeStamp=$timeStamp \n" +
-                "MERGE (p:SkelNode:" + dataset + ":`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
+        final String parentNodeString = "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.timeStamp=$timeStamp, r:Skeleton, r:" + dataset + " \n" +
+                "MERGE (p:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType, p:SkelNode, p:" + dataset + " \n" +
                 "MERGE (r)-[:Contains]->(p) ";
 
-        final String childNodeString = "MERGE (p:SkelNode:" + dataset + ":`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType \n" +
-                "MERGE (c:SkelNode:" + dataset + ":`" + dataset + "-SkelNode`{skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.rowNumber=$childRowNumber, c.type=$childType \n" +
+        final String childNodeString = "MERGE (p:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType, p:SkelNode, p:" + dataset + " \n" +
+                "MERGE (c:`" + dataset + "-SkelNode`{skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.rowNumber=$childRowNumber, c.type=$childType, c:SkelNode, c:" + dataset + " \n" +
                 "MERGE (p)-[:LinksTo]-(c)";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -505,8 +514,7 @@ public class Neo4jImporter implements AutoCloseable {
         long totalPost;
         List<String> roiNameList;
         SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
-        //TODO: change the many properties to a json
-        //TODO: dataset node that points to all dataset metas. has a version of the datamodel (1.0)
+
         try (Session session = driver.session()) {
             totalPre = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
@@ -527,11 +535,6 @@ public class Neo4jImporter implements AutoCloseable {
                     "totalPost", totalPost,
                     "timeStamp", timeStamp,
                     "dataModelVersion", dataModelVersion
-//                    "rois", roiNameList
-//                            .stream()
-//                            .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
-//                            .collect(Collectors.toList())
-                    //TODO: might be able to get rid of roi list since can get from keys on json for meta node
             )));
 
             String metaNodeRoiString = "MATCH (m:Meta:" + dataset + " {dataset:$dataset}) SET m.synapseCountPerRoi=$synapseCountPerRoi ";
