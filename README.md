@@ -152,7 +152,7 @@ Usage: java -cp neuprinter.jar ConnConvert
 * totalPostCount: number of postsynaptic densities in dataset
 * synapseCountPerRoi: string containing json map in format {"roiA":{"pre":1,"post":2,"total":3},...}
 
-## :DataModel
+### :DataModel
 * dataModelVersion: property graph model version number for database
 
 ## neuPrint Neo4j Stored Procedures
