@@ -75,9 +75,6 @@ Usage: java -cp neuprinter.jar ConnConvert
       Integer indicating the number of (presynaptic densities + postsynaptic
       densities) a neuron should have to be given an auto-name (default is
       10). Must have --addAutoName enabled.
-    --createLog
-      Indicates that log file should be created (omit to skip)
-      Default: false
   * --dataModelVersion
       Data model version (required)
       Default: 0.0
