@@ -87,6 +87,18 @@ public class SkelNode {
         return this.location;
     }
 
+    public Integer getX() {
+        return this.location.get(0);
+    }
+
+    public Integer getY() {
+        return this.location.get(1);
+    }
+
+    public Integer getZ() {
+        return this.location.get(2);
+    }
+
     public int getRowNumber() {
         return this.rowNumber;
     }

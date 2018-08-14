@@ -16,7 +16,6 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.spatial.Coordinate;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.Context;
@@ -288,7 +287,7 @@ public class ProofreaderProcedures {
         // grab write locks upfront
         acquireWriteLockForNeuronSubgraph(neuron);
 
-        Node skeletonNode = addSkeletonNode(datasetLabel, skeleton);
+        Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton);
 
         return Stream.of(new NodeResult(skeletonNode));
 
@@ -297,7 +296,8 @@ public class ProofreaderProcedures {
     @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
     @Description("proofreader.deleteNeuron(neuronBodyId,datasetLabel) : delete neuron with body Id and associated nodes from given dataset. ")
     public void deleteNeuron(@Name("neuronBodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
-        if (bodyId == null || datasetLabel == null) throw new Error(String.format("Must provide both a %s and dataset label.",BODY_ID));
+        if (bodyId == null || datasetLabel == null)
+            throw new Error(String.format("Must provide both a %s and dataset label.", BODY_ID));
 
         final Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
 
@@ -574,7 +574,7 @@ public class ProofreaderProcedures {
 
         Node synapseSet = getSynapseSetNodeForNeuron(resultingBody);
         if (synapseSet == null) {
-            throw new Error(String.format("No %s on the resulting body.",SYNAPSE_SET));
+            throw new Error(String.format("No %s on the resulting body.", SYNAPSE_SET));
         }
 
         Set<Synapse> resultBodySynapseSet = createSynapseSetForNeuron(resultingBody, datasetLabel);
@@ -590,7 +590,7 @@ public class ProofreaderProcedures {
         } else {
             throw new Error(String.format("Found the following differences between the database and merge action synapse sets: \n" +
                     "* Synapses in merge action but not in database: %s \n" +
-                    "* Synapses in database but not in merge action: %s \n", databaseSynapseSet,mergeActionSynapseSet));
+                    "* Synapses in database but not in merge action: %s \n", databaseSynapseSet, mergeActionSynapseSet));
         }
 
     }
@@ -734,14 +734,14 @@ public class ProofreaderProcedures {
             nodeQueryResult = dbService.execute("MATCH (node:Neuron:" + datasetLabel + "{bodyId:$bodyId}) RETURN node", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
             nse.printStackTrace();
-            throw new Error(String.format("Error using proofreader procedures: All neuron nodes must exist in the dataset and be labeled :%s.",NEURON));
+            throw new Error(String.format("Error using proofreader procedures: All neuron nodes must exist in the dataset and be labeled :%s.", NEURON));
         }
 
         try {
             foundNode = (Node) nodeQueryResult.get("node");
         } catch (NullPointerException npe) {
             npe.printStackTrace();
-            throw new Error(String.format("Error using proofreader procedures: All neuron nodes must exist in the dataset and be labeled :%s.",NEURON));
+            throw new Error(String.format("Error using proofreader procedures: All neuron nodes must exist in the dataset and be labeled :%s.", NEURON));
         }
 
         return foundNode;
@@ -873,22 +873,22 @@ public class ProofreaderProcedures {
         }
     }
 
-    private Node addSkeletonNode(final String dataset, final Skeleton skeleton) {
+    private Node addSkeletonNodes(final String dataset, final Skeleton skeleton) {
 
         final String neuronToSkeletonConnectionString = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:Neuron, n:" + dataset + " \n" +
                 "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r:Skeleton, r:" + dataset + " \n" +
                 "MERGE (n)-[:Contains]->(r) \n";
 
         final String rootNodeString = "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r:Skeleton, r:" + dataset + " \n" +
-                "MERGE (s:`" + dataset + "-SkelNode`{skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=point({$x,$y,$z,'cartesian-3D'}), s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type, s:SkelNode, s:" + dataset + " \n" +
+                "MERGE (s:`" + dataset + "-SkelNode`{skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=neuprint.locationAs3dCartPoint($x,$y,$z), s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type, s:SkelNode, s:" + dataset + " \n" +
                 "MERGE (r)-[:Contains]->(s) \n";
 
         final String parentNodeString = "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r:Skeleton, r:" + dataset + " \n" +
-                "MERGE (p:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType, p:SkelNode, p:" + dataset + " \n" +
+                "MERGE (p:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=neuprint.locationAs3dCartPoint($pX,$pY,$pZ), p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType, p:SkelNode, p:" + dataset + " \n" +
                 "MERGE (r)-[:Contains]->(p) ";
 
-        final String childNodeString = "MERGE (p:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType, p:SkelNode, p:" + dataset + " \n" +
-                "MERGE (c:`" + dataset + "-SkelNode`{skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=$childLocation, c.radius=$childRadius, c.rowNumber=$childRowNumber, c.type=$childType, c:SkelNode, c:" + dataset + " \n" +
+        final String childNodeString = "MERGE (p:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=neuprint.locationAs3dCartPoint($pX,$pY,$pZ), p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType, p:SkelNode, p:" + dataset + " \n" +
+                "MERGE (c:`" + dataset + "-SkelNode`{skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=neuprint.locationAs3dCartPoint($childX,$childY,$childZ), c.radius=$childRadius, c.rowNumber=$childRowNumber, c.type=$childType, c:SkelNode, c:" + dataset + " \n" +
                 "MERGE (p)-[:LinksTo]-(c)";
 
         Long associatedBodyId = skeleton.getAssociatedBodyId();
@@ -905,9 +905,9 @@ public class ProofreaderProcedures {
 
             if (skelNode.getParent() == null) {
                 Map<String, Object> rootNodeStringParametersMap = new HashMap<String, Object>() {{
-                    put("x", skelNode.getX());
-                    put("y", skelNode.getY());
-                    put("z", skelNode.getZ());
+                    put("x", (double) skelNode.getX());
+                    put("y", (double) skelNode.getY());
+                    put("z", (double) skelNode.getZ());
                     put("radius", skelNode.getRadius());
                     put("skelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString());
                     put("skeletonId", dataset + ":" + associatedBodyId);
@@ -919,7 +919,9 @@ public class ProofreaderProcedures {
             }
 
             Map<String, Object> parentNodeStringParametersMap = new HashMap<String, Object>() {{
-                put("pLocation", skelNode.getLocationString());
+                put("pX", (double) skelNode.getX());
+                put("pY", (double) skelNode.getY());
+                put("pZ", (double) skelNode.getZ());
                 put("pRadius", skelNode.getRadius());
                 put("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString());
                 put("skeletonId", dataset + ":" + associatedBodyId);
@@ -935,12 +937,16 @@ public class ProofreaderProcedures {
                 Map<String, Object> childNodeStringParametersMap = new HashMap<String, Object>() {{
                     put("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString());
                     put("skeletonId", dataset + ":" + associatedBodyId);
-                    put("pLocation", skelNode.getLocationString());
+                    put("pX", (double) skelNode.getX());
+                    put("pY", (double) skelNode.getY());
+                    put("pZ", (double) skelNode.getZ());
                     put("pRadius", skelNode.getRadius());
                     put("pRowNumber", skelNode.getRowNumber());
                     put("pType", skelNode.getType());
                     put("childNodeId", childNodeId);
-                    put("childLocation", child.getLocationString());
+                    put("childX", (double) child.getX());
+                    put("childY", (double) child.getY());
+                    put("childZ", (double) child.getZ());
                     put("childRadius", child.getRadius());
                     put("childRowNumber", child.getRowNumber());
                     put("childType", skelNode.getType());
@@ -957,11 +963,6 @@ public class ProofreaderProcedures {
 
         Map<String, Object> nodeQueryResult = dbService.execute("MATCH (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) RETURN r", getSkeletonParametersMap).next();
         return (Node) nodeQueryResult.get("r");
-    }
-
-    private Coordinate getLocationAsCoordinate(List<Integer> location) {
-        List<Double> locationList = location.stream().map(c -> (double) c).collect(Collectors.toList());
-        return new Coordinate(locationList.get(0), locationList.get(1), locationList.get(2));
     }
 
     private void removeConnectsToRelationshipsForNode(Node node) {
