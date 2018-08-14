@@ -124,15 +124,15 @@ public class BodyWithSynapsesTest {
         BodyWithSynapses body1 = parsedBodyList.get(0);
         BodyWithSynapses body2 = parsedBodyList.get(1);
 
-        body1.addSynapseToBodyIdMapAndSetSynapseCounts("post", postSynapseLocationToBodyIdMap);
-        body1.addSynapseToBodyIdMapAndSetSynapseCounts("pre", preSynapseLocationToBodyIdMap);
+        body1.addSynapsesToBodyIdMapAndSetSynapseCounts("post", postSynapseLocationToBodyIdMap);
+        body1.addSynapsesToBodyIdMapAndSetSynapseCounts("pre", preSynapseLocationToBodyIdMap);
 
 
         Assert.assertEquals("Incorrect post-synapse to bodyId for " + body1, new Long(8426959), postSynapseLocationToBodyIdMap.getBodyId("4202:2402:1688"));
         Assert.assertEquals("Incorrect pre-synapse to bodyId mapping for " + body1, new Long(8426959), preSynapseLocationToBodyIdMap.getBodyId("4287:2277:1542"));
 
-        body2.addSynapseToBodyIdMapAndSetSynapseCounts("post", postSynapseLocationToBodyIdMap);
-        body2.addSynapseToBodyIdMapAndSetSynapseCounts("pre", preSynapseLocationToBodyIdMap);
+        body2.addSynapsesToBodyIdMapAndSetSynapseCounts("post", postSynapseLocationToBodyIdMap);
+        body2.addSynapsesToBodyIdMapAndSetSynapseCounts("pre", preSynapseLocationToBodyIdMap);
 
         Assert.assertEquals("Incorrect number of keys in pre-synaptic location to bodyId map",  1, preSynapseLocationToBodyIdMap.getAllLocationKeys().size());
         Assert.assertEquals("Incorrect number of keys in post-synaptic location to bodyId map", 3, postSynapseLocationToBodyIdMap.getAllLocationKeys().size());
@@ -153,7 +153,7 @@ public class BodyWithSynapsesTest {
         final SynapseLocationToBodyIdMap postSynapseLocationToBodyIdMap = new SynapseLocationToBodyIdMap();
 
         for (BodyWithSynapses bws : parsedBodyList) {
-            bws.addSynapseToBodyIdMapAndSetSynapseCounts("post", postSynapseLocationToBodyIdMap);
+            bws.addSynapsesToBodyIdMapAndSetSynapseCounts("post", postSynapseLocationToBodyIdMap);
         }
 
 
