@@ -20,13 +20,11 @@ public class SynapseCountsPerRoiTest {
 
         Assert.assertEquals(1, synapseCountsPerRoi.getSynapseCountsForRoi("testRoi").getPre());
         Assert.assertEquals(0, synapseCountsPerRoi.getSynapseCountsForRoi("testRoi").getPost());
-        Assert.assertEquals(1, synapseCountsPerRoi.getSynapseCountsForRoi("testRoi").getTotal());
 
         synapseCountsPerRoi.incrementPostForRoi("testRoi");
 
         Assert.assertEquals(1, synapseCountsPerRoi.getSynapseCountsForRoi("testRoi").getPre());
         Assert.assertEquals(1, synapseCountsPerRoi.getSynapseCountsForRoi("testRoi").getPost());
-        Assert.assertEquals(2, synapseCountsPerRoi.getSynapseCountsForRoi("testRoi").getTotal());
     }
 
     @Test
@@ -43,7 +41,6 @@ public class SynapseCountsPerRoiTest {
         Map<String,SynapseCounter> deserializedSynapseCountsPerRoi = gson.fromJson(synapseCountsPerRoiJson, new TypeToken<Map<String,SynapseCounter>>() {}.getType());
 
         Assert.assertTrue(deserializedSynapseCountsPerRoi.containsKey("testRoi"));
-        Assert.assertEquals(2, deserializedSynapseCountsPerRoi.get("testRoi").getTotal());
 
     }
 

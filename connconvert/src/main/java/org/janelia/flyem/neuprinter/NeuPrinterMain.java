@@ -329,7 +329,6 @@ public class NeuPrinterMain {
             LOG.info("Reading in synapse json took: " + timer.stop());
             timer.reset();
 
-            //TODO: do I need to worry about duplicates here?
             HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
@@ -344,8 +343,6 @@ public class NeuPrinterMain {
                     neo4jImporter.addConnectsTo(dataset, bodyList);
                     LOG.info("Loading all ConnectsTo took: " + timer.stop());
                     timer.reset();
-
-                    //TODO: figure out how to refactor this so it makes sense
 
                 }
 

@@ -126,7 +126,7 @@ Usage: java -cp neuprinter.jar ConnConvert
 * status: status of neuron
 * somaLocation: 3D Cartesian location
 * somaRadius: radius of soma
-* synapseCountPerRoi: string containing json map in format {"roiA":{"pre":1,"post":2,"total":3},...}
+* synapseCountPerRoi: string containing json map in format {"roiA":{"pre":1,"post":2},...}
 
 ### :Synapse properties
 * type: type of synapse
@@ -147,7 +147,7 @@ Usage: java -cp neuprinter.jar ConnConvert
 * dataset: string indicating dataset name
 * totalPreCount: number of presynaptic densities in dataset
 * totalPostCount: number of postsynaptic densities in dataset
-* synapseCountPerRoi: string containing json map in format {"roiA":{"pre":1,"post":2,"total":3},...}
+* synapseCountPerRoi: string containing json map in format {"roiA":{"pre":1,"post":2},...}
 
 ### :DataModel
 * dataModelVersion: property graph model version number for database

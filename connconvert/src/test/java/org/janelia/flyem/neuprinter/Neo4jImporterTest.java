@@ -186,7 +186,7 @@ public class Neo4jImporterTest {
             Assert.assertEquals(3, synapseCountPerRoi.keySet().size());
             Assert.assertEquals(2, synapseCountPerRoi.get("roiA").getPre());
             Assert.assertEquals(0, synapseCountPerRoi.get("seven_column_roi").getPost());
-            Assert.assertEquals(1, synapseCountPerRoi.get("roiB").getTotal());
+            Assert.assertEquals(1, synapseCountPerRoi.get("roiB").getPost());
 
             int weight = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN r.weight").single().get(0).asInt();
 
