@@ -11,7 +11,7 @@ public class ConnectsToRelationship {
     ConnectsToRelationship(Node startNode, Node endNode) {
         this.startNode = startNode;
         this.endNode = endNode;
-        this.weight = new Long(0);
+        this.weight = 0L;
     }
 
     Long getWeight() {

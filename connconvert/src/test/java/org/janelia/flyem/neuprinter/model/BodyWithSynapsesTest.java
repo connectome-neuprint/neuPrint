@@ -41,9 +41,9 @@ public class BodyWithSynapsesTest {
 
         final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
 
-        BodyWithSynapses body1 = new BodyWithSynapses(new Long(85), parsedBodyList.get(0).getSynapseSet());
-        BodyWithSynapses body2 = new BodyWithSynapses(new Long(85), parsedBodyList.get(1).getSynapseSet());
-        BodyWithSynapses body3 = new BodyWithSynapses(new Long(85), parsedBodyList.get(2).getSynapseSet());
+        BodyWithSynapses body1 = new BodyWithSynapses(85L, parsedBodyList.get(0).getSynapseSet());
+        BodyWithSynapses body2 = new BodyWithSynapses(85L, parsedBodyList.get(1).getSynapseSet());
+        BodyWithSynapses body3 = new BodyWithSynapses(85L, parsedBodyList.get(2).getSynapseSet());
 
         //reflexive
         Assert.assertTrue(body1.equals(body1));
@@ -57,7 +57,7 @@ public class BodyWithSynapsesTest {
         Assert.assertTrue(!body2.equals(null));
 
         Assert.assertNotSame(body1, body2);
-        Assert.assertTrue(body1.hashCode() == body2.hashCode());
+        Assert.assertEquals(body1.hashCode(), body2.hashCode());
 
 
     }
