@@ -7,12 +7,13 @@ import org.janelia.flyem.neuprinter.json.JsonUtils;
 
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class BodyWithSynapses {
 
@@ -32,6 +33,9 @@ public class BodyWithSynapses {
 
     private transient SynapseCountsPerRoi synapseCountsPerRoi;
 
+    private static transient String PRE = "pre";
+    private static transient String POST = "post";
+
     public BodyWithSynapses(Long bodyId, Set<Synapse> synapseSet) {
         this.bodyId = bodyId;
         this.synapseSet = synapseSet; // LinkedHashSet ? if want to preserve order
@@ -46,89 +50,78 @@ public class BodyWithSynapses {
     }
 
     /**
-     * @return the total number pre-synapses associated with this body.
+     * @return the total number presynaptic densities associated with this body.
      */
     public Integer getNumberOfPreSynapses() {
         return this.numberOfPreSynapses;
     }
 
     /**
-     * @return the total number post-synapses associated with this body.
+     * @return the total number postsynaptic densities associated with this body.
      */
     public Integer getNumberOfPostSynapses() {
         return this.numberOfPostSynapses;
     }
 
+    /**
+     * @return number of synaptic densities (pre and post) for each ROI associated with this body as SynapseCountsPerRoi object.
+     */
     public SynapseCountsPerRoi getSynapseCountsPerRoi() {
         return this.synapseCountsPerRoi;
     }
 
+    /**
+     * @return set of synapses associated with this body.
+     */
     public Set<Synapse> getSynapseSet() {
         return synapseSet;
     }
 
+    /**
+     * @return map of postsynaptic bodyIds to weights for this body.
+     */
     public HashMap<Long, Integer> getConnectsTo() {
         return connectsTo;
     }
 
+    /**
+     * @return map of presynaptic bodyIds to weights for this body.
+     */
     public HashMap<Long, Integer> getConnectsFrom() {
         return connectsFrom;
     }
 
-    @Override
-    public String toString() {
-        return "BodyWithSynapses { " + "bodyid= " + this.bodyId +
-                ", SynapseSet= " + this.synapseSet + " }";
-    }
-
-    @Override
-    public boolean equals(final Object o) {
-        boolean isEqual = false;
-        if (this == o) {
-            isEqual = true;
-        } else if (o instanceof BodyWithSynapses) {
-            final BodyWithSynapses that = (BodyWithSynapses) o;
-            isEqual = Objects.equals(this.bodyId, that.bodyId);
-        }
-        return isEqual;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = 17;
-        result = 31 * result + bodyId.hashCode();
-        return result;
-    }
-
+    /**
+     * @return list of presynaptic density locations for this body as strings ("x:y:z").
+     */
     public List<String> getPreLocations() {
-        List<String> preLocations = new ArrayList<>();
-        for (Synapse synapse : this.synapseSet) {
-            if (synapse.getType().equals("pre")) {
-                preLocations.add(synapse.getLocationString());
-            }
-        }
-        return preLocations;
+        return this.synapseSet.stream()
+                .filter(synapse -> synapse.getType().equals(PRE))
+                .map(Synapse::getLocationString)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * @return list of postsynaptic density locations for this body as strings ("x:y:z").
+     */
     public List<String> getPostLocations() {
-        List<String> postLocations = new ArrayList<>();
-        for (Synapse synapse : this.synapseSet) {
-            if (synapse.getType().equals("post")) {
-                postLocations.add(synapse.getLocationString());
-            }
-        }
-        return postLocations;
+        return this.synapseSet.stream()
+                .filter(synapse -> synapse.getType().equals(POST))
+                .map(Synapse::getLocationString)
+                .collect(Collectors.toList());
     }
 
+    /**
+     * @return List of postsynaptic density locations for this body as strings ("x:y:z").
+     */
     public List<String> getBodyRois() {
-        List<String> bodyRois = new ArrayList<>();
-        for (Synapse synapse : this.synapseSet) {
-            bodyRois.addAll(synapse.getRois());
-        }
-        return bodyRois;
+        return this.synapseSet.stream()
+                .map(Synapse::getRois)
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
     }
 
-    public void addSynapseToBodyIdMapAndSetSynapseCounts(String mapType, SynapseLocationToBodyIdMap synapseLocationToBodyIdMap) throws IllegalArgumentException {
+    public void addSynapsesToBodyIdMapAndSetSynapseCounts(String mapType, SynapseLocationToBodyIdMap synapseLocationToBodyIdMap) throws IllegalArgumentException {
 
         int countPre = 0;
         int countPost = 0;
@@ -168,42 +161,42 @@ public class BodyWithSynapses {
 
     public void setConnectsTo(SynapseLocationToBodyIdMap postToBody) {
         this.connectsTo = new HashMap<>();
-        for (Synapse synapse : this.synapseSet) {
-            if (synapse.getType().equals("pre")) {
-                List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
-                List<Long> postsynapticPartnerIds = postLocsToBodyIds(postsynapticPartners, postToBody);
-                for (Long partnerId : postsynapticPartnerIds) {
-                    if (partnerId != null) {
-                        int count = this.connectsTo.containsKey(partnerId) ? this.connectsTo.get(partnerId) : 0;
-                        this.connectsTo.put(partnerId, count + 1);
-                    } else {
-                        LOG.info(synapse.getLocationString() + " on " + this.bodyId + " has no bodyId for postsynaptic partner.");
-
+        this.synapseSet
+                .stream()
+                .filter(synapse -> synapse.getType().equals(PRE))
+                .collect(Collectors.toSet())
+                .forEach(preSynapse -> {
+                    List<Long> postSynapticBodyIdsForSynapse = getPostSynapticBodyIdsForSynapse(preSynapse, postToBody);
+                    for (Long partnerId : postSynapticBodyIdsForSynapse) {
+                        if (partnerId != null) {
+                            int count = this.connectsTo.getOrDefault(partnerId, 0);
+                            this.connectsTo.put(partnerId, count + 1);
+                        } else {
+                            LOG.warning(preSynapse.getLocationString() + " on " + this.bodyId + " has no bodyId for postsynaptic partner.");
+                        }
                     }
-                }
-            }
-        }
+                });
     }
 
     public void addSynapsesToPreToPostMap(HashMap<String, List<String>> preToPost) {
-
-        for (Synapse synapse : this.synapseSet) {
-            if (synapse.getType().equals("pre")) {
-                List<String> postsynapticPartners = synapse.getConnectionLocationStrings();
-                preToPost.put(synapse.getLocationString(), postsynapticPartners);
-            }
-        }
+        this.synapseSet
+                .stream()
+                .filter(synapse -> synapse.getType().equals(PRE))
+                .collect(Collectors.toSet())
+                .forEach(preSynapse -> preToPost.put(preSynapse.getLocationString(),preSynapse.getConnectionLocationStrings()));
     }
 
-    private List<Long> postLocsToBodyIds(List<String> postsynapticPartners, SynapseLocationToBodyIdMap postToBody) {
-        List<Long> postsynapticPartnerIds = new ArrayList<>();
-        for (String psdLocation : postsynapticPartners) {
-            postsynapticPartnerIds.add(postToBody.getBodyId(psdLocation));
-            if (postToBody.getBodyId(psdLocation) == null) {
-                System.out.println(psdLocation + " not in postToBody.");
+    private List<Long> getPostSynapticBodyIdsForSynapse(Synapse synapse, SynapseLocationToBodyIdMap postToBody) {
+        return synapse
+                .getConnectionLocationStrings()
+                .stream()
+                .map(s -> {
+            if (postToBody.getBodyId(s) == null) {
+                LOG.warning(s + " not in postToBody.");
             }
-        }
-        return postsynapticPartnerIds;
+            return postToBody.getBodyId(s);
+            })
+                .collect(Collectors.toList());
     }
 
     public void setSynapseCountsPerRoi() {
@@ -212,16 +205,39 @@ public class BodyWithSynapses {
 
     public static SynapseCountsPerRoi getSynapseCountersPerRoiFromSynapseSet(Set<Synapse> synapseSet) {
         SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
-        for (Synapse synapse : synapseSet) {
-            for (String roi : synapse.getRois()) {
-                if (synapse.getType().equals("pre")) {
-                    synapseCountsPerRoi.incrementPreForRoi(roi);
-                } else if (synapse.getType().equals("post")) {
-                    synapseCountsPerRoi.incrementPostForRoi(roi);
-                }
+        synapseSet.forEach(synapse -> {
+            if (synapse.getType().equals(PRE)) {
+                synapse.getRois().forEach(synapseCountsPerRoi::incrementPreForRoi);
+            } else if (synapse.getType().equals(POST)) {
+                synapse.getRois().forEach(synapseCountsPerRoi::incrementPostForRoi);
             }
-        }
+        });
         return synapseCountsPerRoi;
+    }
+
+    @Override
+    public String toString() {
+        return "BodyWithSynapses { " + "bodyid= " + this.bodyId +
+                ", synapseSet= " + this.synapseSet + " }";
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        boolean isEqual = false;
+        if (this == o) {
+            isEqual = true;
+        } else if (o instanceof BodyWithSynapses) {
+            final BodyWithSynapses that = (BodyWithSynapses) o;
+            isEqual = Objects.equals(this.bodyId, that.bodyId);
+        }
+        return isEqual;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 17;
+        result = 31 * result + bodyId.hashCode();
+        return result;
     }
 
     public static List<BodyWithSynapses> fromJson(final String jsonString) {

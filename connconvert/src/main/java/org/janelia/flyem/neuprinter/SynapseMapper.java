@@ -78,7 +78,7 @@ public class SynapseMapper {
 
 
         for (final BodyWithSynapses body : bodyList) {
-            body.addSynapseToBodyIdMapAndSetSynapseCounts("post", synapseLocationToBodyIdMap);
+            body.addSynapsesToBodyIdMapAndSetSynapseCounts("post", synapseLocationToBodyIdMap);
         }
 
         for (final BodyWithSynapses body : bodyList) {
