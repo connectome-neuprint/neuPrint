@@ -5,18 +5,25 @@ import com.google.gson.stream.JsonWriter;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
-import java.io.*;
-import java.util.*;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class SynapticConnectionVertexMap {
 
-
-    private static Map<String,SynapticConnectionVertex> synapticConnectionVertexStore;
-    private static Map<Long,Set<SynapticConnectionVertex>> groupsOfConnectedSynapticConnectionVertices;
+    private static Map<String, SynapticConnectionVertex> synapticConnectionVertexStore;
+    private static Map<Long, Set<SynapticConnectionVertex>> groupsOfConnectedSynapticConnectionVertices;
     private static Set<SynapticConnectionEdge> synapticConnectionEdges;
     private static final Gson gson = new Gson();
     private static List<SynapticConnectionVertex> vertexList;
-
 
     public SynapticConnectionVertexMap() {
         synapticConnectionVertexStore = new HashMap<>();
@@ -28,10 +35,10 @@ public class SynapticConnectionVertexMap {
         synapticConnectionVertexStore = new HashMap<>();
         groupsOfConnectedSynapticConnectionVertices = new HashMap<>();
 
-        SynapticConnectionVertex[] vertexArray = gson.fromJson(vertexJson,SynapticConnectionVertex[].class);
+        SynapticConnectionVertex[] vertexArray = gson.fromJson(vertexJson, SynapticConnectionVertex[].class);
         vertexList = Arrays.asList(vertexArray);
 
-        for (SynapticConnectionVertex synapticConnectionVertex : vertexList ) {
+        for (SynapticConnectionVertex synapticConnectionVertex : vertexList) {
 
             String connectionDescription = synapticConnectionVertex.getConnectionDescription();
             String[] descriptionTokens = connectionDescription.split("_");
@@ -41,7 +48,6 @@ public class SynapticConnectionVertexMap {
             synapticConnectionVertexStore.put(connectionDescription, synapticConnectionVertex);
             addSynapticConnectionVertexToConnectedGroup(preBodyId, connectionDescription);
             addSynapticConnectionVertexToConnectedGroup(postBodyId, connectionDescription);
-
 
         }
 
@@ -53,7 +59,7 @@ public class SynapticConnectionVertexMap {
         Long preBodyId = Long.parseLong(descriptionTokens[0]);
         Long postBodyId = Long.parseLong(descriptionTokens[2]);
 
-        if ( synapticConnectionVertexStore.get(connectionDescription) == null ) {
+        if (synapticConnectionVertexStore.get(connectionDescription) == null) {
             synapticConnectionVertexStore.put(connectionDescription, new SynapticConnectionVertex(connectionDescription));
             synapticConnectionVertexStore.get(connectionDescription).addSynapticConnection(preSynapseNode, postSynapseNode);
         } else {
@@ -69,7 +75,7 @@ public class SynapticConnectionVertexMap {
 
         List<SynapticConnectionVertex> synapticConnectionVertexArray = new ArrayList<>();
 
-        for ( String connectionDescription : synapticConnectionVertexStore.keySet() ) {
+        for (String connectionDescription : synapticConnectionVertexStore.keySet()) {
             SynapticConnectionVertex synapticConnectionVertex = synapticConnectionVertexStore.get(connectionDescription);
             synapticConnectionVertex.setCentroidLocationAndSynapseCounts();
             synapticConnectionVertexArray.add(synapticConnectionVertex);
@@ -79,7 +85,6 @@ public class SynapticConnectionVertexMap {
 
         System.out.println("Created vertex json with " + synapticConnectionVertexArray.size() + " nodes.");
 
-
         return json;
     }
 
@@ -88,10 +93,10 @@ public class SynapticConnectionVertexMap {
         List<SynapticConnectionVertex> synapticConnectionVertexArray = new ArrayList<>();
         int sizeOfFilteredList = 0;
 
-        for ( String connectionDescription : synapticConnectionVertexStore.keySet() ) {
+        for (String connectionDescription : synapticConnectionVertexStore.keySet()) {
             SynapticConnectionVertex synapticConnectionVertex = synapticConnectionVertexStore.get(connectionDescription);
             synapticConnectionVertex.setCentroidLocationAndSynapseCounts();
-            if ( (synapticConnectionVertex.getPost()+synapticConnectionVertex.getPre()) > minimumNumberOfSynapses ) {
+            if ((synapticConnectionVertex.getPost() + synapticConnectionVertex.getPre()) > minimumNumberOfSynapses) {
                 synapticConnectionVertexArray.add(synapticConnectionVertex);
                 sizeOfFilteredList += 1;
             }
@@ -99,8 +104,7 @@ public class SynapticConnectionVertexMap {
 
         String json = gson.toJson(synapticConnectionVertexArray);
 
-        System.out.println("Created vertex json with " + sizeOfFilteredList + " nodes.");
-
+        System.out.println(String.format("Created vertex json with %d nodes.", sizeOfFilteredList));
 
         return json;
     }
@@ -109,13 +113,13 @@ public class SynapticConnectionVertexMap {
 
         createSynapticConnectionVertexEdges(cableDistance, dbService, datasetLabel, bodyId);
         String json = gson.toJson(synapticConnectionEdges);
-        System.out.println("Created edge json with " + synapticConnectionEdges.size() + " edges.");
+        System.out.println(String.format("Created edge json with %d edges.", synapticConnectionEdges.size()));
 
         return json;
 
     }
 
-    public String getGraphJson( String edgeJson, String vertexJson ) {
+    public String getGraphJson(String edgeJson, String vertexJson) {
 
         GraphJson graphJson = new GraphJson(edgeJson, vertexJson);
         String graphJsonString = gson.toJson(graphJson);
@@ -129,7 +133,6 @@ public class SynapticConnectionVertexMap {
     }
 
     public void writeEdgesAsJson(String datasetLabel, String roi, Boolean cableDistance, final GraphDatabaseService dbService, final Long bodyId) {
-
 
         createSynapticConnectionVertexEdges(cableDistance, dbService, datasetLabel, bodyId);
         System.out.println("Created synaptic connection vertex edges.");
@@ -153,7 +156,6 @@ public class SynapticConnectionVertexMap {
         writer.close();
     }
 
-
     public void writeVerticesAsJson(String datasetLabel, String roi) {
 
         try (OutputStream outputFile = new FileOutputStream(datasetLabel + "_" + roi + "_" + "vertices.json")) {
@@ -174,13 +176,12 @@ public class SynapticConnectionVertexMap {
         writer.endArray();
         writer.close();
 
-
     }
 
     private void addSynapticConnectionVertexToConnectedGroup(Long bodyId, String connectionDescription) {
 
-        if ( groupsOfConnectedSynapticConnectionVertices.get(bodyId) == null ) {
-            groupsOfConnectedSynapticConnectionVertices.put(bodyId,new HashSet<>());
+        if (groupsOfConnectedSynapticConnectionVertices.get(bodyId) == null) {
+            groupsOfConnectedSynapticConnectionVertices.put(bodyId, new HashSet<>());
             groupsOfConnectedSynapticConnectionVertices.get(bodyId).add(synapticConnectionVertexStore.get(connectionDescription));
         } else {
             groupsOfConnectedSynapticConnectionVertices.get(bodyId).add(synapticConnectionVertexStore.get(connectionDescription));
@@ -188,30 +189,21 @@ public class SynapticConnectionVertexMap {
 
     }
 
-
     private void createSynapticConnectionVertexEdges(Boolean cableDistance, final GraphDatabaseService dbService, final String datasetLabel, final Long bodyId) {
-        synapticConnectionEdges =  new HashSet<>();
+        synapticConnectionEdges = new HashSet<>();
 
         for (Long bodyIdInGroup : groupsOfConnectedSynapticConnectionVertices.keySet()) {
 
             SynapticConnectionVertex[] synapticConnectionVertices = groupsOfConnectedSynapticConnectionVertices.get(bodyIdInGroup).toArray(new SynapticConnectionVertex[0]);
-
-            for (int i = 0; i < synapticConnectionVertices.length ; i++) {
-                for (int j = i+1; j < synapticConnectionVertices.length ; j++) {
+            //create edges for every pair of vertices
+            for (int i = 0; i < synapticConnectionVertices.length; i++) {
+                for (int j = i + 1; j < synapticConnectionVertices.length; j++) {
                     synapticConnectionEdges.add(new SynapticConnectionEdge(synapticConnectionVertices[i], synapticConnectionVertices[j], cableDistance, dbService, datasetLabel, bodyId));
 
                 }
             }
         }
 
-
-
     }
-
-
-
-
-
-
 
 }

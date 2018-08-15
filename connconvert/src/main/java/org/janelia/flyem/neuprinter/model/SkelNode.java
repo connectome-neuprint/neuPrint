@@ -26,13 +26,9 @@ public class SkelNode {
         this.rowNumber = rowNumber;
     }
 
-    public SkelNode(Long associatedBodyId, String locationString, float radius, int rowNumber) {
+    public SkelNode(Long associatedBodyId, List<Integer> location, float radius, int rowNumber) {
         this.associatedBodyId = associatedBodyId;
-        String[] locationStringComponents = locationString.split(":");
-        this.location = new ArrayList<>();
-        for (String component : locationStringComponents) {
-            location.add(Integer.parseInt(component));
-        }
+        this.location = location;
         this.radius = radius;
         this.rowNumber = rowNumber;
     }

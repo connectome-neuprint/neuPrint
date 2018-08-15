@@ -2,6 +2,7 @@ package org.janelia.flyem.neuprintprocedures;
 
 import com.google.gson.annotations.SerializedName;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.spatial.Point;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -33,9 +34,7 @@ public class SynapticConnectionVertex {
     }
 
     private Location extractSynapseLocation(Node synapseNode) {
-        return new Location((Long) synapseNode.getProperty("x"),
-                (Long) synapseNode.getProperty("y"),
-                (Long) synapseNode.getProperty("z"));
+        return AnalysisProcedures.getSkelOrSynapseNodeLocation(synapseNode);
     }
 
     public Long[] setAndGetCentroid() {
