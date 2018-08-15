@@ -29,7 +29,6 @@ public class AddSkeletonTest {
     @Test
     public void shouldAddSkeletonToNeuron() {
 
-
         String datasetLabel = "test";
 
         String fileCall = "file:///Users/neubarthn/Documents/GitHub/neuPrint/neuprint-procedures/src/test/resources/101.swc";
@@ -40,9 +39,9 @@ public class AddSkeletonTest {
 
             session.run("CREATE (n:`test-Neuron`{bodyId:101}) SET n:Neuron, n:test");
 
-            Node skeleton = session.run("CALL proofreader.addSkeleton($fileUrl,$datasetLabel) YIELD node RETURN node",parameters("fileUrl",fileCall,"datasetLabel",datasetLabel)).single().get(0).asNode();
+            Node skeleton = session.run("CALL proofreader.addSkeleton($fileUrl,$datasetLabel) YIELD node RETURN node", parameters("fileUrl", fileCall, "datasetLabel", datasetLabel)).single().get(0).asNode();
 
-            Assert.assertEquals("test:101",skeleton.asMap().get("skeletonId"));
+            Assert.assertEquals("test:101", skeleton.asMap().get("skeletonId"));
             Assert.assertTrue(skeleton.hasLabel(datasetLabel));
             Assert.assertTrue(skeleton.hasLabel("Skeleton"));
             Assert.assertTrue(skeleton.hasLabel("test-Skeleton"));
@@ -64,11 +63,7 @@ public class AddSkeletonTest {
             Assert.assertEquals(28D, skelNodeProperties.get("s.radius"));
             Assert.assertEquals("test:101:5096:9281:1624", skelNodeProperties.get("s.skelNodeId"));
 
-
         }
 
-
-
-
-        }
+    }
 }

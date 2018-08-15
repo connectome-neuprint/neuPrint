@@ -144,7 +144,6 @@ public class TimeStampTest {
 
     }
 
-
     @Test
     public void shouldAddTimeStampUponRelationshipPropertiesRemoved() {
 

@@ -2,8 +2,8 @@ package org.janelia.flyem.neuprintprocedures;
 
 import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
-import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
+import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -25,7 +25,6 @@ public class SkeletonDistanceTest {
             .withProcedure(AnalysisProcedures.class)
             .withProcedure(GraphRefactoring.class)
             .withProcedure(Create.class);
-
 
     @Test
     public void shouldCalculateCorrectDistanceAndFindClosestPoint() {
@@ -56,7 +55,6 @@ public class SkeletonDistanceTest {
 
             Assert.assertEquals(new Long(207), distanceFromNearestCalculation);
         }
-
 
     }
 }

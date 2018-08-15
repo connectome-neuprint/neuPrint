@@ -23,7 +23,6 @@ import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -365,7 +364,7 @@ public class AnalysisProcedures {
         List<String> rois = null;
         try {
             roiListQueryResult = dbService.execute(getRoiFromMeta).next();
-            List<String> labels = Arrays.asList((String[]) roiListQueryResult.get("rois"));
+            List<String> labels = (ArrayList<String>) roiListQueryResult.get("rois");
             rois = labels.stream()
                     .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
                     .collect(Collectors.toList());

@@ -1,12 +1,15 @@
 package org.janelia.flyem.neuprintprocedures;
 
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.event.TransactionData;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-
 
 public class TriggersRunnable implements Runnable {
 
@@ -27,11 +30,9 @@ public class TriggersRunnable implements Runnable {
 
             Set<Long> nodesForTimeStamping = transactionDataHandler.getNodesForTimeStamping();
 
-
             if (transactionDataHandler.shouldTimeStampAndUpdateMetaNode()) {
                 System.out.println("the following nodes will be time-stamped: " + nodesForTimeStamping);
                 TimeStampProcedure.timeStampEmbedded(nodesForTimeStamping, dbService);
-
 
                 ResourceIterator<Node> metaNodeIterator = dbService.findNodes(Label.label("Meta"));
                 while (metaNodeIterator.hasNext()) {
@@ -45,14 +46,11 @@ public class TriggersRunnable implements Runnable {
                     System.out.println("meta node updated: " + metaNode.getAllProperties());
                 }
 
-
                 tx.success();
                 System.out.println("Completed time stamping.");
             }
 
-
         }
-
 
     }
 }
