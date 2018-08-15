@@ -309,29 +309,32 @@ public class ProofreaderProcedures {
 
     }
 
-    @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
-    @Description("proofreader.deleteNeuron(neuronBodyId,datasetLabel) : delete neuron with body Id and associated nodes from given dataset. ")
-    public void deleteNeuron(@Name("neuronBodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
-        if (bodyId == null || datasetLabel == null)
-            throw new Error(String.format("Must provide both a %s and dataset label.", BODY_ID));
-
-        final Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
-
-        // grab write locks upfront
-        acquireWriteLockForNeuronSubgraph(neuron);
-
-        //delete connectsTo relationships
-        removeConnectsToRelationshipsForNode(neuron);
-
-        //delete synapse set and synapses
-        removeSynapseSetsAndSynapses(neuron);
-
-        //delete skeleton
-        deleteSkeletonForNode(neuron);
-
-        neuron.delete();
-
-    }
+//    @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
+//    @Description("proofreader.deleteNeuron(neuronBodyId,datasetLabel) : delete neuron with body Id and associated nodes from given dataset. ")
+//    public void deleteNeuron(@Name("neuronBodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+//        if (bodyId == null || datasetLabel == null)
+//            throw new Error(String.format("Must provide both a %s and dataset label.", BODY_ID));
+//
+//        final Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+//
+//        // grab write locks upfront
+//        acquireWriteLockForNeuronSubgraph(neuron);
+//
+//        //delete History
+//        removeHistoryForNode(neuron);
+//
+//        //delete connectsTo relationships
+//        removeConnectsToRelationshipsForNode(neuron);
+//
+//        //delete synapse set and synapses
+//        removeSynapseSetsAndSynapses(neuron);
+//
+//        //delete skeleton
+//        deleteSkeletonForNode(neuron);
+//
+//        neuron.delete();
+//
+//    }
 
     private Node recursivelyMergeNodes(Node resultNode, List<Node> mergedBodies, Long newNodeSize, String datasetLabel) {
         if (mergedBodies.size() == 0) {
@@ -939,6 +942,32 @@ public class ProofreaderProcedures {
         Map<String, Object> nodeQueryResult = dbService.execute("MATCH (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) RETURN r", getSkeletonParametersMap).next();
         return (Node) nodeQueryResult.get("r");
     }
+//
+//    private void removeHistoryForNode(Node node) {
+//        Node historyNode = getHistoryNodeForNode(node);
+//        if (historyNode==null) {
+//            //no history node so return
+//            return;
+//        }
+//
+//        // delete from relationship
+//        Relationship fromRelationship = node.getSingleRelationship(RelationshipType.withName(FROM),Direction.OUTGOING);
+//        fromRelationship.delete();
+//
+//        //go one degree out
+//        for (Relationship historyRelationship: historyNode.getRelationships()) {
+//            //get ghost node attached to this relationship
+//            Node ghostNode = historyRelationship.getStartNode();
+//            //delete relationship to history node
+//            historyRelationship.delete();
+//            //if this is the only relationship this node has then delete it
+//            if (ghostNode.getDegree()==0) {
+//                ghostNode.delete();
+//            }
+//        }
+//
+//
+//    }
 
     private void removeConnectsToRelationshipsForNode(Node node) {
         for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName(CONNECTS_TO))) {
