@@ -5,7 +5,10 @@ import org.janelia.flyem.neuprinter.model.Synapse;
 
 import java.util.Set;
 
-public class CleaveAction {
+public class CleaveOrSplitAction {
+
+    @SerializedName("Action")
+    private String action;
 
     @SerializedName("NewBodyId")
     private Long newBodyId;
@@ -35,9 +38,14 @@ public class CleaveAction {
         return originalBodyId;
     }
 
+    public String getAction() {
+        return action;
+    }
+
     @Override
     public String toString() {
-        return "newBodyId: " + this.newBodyId +
+        return  " action: " + this.action +
+                " newBodyId: " + this.newBodyId +
                 ", originalBodyId: " + this.originalBodyId +
                 ", newBodySize: " + this.newBodySize +
                 ", newBodySynapses: " + this.newBodySynapses;
@@ -48,8 +56,8 @@ public class CleaveAction {
         boolean isEqual = false;
         if (this == o) {
             isEqual = true;
-        } else if (o instanceof CleaveAction) {
-            final CleaveAction that = (CleaveAction) o;
+        } else if (o instanceof CleaveOrSplitAction) {
+            final CleaveOrSplitAction that = (CleaveOrSplitAction) o;
             isEqual = this.newBodyId.equals(that.newBodyId) && this.originalBodyId.equals(that.originalBodyId);
         }
         return isEqual;

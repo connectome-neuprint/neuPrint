@@ -32,7 +32,7 @@ import java.util.Map;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
-public class CleaveNeuronsTest {
+public class CleaveOrSplitNeuronsTest {
 
     @Rule
     public Neo4jRule neo4j = new Neo4jRule()
@@ -87,14 +87,15 @@ public class CleaveNeuronsTest {
             Node neuron2 = (Node) neurons.get(1);
 
             Gson gson = new Gson();
-            CleaveAction cleaveAction = gson.fromJson(cleaveInstructionJson, CleaveAction.class);
+            CleaveOrSplitAction cleaveOrSplitAction = gson.fromJson(cleaveInstructionJson, CleaveOrSplitAction.class);
+            Assert.assertEquals("cleave", cleaveOrSplitAction.getAction());
 
             //check properties on new nodes
-            Assert.assertEquals(cleaveAction.getNewBodyId(), neuron1.asMap().get("bodyId"));
-            Assert.assertEquals(cleaveAction.getNewBodySize(), neuron1.asMap().get("size"));
+            Assert.assertEquals(cleaveOrSplitAction.getNewBodyId(), neuron1.asMap().get("bodyId"));
+            Assert.assertEquals(cleaveOrSplitAction.getNewBodySize(), neuron1.asMap().get("size"));
             Assert.assertEquals(1L, neuron1.asMap().get("pre"));
             Assert.assertEquals(1L, neuron1.asMap().get("post"));
-            Assert.assertEquals(cleaveAction.getOriginalBodyId(), neuron2.asMap().get("bodyId"));
+            Assert.assertEquals(cleaveOrSplitAction.getOriginalBodyId(), neuron2.asMap().get("bodyId"));
             Assert.assertEquals(14766999L, neuron2.asMap().get("size"));
             Assert.assertEquals(1L, neuron2.asMap().get("pre"));
             Assert.assertEquals(0L, neuron2.asMap().get("post"));
@@ -205,6 +206,80 @@ public class CleaveNeuronsTest {
                 return tx.run("MATCH (n) WHERE NOT n:test AND NOT n:DataModel RETURN count(n)").single().get(0).asInt();
             });
             Assert.assertEquals(new Integer(1), countOfNodesWithoutDatasetLabel);
+
+        }
+    }
+
+    @Test
+    public void shouldSplitIfActionIsListedAsSplit() {
+        String splitInstructionJson = "{\"Action\": \"split\", \"NewBodyId\": 5555, \"OrigBodyId\": 8426959, " +
+                "\"NewBodySize\": 2778831, \"NewBodySynapses\": [" +
+                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}" +
+                "]}";
+
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        bodyList.sort(new SortBodyByNumberOfSynapses());
+
+        File swcFile1 = new File("src/test/resources/8426959.swc");
+        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1});
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+            String dataset = "test";
+
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+            neo4jImporter.prepDatabase(dataset);
+
+            neo4jImporter.addNeurons(dataset, neuronList);
+
+            neo4jImporter.addConnectsTo(dataset, bodyList);
+            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+            neo4jImporter.addSynapsesTo(dataset, preToPost);
+            neo4jImporter.addNeuronRois(dataset, bodyList);
+            neo4jImporter.addSynapseSets(dataset, bodyList);
+            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
+            neo4jImporter.addAutoNames(dataset, 0);
+            neo4jImporter.addSkeletonNodes(dataset, skeletonList);
+
+            List<Object> neurons = session.writeTransaction(tx ->
+                    tx.run("CALL proofreader.cleaveNeuronFromJson($splitJson,\"test\") YIELD nodes RETURN nodes", parameters("splitJson", splitInstructionJson)).single().get(0).asList());
+
+            Gson gson = new Gson();
+            CleaveOrSplitAction cleaveOrSplitAction = gson.fromJson(splitInstructionJson, CleaveOrSplitAction.class);
+            Assert.assertEquals("split", cleaveOrSplitAction.getAction());
+
+            //all properties on ghost node should be prefixed with "split", all labels removed, only relationships to history node
+            Node prevOrigNode = session.run("MATCH (n{splitBodyId:$bodyId}) RETURN n", parameters("bodyId", 8426959)).single().get(0).asNode();
+
+            Map<String, Object> node1Properties = prevOrigNode.asMap();
+
+            for (String propertyName : node1Properties.keySet()) {
+                if (!propertyName.equals("timeStamp")) {
+                    Assert.assertTrue(propertyName.startsWith("split"));
+                }
+            }
+
+            Assert.assertFalse(prevOrigNode.labels().iterator().hasNext());
+
+            List<Record> prevOrigNodeRelationships = session.run("MATCH (n{splitBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId", 8426959)).list();
+            List<Record> origNeuronHistoryNode = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:$bodyId})-[:From]->(h:History) RETURN h", parameters("bodyId", 8426959)).list();
+            List<Record> newNeuronHistoryNode = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:$bodyId})-[:From]->(h:History) RETURN h", parameters("bodyId", 5555)).list();
+
+            Assert.assertEquals(2, prevOrigNodeRelationships.size());
+            Assert.assertEquals(1, origNeuronHistoryNode.size());
+            Node historyNodeOrig = (Node) origNeuronHistoryNode.get(0).asMap().get("h");
+            Node historyNodeNew = (Node) newNeuronHistoryNode.get(0).asMap().get("h");
+
+            Relationship r1 = (Relationship) prevOrigNodeRelationships.get(0).asMap().get("r");
+            Relationship r2 = (Relationship) prevOrigNodeRelationships.get(1).asMap().get("r");
+            Assert.assertTrue(r1.hasType("SplitTo") && r2.hasType("SplitTo"));
+            Assert.assertTrue((r1.endNodeId() == historyNodeOrig.id() && r2.endNodeId() == historyNodeNew.id()) ||
+                    (r2.endNodeId() == historyNodeOrig.id() && r1.endNodeId() == historyNodeNew.id()));
 
         }
     }

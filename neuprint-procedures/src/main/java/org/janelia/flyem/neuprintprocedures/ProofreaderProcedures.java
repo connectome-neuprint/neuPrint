@@ -126,18 +126,32 @@ public class ProofreaderProcedures {
         }
 
         final Gson gson = new Gson();
-        final CleaveAction cleaveAction = gson.fromJson(cleaveJson, CleaveAction.class);
+        final CleaveOrSplitAction cleaveOrSplitAction = gson.fromJson(cleaveJson, CleaveOrSplitAction.class);
 
-        final Node originalBody = acquireNeuronFromDatabase(cleaveAction.getOriginalBodyId(), datasetLabel);
+        final Node originalBody = acquireNeuronFromDatabase(cleaveOrSplitAction.getOriginalBodyId(), datasetLabel);
 
         // grab write locks upfront
         acquireWriteLockForNeuronSubgraph(originalBody);
 
+        //check if action is cleave or split
+        String typeOfAction=null;
+        String historyRelationshipType=null;
+        if (cleaveOrSplitAction.getAction().equals("cleave")) {
+            typeOfAction = CLEAVED;
+            historyRelationshipType = CLEAVED_TO;
+        } else if (cleaveOrSplitAction.getAction().equals("split")) {
+            typeOfAction = SPLIT;
+            historyRelationshipType = SPLIT_TO;
+        }
+        if (typeOfAction==null) {
+            throw new Error("Unknown action type. Available actions for json are \"cleave\" or \"split\"");
+        }
+
         // create new neuron nodes with properties
-        final Node cleavedOriginalBody = copyPropertiesToNewNodeForCleaveOrMerge(originalBody, CLEAVED);
+        final Node cleavedOriginalBody = copyPropertiesToNewNodeForCleaveSplitOrMerge(originalBody, typeOfAction);
         final Node cleavedNewBody = dbService.createNode();
-        cleavedNewBody.setProperty(BODY_ID, cleaveAction.getNewBodyId());
-        cleavedNewBody.setProperty(SIZE, cleaveAction.getNewBodySize());
+        cleavedNewBody.setProperty(BODY_ID, cleaveOrSplitAction.getNewBodyId());
+        cleavedNewBody.setProperty(SIZE, cleaveOrSplitAction.getNewBodySize());
         log.info(String.format("Cleaving %s from %s...", cleavedNewBody.getProperty(BODY_ID), cleavedOriginalBody.getProperty(BODY_ID)));
 
         // original neuron synapse set
@@ -147,7 +161,7 @@ public class ProofreaderProcedures {
         }
         //create a synapse set for the new body with unique ID
         Node newBodySynapseSetNode = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
-        newBodySynapseSetNode.setProperty(DATASET_BODY_ID, datasetLabel + ":" + cleaveAction.getNewBodyId());
+        newBodySynapseSetNode.setProperty(DATASET_BODY_ID, datasetLabel + ":" + cleaveOrSplitAction.getNewBodyId());
         //connect both synapse sets to the cleaved nodes
         cleavedOriginalBody.createRelationshipTo(originalSynapseSetNode, RelationshipType.withName(CONTAINS));
         cleavedNewBody.createRelationshipTo(newBodySynapseSetNode, RelationshipType.withName(CONTAINS));
@@ -155,7 +169,7 @@ public class ProofreaderProcedures {
         //move synapses when necessary
         final ConnectsToRelationshipMap connectsToRelationshipMap = new ConnectsToRelationshipMap();
         final Set<Synapse> originalBodySynapseSet = new HashSet<>();
-        final Set<Synapse> newBodySynapseSet = cleaveAction.getNewBodySynapses();
+        final Set<Synapse> newBodySynapseSet = cleaveOrSplitAction.getNewBodySynapses();
         SynapseCounter originalBodySynapseCounter = new SynapseCounter();
         SynapseCounter newBodySynapseCounter = new SynapseCounter();
 
@@ -230,11 +244,11 @@ public class ProofreaderProcedures {
         cleavedNewBody.createRelationshipTo(newBodyHistoryNode, RelationshipType.withName(FROM));
         cleavedOriginalBody.createRelationshipTo(originalBodyHistoryNode, RelationshipType.withName(FROM));
         // connect ghost nodes to history neuron
-        originalBody.createRelationshipTo(originalBodyHistoryNode, RelationshipType.withName(CLEAVED_TO));
-        originalBody.createRelationshipTo(newBodyHistoryNode, RelationshipType.withName(CLEAVED_TO));
+        originalBody.createRelationshipTo(originalBodyHistoryNode, RelationshipType.withName(historyRelationshipType));
+        originalBody.createRelationshipTo(newBodyHistoryNode, RelationshipType.withName(historyRelationshipType));
 
         //remove labels, all properties to cleaved
-        convertAllPropertiesToCleavedProperties(originalBody);
+        convertAllPropertiesToCleavedOrSplitProperties(originalBody,typeOfAction);
         removeAllLabels(originalBody);
         List<String> except = new ArrayList<>();
         except.add(MERGED_TO);
@@ -332,7 +346,7 @@ public class ProofreaderProcedures {
 
         //create a new node that will be a copy of node1
         //copy properties over to new node (note: must add properties before adding labels or will violate uniqueness constraint)
-        final Node newNode = copyPropertiesToNewNodeForCleaveOrMerge(node1, MERGED);
+        final Node newNode = copyPropertiesToNewNodeForCleaveSplitOrMerge(node1, MERGED);
         // add size property from json to new node
         newNode.setProperty(SIZE, newNodeSize);
         log.info(String.format("Merging %s with %s...", node1.getProperty(BODY_ID), node2.getProperty(BODY_ID)));
@@ -385,7 +399,7 @@ public class ProofreaderProcedures {
         return newNode;
     }
 
-    private Node copyPropertiesToNewNodeForCleaveOrMerge(Node originalNode, String typeOfCopy) throws IllegalArgumentException {
+    private Node copyPropertiesToNewNodeForCleaveSplitOrMerge(Node originalNode, String typeOfCopy) throws IllegalArgumentException {
         // typeOfCopy can be "merge", "cleave", or "split"
         final Node newNode = dbService.createNode();
 
@@ -797,21 +811,11 @@ public class ProofreaderProcedures {
         }
     }
 
-    private void convertAllPropertiesToCleavedProperties(Node node) {
+    private void convertAllPropertiesToCleavedOrSplitProperties(Node node, String typeOfAction) {
         Map<String, Object> nodeProperties = node.getAllProperties();
         for (String propertyName : nodeProperties.keySet()) {
-            if (!propertyName.startsWith(CLEAVED)) {
-                String cleavedPropertyName = CLEAVED + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
-                convertPropertyNameToNewPropertyName(propertyName, cleavedPropertyName, node);
-            }
-        }
-    }
-
-    private void convertAllPropertiesToSplitProperties(Node node) {
-        Map<String, Object> nodeProperties = node.getAllProperties();
-        for (String propertyName : nodeProperties.keySet()) {
-            if (!propertyName.startsWith(SPLIT)) {
-                String cleavedPropertyName = SPLIT + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
+            if (!propertyName.startsWith(typeOfAction)) {
+                String cleavedPropertyName = typeOfAction + propertyName.substring(0, 1).toUpperCase() + propertyName.substring(1);
                 convertPropertyNameToNewPropertyName(propertyName, cleavedPropertyName, node);
             }
         }
