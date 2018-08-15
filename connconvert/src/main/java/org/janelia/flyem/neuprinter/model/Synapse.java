@@ -105,6 +105,18 @@ public class Synapse {
         return this.location;
     }
 
+    public Integer getX() {
+        return this.location.get(0);
+    }
+
+    public Integer getY() {
+        return this.location.get(1);
+    }
+
+    public Integer getZ() {
+        return this.location.get(2);
+    }
+
     public Point getLocationAsPoint() {
         return Values.point(9157, this.location.get(0), this.location.get(1), this.location.get(2)).asPoint();
     }

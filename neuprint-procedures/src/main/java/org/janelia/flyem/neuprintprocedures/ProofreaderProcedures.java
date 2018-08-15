@@ -146,7 +146,7 @@ public class ProofreaderProcedures {
             throw new Error(String.format("No %s node on original body.", SYNAPSE_SET));
         }
         //create a synapse set for the new body with unique ID
-        Node newBodySynapseSetNode = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel));
+        Node newBodySynapseSetNode = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
         newBodySynapseSetNode.setProperty(DATASET_BODY_ID, datasetLabel + ":" + cleaveAction.getNewBodyId());
         //connect both synapse sets to the cleaved nodes
         cleavedOriginalBody.createRelationshipTo(originalSynapseSetNode, RelationshipType.withName(CONTAINS));
@@ -208,9 +208,8 @@ public class ProofreaderProcedures {
         cleavedOriginalBody.setProperty(SYNAPSE_COUNT_PER_ROI, originalBodySynapseCountsPerRoi.getAsJsonString());
 
         //add proper roi labels to Neuron
-        addRoiLabelsToNeuronGivenSynapseCountsPerRoi(cleavedNewBody, newBodySynapseCountsPerRoi);
-        addRoiLabelsToNeuronGivenSynapseCountsPerRoi(cleavedOriginalBody, originalBodySynapseCountsPerRoi);
-
+        addRoiLabelsToNeuronGivenSynapseCountsPerRoi(cleavedNewBody, newBodySynapseCountsPerRoi, datasetLabel);
+        addRoiLabelsToNeuronGivenSynapseCountsPerRoi(cleavedOriginalBody, originalBodySynapseCountsPerRoi, datasetLabel);
         //update pre, post properties for new nodes
         cleavedNewBody.setProperty(PRE, newBodySynapseCounter.getPre());
         cleavedNewBody.setProperty(POST, newBodySynapseCounter.getPost());
@@ -240,13 +239,16 @@ public class ProofreaderProcedures {
         List<String> except = new ArrayList<>();
         except.add(MERGED_TO);
         except.add(CLEAVED_TO);
+        except.add(SPLIT_TO);
         removeAllRelationshipsExceptTypesWithName(originalBody, except);
 
         //add dataset and Neuron labels to new nodes
         cleavedOriginalBody.addLabel(Label.label(NEURON));
         cleavedOriginalBody.addLabel(Label.label(datasetLabel));
+        cleavedOriginalBody.addLabel(Label.label(datasetLabel + "-" + NEURON));
         cleavedNewBody.addLabel(Label.label(NEURON));
         cleavedNewBody.addLabel(Label.label(datasetLabel));
+        cleavedNewBody.addLabel(Label.label(datasetLabel + "-" + NEURON));
 
         List<Node> listOfCleavedNodes = new ArrayList<>();
         listOfCleavedNodes.add(cleavedNewBody);
@@ -610,10 +612,13 @@ public class ProofreaderProcedures {
 
         Map<String, Object> roiQueryResult;
         Map<String, Object> parametersMap = new HashMap<>();
-        parametersMap.put(LOCATION, synapse.getLocation());
+        parametersMap.put("x", (double) synapse.getX());
+        parametersMap.put("y", (double) synapse.getY());
+        parametersMap.put("z", (double) synapse.getZ());
 
         try {
-            roiQueryResult = dbService.execute("MATCH (s:Synapse:" + datasetLabel + "{location:$location}) WITH labels(s) AS labels RETURN filter(label IN labels WHERE NOT label=\"Synapse\" AND NOT label=\"PreSyn\" AND NOT label=\"PostSyn\" AND NOT label=\"" + datasetLabel + "\") AS l", parametersMap).next();
+            roiQueryResult = dbService.execute("MATCH (s:`" + datasetLabel + "-Synapse`) WHERE s.location=neuprint.locationAs3dCartPoint($x,$y,$z) WITH labels(s) AS labels " +
+                    "RETURN filter(label IN labels WHERE NOT label=\"Synapse\" AND NOT label=\"PreSyn\" AND NOT label=\"PostSyn\" AND NOT label=\"" + datasetLabel + "\") AS l", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
             nse.printStackTrace();
             throw new Error(String.format("Error using proofreader procedures: %s not found in the dataset.", SYNAPSE));
@@ -623,7 +628,10 @@ public class ProofreaderProcedures {
     }
 
     private void setSynapseRoisFromDatabase(Synapse synapse, String datasetLabel) {
-        List<String> roiList = getRoisForSynapse(synapse, datasetLabel);
+        List<String> roiList = getRoisForSynapse(synapse, datasetLabel)
+                .stream()
+                .filter(label -> !label.startsWith(datasetLabel))
+                .collect(Collectors.toList());
         if (roiList.size() == 0) {
             throw new Error(String.format("No roi found on %s: %s", SYNAPSE, synapse));
         }
@@ -634,7 +642,7 @@ public class ProofreaderProcedures {
         List<String> roiList = new ArrayList<>();
         Iterable<Label> labelIterator = synapseNode.getLabels();
         for (Label label : labelIterator) {
-            if (!label.name().equals(SYNAPSE) && !label.name().equals(PRE_SYN) && !label.name().equals(POST_SYN) && !label.name().equals(datasetLabel)) {
+            if (!label.name().equals(SYNAPSE) && !label.name().equals(PRE_SYN) && !label.name().equals(POST_SYN) && !label.name().startsWith(datasetLabel)) {
                 roiList.add(label.name());
             }
         }
@@ -751,8 +759,8 @@ public class ProofreaderProcedures {
         }
     }
 
-    private void addRoiLabelsToNeuronGivenSynapseCountsPerRoi(Node neuron, SynapseCountsPerRoi synapseCountsPerRoi) {
-        for (String roi : synapseCountsPerRoi.getSetOfRois()) {
+    private void addRoiLabelsToNeuronGivenSynapseCountsPerRoi(Node neuron, SynapseCountsPerRoi synapseCountsPerRoi, String datasetLabel) {
+        for (String roi : synapseCountsPerRoi.getSetOfRoisWithAndWithoutDatasetLabel(datasetLabel)) {
             neuron.addLabel(Label.label(roi));
         }
     }

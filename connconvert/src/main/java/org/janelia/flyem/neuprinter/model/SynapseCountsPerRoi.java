@@ -5,10 +5,11 @@ import com.google.gson.Gson;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class SynapseCountsPerRoi {
 
-    private Map<String,SynapseCounter> synapseCountsPerRoi;
+    private Map<String, SynapseCounter> synapseCountsPerRoi;
 
     public SynapseCountsPerRoi() {
         this.synapseCountsPerRoi = new HashMap<>();
@@ -22,12 +23,21 @@ public class SynapseCountsPerRoi {
         return this.synapseCountsPerRoi.keySet();
     }
 
+    public Set<String> getSetOfRoisWithAndWithoutDatasetLabel(String datasetLabel) {
+        Set<String> roiPtSet = getSetOfRois();
+        Set<String> roiPtSetWithDatasetPrefix = roiPtSet.stream()
+                    .map(roi -> datasetLabel + "-" + roi)
+                    .collect(Collectors.toSet());
+        roiPtSetWithDatasetPrefix.addAll(roiPtSet);
+        return roiPtSetWithDatasetPrefix;
+    }
+
     public void addSynapseCountsForRoi(String roi) {
-        this.synapseCountsPerRoi.put(roi,new SynapseCounter());
+        this.synapseCountsPerRoi.put(roi, new SynapseCounter());
     }
 
     public void addSynapseCountsForRoi(String roi, int pre, int post) {
-        this.synapseCountsPerRoi.put(roi,new SynapseCounter(pre,post));
+        this.synapseCountsPerRoi.put(roi, new SynapseCounter(pre, post));
     }
 
     public SynapseCounter getSynapseCountsForRoi(String roi) {

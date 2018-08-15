@@ -37,6 +37,7 @@ public class CleaveNeuronsTest {
     @Rule
     public Neo4jRule neo4j = new Neo4jRule()
             .withProcedure(ProofreaderProcedures.class)
+            .withFunction(NeuPrintUserFunctions.class)
             .withProcedure(GraphRefactoring.class)
             .withFunction(Json.class)
             .withProcedure(Create.class);
@@ -103,21 +104,25 @@ public class CleaveNeuronsTest {
             //check labels
             Assert.assertTrue(neuron1.hasLabel("Neuron"));
             Assert.assertTrue(neuron1.hasLabel(dataset));
+            Assert.assertTrue(neuron1.hasLabel(dataset + "-Neuron"));
             String[] roiArray1 = new String[]{"seven_column_roi", "roiB", "roiA"};
             for (String roi : roiArray1) {
                 Assert.assertTrue(neuron1.hasLabel(roi));
+                Assert.assertTrue(neuron1.hasLabel(dataset + "-" + roi));
             }
             Assert.assertTrue(neuron2.hasLabel("Neuron"));
             Assert.assertTrue(neuron2.hasLabel(dataset));
+            Assert.assertTrue(neuron1.hasLabel(dataset + "-Neuron"));
             String[] roiArray2 = new String[]{"seven_column_roi", "roiA"};
             for (String roi : roiArray2) {
                 Assert.assertTrue(neuron2.hasLabel(roi));
+                Assert.assertTrue(neuron1.hasLabel(dataset + "-" + roi));
             }
             Assert.assertFalse(neuron2.hasLabel("roiB"));
 
             //should delete all skeletons
-            Assert.assertFalse(session.run("MATCH (n:Skeleton) RETURN n").hasNext());
-            Assert.assertFalse(session.run("MATCH (n:SkelNode) RETURN n").hasNext());
+            Assert.assertFalse(session.run("MATCH (n:`test-Skeleton`:test:Skeleton) RETURN n").hasNext());
+            Assert.assertFalse(session.run("MATCH (n:`test-SkelNode`:test:SkelNode) RETURN n").hasNext());
 
             //all properties on ghost node should be prefixed with "cleaved", all labels removed, only relationships to history node
             Node prevOrigNode = session.run("MATCH (n{cleavedBodyId:$bodyId}) RETURN n", parameters("bodyId", 8426959)).single().get(0).asNode();
@@ -133,8 +138,8 @@ public class CleaveNeuronsTest {
             Assert.assertFalse(prevOrigNode.labels().iterator().hasNext());
 
             List<Record> prevOrigNodeRelationships = session.run("MATCH (n{cleavedBodyId:$bodyId})-[r]->() RETURN r", parameters("bodyId", 8426959)).list();
-            List<Record> origNeuronHistoryNode = session.run("MATCH (n{bodyId:$bodyId})-[:From]->(h:History) RETURN h", parameters("bodyId", 8426959)).list();
-            List<Record> newNeuronHistoryNode = session.run("MATCH (n{bodyId:$bodyId})-[:From]->(h:History) RETURN h", parameters("bodyId", 5555)).list();
+            List<Record> origNeuronHistoryNode = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:$bodyId})-[:From]->(h:History) RETURN h", parameters("bodyId", 8426959)).list();
+            List<Record> newNeuronHistoryNode = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:$bodyId})-[:From]->(h:History) RETURN h", parameters("bodyId", 5555)).list();
 
             Assert.assertEquals(2, prevOrigNodeRelationships.size());
             Assert.assertEquals(1, origNeuronHistoryNode.size());
@@ -148,25 +153,25 @@ public class CleaveNeuronsTest {
                     (r2.endNodeId() == historyNodeOrig.id() && r1.endNodeId() == historyNodeNew.id()));
 
             //check connectsto relationships
-            Long origTo26311Weight = session.run("MATCH (n{bodyId:8426959})-[r:ConnectsTo]->(m{bodyId:26311}) RETURN r.weight").single().get(0).asLong();
+            Long origTo26311Weight = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})-[r:ConnectsTo]->(m:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN r.weight").single().get(0).asLong();
             Assert.assertEquals(new Long(1), origTo26311Weight);
-            Long origTo2589725Weight = session.run("MATCH (n{bodyId:8426959})-[r:ConnectsTo]->(m{bodyId:2589725}) RETURN r.weight").single().get(0).asLong();
+            Long origTo2589725Weight = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})-[r:ConnectsTo]->(m:Neuron:test:`test-Neuron`{bodyId:2589725}) RETURN r.weight").single().get(0).asLong();
             Assert.assertEquals(new Long(1), origTo2589725Weight);
-            Long origTo831744Weight = session.run("MATCH (n{bodyId:8426959})-[r:ConnectsTo]->(m{bodyId:831744}) RETURN r.weight").single().get(0).asLong();
+            Long origTo831744Weight = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})-[r:ConnectsTo]->(m:Neuron:test:`test-Neuron`{bodyId:831744}) RETURN r.weight").single().get(0).asLong();
             Assert.assertEquals(new Long(1), origTo831744Weight);
 
-            Long newTo26311Weight = session.run("MATCH (n{bodyId:5555})-[r:ConnectsTo]->(m{bodyId:26311}) RETURN r.weight").single().get(0).asLong();
+            Long newTo26311Weight = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:5555})-[r:ConnectsTo]->(m:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN r.weight").single().get(0).asLong();
             Assert.assertEquals(new Long(2), newTo26311Weight);
-            Long newTo2589725Weight = session.run("MATCH (n{bodyId:5555})-[r:ConnectsTo]->(m{bodyId:2589725}) RETURN r.weight").single().get(0).asLong();
+            Long newTo2589725Weight = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:5555})-[r:ConnectsTo]->(m:Neuron:test:`test-Neuron`{bodyId:2589725}) RETURN r.weight").single().get(0).asLong();
             Assert.assertEquals(new Long(1), newTo2589725Weight);
-            Long newTo831744Weight = session.run("MATCH (n{bodyId:5555})-[r:ConnectsTo]->(m{bodyId:831744}) RETURN r.weight").single().get(0).asLong();
+            Long newTo831744Weight = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:5555})-[r:ConnectsTo]->(m:Neuron:test:`test-Neuron`{bodyId:831744}) RETURN r.weight").single().get(0).asLong();
             Assert.assertEquals(new Long(1), newTo831744Weight);
 
             //check synapseCountsPerRoi
             String newSynapseCountPerRoi = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:test{bodyId:5555}) RETURN n.synapseCountPerRoi").single().get(0).asString());
+                    tx.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:5555}) RETURN n.synapseCountPerRoi").single().get(0).asString());
             String origSynapseCountPerRoi = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:test{bodyId:8426959}) RETURN n.synapseCountPerRoi").single().get(0).asString());
+                    tx.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.synapseCountPerRoi").single().get(0).asString());
             Map<String, SynapseCounter> newSynapseCountMap = gson.fromJson(newSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
             }.getType());
             Map<String, SynapseCounter> origSynapseCountMap = gson.fromJson(origSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
@@ -182,12 +187,12 @@ public class CleaveNeuronsTest {
 
             //check synapse sets
             List<Record> origSynapseSetList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:Neuron{bodyId:8426959})-[r:Contains]-(m:SynapseSet)-[:Contains]->(l:Synapse) RETURN m,count(l)").list());
+                    tx.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})-[r:Contains]-(m:SynapseSet:test:`test-SynapseSet`)-[:Contains]->(l:`test-Synapse`:test:Synapse) RETURN m,count(l)").list());
             Assert.assertEquals(1, origSynapseSetList.size());
             Assert.assertEquals(1, origSynapseSetList.get(0).get("count(l)").asInt());
 
             List<Record> newSynapseSetList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:Neuron{bodyId:5555})-[r:Contains]-(m:SynapseSet)-[:Contains]->(l:Synapse) RETURN m,count(l)").list());
+                    tx.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:5555})-[r:Contains]-(m:SynapseSet:test:`test-SynapseSet`)-[:Contains]->(l:`test-Synapse`:test:Synapse) RETURN m,count(l)").list());
             Assert.assertEquals(1, newSynapseSetList.size());
             Assert.assertEquals(2, newSynapseSetList.get(0).get("count(l)").asInt());
 
@@ -197,7 +202,7 @@ public class CleaveNeuronsTest {
             });
             Assert.assertEquals(new Integer(0), countOfNodesWithoutTimeStamp);
             Integer countOfNodesWithoutDatasetLabel = session.readTransaction(tx -> {
-                return tx.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
+                return tx.run("MATCH (n) WHERE NOT n:test AND NOT n:DataModel RETURN count(n)").single().get(0).asInt();
             });
             Assert.assertEquals(new Integer(1), countOfNodesWithoutDatasetLabel);
 

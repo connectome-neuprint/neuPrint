@@ -207,9 +207,9 @@ public class BodyWithSynapses {
         SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
         synapseSet.forEach(synapse -> {
             if (synapse.getType().equals(PRE)) {
-                synapse.getRois().forEach(synapseCountsPerRoi::incrementPreForRoi);
+                synapse.getRois().forEach(roi -> synapseCountsPerRoi.incrementPreForRoi(roi.replace("-pt","")));
             } else if (synapse.getType().equals(POST)) {
-                synapse.getRois().forEach(synapseCountsPerRoi::incrementPostForRoi);
+                synapse.getRois().forEach(roi -> synapseCountsPerRoi.incrementPostForRoi(roi.replace("-pt","")));
             }
         });
         return synapseCountsPerRoi;
