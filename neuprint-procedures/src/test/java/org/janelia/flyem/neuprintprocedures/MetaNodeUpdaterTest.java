@@ -63,7 +63,7 @@ public class MetaNodeUpdaterTest {
             Session session = driver.session();
 
             session.writeTransaction(tx -> {
-                tx.run("CREATE (n:Neuron:test:`Neu-roiA`:`Neu-newRoi`{bodyId:50}) SET n.synapseCountPerRoi=\"{'roiA':{'pre':5,'post':2,'total':7},'newRoi':{'pre':5,'post':2,'total':7}}\", n.pre=10, n.post=4 RETURN n");
+                tx.run("CREATE (n:Neuron:test:roiA:newRoi:`test-roiA`:`test-newRoi`:`test-Neuron`{bodyId:50}) SET n.synapseCountPerRoi=\"{'roiA':{'pre':5,'post':2,'total':7},'newRoi':{'pre':5,'post':2,'total':7}}\", n.pre=10, n.post=4 RETURN n");
                 return 1;
             });
 

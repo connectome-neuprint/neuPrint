@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -512,17 +513,17 @@ public class Neo4jImporter implements AutoCloseable {
 
         long totalPre;
         long totalPost;
-        List<String> roiNameList;
+        Set<String> roiNameSet;
         SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
 
         try (Session session = driver.session()) {
             totalPre = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
-            roiNameList = session.readTransaction(tx -> getAllRois(tx, dataset))
+            roiNameSet = session.readTransaction(tx -> getAllLabels(tx, dataset))
                     .stream()
                     .filter((l) -> (!l.equals("Neuron") && !l.startsWith(dataset)))
-                    .collect(Collectors.toList());
-            for (String roi : roiNameList) {
+                    .collect(Collectors.toSet());
+            for (String roi : roiNameSet) {
                 int roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
                 int roiPostCount = session.readTransaction(tx -> getRoiPostCount(tx, dataset, roi));
                 synapseCountsPerRoi.addSynapseCountsForRoi(roi, roiPreCount, roiPostCount);
@@ -563,16 +564,16 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static int getRoiPreCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS pre RETURN sum(pre)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS pre RETURN sum(pre)");
         return result.single().get(0).asInt();
     }
 
     private static int getRoiPostCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS post RETURN sum(post)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS post RETURN sum(post)");
         return result.single().get(0).asInt();
     }
 
-    private static List<String> getAllRois(final Transaction tx, final String dataset) {
+    private static List<String> getAllLabels(final Transaction tx, final String dataset) {
         StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
         List<String> roiList = new ArrayList<>();
         while (result.hasNext()) {

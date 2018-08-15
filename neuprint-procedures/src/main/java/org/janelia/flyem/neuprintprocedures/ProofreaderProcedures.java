@@ -134,8 +134,8 @@ public class ProofreaderProcedures {
         acquireWriteLockForNeuronSubgraph(originalBody);
 
         //check if action is cleave or split
-        String typeOfAction=null;
-        String historyRelationshipType=null;
+        String typeOfAction = null;
+        String historyRelationshipType = null;
         if (cleaveOrSplitAction.getAction().equals("cleave")) {
             typeOfAction = CLEAVED;
             historyRelationshipType = CLEAVED_TO;
@@ -143,7 +143,7 @@ public class ProofreaderProcedures {
             typeOfAction = SPLIT;
             historyRelationshipType = SPLIT_TO;
         }
-        if (typeOfAction==null) {
+        if (typeOfAction == null) {
             throw new Error("Unknown action type. Available actions for json are \"cleave\" or \"split\"");
         }
 
@@ -248,7 +248,7 @@ public class ProofreaderProcedures {
         originalBody.createRelationshipTo(newBodyHistoryNode, RelationshipType.withName(historyRelationshipType));
 
         //remove labels, all properties to cleaved
-        convertAllPropertiesToCleavedOrSplitProperties(originalBody,typeOfAction);
+        convertAllPropertiesToCleavedOrSplitProperties(originalBody, typeOfAction);
         removeAllLabels(originalBody);
         List<String> except = new ArrayList<>();
         except.add(MERGED_TO);
