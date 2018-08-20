@@ -1,12 +1,12 @@
 package org.janelia.flyem.neuprinter;
 
 import org.janelia.flyem.neuprinter.db.DbConfig;
-import org.janelia.flyem.neuprinter.model.Neuron;
-import org.janelia.flyem.neuprinter.model.SkelNode;
-import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.db.DbTransactionBatch;
 import org.janelia.flyem.neuprinter.db.StdOutTransactionBatch;
 import org.janelia.flyem.neuprinter.db.TransactionBatch;
+import org.janelia.flyem.neuprinter.model.Neuron;
+import org.janelia.flyem.neuprinter.model.SkelNode;
+import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
@@ -14,6 +14,7 @@ import org.neo4j.driver.v1.Statement;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.neo4j.driver.v1.Values.parameters;
@@ -22,6 +23,13 @@ public class Neo4jEditor implements AutoCloseable {
 
     private final Driver driver;
     private final int statementsPerTransaction;
+    private final LocalDate timeStamp = LocalDate.now();
+
+    //for testing
+    public Neo4jEditor(final Driver driver) {
+        this.driver = driver;
+        this.statementsPerTransaction = 20;
+    }
 
     public Neo4jEditor(final DbConfig dbConfig) {
 
@@ -57,7 +65,7 @@ public class Neo4jEditor implements AutoCloseable {
         return batch;
     }
 
-    public void updateSkelNodesRowNumber (final String dataset, final List<Skeleton> skeletonList) {
+    public void updateSkelNodesRowNumber(final String dataset, final List<Skeleton> skeletonList) {
 
         LOG.info("updateSkelNodes: entry");
 
@@ -65,14 +73,14 @@ public class Neo4jEditor implements AutoCloseable {
                 "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) ON MATCH SET s.rowNumber=$rowNumber";
 
         try (final TransactionBatch batch = getBatch()) {
-            for(Skeleton skeleton : skeletonList) {
+            for (Skeleton skeleton : skeletonList) {
 
                 Long associatedBodyId = skeleton.getAssociatedBodyId();
                 List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
 
                 for (SkelNode skelNode : skelNodeList) {
                     batch.addStatement(new Statement(skelMergeString, parameters("rowNumber", skelNode.getRowNumber(),
-                            "skelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString())));
+                            "skelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString())));
                 }
             }
             batch.writeTransaction();
@@ -82,25 +90,24 @@ public class Neo4jEditor implements AutoCloseable {
 
     }
 
-
-    public void linkAllSkelNodesToSkeleton (final String dataset, final List<Skeleton> skeletonList) {
+    public void linkAllSkelNodesToSkeleton(final String dataset, final List<Skeleton> skeletonList) {
 
         LOG.info("linkAllSkelNodesToSkeleton : entry");
 
         final String skelToSkeletonLinkString =
                 "MERGE (r:Skeleton:" + dataset + " {skeletonId:$skeletonId}) \n" +
-                "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) \n" +
+                        "MERGE (s:SkelNode:" + dataset + " {skelNodeId:$skelNodeId}) \n" +
                         "MERGE (r)-[:Contains]->(s) ";
 
         try (final TransactionBatch batch = getBatch()) {
-            for(Skeleton skeleton : skeletonList) {
+            for (Skeleton skeleton : skeletonList) {
 
                 Long associatedBodyId = skeleton.getAssociatedBodyId();
                 List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
 
                 for (SkelNode skelNode : skelNodeList) {
-                    batch.addStatement(new Statement(skelToSkeletonLinkString, parameters("skeletonId", dataset+":"+associatedBodyId,
-                            "skelNodeId", dataset+":"+associatedBodyId+":"+skelNode.getLocationString())));
+                    batch.addStatement(new Statement(skelToSkeletonLinkString, parameters("skeletonId", dataset + ":" + associatedBodyId,
+                            "skelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString())));
                 }
             }
             batch.writeTransaction();
@@ -110,42 +117,45 @@ public class Neo4jEditor implements AutoCloseable {
 
     }
 
-
-
-    public void updateNeuronProperties (final String dataset, final List<Neuron> neuronList) {
+    public void updateNeuronProperties(final String dataset, final List<Neuron> neuronList) {
 
         LOG.info("updateNeuronProperties : entry");
 
-
-        final String neuronText = "MERGE (n:Neuron:" + dataset + " {bodyId:$bodyId}) " +
+        final String neuronText = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) " +
                 "ON MATCH SET n.name = $name," +
                 " n.type = $type," +
                 " n.status = $status," +
                 " n.size = $size," +
                 " n.somaLocation = $somaLocation," +
-                " n.somaRadius = $somaRadius \n" +
+                " n.somaRadius = $somaRadius, " +
+                " n.timeStamp = $timeStamp \n" +
                 "ON CREATE SET n.bodyId = $bodyId," +
+                " n:Neuron," +
+                " n:" + dataset + "," +
                 " n.name = $name," +
                 " n.type = $type," +
                 " n.status = $status," +
                 " n.size = $size," +
                 " n.somaLocation = $somaLocation," +
-                " n.somaRadius = $somaRadius \n";
+                " n.somaRadius = $somaRadius, " +
+                " n.timeStamp = $timeStamp \n";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
                 if (neuron.getRois() != null) {
                     LOG.error("Found neuron with rois listed. bodyId: " + neuron.getId());
                 }
+                String status = neuron.getStatus() != null ? neuron.getStatus() : "not annotated";
                 batch.addStatement(
                         new Statement(neuronText,
                                 parameters("bodyId", neuron.getId(),
                                         "name", neuron.getName(),
                                         "type", neuron.getNeuronType(),
-                                        "status", neuron.getStatus(),
+                                        "status", status,
                                         "size", neuron.getSize(),
                                         "somaLocation", neuron.getSomaLocation(),
-                                        "somaRadius", neuron.getSomaRadius()))
+                                        "somaRadius", neuron.getSomaRadius(),
+                                        "timeStamp", timeStamp))
                 );
             }
             batch.writeTransaction();
@@ -153,10 +163,7 @@ public class Neo4jEditor implements AutoCloseable {
 
         LOG.info("updateNeuronProperties : exit");
 
-
     }
-
-
 
     private static final Logger LOG = LoggerFactory.getLogger(Neo4jEditor.class);
 

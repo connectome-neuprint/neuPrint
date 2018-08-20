@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
 public class NeuPrinterMain {
 
     @Parameters(separators = "=")
@@ -432,6 +433,11 @@ public class NeuPrinterMain {
 
         if (parameters.editMode) {
 
+            neuronList = readNeuronsJson(parameters.neuronJson);
+
+            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
+                neo4jEditor.updateNeuronProperties(dataset, neuronList);
+            }
 
         }
     }
