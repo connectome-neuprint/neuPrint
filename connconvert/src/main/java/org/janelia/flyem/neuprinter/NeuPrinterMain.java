@@ -148,6 +148,15 @@ public class NeuPrinterMain {
         public boolean addMetaNodeOnly;
 
         @Parameter(
+                names = "--addAutoNamesOnly",
+                description = "Indicates that only the autoNames should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. Names are only generated for neurons that have greater than the number of synapses" +
+                        "indicated by autoNameThreshold (omit to skip)",
+                required = false,
+                arity = 0
+        )
+        public boolean addAutoNamesOnly;
+
+        @Parameter(
                 names = "--addAutoNames",
                 description = "Indicates that automatically generated names should be added for this dataset. Auto-names are in the format " +
                         "ROIA-ROIB-8 where ROIA is the roi in which a given neuron has the most inputs (postsynaptic densities) " +
@@ -161,7 +170,7 @@ public class NeuPrinterMain {
         @Parameter(
                 names = "--autoNameThreshold",
                 description = "Integer indicating the number of (presynaptic densities + postsynaptic densities) a neuron should have to be given an " +
-                        "auto-name (default is 10). Must have --addAutoName enabled.",
+                        "auto-name (default is 10). Must have --addAutoName OR --addAutoNamesOnly enabled.",
                 required = false)
         public Integer autoNameThreshold;
 
@@ -429,6 +438,23 @@ public class NeuPrinterMain {
                 neo4jImporter.prepDatabase(dataset);
                 neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
             }
+        }
+
+        if (parameters.addAutoNamesOnly) {
+
+            Stopwatch timer = Stopwatch.createStarted();
+            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                neo4jImporter.prepDatabase(dataset);
+                timer.start();
+                if (parameters.autoNameThreshold != null) {
+                    neo4jImporter.addAutoNames(dataset, parameters.autoNameThreshold);
+                } else {
+                    neo4jImporter.addAutoNames(dataset, 10);
+                }
+                LOG.info("Adding autoNames took: " + timer.stop());
+                timer.reset();
+            }
+
         }
 
         if (parameters.editMode) {
