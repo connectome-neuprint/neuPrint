@@ -324,7 +324,7 @@ public class Neo4jImporter implements AutoCloseable {
         List<AutoName> autoNameList = new ArrayList<>();
         List<Long> bodyIdsWithoutNames;
         final String autoNameText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) SET n.autoName=$autoName";
-        final String autoNameToNameText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) SET n.autoName=$autoName, n.name=$autoName ";
+        final String autoNameToNameText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) SET n.autoName=$autoName, n.name=$autoNamePlusAsterisk ";
 
         try (Session session = driver.session()) {
 
@@ -346,7 +346,8 @@ public class Neo4jImporter implements AutoCloseable {
                 if (bodyIdsWithoutNames.contains(bodyId)) {
                     batch.addStatement(new Statement(autoNameToNameText,
                             parameters("bodyId", autoName.getBodyId(),
-                                    "autoName", autoName.getAutoName())));
+                                    "autoName", autoName.getAutoName(),
+                                    "autoNamePlusAsterisk", autoName.getAutoName()+"*")));
                 } else {
                     batch.addStatement(new Statement(autoNameText,
                             parameters("bodyId", autoName.getBodyId(),

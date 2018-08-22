@@ -445,7 +445,6 @@ public class NeuPrinterMain {
             Stopwatch timer = Stopwatch.createStarted();
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
                 neo4jImporter.prepDatabase(dataset);
-                timer.start();
                 if (parameters.autoNameThreshold != null) {
                     neo4jImporter.addAutoNames(dataset, parameters.autoNameThreshold);
                 } else {

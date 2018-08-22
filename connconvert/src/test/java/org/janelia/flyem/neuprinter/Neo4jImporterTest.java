@@ -330,8 +330,8 @@ public class Neo4jImporterTest {
             String neuronName = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.name").single().get(0).asString();
             String neuronAutoName = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();
 
-            Assert.assertEquals("ROIA-ROIA-0", neuronName);
-            Assert.assertEquals(neuronName, neuronAutoName);
+            Assert.assertEquals("ROIA-ROIA-0*", neuronName);
+            Assert.assertEquals(neuronName.replace("*",""), neuronAutoName);
 
             String neuronName2 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN n.name").single().get(0).asString();
             String neuronAutoName2 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN n.autoName").single().get(0).asString();
