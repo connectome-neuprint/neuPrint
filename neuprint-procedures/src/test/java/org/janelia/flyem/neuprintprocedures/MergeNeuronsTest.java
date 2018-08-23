@@ -48,7 +48,8 @@ public class MergeNeuronsTest {
 
             Session session = driver.session();
 
-            String connectsToTestJson = "{\"Action\": \"merge\", \"TargetBodyID\": 1, \"BodiesMerged\": [2], " +
+            String connectsToTestJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
+                    "\"Action\": \"merge\", \"TargetBodyID\": 1, \"BodiesMerged\": [2], " +
                     "\"TargetBodySize\": 216685762, \"TargetBodySynapses\":[]}";
 
             session.writeTransaction(tx -> tx.run("CREATE (n:`test-Neuron`:Neuron:test{bodyId:$id1}), (m:`test-Neuron`:Neuron:test{bodyId:$id2})," +
@@ -147,7 +148,8 @@ public class MergeNeuronsTest {
     @Test
     public void shouldAddAppropriatePropertiesLabelsAndRelationshipsToResultingBodyUponRecursiveMerge() {
 
-        String mergeInstructionJson = "{\"Action\": \"merge\", \"TargetBodyID\": 8426959, \"BodiesMerged\": [26311, 2589725, 831744], " +
+        String mergeInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
+                "\"Action\": \"merge\", \"TargetBodyID\": 8426959, \"BodiesMerged\": [26311, 2589725, 831744], " +
                 "\"TargetBodySize\": 216685762, \"TargetBodySynapses\": [" +
                 "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
                 "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
@@ -237,10 +239,13 @@ public class MergeNeuronsTest {
 
             //check history
             List<Record> m1HistoryList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:`test-Neuron`{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-(m1) RETURN count(h),m1.mergedBodyId,m1.mergedPost,m1.mergedPre").list());
+                    tx.run("MATCH (n:`test-Neuron`{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-(m1) RETURN count(h),m1.mergedBodyId,m1.mergedPost,m1.mergedPre,m1.mergedDvidUuid,m1.mergedMutationId").list());
 
             Assert.assertEquals(2, m1HistoryList.size());
             Assert.assertEquals(1, m1HistoryList.get(0).get("count(h)").asInt());
+
+            Assert.assertEquals(mergeAction.getDvidUuid(), m1HistoryList.get(0).get("m1.mergedDvidUuid").asString());
+            Assert.assertEquals(mergeAction.getMutationId(), (Long) m1HistoryList.get(0).get("m1.mergedMutationId").asLong());
 
             Long m11BodyId = m1HistoryList.get(0).get("m1.mergedBodyId").asLong();
             Long m11Pre = m1HistoryList.get(0).get("m1.mergedPre").asLong();
@@ -257,9 +262,12 @@ public class MergeNeuronsTest {
             Assert.assertTrue((m12BodyId.equals(bodyId1) && m11BodyId.equals(bodyId2)) || (m12BodyId.equals(bodyId2) && m11BodyId.equals(bodyId1)));
 
             List<Record> m2HistoryList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:`test-Neuron`{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-(m2) RETURN m2.mergedBodyId,m2.mergedPost,m2.mergedPre").list());
+                    tx.run("MATCH (n:`test-Neuron`{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-(m2) RETURN m2.mergedBodyId,m2.mergedPost,m2.mergedPre,m2.mergedDvidUuid,m2.mergedMutationId").list());
 
             Assert.assertEquals(2, m2HistoryList.size());
+
+            Assert.assertEquals(mergeAction.getDvidUuid(), m2HistoryList.get(0).get("m2.mergedDvidUuid").asString());
+            Assert.assertEquals(mergeAction.getMutationId(), (Long) m2HistoryList.get(0).get("m2.mergedMutationId").asLong());
 
             Long m21BodyId = m2HistoryList.get(0).get("m2.mergedBodyId").asLong();
             Long m21Pre = m2HistoryList.get(0).get("m2.mergedPre").asLong();

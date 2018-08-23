@@ -118,7 +118,7 @@ public class Neo4jEditor implements AutoCloseable {
     }
 
     public void updateNeuronProperties(final String dataset, final List<Neuron> neuronList) {
-
+// TODO: deal with case where autoname has been set
         LOG.info("updateNeuronProperties : entry");
 
         final String neuronText = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) " +

@@ -96,6 +96,9 @@ public class ProofreaderProcedures {
 
         final Gson gson = new Gson();
         final MergeAction mergeAction = gson.fromJson(mergeJson, MergeAction.class);
+        if (!mergeAction.getAction().equals("merge")) {
+            throw new Error("Action was not \"merge\".");
+        }
 
         final List<Node> mergedBodies = mergeAction.getBodiesMerged()
                 .stream()
@@ -109,7 +112,7 @@ public class ProofreaderProcedures {
             acquireWriteLockForNeuronSubgraph(body);
         }
 
-        final Node newNode = recursivelyMergeNodes(targetBody, mergedBodies, mergeAction.getTargetBodySize(), datasetLabel);
+        final Node newNode = recursivelyMergeNodes(targetBody, mergedBodies, mergeAction.getTargetBodySize(), datasetLabel, mergeAction);
 
         // throws an error if the synapses from the json and the synapses in the database for the resulting body do not match
         compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction, datasetLabel);
@@ -247,7 +250,9 @@ public class ProofreaderProcedures {
         originalBody.createRelationshipTo(originalBodyHistoryNode, RelationshipType.withName(historyRelationshipType));
         originalBody.createRelationshipTo(newBodyHistoryNode, RelationshipType.withName(historyRelationshipType));
 
-        //remove labels, all properties to cleaved
+        //add dviduuid and mutationid, remove labels, all properties to cleaved or split
+        originalBody.setProperty("dvidUuid", cleaveOrSplitAction.getDvidUuid());
+        originalBody.setProperty("mutationId", cleaveOrSplitAction.getMutationId());
         convertAllPropertiesToCleavedOrSplitProperties(originalBody, typeOfAction);
         removeAllLabels(originalBody);
         List<String> except = new ArrayList<>();
@@ -336,16 +341,16 @@ public class ProofreaderProcedures {
 //
 //    }
 
-    private Node recursivelyMergeNodes(Node resultNode, List<Node> mergedBodies, Long newNodeSize, String datasetLabel) {
+    private Node recursivelyMergeNodes(Node resultNode, List<Node> mergedBodies, Long newNodeSize, String datasetLabel, MergeAction mergeAction) {
         if (mergedBodies.size() == 0) {
             return resultNode;
         } else {
-            Node mergedNode = mergeTwoNodesOntoNewNode(resultNode, mergedBodies.get(0), newNodeSize, datasetLabel);
-            return recursivelyMergeNodes(mergedNode, mergedBodies.subList(1, mergedBodies.size()), newNodeSize, datasetLabel);
+            Node mergedNode = mergeTwoNodesOntoNewNode(resultNode, mergedBodies.get(0), newNodeSize, datasetLabel, mergeAction);
+            return recursivelyMergeNodes(mergedNode, mergedBodies.subList(1, mergedBodies.size()), newNodeSize, datasetLabel, mergeAction);
         }
     }
 
-    private Node mergeTwoNodesOntoNewNode(Node node1, Node node2, Long newNodeSize, String datasetLabel) {
+    private Node mergeTwoNodesOntoNewNode(Node node1, Node node2, Long newNodeSize, String datasetLabel, MergeAction mergeAction) {
 
         //create a new node that will be a copy of node1
         //copy properties over to new node (note: must add properties before adding labels or will violate uniqueness constraint)
@@ -384,7 +389,13 @@ public class ProofreaderProcedures {
         node1.createRelationshipTo(newHistoryNode, RelationshipType.withName(MERGED_TO));
         node2.createRelationshipTo(newHistoryNode, RelationshipType.withName(MERGED_TO));
 
-        // create ghost nodes for original bodies: property names converted to "merged" property names, all labels removed, all relationships removed (except need to deal with history)
+        // create ghost nodes for original bodies: property names converted to "merged" property names,
+        // all labels removed, all relationships removed (except need to deal with history)
+        // add dviduuid and mutationid
+        node1.setProperty("dvidUuid", mergeAction.getDvidUuid());
+        node1.setProperty("mutationId", mergeAction.getMutationId());
+        node2.setProperty("dvidUuid", mergeAction.getDvidUuid());
+        node2.setProperty("mutationId", mergeAction.getMutationId());
         convertAllPropertiesToMergedProperties(node1);
         convertAllPropertiesToMergedProperties(node2);
         // copy all the labels to the new node

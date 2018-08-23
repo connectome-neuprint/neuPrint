@@ -46,7 +46,8 @@ public class CleaveOrSplitNeuronsTest {
 
     @Test
     public void shouldCleaveNeurons() {
-        String cleaveInstructionJson = "{\"Action\": \"cleave\", \"NewBodyId\": 5555, \"OrigBodyId\": 8426959, " +
+        String cleaveInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387, " +
+                "\"Action\": \"cleave\", \"NewBodyId\": 5555, \"OrigBodyId\": 8426959, " +
                 "\"NewBodySize\": 2778831, \"NewBodySynapses\": [" +
                 "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
                 "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}" +
@@ -125,7 +126,7 @@ public class CleaveOrSplitNeuronsTest {
             Assert.assertFalse(session.run("MATCH (n:`test-Skeleton`:test:Skeleton) RETURN n").hasNext());
             Assert.assertFalse(session.run("MATCH (n:`test-SkelNode`:test:SkelNode) RETURN n").hasNext());
 
-            //all properties on ghost node should be prefixed with "cleaved", all labels removed, only relationships to history node
+            //all properties on ghost node should be prefixed with "cleaved", all labels removed, only relationships to history node, mutationid and dviduuid added
             Node prevOrigNode = session.run("MATCH (n{cleavedBodyId:$bodyId}) RETURN n", parameters("bodyId", 8426959)).single().get(0).asNode();
 
             Map<String, Object> node1Properties = prevOrigNode.asMap();
@@ -135,6 +136,9 @@ public class CleaveOrSplitNeuronsTest {
                     Assert.assertTrue(propertyName.startsWith("cleaved"));
                 }
             }
+
+            Assert.assertEquals(cleaveOrSplitAction.getDvidUuid(), node1Properties.get("cleavedDvidUuid"));
+            Assert.assertEquals(cleaveOrSplitAction.getMutationId(), node1Properties.get("cleavedMutationId"));
 
             Assert.assertFalse(prevOrigNode.labels().iterator().hasNext());
 
@@ -212,7 +216,8 @@ public class CleaveOrSplitNeuronsTest {
 
     @Test
     public void shouldSplitIfActionIsListedAsSplit() {
-        String splitInstructionJson = "{\"Action\": \"split\", \"NewBodyId\": 5555, \"OrigBodyId\": 8426959, " +
+        String splitInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
+                "\"Action\": \"split\", \"NewBodyId\": 5555, \"OrigBodyId\": 8426959, " +
                 "\"NewBodySize\": 2778831, \"NewBodySynapses\": [" +
                 "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
                 "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}" +

@@ -7,6 +7,12 @@ import java.util.Set;
 
 public class CleaveOrSplitAction {
 
+    @SerializedName("DVIDuuid")
+    private String dvidUuid;
+
+    @SerializedName("MutationID")
+    private Long mutationId;
+
     @SerializedName("Action")
     private String action;
 
@@ -21,6 +27,14 @@ public class CleaveOrSplitAction {
 
     @SerializedName("NewBodySynapses")
     private Set<Synapse> newBodySynapses;
+
+    public String getDvidUuid() {
+        return dvidUuid;
+    }
+
+    public Long getMutationId() {
+        return mutationId;
+    }
 
     public Set<Synapse> getNewBodySynapses() {
         return newBodySynapses;
@@ -44,8 +58,10 @@ public class CleaveOrSplitAction {
 
     @Override
     public String toString() {
-        return  " action: " + this.action +
-                " newBodyId: " + this.newBodyId +
+        return "dvidUuid: " + this.dvidUuid +
+                ", mutationId: " + this.mutationId +
+                ", action: " + this.action +
+                ", newBodyId: " + this.newBodyId +
                 ", originalBodyId: " + this.originalBodyId +
                 ", newBodySize: " + this.newBodySize +
                 ", newBodySynapses: " + this.newBodySynapses;
@@ -58,7 +74,7 @@ public class CleaveOrSplitAction {
             isEqual = true;
         } else if (o instanceof CleaveOrSplitAction) {
             final CleaveOrSplitAction that = (CleaveOrSplitAction) o;
-            isEqual = this.newBodyId.equals(that.newBodyId) && this.originalBodyId.equals(that.originalBodyId);
+            isEqual = this.dvidUuid.equals(that.dvidUuid) && this.mutationId.equals(that.mutationId);
         }
         return isEqual;
     }
@@ -66,8 +82,8 @@ public class CleaveOrSplitAction {
     @Override
     public int hashCode() {
         int result = 17;
-        result = 31 * result + this.newBodyId.hashCode();
-        result = 31 * result + this.originalBodyId.hashCode();
+        result = 31 * result + this.dvidUuid.hashCode();
+        result = 31 * result + this.mutationId.hashCode();
         return result;
     }
 }

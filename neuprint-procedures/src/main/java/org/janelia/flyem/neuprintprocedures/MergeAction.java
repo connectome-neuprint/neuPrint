@@ -7,6 +7,15 @@ import java.util.Set;
 
 public class MergeAction {
 
+    @SerializedName("DVIDuuid")
+    private String dvidUuid;
+
+    @SerializedName("MutationID")
+    private Long mutationId;
+
+    @SerializedName("Action")
+    private String action;
+
     @SerializedName("TargetBodyID")
     private Long targetBodyId;
 
@@ -18,6 +27,14 @@ public class MergeAction {
 
     @SerializedName("TargetBodySynapses")
     private Set<Synapse> targetBodySynapses;
+
+    public String getDvidUuid() {
+        return dvidUuid;
+    }
+
+    public Long getMutationId() {
+        return mutationId;
+    }
 
     public Set<Synapse> getTargetBodySynapses() {
         return targetBodySynapses;
@@ -35,9 +52,15 @@ public class MergeAction {
         return targetBodySize;
     }
 
+    public String getAction() {
+        return action;
+    }
+
     @Override
     public String toString() {
-        return "targetBodyId: " + this.targetBodyId +
+        return "dvidUuid: " + this.dvidUuid +
+                ", mutationId: " + this.mutationId +
+                ", targetBodyId: " + this.targetBodyId +
                 ", bodiesMerged: " + this.bodiesMerged +
                 ", targetBodySize: " + this.targetBodySize +
                 ", targetBodySynapses: " + this.targetBodySynapses;
@@ -50,7 +73,7 @@ public class MergeAction {
             isEqual = true;
         } else if (o instanceof MergeAction) {
             final MergeAction that = (MergeAction) o;
-            isEqual = this.targetBodyId.equals(that.targetBodyId) && this.bodiesMerged.equals(that.bodiesMerged);
+            isEqual = this.dvidUuid.equals(that.dvidUuid) && this.mutationId.equals(that.mutationId);
         }
         return isEqual;
     }
@@ -58,8 +81,8 @@ public class MergeAction {
     @Override
     public int hashCode() {
         int result = 17;
-        result = 31 * result + this.targetBodyId.hashCode();
-        result = 31 * result + this.bodiesMerged.hashCode();
+        result = 31 * result + this.dvidUuid.hashCode();
+        result = 31 * result + this.mutationId.hashCode();
         return result;
     }
 
