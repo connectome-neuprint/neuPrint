@@ -38,7 +38,7 @@ public class TriggersRunnable implements Runnable {
                 while (metaNodeIterator.hasNext()) {
                     metaNodeList.add(metaNodeIterator.next());
                 }
-
+                // TODO: check for changes per dataset
                 for (Node metaNode : metaNodeList) {
                     Long metaNodeId = metaNode.getId();
                     String dataset = (String) metaNode.getProperty("dataset");

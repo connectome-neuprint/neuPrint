@@ -87,7 +87,8 @@ public class ProofreaderProcedures {
     public Stream<NodeResult> mergeNeuronsFromJson(@Name("mergeJson") String mergeJson, @Name("datasetLabel") String datasetLabel) {
 
         if (mergeJson == null || datasetLabel == null) {
-            throw new Error("Missing input arguments.");
+            log.error("proofreader.mergeNeuronsFromJson: Missing input arguments.");
+            throw new RuntimeException("Missing input arguments.");
         }
 
         // TODO: history nodes need to have unique ids?
@@ -97,14 +98,29 @@ public class ProofreaderProcedures {
         final Gson gson = new Gson();
         final MergeAction mergeAction = gson.fromJson(mergeJson, MergeAction.class);
         if (!mergeAction.getAction().equals("merge")) {
-            throw new Error("Action was not \"merge\".");
+            log.error("proofreader.mergeNeuronsFromJson: Action was not \"merge\".");
+            throw new RuntimeException("Action was not \"merge\".");
         }
 
-        final List<Node> mergedBodies = mergeAction.getBodiesMerged()
-                .stream()
-                .map((id) -> acquireNeuronFromDatabase(id, datasetLabel))
-                .collect(Collectors.toList());
-        final Node targetBody = acquireNeuronFromDatabase(mergeAction.getTargetBodyId(), datasetLabel);
+        List<Node> mergedBodies = new ArrayList<>();
+        for (Long mergedBodyId : mergeAction.getBodiesMerged()) {
+            try {
+                Node mergedBody = acquireNeuronFromDatabase(mergedBodyId, datasetLabel);
+                mergedBodies.add(mergedBody);
+            } catch (NoSuchElementException | NullPointerException nse) {
+                log.info(String.format("proofreader.mergeNeuronsFromJson: bodyId %d not found in dataset %s. Ignoring merge...", mergedBodyId, datasetLabel));
+            }
+        }
+
+        Node targetBody;
+        try {
+            targetBody = acquireNeuronFromDatabase(mergeAction.getTargetBodyId(), datasetLabel);
+        } catch (NoSuchElementException | NullPointerException nse) {
+            log.info(String.format("proofreader.mergeNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node...", mergeAction.getTargetBodyId(), datasetLabel));
+            targetBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel),Label.label(datasetLabel + "-" + NEURON));
+            targetBody.setProperty("bodyId", mergeAction.getTargetBodyId());
+            targetBody.setProperty("size", mergeAction.getTargetBodySize());
+        }
 
         // grab write locks upfront
         acquireWriteLockForNeuronSubgraph(targetBody);
@@ -125,13 +141,21 @@ public class ProofreaderProcedures {
     public Stream<NodeListResult> cleaveNeuronFromJson(@Name("cleaveJson") String cleaveJson, @Name("datasetLabel") String datasetLabel) {
         // TODO : keep track of cleave vs. split action
         if (cleaveJson == null || datasetLabel == null) {
-            throw new Error("Missing input arguments.");
+            log.error("proofreader.cleaveNeuronsFromJson: Missing input arguments.");
+            throw new RuntimeException("Missing input arguments.");
         }
 
         final Gson gson = new Gson();
         final CleaveOrSplitAction cleaveOrSplitAction = gson.fromJson(cleaveJson, CleaveOrSplitAction.class);
 
-        final Node originalBody = acquireNeuronFromDatabase(cleaveOrSplitAction.getOriginalBodyId(), datasetLabel);
+        Node originalBody;
+        try {
+            originalBody = acquireNeuronFromDatabase(cleaveOrSplitAction.getOriginalBodyId(), datasetLabel);
+        } catch (NoSuchElementException | NullPointerException nse) {
+            log.info(String.format("proofreader.cleaveNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node...", cleaveOrSplitAction.getOriginalBodyId(), datasetLabel));
+            originalBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel),Label.label(datasetLabel + "-" + NEURON));
+            originalBody.setProperty("bodyId", cleaveOrSplitAction.getOriginalBodyId());
+        }
 
         // grab write locks upfront
         acquireWriteLockForNeuronSubgraph(originalBody);
@@ -147,7 +171,8 @@ public class ProofreaderProcedures {
             historyRelationshipType = SPLIT_TO;
         }
         if (typeOfAction == null) {
-            throw new Error("Unknown action type. Available actions for json are \"cleave\" or \"split\"");
+            log.error("proofreader.cleaveNeuronsFromJson: Unknown action type. Available actions for json are \"cleave\" or \"split\"");
+            throw new RuntimeException("Unknown action type. Available actions for json are \"cleave\" or \"split\"");
         }
 
         // create new neuron nodes with properties
@@ -160,7 +185,8 @@ public class ProofreaderProcedures {
         // original neuron synapse set
         Node originalSynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNode(originalBody);
         if (originalSynapseSetNode == null) {
-            throw new Error(String.format("No %s node on original body.", SYNAPSE_SET));
+            log.error(String.format("proofreader.cleaveNeuronsFromJson: No %s node on original body.", SYNAPSE_SET));
+            throw new RuntimeException(String.format("No %s node on original body.", SYNAPSE_SET));
         }
         //create a synapse set for the new body with unique ID
         Node newBodySynapseSetNode = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
@@ -208,7 +234,8 @@ public class ProofreaderProcedures {
                     }
                 } catch (org.neo4j.graphdb.NotFoundException nfe) {
                     nfe.printStackTrace();
-                    throw new Error(String.format("%s does not have %s or %s properties: %s ", SYNAPSE, TYPE, LOCATION, synapseNode.getAllProperties()));
+                    log.error(String.format("proofreader.cleaveNeuronsFromJson: %s does not have %s or %s properties: %s ", SYNAPSE, TYPE, LOCATION, synapseNode.getAllProperties()));
+                    throw new RuntimeException(String.format("%s does not have %s or %s properties: %s ", SYNAPSE, TYPE, LOCATION, synapseNode.getAllProperties()));
                 }
             }
         }
@@ -294,16 +321,24 @@ public class ProofreaderProcedures {
         try {
             fileUrl = new URL(fileUrlString);
         } catch (MalformedURLException e) {
-            throw new Error(String.format("Malformed URL: %s", e.getMessage()));
+            log.error(String.format("proofreader.addSkeleton: Malformed URL: %s", e.getMessage()));
+            throw new RuntimeException(String.format("Malformed URL: %s", e.getMessage()));
         }
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(fileUrl.openStream()))) {
             skeleton.fromSwc(reader, neuronBodyId);
         } catch (IOException e) {
-            throw new Error(String.format("IOException: %s", e.getMessage()));
+            log.error(String.format("proofreader.addSkeleton: IOException: %s", e.getMessage()));
+            throw new RuntimeException(String.format("IOException: %s", e.getMessage()));
         }
 
-        final Node neuron = acquireNeuronFromDatabase(neuronBodyId, datasetLabel);
+        Node neuron;
+        try {
+            neuron = acquireNeuronFromDatabase(neuronBodyId, datasetLabel);
+        } catch (NoSuchElementException | NullPointerException nse) {
+            log.error(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", neuronBodyId, datasetLabel));
+            throw new RuntimeException(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", neuronBodyId, datasetLabel));
+        }
 
         // grab write locks upfront
         acquireWriteLockForNeuronSubgraph(neuron);
@@ -510,7 +545,8 @@ public class ProofreaderProcedures {
 
         Node synapseSetNode = getSynapseSetNodeForNeuron(neuron);
         if (synapseSetNode == null) {
-            throw new Error(String.format("No %s on neuron.", SYNAPSE_SET));
+            log.error(String.format("ProofreaderProcedures createSynapseSetForNeuron: No %s on neuron.", SYNAPSE_SET));
+            throw new RuntimeException(String.format("No %s on neuron.", SYNAPSE_SET));
         }
 
         Set<Synapse> synapseSet = new HashSet<>();
@@ -528,7 +564,8 @@ public class ProofreaderProcedures {
                     synapseSet.add(synapse);
                 } catch (org.neo4j.graphdb.NotFoundException nfe) {
                     nfe.printStackTrace();
-                    throw new Error(String.format("%s does not have %s or %s properties: %s ", SYNAPSE, TYPE, LOCATION, synapseNode.getAllProperties()));
+                    log.error(String.format("ProofreaderProcedures createSynapseSetForNeuron: %s does not have %s or %s properties: %s ", SYNAPSE, TYPE, LOCATION, synapseNode.getAllProperties()));
+                    throw new RuntimeException(String.format("%s does not have %s or %s properties: %s ", SYNAPSE, TYPE, LOCATION, synapseNode.getAllProperties()));
                 }
             }
         }
@@ -615,7 +652,8 @@ public class ProofreaderProcedures {
 
         Node synapseSet = getSynapseSetNodeForNeuron(resultingBody);
         if (synapseSet == null) {
-            throw new Error(String.format("No %s on the resulting body.", SYNAPSE_SET));
+            log.error(String.format("ProofreaderProcedures compareMergeActionSynapseSetWithDatabaseSynapseSet: No %s on the resulting body.", SYNAPSE_SET));
+            throw new RuntimeException(String.format("No %s on the resulting body.", SYNAPSE_SET));
         }
 
         Set<Synapse> resultBodySynapseSet = createSynapseSetForNeuron(resultingBody, datasetLabel);
@@ -629,7 +667,10 @@ public class ProofreaderProcedures {
         if (mergeActionSynapseSet.size() == 0 && databaseSynapseSet.size() == 0) {
             log.info("Database and merge action synapses match.");
         } else {
-            throw new Error(String.format("Found the following differences between the database and merge action synapse sets: \n" +
+            log.error(String.format("ProofreaderProcedures compareMergeActionSynapseSetWithDatabaseSynapseSet: Found the following differences between the database and merge action synapse sets: \n" +
+                    "* Synapses in merge action but not in database: %s \n" +
+                    "* Synapses in database but not in merge action: %s \n", databaseSynapseSet, mergeActionSynapseSet));
+            throw new RuntimeException(String.format("Found the following differences between the database and merge action synapse sets: \n" +
                     "* Synapses in merge action but not in database: %s \n" +
                     "* Synapses in database but not in merge action: %s \n", databaseSynapseSet, mergeActionSynapseSet));
         }
@@ -649,7 +690,8 @@ public class ProofreaderProcedures {
                     "RETURN filter(label IN labels WHERE NOT label=\"Synapse\" AND NOT label=\"PreSyn\" AND NOT label=\"PostSyn\" AND NOT label=\"" + datasetLabel + "\") AS l", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
             nse.printStackTrace();
-            throw new Error(String.format("Error using proofreader procedures: %s not found in the dataset.", SYNAPSE));
+            log.error(String.format("ProofreaderProcedures getRoisForSynapse: Error using proofreader procedures: %s not found in the dataset.", SYNAPSE));
+            throw new RuntimeException(String.format("Error using proofreader procedures: %s not found in the dataset.", SYNAPSE));
         }
 
         return (ArrayList<String>) roiQueryResult.get("l");
@@ -661,7 +703,8 @@ public class ProofreaderProcedures {
                 .filter(label -> !label.startsWith(datasetLabel))
                 .collect(Collectors.toList());
         if (roiList.size() == 0) {
-            throw new Error(String.format("No roi found on %s: %s", SYNAPSE, synapse));
+            log.error(String.format("ProofreaderProcedures setSynapseRoisFromDatabase: No roi found on %s: %s", SYNAPSE, synapse));
+            throw new RuntimeException(String.format("No roi found on %s: %s", SYNAPSE, synapse));
         }
         synapse.addRoiList(roiList);
     }
@@ -738,24 +781,26 @@ public class ProofreaderProcedures {
         }
     }
 
-    private Node acquireNeuronFromDatabase(Long nodeBodyId, String datasetLabel) throws Error {
+    private Node acquireNeuronFromDatabase(Long nodeBodyId, String datasetLabel) throws NoSuchElementException, NullPointerException {
         Map<String, Object> parametersMap = new HashMap<>();
         parametersMap.put(BODY_ID, nodeBodyId);
         Map<String, Object> nodeQueryResult;
         Node foundNode;
-        try {
-            nodeQueryResult = dbService.execute("MATCH (node:`" + datasetLabel + "-Neuron`{bodyId:$bodyId}) RETURN node", parametersMap).next();
-        } catch (java.util.NoSuchElementException nse) {
-            nse.printStackTrace();
-            throw new Error(String.format("Error using proofreader procedures: All neuron nodes must exist in the dataset and be labeled :%s-%s.", datasetLabel, NEURON));
-        }
-
-        try {
-            foundNode = (Node) nodeQueryResult.get("node");
-        } catch (NullPointerException npe) {
-            npe.printStackTrace();
-            throw new Error(String.format("Error using proofreader procedures: All neuron nodes must exist in the dataset and be labeled :%s-%s.", datasetLabel, NEURON));
-        }
+//        try {
+        nodeQueryResult = dbService.execute("MATCH (node:`" + datasetLabel + "-Neuron`{bodyId:$bodyId}) RETURN node", parametersMap).next();
+//        } catch (java.util.NoSuchElementException nse) {
+//            nse.printStackTrace();
+//            log.error(String.format("%d not found in dataset %s.", nodeBodyId, datasetLabel));
+//            throw new RuntimeException(String.format("Error using proofreader procedures: All neuron nodes must exist in the dataset and be labeled :%s-%s.", datasetLabel, NEURON));
+//        }
+//
+//        try {
+        foundNode = (Node) nodeQueryResult.get("node");
+//        } catch (NullPointerException npe) {
+//            npe.printStackTrace();
+//            log.error(String.format("%d not found in dataset %s.", nodeBodyId, datasetLabel));
+//            throw new RuntimeException(String.format("Error using proofreader procedures: All neuron nodes must exist in the dataset and be labeled :%s-%s.", datasetLabel, NEURON));
+//        }
 
         return foundNode;
     }
@@ -771,7 +816,8 @@ public class ProofreaderProcedures {
                     Node connectedSynapseSet = connectedSynapse.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING).getStartNode();
                     connectedNeuron = connectedSynapseSet.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING).getStartNode();
                 } catch (NoSuchElementException nse) {
-                    throw new Error(String.format("Connected %s has no %s or connected %ss: %s", SYNAPSE, SYNAPSE_SET, NEURON, connectedSynapse.getAllProperties()));
+                    log.error(String.format("Connected %s has no %s or connected %ss: %s", SYNAPSE, SYNAPSE_SET, NEURON, connectedSynapse.getAllProperties()));
+                    throw new RuntimeException(String.format("Connected %s has no %s or connected %ss: %s", SYNAPSE, SYNAPSE_SET, NEURON, connectedSynapse.getAllProperties()));
                 }
                 listOfConnectedNeurons.add(connectedNeuron);
             }
