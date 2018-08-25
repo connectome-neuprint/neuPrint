@@ -91,6 +91,7 @@ public class ProofreaderProcedures {
             throw new RuntimeException("Missing input arguments.");
         }
 
+        // TODO: investigate situation in which timeStamps do not get add to history or merged nodes. possibly just add them to nodes during procedure. is this happening to other, more important nodes?
         // TODO: history nodes need to have unique ids?
         // TODO: can make more efficient by never transferring anything from result node
         // TODO: how does this work with batched transactions if there is a conflict?
@@ -103,13 +104,18 @@ public class ProofreaderProcedures {
         }
 
         List<Node> mergedBodies = new ArrayList<>();
+        Set<Long> mergedBodiesNotFound = new HashSet<>();
         for (Long mergedBodyId : mergeAction.getBodiesMerged()) {
             try {
                 Node mergedBody = acquireNeuronFromDatabase(mergedBodyId, datasetLabel);
                 mergedBodies.add(mergedBody);
             } catch (NoSuchElementException | NullPointerException nse) {
-                log.info(String.format("proofreader.mergeNeuronsFromJson: bodyId %d not found in dataset %s. Ignoring this body in merge procedure...", mergedBodyId, datasetLabel));
+                mergedBodiesNotFound.add(mergedBodyId);
             }
+        }
+
+        if (mergedBodiesNotFound.size()>0) {
+            log.info(String.format("proofreader.mergeNeuronsFromJson: The following bodyIds were not found in dataset %s. Ignoring these bodies in merge procedure: " + mergedBodiesNotFound, datasetLabel));
         }
 
         Node targetBody;
@@ -133,7 +139,7 @@ public class ProofreaderProcedures {
         // throws an error if the synapses from the json and the synapses in the database for the resulting body do not match
 //        compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction, datasetLabel);
 
-        log.info(String.format("Completed mergeAction for DVID UUID %s, mutationId %d. targetBodyId: %d, mergedBodies: " + mergedBodies,
+        log.info(String.format("Completed mergeAction for DVID UUID %s, mutationId %d. targetBodyId: %d, mergedBodies: " + mergeAction.getBodiesMerged(),
                 mergeAction.getDvidUuid(),
                 mergeAction.getMutationId(),
                 mergeAction.getTargetBodyId()));
@@ -405,7 +411,9 @@ public class ProofreaderProcedures {
         //move all relationships from original result body Id (A) to new node
         //move all relationships from 1st merged node (B) to new node
         mergeConnectsToRelationshipsToNewNodeAndDeletePreviousConnectsToRelationships(node1, node2, newNode);
+        log.info(String.format("Merged %s relationships from original neurons onto new neuron.", CONNECTS_TO));
         mergeSynapseSetsOntoNewNodeAndRemoveFromPreviousNodes(node1, node2, newNode);
+        log.info(String.format("Merged %s nodes from original neurons onto new neuron.", SYNAPSE_SET));
 
         //regenerate synapseCountPerRoi property
         Set<Synapse> mergedSynapseSet = createSynapseSetForNeuron(newNode, datasetLabel);
@@ -416,9 +424,12 @@ public class ProofreaderProcedures {
         setSummedLongProperty(PRE, newNode, node2, newNode);
         setSummedLongProperty(POST, newNode, node2, newNode);
 
+        log.info("Regenerated pre, post, and synapseCountPerRoi properties on new node.");
+
         //delete skeletons for both nodes
         deleteSkeletonForNode(node2);
         deleteSkeletonForNode(node1);
+        log.info(String.format("Deleted %ss for original nodes.", SKELETON));
 
         //store history
         collectPreviousHistoryOntoGhostAndDeleteExistingHistoryNode(node1);
@@ -452,6 +463,9 @@ public class ProofreaderProcedures {
         except.add(SPLIT_TO);
         removeAllRelationshipsExceptTypesWithName(node1, except);
         removeAllRelationshipsExceptTypesWithName(node2, except);
+
+        log.info("Created History and ghost nodes for merge.");
+
 
         return newNode;
     }
@@ -494,7 +508,6 @@ public class ProofreaderProcedures {
         //get a map of all relationships to add
         ConnectsToRelationshipMap connectsToRelationshipMap = getConnectsToRelationshipMapForNodesAndDeletePreviousRelationships(node1, node2, newNode);
         addConnectsToRelationshipsFromMap(connectsToRelationshipMap);
-        log.info(String.format("Merged %s relationships from original neurons onto new neuron.", CONNECTS_TO));
     }
 
     private void addConnectsToRelationshipsFromMap(ConnectsToRelationshipMap connectsToRelationshipMap) {
@@ -546,7 +559,6 @@ public class ProofreaderProcedures {
             newNode.getRelationships(RelationshipType.withName(CONTAINS)).iterator().next().delete();
         }
 
-        log.info(String.format("Merged %s nodes from original neurons onto new neuron.", SYNAPSE_SET));
     }
 
     private Set<Synapse> createSynapseSetForNeuron(Node neuron, String datasetLabel) {
@@ -608,7 +620,6 @@ public class ProofreaderProcedures {
             //delete Skeleton
             nodeSkeletonNode.delete();
         }
-        log.info(String.format("Deleted %ss for original nodes.", SKELETON));
     }
 
     private void collectPreviousHistoryOntoGhostAndDeleteExistingHistoryNode(Node node) {
@@ -1039,7 +1050,6 @@ public class ProofreaderProcedures {
         for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName(CONNECTS_TO))) {
             nodeRelationship.delete();
         }
-        log.info(String.format("Removed all %s relationships for node.", CONNECTS_TO));
     }
 
     private void removeSynapseSetsAndSynapses(Node node) {
@@ -1050,7 +1060,6 @@ public class ProofreaderProcedures {
             synapseNode.delete();
         }
         synapseSetNode.delete();
-        log.info(String.format("Removed all %ss and %ss for node.", SYNAPSE_SET, SYNAPSE));
     }
 
     private void acquireWriteLockForNode(Node node) {
