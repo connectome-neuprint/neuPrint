@@ -346,7 +346,7 @@ public class MergeNeuronsTest {
                 "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
                 "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}," +
                 "{\"Type\": \"post\", \"Location\": [ 4298, 2294, 1542 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4292, 2261, 1542 ]}" +
+                "{\"Type\": \"post\", \"Location\": [ 4292, 2261, 1542 ]}," +
                 "]}";
 
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");

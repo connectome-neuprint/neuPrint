@@ -661,18 +661,19 @@ public class ProofreaderProcedures {
         //compare the two sets
         Set<Synapse> mergeActionSynapseSet = new HashSet<>(mergeAction.getTargetBodySynapses());
         Set<Synapse> databaseSynapseSet = new HashSet<>(resultBodySynapseSet);
-        databaseSynapseSet.removeAll(mergeAction.getTargetBodySynapses());
+
         mergeActionSynapseSet.removeAll(resultBodySynapseSet);
+        databaseSynapseSet.removeAll(mergeAction.getTargetBodySynapses());
 
         if (mergeActionSynapseSet.size() == 0 && databaseSynapseSet.size() == 0) {
             log.info("Database and merge action synapses match.");
         } else {
             log.error(String.format("ProofreaderProcedures compareMergeActionSynapseSetWithDatabaseSynapseSet: Found the following differences between the database and merge action synapse sets: \n" +
                     "* Synapses in merge action but not in database: %s \n" +
-                    "* Synapses in database but not in merge action: %s \n", databaseSynapseSet, mergeActionSynapseSet));
+                    "* Synapses in database but not in merge action: %s \n", mergeActionSynapseSet, databaseSynapseSet));
             throw new RuntimeException(String.format("Found the following differences between the database and merge action synapse sets: \n" +
                     "* Synapses in merge action but not in database: %s \n" +
-                    "* Synapses in database but not in merge action: %s \n", databaseSynapseSet, mergeActionSynapseSet));
+                    "* Synapses in database but not in merge action: %s \n", mergeActionSynapseSet, databaseSynapseSet));
         }
 
     }
