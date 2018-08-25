@@ -10,18 +10,18 @@ import org.neo4j.graphdb.event.TransactionData;
 import java.util.HashSet;
 import java.util.Set;
 
-public class TransactionDataHandler {
+class TransactionDataHandler {
 
     private TransactionData transactionData;
     private Set<Long> nodesForTimeStamping;
     private boolean shouldMetaNodeSynapseCountsBeUpdated;
 
-    public TransactionDataHandler(TransactionData transactionData) {
+    TransactionDataHandler(TransactionData transactionData) {
         this.transactionData = transactionData;
         this.nodesForTimeStamping = new HashSet<>();
     }
 
-    public Set<Long> getNodesForTimeStamping() {
+    Set<Long> getNodesForTimeStamping() {
 
         shouldMetaNodeSynapseCountsBeUpdated = false;
 
@@ -125,12 +125,12 @@ public class TransactionDataHandler {
 
     }
 
-    public boolean shouldTimeStampAndUpdateMetaNodeTimeStamp() {
+    boolean shouldTimeStampAndUpdateMetaNodeTimeStamp() {
         //if time stamping, means a significant change happened during transaction that wasn't the addition of a time stamp or alteration of the meta node itself
         return (this.nodesForTimeStamping.size() > 0);
     }
 
-    public boolean getShouldMetaNodeSynapseCountsBeUpdated() {
+    boolean getShouldMetaNodeSynapseCountsBeUpdated() {
         return this.shouldMetaNodeSynapseCountsBeUpdated;
     }
 

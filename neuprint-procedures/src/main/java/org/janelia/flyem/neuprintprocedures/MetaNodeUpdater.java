@@ -11,9 +11,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class MetaNodeUpdater {
+class MetaNodeUpdater {
 
-    public static void updateMetaNode(Long metaNodeId, GraphDatabaseService dbService, String dataset, boolean shouldMetaNodeSynapseCountsBeUpdated) {
+    static void updateMetaNode(Long metaNodeId, GraphDatabaseService dbService, String dataset, boolean shouldMetaNodeSynapseCountsBeUpdated) {
 
         try {
             Node metaNode = dbService.getNodeById(metaNodeId);

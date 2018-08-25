@@ -16,7 +16,7 @@ public class TriggersRunnable implements Runnable {
     private static TransactionData transactionData;
     private static GraphDatabaseService dbService;
 
-    protected TriggersRunnable(TransactionData transactionData, GraphDatabaseService graphDatabaseService) {
+    TriggersRunnable(TransactionData transactionData, GraphDatabaseService graphDatabaseService) {
         TriggersRunnable.transactionData = transactionData;
         dbService = graphDatabaseService;
     }
