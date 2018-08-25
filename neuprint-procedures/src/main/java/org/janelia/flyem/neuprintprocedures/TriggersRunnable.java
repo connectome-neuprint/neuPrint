@@ -30,8 +30,8 @@ public class TriggersRunnable implements Runnable {
 
             Set<Long> nodesForTimeStamping = transactionDataHandler.getNodesForTimeStamping();
 
-            if (transactionDataHandler.shouldTimeStampAndUpdateMetaNode()) {
-                System.out.println("the following nodes will be time-stamped: " + nodesForTimeStamping);
+            if (transactionDataHandler.shouldTimeStampAndUpdateMetaNodeTimeStamp()) {
+                //System.out.println("the following nodes will be time-stamped: " + nodesForTimeStamping);
                 TimeStampProcedure.timeStampEmbedded(nodesForTimeStamping, dbService);
 
                 ResourceIterator<Node> metaNodeIterator = dbService.findNodes(Label.label("Meta"));
@@ -42,12 +42,11 @@ public class TriggersRunnable implements Runnable {
                 for (Node metaNode : metaNodeList) {
                     Long metaNodeId = metaNode.getId();
                     String dataset = (String) metaNode.getProperty("dataset");
-                    MetaNodeUpdater.updateMetaNode(metaNodeId, dbService, dataset);
-                    System.out.println("meta node updated: " + metaNode.getAllProperties());
+                    MetaNodeUpdater.updateMetaNode(metaNodeId, dbService, dataset, transactionDataHandler.getShouldMetaNodeSynapseCountsBeUpdated());
                 }
 
                 tx.success();
-                System.out.println("Completed time stamping.");
+                System.out.println("Completed time stamping and updating Meta node.");
             }
 
         }

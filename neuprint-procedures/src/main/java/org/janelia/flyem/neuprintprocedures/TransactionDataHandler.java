@@ -14,6 +14,7 @@ public class TransactionDataHandler {
 
     private TransactionData transactionData;
     private Set<Long> nodesForTimeStamping;
+    private boolean shouldMetaNodeSynapseCountsBeUpdated;
 
     public TransactionDataHandler(TransactionData transactionData) {
         this.transactionData = transactionData;
@@ -22,10 +23,15 @@ public class TransactionDataHandler {
 
     public Set<Long> getNodesForTimeStamping() {
 
+        shouldMetaNodeSynapseCountsBeUpdated = false;
+
         for (Node node : transactionData.createdNodes()) {
             if (!node.hasLabel(Label.label("Meta"))) {
                 this.nodesForTimeStamping.add(node.getId());
                 //System.out.println("node created: " + node);
+            }
+            if (node.hasLabel(Label.label("Synapse"))) {
+                shouldMetaNodeSynapseCountsBeUpdated = true;
             }
         }
 
@@ -35,6 +41,9 @@ public class TransactionDataHandler {
                 this.nodesForTimeStamping.add(node.getId());
                 //System.out.println("label entry assigned: " + labelEntry);
             }
+            if (node.hasLabel(Label.label("Synapse"))) {
+                shouldMetaNodeSynapseCountsBeUpdated = true;
+            }
         }
 
         for (LabelEntry labelEntry : transactionData.removedLabels()) {
@@ -42,6 +51,9 @@ public class TransactionDataHandler {
             if (!node.hasLabel(Label.label("Meta"))) {
                 this.nodesForTimeStamping.add(node.getId());
                 //System.out.println("label entry removed: " + labelEntry);
+            }
+            if (node.hasLabel(Label.label("Synapse"))) {
+                shouldMetaNodeSynapseCountsBeUpdated = true;
             }
         }
 
@@ -113,8 +125,13 @@ public class TransactionDataHandler {
 
     }
 
-    public boolean shouldTimeStampAndUpdateMetaNode() {
+    public boolean shouldTimeStampAndUpdateMetaNodeTimeStamp() {
         //if time stamping, means a significant change happened during transaction that wasn't the addition of a time stamp or alteration of the meta node itself
         return (this.nodesForTimeStamping.size() > 0);
     }
+
+    public boolean getShouldMetaNodeSynapseCountsBeUpdated() {
+        return this.shouldMetaNodeSynapseCountsBeUpdated;
+    }
+
 }

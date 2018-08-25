@@ -15,7 +15,7 @@ public class TimeStampProcedure {
                 Node node = dbService.getNodeById(nodeId);
                 node.setProperty("timeStamp", LocalDate.now());
             } catch (org.neo4j.graphdb.NotFoundException nfe) {
-                System.out.println(nfe + ". Time stamp not applied.");
+                //System.out.println(nfe + ". Time stamp not applied.");
             }
         }
 

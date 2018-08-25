@@ -13,32 +13,34 @@ import java.util.stream.Collectors;
 
 public class MetaNodeUpdater {
 
-    public static void updateMetaNode(Long metaNodeId, GraphDatabaseService dbService, String dataset) {
+    public static void updateMetaNode(Long metaNodeId, GraphDatabaseService dbService, String dataset, boolean shouldMetaNodeSynapseCountsBeUpdated) {
 
         try {
             Node metaNode = dbService.getNodeById(metaNodeId);
             getWriteLockForNode(metaNode, dbService);
-
-            long preCount = getTotalPreCount(dbService, dataset);
-            long postCount = getTotalPostCount(dbService, dataset);
-
-            Set<String> roiNameSet = getAllRoisFromNeurons(dbService, dataset)
-                    .stream()
-                    .filter((l) -> (!l.equals("Neuron") && !l.startsWith(dataset)))
-                    .collect(Collectors.toSet());
-            SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
-
-            for (String roi : roiNameSet) {
-                long roiPreCount = getRoiPreCount(dbService, dataset, roi);
-                long roiPostCount = getRoiPostCount(dbService, dataset, roi);
-                synapseCountsPerRoi.addSynapseCountsForRoi(roi, Math.toIntExact(roiPreCount), Math.toIntExact(roiPostCount));
-            }
-
             metaNode.setProperty("lastDatabaseEdit", LocalDate.now());
-            metaNode.setProperty("totalPreCount", preCount);
-            metaNode.setProperty("totalPostCount", postCount);
-            metaNode.setProperty("synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString());
-            System.out.println("Setting synapseCountPerRoi on Meta node: " + synapseCountsPerRoi.getAsJsonString());
+
+            if (shouldMetaNodeSynapseCountsBeUpdated) {
+                long preCount = getTotalPreCount(dbService, dataset);
+                long postCount = getTotalPostCount(dbService, dataset);
+
+                Set<String> roiNameSet = getAllRoisFromNeurons(dbService, dataset)
+                        .stream()
+                        .filter((l) -> (!l.equals("Neuron") && !l.startsWith(dataset)))
+                        .collect(Collectors.toSet());
+                SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
+
+                for (String roi : roiNameSet) {
+                    long roiPreCount = getRoiPreCount(dbService, dataset, roi);
+                    long roiPostCount = getRoiPostCount(dbService, dataset, roi);
+                    synapseCountsPerRoi.addSynapseCountsForRoi(roi, Math.toIntExact(roiPreCount), Math.toIntExact(roiPostCount));
+                }
+
+                metaNode.setProperty("totalPreCount", preCount);
+                metaNode.setProperty("totalPostCount", postCount);
+                metaNode.setProperty("synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString());
+                System.out.println("Setting synapseCountPerRoi on Meta node: " + synapseCountsPerRoi.getAsJsonString());
+            }
 
         } catch (Exception e) {
             System.out.println(e);
