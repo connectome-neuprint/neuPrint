@@ -50,7 +50,7 @@ public class MergeNeuronsTest {
 
             String connectsToTestJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
                     "\"Action\": \"merge\", \"TargetBodyID\": 1, \"BodiesMerged\": [2], " +
-                    "\"TargetBodySize\": 216685762, \"TargetBodySynapses\":[]}";
+                    "\"TargetBodySize\": 216685762}";
 
             session.writeTransaction(tx -> tx.run("CREATE (n:`test-Neuron`:Neuron:test{bodyId:$id1}), (m:`test-Neuron`:Neuron:test{bodyId:$id2})," +
                             " (o{bodyId:$id3}), (p{bodyId:$id4}), (s:SynapseSet{datasetBodyId:\"test:1\"})," +
@@ -151,16 +151,7 @@ public class MergeNeuronsTest {
         // added non-existent bodyId 12345 to bodiesmerged to test error handling
         String mergeInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
                 "\"Action\": \"merge\", \"TargetBodyID\": 8426959, \"BodiesMerged\": [26311, 2589725, 12345, 831744], " +
-                "\"TargetBodySize\": 216685762, \"TargetBodySynapses\": [" +
-                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}," +
-                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1502 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
-                "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4298, 2294, 1542 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4292, 2261, 1542 ]}" +
-                "]}";
+                "\"TargetBodySize\": 216685762}";
 
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
@@ -337,17 +328,11 @@ public class MergeNeuronsTest {
     }
 
     @Test
-    public void shouldCreateNewNodeWhenTargetBodyDoesntExist() {
+    public void shouldCreateNewNodeWhenTargetBodyDoesNotExist() {
 
         String mergeInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
                 "\"Action\": \"merge\", \"TargetBodyID\": 84269591, \"BodiesMerged\": [26311, 2589725, 831744], " +
-                "\"TargetBodySize\": 216685762, \"TargetBodySynapses\": [" +
-                "{\"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4000, 3000, 1500 ]}," +
-                "{\"Type\": \"pre\", \"Location\": [ 4236, 2394, 1700 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4298, 2294, 1542 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4292, 2261, 1542 ]}," +
-                "]}";
+                "\"TargetBodySize\": 216685762}";
 
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
@@ -392,6 +377,62 @@ public class MergeNeuronsTest {
 
 
         }
+    }
+
+    @Test
+    public void shouldWorkEvenWhenNoBodiesFromMergedBodiesExistInDatabase() {
+
+        String mergeInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
+                "\"Action\": \"merge\", \"TargetBodyID\": 8426959, \"BodiesMerged\": [99, 98, 100], " +
+                "\"TargetBodySize\": 216685762}";
+
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        bodyList.sort(new SortBodyByNumberOfSynapses());
+
+        File swcFile1 = new File("src/test/resources/8426959.swc");
+        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1});
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+            String dataset = "test";
+
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+            neo4jImporter.prepDatabase(dataset);
+
+            neo4jImporter.addNeurons(dataset, neuronList);
+
+            neo4jImporter.addConnectsTo(dataset, bodyList);
+            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+            neo4jImporter.addSynapsesTo(dataset, preToPost);
+            neo4jImporter.addNeuronRois(dataset, bodyList);
+            neo4jImporter.addSynapseSets(dataset, bodyList);
+            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
+            neo4jImporter.addAutoNames(dataset, 0);
+            neo4jImporter.addSkeletonNodes(dataset, skeletonList);
+
+            Gson gson = new Gson();
+            MergeAction mergeAction = gson.fromJson(mergeInstructionJson, MergeAction.class);
+
+            Node neuron = session.writeTransaction(tx ->
+                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", mergeInstructionJson)).single().get(0).asNode());
+
+            Map<String, Object> neuronProperties = neuron.asMap();
+
+            Assert.assertEquals(2L, neuronProperties.get("pre"));
+            Assert.assertEquals(1L, neuronProperties.get("post"));
+            Assert.assertEquals(mergeAction.getTargetBodySize(), neuronProperties.get("size"));
+            Assert.assertEquals(mergeAction.getTargetBodyId(), neuronProperties.get("bodyId"));
+
+
+        }
+
+
+
+
     }
 }
 

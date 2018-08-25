@@ -108,7 +108,7 @@ public class ProofreaderProcedures {
                 Node mergedBody = acquireNeuronFromDatabase(mergedBodyId, datasetLabel);
                 mergedBodies.add(mergedBody);
             } catch (NoSuchElementException | NullPointerException nse) {
-                log.info(String.format("proofreader.mergeNeuronsFromJson: bodyId %d not found in dataset %s. Ignoring merge...", mergedBodyId, datasetLabel));
+                log.info(String.format("proofreader.mergeNeuronsFromJson: bodyId %d not found in dataset %s. Ignoring this body in merge procedure...", mergedBodyId, datasetLabel));
             }
         }
 
@@ -117,7 +117,7 @@ public class ProofreaderProcedures {
             targetBody = acquireNeuronFromDatabase(mergeAction.getTargetBodyId(), datasetLabel);
         } catch (NoSuchElementException | NullPointerException nse) {
             log.info(String.format("proofreader.mergeNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node...", mergeAction.getTargetBodyId(), datasetLabel));
-            targetBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel),Label.label(datasetLabel + "-" + NEURON));
+            targetBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel), Label.label(datasetLabel + "-" + NEURON));
             targetBody.setProperty("bodyId", mergeAction.getTargetBodyId());
             targetBody.setProperty("size", mergeAction.getTargetBodySize());
         }
@@ -131,7 +131,12 @@ public class ProofreaderProcedures {
         final Node newNode = recursivelyMergeNodes(targetBody, mergedBodies, mergeAction.getTargetBodySize(), datasetLabel, mergeAction);
 
         // throws an error if the synapses from the json and the synapses in the database for the resulting body do not match
-        compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction, datasetLabel);
+//        compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction, datasetLabel);
+
+        log.info(String.format("Completed mergeAction for DVID UUID %s, mutationId %d. targetBodyId: %d, mergedBodies: " + mergedBodies,
+                mergeAction.getDvidUuid(),
+                mergeAction.getMutationId(),
+                mergeAction.getTargetBodyId()));
 
         return Stream.of(new NodeResult(newNode));
     }
@@ -153,7 +158,7 @@ public class ProofreaderProcedures {
             originalBody = acquireNeuronFromDatabase(cleaveOrSplitAction.getOriginalBodyId(), datasetLabel);
         } catch (NoSuchElementException | NullPointerException nse) {
             log.info(String.format("proofreader.cleaveNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node...", cleaveOrSplitAction.getOriginalBodyId(), datasetLabel));
-            originalBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel),Label.label(datasetLabel + "-" + NEURON));
+            originalBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel), Label.label(datasetLabel + "-" + NEURON));
             originalBody.setProperty("bodyId", cleaveOrSplitAction.getOriginalBodyId());
         }
 
@@ -378,6 +383,9 @@ public class ProofreaderProcedures {
 
     private Node recursivelyMergeNodes(Node resultNode, List<Node> mergedBodies, Long newNodeSize, String datasetLabel, MergeAction mergeAction) {
         if (mergedBodies.size() == 0) {
+            if (!resultNode.getProperty("size").equals(newNodeSize)) {
+                resultNode.setProperty("size", newNodeSize);
+            }
             return resultNode;
         } else {
             Node mergedNode = mergeTwoNodesOntoNewNode(resultNode, mergedBodies.get(0), newNodeSize, datasetLabel, mergeAction);
