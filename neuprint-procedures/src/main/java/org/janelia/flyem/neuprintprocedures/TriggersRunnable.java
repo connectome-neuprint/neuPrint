@@ -7,6 +7,7 @@ import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.event.TransactionData;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -46,7 +47,7 @@ public class TriggersRunnable implements Runnable {
                 }
 
                 tx.success();
-                System.out.println("Completed time stamping and updating Meta node.");
+                System.out.println(LocalDateTime.now() + " Completed time stamping and updating Meta node.");
             }
 
         }
