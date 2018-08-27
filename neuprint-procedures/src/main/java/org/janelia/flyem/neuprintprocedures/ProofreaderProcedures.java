@@ -122,10 +122,13 @@ public class ProofreaderProcedures {
         try {
             targetBody = acquireNeuronFromDatabase(mergeAction.getTargetBodyId(), datasetLabel);
         } catch (NoSuchElementException | NullPointerException nse) {
-            log.info(String.format("proofreader.mergeNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node...", mergeAction.getTargetBodyId(), datasetLabel));
+            log.info(String.format("proofreader.mergeNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node and synapse set...", mergeAction.getTargetBodyId(), datasetLabel));
             targetBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel), Label.label(datasetLabel + "-" + NEURON));
             targetBody.setProperty("bodyId", mergeAction.getTargetBodyId());
             targetBody.setProperty("size", mergeAction.getTargetBodySize());
+            Node targetBodySynapseSet = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
+            targetBodySynapseSet.setProperty("datasetBodyId", datasetLabel + ":" + mergeAction.getTargetBodyId());
+            targetBody.createRelationshipTo(targetBodySynapseSet,RelationshipType.withName("Contains"));
         }
 
         // grab write locks upfront
@@ -139,7 +142,9 @@ public class ProofreaderProcedures {
         // throws an error if the synapses from the json and the synapses in the database for the resulting body do not match
 //        compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction, datasetLabel);
 
-        log.info(String.format("Completed mergeAction for DVID UUID %s, mutationId %d. targetBodyId: %d, mergedBodies: " + mergeAction.getBodiesMerged(),
+        // TODO: log cases when there was no merge
+        log.info(String.format("Completed mergeAction for dataset %s, DVID UUID %s, mutationId %d. targetBodyId: %d, mergedBodies: " + mergeAction.getBodiesMerged() + ". Bodies not found in neo4j: " + mergedBodiesNotFound,
+                datasetLabel,
                 mergeAction.getDvidUuid(),
                 mergeAction.getMutationId(),
                 mergeAction.getTargetBodyId()));
@@ -565,8 +570,8 @@ public class ProofreaderProcedures {
 
         Node synapseSetNode = getSynapseSetNodeForNeuron(neuron);
         if (synapseSetNode == null) {
-            log.error(String.format("ProofreaderProcedures createSynapseSetForNeuron: No %s on neuron.", SYNAPSE_SET));
-            throw new RuntimeException(String.format("No %s on neuron.", SYNAPSE_SET));
+            log.info(String.format("ProofreaderProcedures createSynapseSetForNeuron: No %s on neuron " + neuron.getProperty("bodyId"), SYNAPSE_SET));
+//            throw new RuntimeException(String.format("No %s on neuron.", SYNAPSE_SET));
         }
 
         Set<Synapse> synapseSet = new HashSet<>();

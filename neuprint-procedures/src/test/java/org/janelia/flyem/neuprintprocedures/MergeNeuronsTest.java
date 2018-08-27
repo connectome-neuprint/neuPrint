@@ -328,10 +328,22 @@ public class MergeNeuronsTest {
     }
 
     @Test
-    public void shouldCreateNewNodeWhenTargetBodyDoesNotExist() {
+    public void shouldCreateNewNodeWhenTargetBodyDoesNotExistAndCombineCreatedTargetBodiesAppropriately() {
 
         String mergeInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
                 "\"Action\": \"merge\", \"TargetBodyID\": 84269591, \"BodiesMerged\": [26311, 2589725, 831744], " +
+                "\"TargetBodySize\": 216685762}";
+
+        String mergeInstructionJson2 = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
+                "\"Action\": \"merge\", \"TargetBodyID\": 1234, \"BodiesMerged\": [], " +
+                "\"TargetBodySize\": 216685762}";
+
+        String mergeInstructionJson3 = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
+                "\"Action\": \"merge\", \"TargetBodyID\": 12345, \"BodiesMerged\": [], " +
+                "\"TargetBodySize\": 216685762}";
+
+        String mergeInstructionJson4 = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
+                "\"Action\": \"merge\", \"TargetBodyID\": 12345, \"BodiesMerged\": [1234], " +
                 "\"TargetBodySize\": 216685762}";
 
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
@@ -374,6 +386,14 @@ public class MergeNeuronsTest {
             Assert.assertEquals(4L, neuronProperties.get("post"));
             Assert.assertEquals(mergeAction.getTargetBodySize(), neuronProperties.get("size"));
             Assert.assertEquals(mergeAction.getTargetBodyId(), neuronProperties.get("bodyId"));
+
+            session.writeTransaction(tx ->
+                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", mergeInstructionJson2)).single().get(0).asNode());
+            session.writeTransaction(tx ->
+                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", mergeInstructionJson3)).single().get(0).asNode());
+            session.writeTransaction(tx ->
+                    tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", mergeInstructionJson4)).single().get(0).asNode());
+
 
 
         }
