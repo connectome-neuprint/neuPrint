@@ -59,6 +59,8 @@ public class ProofreaderProcedures {
     private static final String POST = "post";
     private static final String PRE = "pre";
     private static final String SIZE = "size";
+    private static final String NAME = "name";
+    private static final String STATUS = "status";
     private static final String SYNAPSE_COUNT_PER_ROI = "synapseCountPerRoi";
     private static final String TYPE = "type";
     private static final String WEIGHT = "weight";
@@ -124,11 +126,19 @@ public class ProofreaderProcedures {
         } catch (NoSuchElementException | NullPointerException nse) {
             log.info(String.format("proofreader.mergeNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node and synapse set...", mergeAction.getTargetBodyId(), datasetLabel));
             targetBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel), Label.label(datasetLabel + "-" + NEURON));
-            targetBody.setProperty("bodyId", mergeAction.getTargetBodyId());
-            targetBody.setProperty("size", mergeAction.getTargetBodySize());
+            targetBody.setProperty(BODY_ID, mergeAction.getTargetBodyId());
+            if (mergeAction.getTargetBodySize()!=null) {
+                targetBody.setProperty(SIZE, mergeAction.getTargetBodySize());
+            }
+            if (mergeAction.getTargetBodyName()!=null) {
+                targetBody.setProperty(NAME, mergeAction.getTargetBodyName());
+            }
+            if (mergeAction.getTargetBodyStatus()!=null) {
+                targetBody.setProperty(STATUS, mergeAction.getTargetBodyStatus());
+            }
             Node targetBodySynapseSet = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
-            targetBodySynapseSet.setProperty("datasetBodyId", datasetLabel + ":" + mergeAction.getTargetBodyId());
-            targetBody.createRelationshipTo(targetBodySynapseSet,RelationshipType.withName("Contains"));
+            targetBodySynapseSet.setProperty(DATASET_BODY_ID, datasetLabel + ":" + mergeAction.getTargetBodyId());
+            targetBody.createRelationshipTo(targetBodySynapseSet,RelationshipType.withName(CONTAINS));
         }
 
         // grab write locks upfront
@@ -137,7 +147,7 @@ public class ProofreaderProcedures {
             acquireWriteLockForNeuronSubgraph(body);
         }
 
-        final Node newNode = recursivelyMergeNodes(targetBody, mergedBodies, mergeAction.getTargetBodySize(), datasetLabel, mergeAction);
+        final Node newNode = recursivelyMergeNodes(targetBody, mergedBodies, mergeAction.getTargetBodySize(), mergeAction.getTargetBodyName(), mergeAction.getTargetBodyStatus(), datasetLabel, mergeAction);
 
         // throws an error if the synapses from the json and the synapses in the database for the resulting body do not match
 //        compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction, datasetLabel);
@@ -392,25 +402,39 @@ public class ProofreaderProcedures {
 //
 //    }
 
-    private Node recursivelyMergeNodes(Node resultNode, List<Node> mergedBodies, Long newNodeSize, String datasetLabel, MergeAction mergeAction) {
+    private Node recursivelyMergeNodes(Node resultNode, List<Node> mergedBodies, Long newNodeSize, String newNodeName, String newNodeStatus, String datasetLabel, MergeAction mergeAction) {
         if (mergedBodies.size() == 0) {
-            if (!resultNode.getProperty("size").equals(newNodeSize)) {
-                resultNode.setProperty("size", newNodeSize);
+            if ((!resultNode.hasProperty(SIZE) || (resultNode.hasProperty(SIZE) && !resultNode.getProperty(SIZE).equals(newNodeSize))) && newNodeSize!=null) {
+                resultNode.setProperty(SIZE, newNodeSize);
+            }
+            if ((!resultNode.hasProperty(NAME) || (resultNode.hasProperty(NAME) && !resultNode.getProperty(NAME).equals(newNodeName))) && newNodeName!=null) {
+                resultNode.setProperty(NAME, newNodeName);
+            }
+            if ((!resultNode.hasProperty(STATUS) || (resultNode.hasProperty(STATUS) && !resultNode.getProperty(STATUS).equals(newNodeStatus))) && newNodeStatus!=null) {
+                resultNode.setProperty(STATUS, newNodeStatus);
             }
             return resultNode;
         } else {
-            Node mergedNode = mergeTwoNodesOntoNewNode(resultNode, mergedBodies.get(0), newNodeSize, datasetLabel, mergeAction);
-            return recursivelyMergeNodes(mergedNode, mergedBodies.subList(1, mergedBodies.size()), newNodeSize, datasetLabel, mergeAction);
+            Node mergedNode = mergeTwoNodesOntoNewNode(resultNode, mergedBodies.get(0), newNodeSize, newNodeName, newNodeStatus, datasetLabel, mergeAction);
+            return recursivelyMergeNodes(mergedNode, mergedBodies.subList(1, mergedBodies.size()), newNodeSize, newNodeName, newNodeStatus, datasetLabel, mergeAction);
         }
     }
 
-    private Node mergeTwoNodesOntoNewNode(Node node1, Node node2, Long newNodeSize, String datasetLabel, MergeAction mergeAction) {
+    private Node mergeTwoNodesOntoNewNode(Node node1, Node node2, Long newNodeSize, String newNodeName, String newNodeStatus, String datasetLabel, MergeAction mergeAction) {
 
         //create a new node that will be a copy of node1
         //copy properties over to new node (note: must add properties before adding labels or will violate uniqueness constraint)
         final Node newNode = copyPropertiesToNewNodeForCleaveSplitOrMerge(node1, MERGED);
-        // add size property from json to new node
-        newNode.setProperty(SIZE, newNodeSize);
+        // add size, name, status property from json to new node
+        if (newNodeSize!=null) {
+            newNode.setProperty(SIZE, newNodeSize);
+        }
+        if (newNodeName!=null) {
+            newNode.setProperty(NAME, newNodeName);
+        }
+        if (newNodeStatus!=null) {
+            newNode.setProperty(STATUS, newNodeStatus);
+        }
         log.info(String.format("Merging %s with %s...", node1.getProperty(BODY_ID), node2.getProperty(BODY_ID)));
 
         //move all relationships from original result body Id (A) to new node

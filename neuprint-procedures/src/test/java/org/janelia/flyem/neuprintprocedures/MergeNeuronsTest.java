@@ -151,7 +151,7 @@ public class MergeNeuronsTest {
         // added non-existent bodyId 12345 to bodiesmerged to test error handling
         String mergeInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
                 "\"Action\": \"merge\", \"TargetBodyID\": 8426959, \"BodiesMerged\": [26311, 2589725, 12345, 831744], " +
-                "\"TargetBodySize\": 216685762}";
+                "\"TargetBodySize\": 216685762, \"TargetBodyName\": \"ring-L\", \"TargetBodyStatus\": \"0.5assign\"}";
 
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
@@ -183,6 +183,8 @@ public class MergeNeuronsTest {
 
             Gson gson = new Gson();
             MergeAction mergeAction = gson.fromJson(mergeInstructionJson, MergeAction.class);
+            Assert.assertEquals("0.5assign", mergeAction.getTargetBodyStatus());
+            Assert.assertEquals("ring-L", mergeAction.getTargetBodyName());
 
             Node neuron = session.writeTransaction(tx ->
                     tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", mergeInstructionJson)).single().get(0).asNode());
@@ -193,8 +195,8 @@ public class MergeNeuronsTest {
             Assert.assertEquals(5L, neuronProperties.get("post"));
             Assert.assertEquals(mergeAction.getTargetBodySize(), neuronProperties.get("size"));
             Assert.assertEquals(mergeAction.getTargetBodyId(), neuronProperties.get("bodyId"));
-            Assert.assertEquals("Dm", neuronProperties.get("type"));
-            Assert.assertEquals("final", neuronProperties.get("status"));
+            Assert.assertEquals(mergeAction.getTargetBodyStatus(), neuronProperties.get("status"));
+            Assert.assertEquals(mergeAction.getTargetBodyName(), neuronProperties.get("name"));
             Assert.assertEquals("{\"roiA\":{\"pre\":2,\"post\":3},\"roiB\":{\"pre\":0,\"post\":3},\"anotherRoi\":{\"pre\":1,\"post\":0},\"seven_column_roi\":{\"pre\":2,\"post\":5}}", neuronProperties.get("synapseCountPerRoi"));
 
             //check labels
@@ -332,19 +334,19 @@ public class MergeNeuronsTest {
 
         String mergeInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
                 "\"Action\": \"merge\", \"TargetBodyID\": 84269591, \"BodiesMerged\": [26311, 2589725, 831744], " +
-                "\"TargetBodySize\": 216685762}";
+                "\"TargetBodySize\": 216685762, \"TargetBodyName\": \"ring-L\", \"TargetBodyStatus\": \"0.5assign\"}";
 
         String mergeInstructionJson2 = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
                 "\"Action\": \"merge\", \"TargetBodyID\": 1234, \"BodiesMerged\": [], " +
-                "\"TargetBodySize\": 216685762}";
+                "\"TargetBodySize\": 216685762, \"TargetBodyName\": \"ring-L\", \"TargetBodyStatus\": \"0.5assign\"}";
 
         String mergeInstructionJson3 = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
                 "\"Action\": \"merge\", \"TargetBodyID\": 12345, \"BodiesMerged\": [], " +
-                "\"TargetBodySize\": 216685762}";
+                "\"TargetBodySize\": 216685762, \"TargetBodyName\": \"ring-L\", \"TargetBodyStatus\": \"0.5assign\"}";
 
         String mergeInstructionJson4 = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387," +
                 "\"Action\": \"merge\", \"TargetBodyID\": 12345, \"BodiesMerged\": [1234], " +
-                "\"TargetBodySize\": 216685762}";
+                "\"TargetBodySize\": 216685762, \"TargetBodyName\": \"ring-L\", \"TargetBodyStatus\": \"0.5assign\"}";
 
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
@@ -386,6 +388,8 @@ public class MergeNeuronsTest {
             Assert.assertEquals(4L, neuronProperties.get("post"));
             Assert.assertEquals(mergeAction.getTargetBodySize(), neuronProperties.get("size"));
             Assert.assertEquals(mergeAction.getTargetBodyId(), neuronProperties.get("bodyId"));
+            Assert.assertEquals(mergeAction.getTargetBodyStatus(), neuronProperties.get("status"));
+            Assert.assertEquals(mergeAction.getTargetBodyName(), neuronProperties.get("name"));
 
             session.writeTransaction(tx ->
                     tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", mergeInstructionJson2)).single().get(0).asNode());

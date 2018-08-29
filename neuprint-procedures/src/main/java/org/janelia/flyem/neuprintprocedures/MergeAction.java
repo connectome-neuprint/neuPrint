@@ -28,6 +28,12 @@ public class MergeAction {
     @SerializedName("TargetBodySynapses")
     private Set<Synapse> targetBodySynapses;
 
+    @SerializedName("TargetBodyName")
+    private String targetBodyName;
+
+    @SerializedName("TargetBodyStatus")
+    private String targetBodyStatus;
+
     public String getDvidUuid() {
         return dvidUuid;
     }
@@ -56,11 +62,21 @@ public class MergeAction {
         return action;
     }
 
+    public String getTargetBodyName() {
+        return targetBodyName;
+    }
+
+    public String getTargetBodyStatus() {
+        return targetBodyStatus;
+    }
+
     @Override
     public String toString() {
         return "dvidUuid: " + this.dvidUuid +
                 ", mutationId: " + this.mutationId +
                 ", targetBodyId: " + this.targetBodyId +
+                ", targetBodyName: " + this.targetBodyName +
+                ", targetBodyStatus: " + this.targetBodyStatus +
                 ", bodiesMerged: " + this.bodiesMerged +
                 ", targetBodySize: " + this.targetBodySize +
                 ", targetBodySynapses: " + this.targetBodySynapses;
