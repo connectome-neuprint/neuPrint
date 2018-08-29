@@ -116,7 +116,7 @@ public class ProofreaderProcedures {
             }
         }
 
-        if (mergedBodiesNotFound.size()>0) {
+        if (mergedBodiesNotFound.size() > 0) {
             log.info(String.format("proofreader.mergeNeuronsFromJson: The following bodyIds were not found in dataset %s. Ignoring these bodies in merge procedure: " + mergedBodiesNotFound, datasetLabel));
         }
 
@@ -127,18 +127,18 @@ public class ProofreaderProcedures {
             log.info(String.format("proofreader.mergeNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node and synapse set...", mergeAction.getTargetBodyId(), datasetLabel));
             targetBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel), Label.label(datasetLabel + "-" + NEURON));
             targetBody.setProperty(BODY_ID, mergeAction.getTargetBodyId());
-            if (mergeAction.getTargetBodySize()!=null) {
+            if (mergeAction.getTargetBodySize() != null) {
                 targetBody.setProperty(SIZE, mergeAction.getTargetBodySize());
             }
-            if (mergeAction.getTargetBodyName()!=null) {
+            if (mergeAction.getTargetBodyName() != null) {
                 targetBody.setProperty(NAME, mergeAction.getTargetBodyName());
             }
-            if (mergeAction.getTargetBodyStatus()!=null) {
+            if (mergeAction.getTargetBodyStatus() != null) {
                 targetBody.setProperty(STATUS, mergeAction.getTargetBodyStatus());
             }
             Node targetBodySynapseSet = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
             targetBodySynapseSet.setProperty(DATASET_BODY_ID, datasetLabel + ":" + mergeAction.getTargetBodyId());
-            targetBody.createRelationshipTo(targetBodySynapseSet,RelationshipType.withName(CONTAINS));
+            targetBody.createRelationshipTo(targetBodySynapseSet, RelationshipType.withName(CONTAINS));
         }
 
         // grab write locks upfront
@@ -152,7 +152,6 @@ public class ProofreaderProcedures {
         // throws an error if the synapses from the json and the synapses in the database for the resulting body do not match
 //        compareMergeActionSynapseSetWithDatabaseSynapseSet(newNode, mergeAction, datasetLabel);
 
-        // TODO: log cases when there was no merge
         log.info(String.format("Completed mergeAction for dataset %s, DVID UUID %s, mutationId %d. targetBodyId: %d, mergedBodies: " + mergeAction.getBodiesMerged() + ". Bodies not found in neo4j: " + mergedBodiesNotFound,
                 datasetLabel,
                 mergeAction.getDvidUuid(),
@@ -165,7 +164,7 @@ public class ProofreaderProcedures {
     @Procedure(value = "proofreader.cleaveNeuronFromJson", mode = Mode.WRITE)
     @Description("proofreader.cleaveNeuronFromJson(cleaveJson,datasetLabel) : cleave neuron from json file containing a single cleaveaction json")
     public Stream<NodeListResult> cleaveNeuronFromJson(@Name("cleaveJson") String cleaveJson, @Name("datasetLabel") String datasetLabel) {
-        // TODO : keep track of cleave vs. split action
+
         if (cleaveJson == null || datasetLabel == null) {
             log.error("proofreader.cleaveNeuronsFromJson: Missing input arguments.");
             throw new RuntimeException("Missing input arguments.");
@@ -178,9 +177,12 @@ public class ProofreaderProcedures {
         try {
             originalBody = acquireNeuronFromDatabase(cleaveOrSplitAction.getOriginalBodyId(), datasetLabel);
         } catch (NoSuchElementException | NullPointerException nse) {
-            log.info(String.format("proofreader.cleaveNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node...", cleaveOrSplitAction.getOriginalBodyId(), datasetLabel));
+            log.info(String.format("proofreader.cleaveNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node and synapse set...", cleaveOrSplitAction.getOriginalBodyId(), datasetLabel));
             originalBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel), Label.label(datasetLabel + "-" + NEURON));
             originalBody.setProperty("bodyId", cleaveOrSplitAction.getOriginalBodyId());
+            Node originalBodySynapseSet = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
+            originalBodySynapseSet.setProperty(DATASET_BODY_ID, datasetLabel + ":" + cleaveOrSplitAction.getOriginalBodyId());
+            originalBody.createRelationshipTo(originalBodySynapseSet, RelationshipType.withName(CONTAINS));
         }
 
         // grab write locks upfront
@@ -211,8 +213,8 @@ public class ProofreaderProcedures {
         // original neuron synapse set
         Node originalSynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNode(originalBody);
         if (originalSynapseSetNode == null) {
-            log.error(String.format("proofreader.cleaveNeuronsFromJson: No %s node on original body.", SYNAPSE_SET));
-            throw new RuntimeException(String.format("No %s node on original body.", SYNAPSE_SET));
+            log.info(String.format("proofreader.cleaveNeuronsFromJson: No %s node on original body.", SYNAPSE_SET));
+//            throw new RuntimeException(String.format("No %s node on original body.", SYNAPSE_SET));
         }
         //create a synapse set for the new body with unique ID
         Node newBodySynapseSetNode = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
@@ -325,6 +327,15 @@ public class ProofreaderProcedures {
         List<Node> listOfCleavedNodes = new ArrayList<>();
         listOfCleavedNodes.add(cleavedNewBody);
         listOfCleavedNodes.add(cleavedOriginalBody);
+
+        log.info(String.format("Completed cleaveOrSplitAction for dataset %s, DVID UUID %s, mutationId %d, actionType: %s. originalBodyId: %d. Created new body with bodyId: %d.",
+                datasetLabel,
+                cleaveOrSplitAction.getDvidUuid(),
+                cleaveOrSplitAction.getMutationId(),
+                cleaveOrSplitAction.getAction(),
+                cleaveOrSplitAction.getOriginalBodyId(),
+                cleaveOrSplitAction.getNewBodyId()));
+
         return Stream.of(new NodeListResult(listOfCleavedNodes));
 
     }
@@ -404,13 +415,13 @@ public class ProofreaderProcedures {
 
     private Node recursivelyMergeNodes(Node resultNode, List<Node> mergedBodies, Long newNodeSize, String newNodeName, String newNodeStatus, String datasetLabel, MergeAction mergeAction) {
         if (mergedBodies.size() == 0) {
-            if ((!resultNode.hasProperty(SIZE) || (resultNode.hasProperty(SIZE) && !resultNode.getProperty(SIZE).equals(newNodeSize))) && newNodeSize!=null) {
+            if ((!resultNode.hasProperty(SIZE) || (resultNode.hasProperty(SIZE) && !resultNode.getProperty(SIZE).equals(newNodeSize))) && newNodeSize != null) {
                 resultNode.setProperty(SIZE, newNodeSize);
             }
-            if ((!resultNode.hasProperty(NAME) || (resultNode.hasProperty(NAME) && !resultNode.getProperty(NAME).equals(newNodeName))) && newNodeName!=null) {
+            if ((!resultNode.hasProperty(NAME) || (resultNode.hasProperty(NAME) && !resultNode.getProperty(NAME).equals(newNodeName))) && newNodeName != null) {
                 resultNode.setProperty(NAME, newNodeName);
             }
-            if ((!resultNode.hasProperty(STATUS) || (resultNode.hasProperty(STATUS) && !resultNode.getProperty(STATUS).equals(newNodeStatus))) && newNodeStatus!=null) {
+            if ((!resultNode.hasProperty(STATUS) || (resultNode.hasProperty(STATUS) && !resultNode.getProperty(STATUS).equals(newNodeStatus))) && newNodeStatus != null) {
                 resultNode.setProperty(STATUS, newNodeStatus);
             }
             return resultNode;
@@ -426,13 +437,13 @@ public class ProofreaderProcedures {
         //copy properties over to new node (note: must add properties before adding labels or will violate uniqueness constraint)
         final Node newNode = copyPropertiesToNewNodeForCleaveSplitOrMerge(node1, MERGED);
         // add size, name, status property from json to new node
-        if (newNodeSize!=null) {
+        if (newNodeSize != null) {
             newNode.setProperty(SIZE, newNodeSize);
         }
-        if (newNodeName!=null) {
+        if (newNodeName != null) {
             newNode.setProperty(NAME, newNodeName);
         }
-        if (newNodeStatus!=null) {
+        if (newNodeStatus != null) {
             newNode.setProperty(STATUS, newNodeStatus);
         }
         log.info(String.format("Merging %s with %s...", node1.getProperty(BODY_ID), node2.getProperty(BODY_ID)));
@@ -494,7 +505,6 @@ public class ProofreaderProcedures {
         removeAllRelationshipsExceptTypesWithName(node2, except);
 
         log.info("Created History and ghost nodes for merge.");
-
 
         return newNode;
     }
@@ -752,8 +762,8 @@ public class ProofreaderProcedures {
                 .filter(label -> !label.startsWith(datasetLabel))
                 .collect(Collectors.toList());
         if (roiList.size() == 0) {
-            log.error(String.format("ProofreaderProcedures setSynapseRoisFromDatabase: No roi found on %s: %s", SYNAPSE, synapse));
-            throw new RuntimeException(String.format("No roi found on %s: %s", SYNAPSE, synapse));
+            log.info(String.format("ProofreaderProcedures setSynapseRoisFromDatabase: No roi found on %s: %s", SYNAPSE, synapse));
+            //throw new RuntimeException(String.format("No roi found on %s: %s", SYNAPSE, synapse));
         }
         synapse.addRoiList(roiList);
     }

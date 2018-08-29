@@ -289,4 +289,48 @@ public class CleaveOrSplitNeuronsTest {
         }
     }
 
+    @Test
+    public void shouldWorkWhenOriginalBodyDoesNotExistInDatabase() {
+        String cleaveInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387, " +
+                "\"Action\": \"cleave\", \"NewBodyId\": 5555, \"OrigBodyId\": 1, " +
+                "\"NewBodySize\": 2778831, \"NewBodySynapses\": [" +
+                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
+                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}" +
+                "]}";
+
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        bodyList.sort(new SortBodyByNumberOfSynapses());
+
+        File swcFile1 = new File("src/test/resources/8426959.swc");
+        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1});
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+            String dataset = "test";
+
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+            neo4jImporter.prepDatabase(dataset);
+
+            neo4jImporter.addNeurons(dataset, neuronList);
+
+            neo4jImporter.addConnectsTo(dataset, bodyList);
+            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+            neo4jImporter.addSynapsesTo(dataset, preToPost);
+            neo4jImporter.addNeuronRois(dataset, bodyList);
+            neo4jImporter.addSynapseSets(dataset, bodyList);
+            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
+            neo4jImporter.addAutoNames(dataset, 0);
+            neo4jImporter.addSkeletonNodes(dataset, skeletonList);
+
+            List<Object> neurons = session.writeTransaction(tx ->
+                    tx.run("CALL proofreader.cleaveNeuronFromJson($cleaveJson,\"test\") YIELD nodes RETURN nodes", parameters("cleaveJson", cleaveInstructionJson)).single().get(0).asList());
+
+            Node neuron1 = (Node) neurons.get(0);
+            Node neuron2 = (Node) neurons.get(1);
+        }
+    }
 }
