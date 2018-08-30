@@ -26,9 +26,12 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n:Neuron:test{id:1}) RETURN id(n)");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (n:Neuron:test{id:1}) RETURN id(n)");
+                return 1;
+            });
 
-            LocalDate timeStamp = session.run("MATCH (n:Neuron{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n:Neuron{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp);
         }
@@ -42,13 +45,22 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n{id:1}) RETURN id(n)");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (n{id:1}) RETURN id(n)");
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1}) SET n:test");
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n{id:1}) SET n:test");
+                return 1;
+            });
 
-            LocalDate timeStamp = session.run("MATCH (n:test{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n:test{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp);
         }
@@ -62,13 +74,22 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n:test{id:1}) RETURN id(n)");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (n:test{id:1}) RETURN id(n)");
+                return 1;
+            });
 
-            session.run("MATCH (n:test{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n:test{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1}) REMOVE n:test");
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n{id:1}) REMOVE n:test");
+                return 1;
+            });
 
-            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp);
         }
@@ -82,13 +103,22 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n{id:1}) RETURN id(n)");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (n{id:1}) RETURN id(n)");
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1}) SET n.testProperty=\"testValue\"");
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n{id:1}) SET n.testProperty=\"testValue\"");
+                return 1;
+            });
 
-            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp);
 
@@ -102,15 +132,27 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n{id:1}) RETURN id(n)");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (n{id:1}) RETURN id(n)");
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1}) SET n.testProperty=\"testValue\"");
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n{id:1}) SET n.testProperty=\"testValue\"");
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n{id:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1}) REMOVE n.testProperty");
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n{id:1}) REMOVE n.testProperty");
+                return 1;
+            });
 
-            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp);
 
@@ -124,19 +166,28 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n{id:1})  \n" +
-                    "CREATE (m{id:2}) \n" +
-                    "CREATE (n)-[:RelatesTo]->(m)");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (n{id:1})  \n" +
+                        "CREATE (m{id:2}) \n" +
+                        "CREATE (n)-[:RelatesTo]->(m)");
+                return 1;
+            });
 
-            session.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                return 1;
+            });
 
-            session.run("MATCH (n)-[r:RelatesTo]->() SET r.testProperty=\"testValue\"");
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n)-[r:RelatesTo]->() SET r.testProperty=\"testValue\"");
+                return 1;
+            });
 
-            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp);
 
-            LocalDate timeStamp2 = session.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp2);
 
@@ -151,21 +202,33 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n{id:1})  \n" +
-                    "CREATE (m{id:2}) \n" +
-                    "CREATE (n)-[:RelatesTo]->(m)");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (n{id:1})  \n" +
+                        "CREATE (m{id:2}) \n" +
+                        "CREATE (n)-[:RelatesTo]->(m)");
+                return 1;
+            });
 
-            session.run("MATCH (n)-[r:RelatesTo]-() SET r.testProperty=\"testValue\"");
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n)-[r:RelatesTo]-() SET r.testProperty=\"testValue\"");
+                return 1;
+            });
 
-            session.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                return 1;
+            });
 
-            session.run("MATCH (n)-[r:RelatesTo]->() REMOVE r.testProperty");
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n)-[r:RelatesTo]->() REMOVE r.testProperty");
+                return 1;
+            });
 
-            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp);
 
-            LocalDate timeStamp2 = session.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp2);
 
@@ -180,20 +243,34 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n{id:1})  \n" +
-                    "CREATE (m{id:2})");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (n{id:1})  \n" +
+                        "CREATE (m{id:2})");
+                return 1;
+            });
 
-            session.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1}) \n" +
-                    "MATCH (m{id:2}) \n" +
-                    "CREATE (n)-[:RelatesTo]->(m)");
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n{id:1}) \n" +
+                        "MATCH (m{id:2}) \n" +
+                        "CREATE (n)-[:RelatesTo]->(m)");
+                return 1;
+            });
 
-            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n)-[r:RelatesTo]->() REMOVE r.testProperty");
+                return 1;
+            });
+
+            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp);
 
-            LocalDate timeStamp2 = session.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp2);
 
@@ -208,22 +285,36 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n{id:1})  \n" +
-                    "CREATE (m{id:2}) \n" +
-                    "CREATE (n)-[:RelatesTo]->(m)");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (n{id:1})  \n" +
+                        "CREATE (m{id:2}) \n" +
+                        "CREATE (n)-[:RelatesTo]->(m)");
+                return 1;
+            });
 
-            session.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1})  \n" +
-                    "MATCH (m{id:2}) \n" +
-                    "MATCH (n)-[r:RelatesTo]->(m) \n" +
-                    "DELETE r");
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n{id:1})  \n" +
+                        "MATCH (m{id:2}) \n" +
+                        "MATCH (n)-[r:RelatesTo]->(m) \n" +
+                        "DELETE r");
+                return 1;
+            });
 
-            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n)-[r:RelatesTo]->() REMOVE r.testProperty");
+                return 1;
+            });
+
+            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp);
 
-            LocalDate timeStamp2 = session.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{id:2}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.now(), timeStamp2);
 
@@ -237,15 +328,21 @@ public class TimeStampTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n{id:1})  \n" +
-                    "CREATE (m{id:2}) \n" +
-                    "CREATE (n)-[:RelatesTo]->(m)");
+            session.writeTransaction(tx -> {
+                tx.run("CREATE (n{id:1})  \n" +
+                        "CREATE (m{id:2}) \n" +
+                        "CREATE (n)-[:RelatesTo]->(m)");
+                return 1;
+            });
 
-            session.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+            session.writeTransaction(tx -> {
+                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                return 1;
+            });
 
-            session.run("MATCH (n{id:1}) RETURN n");
+            session.readTransaction(tx -> tx.run("MATCH (n{id:1}) RETURN n"));
 
-            LocalDate timeStamp = session.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate();
+            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{id:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
 
             Assert.assertEquals(LocalDate.of(2000, 1, 1), timeStamp);
 

@@ -1,0 +1,7 @@
+sudo: false
+language: java
+jdk: oraclejdk8
+script: mvn clean install -Ptravis
+cache:
+  directories:
+    - '$HOME/.m2/repository'

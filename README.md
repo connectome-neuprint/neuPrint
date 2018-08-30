@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/janelia-flyem/neuPrint.svg?branch=master)](https://travis-ci.org/janelia-flyem/neuPrint)
+
 # neuPrint
 A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [neuPrintExplorer](https://github.com/janelia-flyem/neuPrintExplorer). 
 

@@ -20,7 +20,7 @@ public class RegisterTransactionEventHandlerExtensionFactory extends KernelExten
 
             @Override
             public void start() {
-                executor = Executors.newFixedThreadPool(2);
+                executor = Executors.newFixedThreadPool(1);
                 handler = new MyTransactionEventHandler(dependencies.getGraphDatabaseService(), executor);
                 dependencies.getGraphDatabaseService().registerTransactionEventHandler(handler);
             }

@@ -31,7 +31,7 @@ public class AddSkeletonTest {
 
         String datasetLabel = "test";
 
-        String fileCall = "file:///Users/neubarthn/Documents/GitHub/neuPrint/neuprint-procedures/src/test/resources/101.swc";
+        String fileCall = "file:./../neuprint-procedures/src/test/resources/101.swc";
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
