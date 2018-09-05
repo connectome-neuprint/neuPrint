@@ -213,7 +213,10 @@ public class ProofreaderProcedures {
         // original neuron synapse set
         Node originalSynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNode(originalBody);
         if (originalSynapseSetNode == null) {
-            log.info(String.format("proofreader.cleaveNeuronsFromJson: No %s node on original body.", SYNAPSE_SET));
+            log.info(String.format("proofreader.cleaveNeuronsFromJson: No %s node on original body. Creating one...", SYNAPSE_SET));
+            originalSynapseSetNode = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
+            originalSynapseSetNode.setProperty(DATASET_BODY_ID, datasetLabel + ":" + cleaveOrSplitAction.getOriginalBodyId());
+            originalBody.createRelationshipTo(originalSynapseSetNode, RelationshipType.withName(CONTAINS));
 //            throw new RuntimeException(String.format("No %s node on original body.", SYNAPSE_SET));
         }
         //create a synapse set for the new body with unique ID

@@ -294,8 +294,6 @@ public class CleaveOrSplitNeuronsTest {
         String cleaveInstructionJson = "{\"DVIDuuid\": \"7254f5a8aacf4e6f804dcbddfdac4f7f\", \"MutationID\": 68387, " +
                 "\"Action\": \"cleave\", \"NewBodyId\": 5555, \"OrigBodyId\": 1, " +
                 "\"NewBodySize\": 2778831, \"NewBodySynapses\": [" +
-                "{\"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ]}," +
-                "{\"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ]}" +
                 "]}";
 
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
@@ -331,6 +329,24 @@ public class CleaveOrSplitNeuronsTest {
 
             Node neuron1 = (Node) neurons.get(0);
             Node neuron2 = (Node) neurons.get(1);
+
+            Assert.assertEquals(0, (long) neuron1.asMap().get("pre") + (long) neuron1.asMap().get("post") + (long) neuron2.asMap().get("pre") + (long) neuron2.asMap().get("post"));
+            Assert.assertEquals("{}", neuron1.asMap().get("synapseCountPerRoi"));
+            Assert.assertEquals("{}", neuron2.asMap().get("synapseCountPerRoi"));
+            if ((long) neuron1.asMap().get("bodyId") == 5555) {
+                Assert.assertEquals(2778831, (long) neuron1.asMap().get("size"));
+            } else {
+                Assert.assertEquals(2778831, (long) neuron2.asMap().get("size"));
+            }
+
+            int relationshipCount5555 = session.readTransaction(tx ->
+                    tx.run("MATCH (n:`test-Neuron`{bodyId:5555})-[r]->() RETURN count(r)").single().get(0).asInt());
+            Assert.assertEquals(2, relationshipCount5555);
+
+            int relationshipCount1 = session.readTransaction(tx ->
+                    tx.run("MATCH (n:`test-Neuron`{bodyId:1})-[r]->() RETURN count(r)").single().get(0).asInt());
+            Assert.assertEquals(2, relationshipCount1);
+
         }
     }
 }
