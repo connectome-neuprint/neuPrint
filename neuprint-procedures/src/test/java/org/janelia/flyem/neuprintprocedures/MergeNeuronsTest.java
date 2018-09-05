@@ -71,19 +71,19 @@ public class MergeNeuronsTest {
             session.writeTransaction(tx ->
                     tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", connectsToTestJson)));
 
-            Long newTo1Weight = session.run("MATCH (n)-[r:ConnectsTo]->(m{bodyId:1}) WHERE id(n)=20 RETURN r.weight").single().get(0).asLong();
+            Long newTo1Weight = session.run("MATCH (n)-[r:ConnectsTo]->(m{bodyId:1}) WHERE n.bodyId=1 RETURN r.weight").single().get(0).asLong();
 
             Assert.assertEquals(new Long(47), newTo1Weight);
 
-            Long oneToNewWeight = session.run("MATCH (m{bodyId:1})-[r:ConnectsTo]->(n) WHERE id(n)=20 RETURN r.weight").single().get(0).asLong();
+            Long oneToNewWeight = session.run("MATCH (m{bodyId:1})-[r:ConnectsTo]->(n) WHERE n.bodyId=1 RETURN r.weight").single().get(0).asLong();
 
             Assert.assertEquals(new Long(47), oneToNewWeight);
 
-            Long newTo3Weight = session.run("MATCH (n)-[r:ConnectsTo]->(m{bodyId:3}) WHERE id(n)=20 RETURN r.weight").single().get(0).asLong();
+            Long newTo3Weight = session.run("MATCH (n)-[r:ConnectsTo]->(m{bodyId:3}) WHERE n.bodyId=1 RETURN r.weight").single().get(0).asLong();
 
             Assert.assertEquals(new Long(30), newTo3Weight);
 
-            Long threeToNewWeight = session.run("MATCH (m{bodyId:3})-[r:ConnectsTo]->(n) WHERE id(n)=20 RETURN r.weight").single().get(0).asLong();
+            Long threeToNewWeight = session.run("MATCH (m{bodyId:3})-[r:ConnectsTo]->(n) WHERE n.bodyId=1 RETURN r.weight").single().get(0).asLong();
 
             Assert.assertEquals(new Long(18), threeToNewWeight);
 
@@ -431,7 +431,13 @@ public class MergeNeuronsTest {
             session.writeTransaction(tx ->
                     tx.run("CALL proofreader.mergeNeuronsFromJson($mergeJson,\"test\") YIELD node RETURN node", parameters("mergeJson", mergeInstructionJson4)).single().get(0).asNode());
 
+            //check that all nodes except Meta have time stamps and dataset labels on everything except ghost bodies
+            Integer countOfNodesWithoutTimeStamp = session.readTransaction(tx -> tx.run("MATCH (n) WHERE (NOT exists(n.timeStamp) AND NOT n:Meta) RETURN count(n)").single().get(0).asInt());
+            Assert.assertEquals(new Integer(0), countOfNodesWithoutTimeStamp);
 
+            Integer countOfNodesWithoutDatasetLabel = session.readTransaction(tx -> tx.run("MATCH (n) WHERE (NOT n:test AND NOT exists(n.mergedBodyId) AND NOT n:DataModel) RETURN count(n)").single().get(0).asInt());
+
+            Assert.assertEquals(new Integer(0), countOfNodesWithoutDatasetLabel);
 
         }
     }
@@ -484,12 +490,7 @@ public class MergeNeuronsTest {
             Assert.assertEquals(mergeAction.getTargetBodySize(), neuronProperties.get("size"));
             Assert.assertEquals(mergeAction.getTargetBodyId(), neuronProperties.get("bodyId"));
 
-
         }
-
-
-
-
     }
 }
 

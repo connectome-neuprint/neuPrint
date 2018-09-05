@@ -120,9 +120,9 @@
                             <configuration>
                                 <excludes>
                                     <!-- exclude tests here -->
-                                    <exclude>
-                                        **/TimeStampTest.java
-                                    </exclude>
+                                    <!--<exclude>-->
+                                    <!--**/TimeStampTest.java-->
+                                    <!--</exclude>-->
                                 </excludes>
                             </configuration>
                         </plugin>

@@ -4,19 +4,27 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.Set;
 
 public class TimeStampProcedure {
 
-    public static void timeStampEmbedded(Set<Long> nodeIdSet, GraphDatabaseService dbService) {
+    public static void timeStampEmbedded(Set<Node> nodeSet, GraphDatabaseService dbService) {
 
-        for (Long nodeId : nodeIdSet) {
+        Set<Node> notFoundNodes = new HashSet<>();
+
+        for (Node node : nodeSet) {
             try {
-                Node node = dbService.getNodeById(nodeId);
                 node.setProperty("timeStamp", LocalDate.now());
             } catch (org.neo4j.graphdb.NotFoundException nfe) {
-                //System.out.println(nfe + ". Time stamp not applied.");
+                notFoundNodes.add(node);
             }
+        }
+
+        if (notFoundNodes.size() > 0) {
+            System.out.println(LocalDateTime.now() + " The following nodes not found in database. Time stamp not applied: " +
+                    notFoundNodes);
         }
 
     }

@@ -12,8 +12,17 @@ import java.util.Set;
 
 class TransactionDataHandler {
 
+    // nodes with unique ids
+    private static final String DATA_MODEL = "DataModel";
+    private static final String NEURON = "Neuron";
+    private static final String META = "Meta";
+    private static final String SKELETON = "Skeleton";
+    private static final String SKEL_NODE = "SkelNode";
+    private static final String SYNAPSE = "Synapse";
+    private static final String SYNAPSE_SET = "SynapseSet";
+
     private TransactionData transactionData;
-    private Set<Long> nodesForTimeStamping;
+    private Set<Node> nodesForTimeStamping;
     private boolean shouldMetaNodeSynapseCountsBeUpdated;
 
     TransactionDataHandler(TransactionData transactionData) {
@@ -21,13 +30,13 @@ class TransactionDataHandler {
         this.nodesForTimeStamping = new HashSet<>();
     }
 
-    Set<Long> getNodesForTimeStamping() {
+    Set<Node> getNodesForTimeStamping() {
 
         shouldMetaNodeSynapseCountsBeUpdated = false;
 
         for (Node node : transactionData.createdNodes()) {
             if (!node.hasLabel(Label.label("Meta"))) {
-                this.nodesForTimeStamping.add(node.getId());
+                this.nodesForTimeStamping.add(node);
                 //System.out.println("node created: " + node);
             }
             if (node.hasLabel(Label.label("Synapse"))) {
@@ -38,7 +47,7 @@ class TransactionDataHandler {
         for (LabelEntry labelEntry : transactionData.assignedLabels()) {
             Node node = labelEntry.node();
             if (!node.hasLabel(Label.label("Meta"))) {
-                this.nodesForTimeStamping.add(node.getId());
+                this.nodesForTimeStamping.add(node);
                 //System.out.println("label entry assigned: " + labelEntry);
             }
             if (node.hasLabel(Label.label("Synapse"))) {
@@ -49,7 +58,7 @@ class TransactionDataHandler {
         for (LabelEntry labelEntry : transactionData.removedLabels()) {
             Node node = labelEntry.node();
             if (!node.hasLabel(Label.label("Meta"))) {
-                this.nodesForTimeStamping.add(node.getId());
+                this.nodesForTimeStamping.add(node);
                 //System.out.println("label entry removed: " + labelEntry);
             }
             if (node.hasLabel(Label.label("Synapse"))) {
@@ -61,8 +70,7 @@ class TransactionDataHandler {
             if (!propertyEntry.key().equals("timeStamp")) {
                 Node node = propertyEntry.entity();
                 if (!node.hasLabel(Label.label("Meta"))) {
-                    Long assignedPropertiesNodeId = node.getId();
-                    this.nodesForTimeStamping.add(assignedPropertiesNodeId);
+                    this.nodesForTimeStamping.add(node);
                     //System.out.println("node properties assigned: " + propertyEntry);
                 }
             }
@@ -72,8 +80,7 @@ class TransactionDataHandler {
             if (!propertyEntry.key().equals("timeStamp")) {
                 Node node = propertyEntry.entity();
                 if (!node.hasLabel(Label.label("Meta"))) {
-                    Long removedPropertiesNodeId = propertyEntry.entity().getId();
-                    this.nodesForTimeStamping.add(removedPropertiesNodeId);
+                    this.nodesForTimeStamping.add(node);
                     //System.out.println("node properties removed: " + propertyEntry);
                 }
             }
@@ -84,7 +91,7 @@ class TransactionDataHandler {
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
                 if (!node.hasLabel(Label.label("Meta"))) {
-                    this.nodesForTimeStamping.add(node.getId());
+                    this.nodesForTimeStamping.add(node);
                     //System.out.println("relationship properties added for: " + node);
                 }
             }
@@ -95,7 +102,7 @@ class TransactionDataHandler {
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
                 if (!node.hasLabel(Label.label("Meta"))) {
-                    this.nodesForTimeStamping.add(node.getId());
+                    this.nodesForTimeStamping.add(node);
                     //System.out.println("relationship properties removed for: " + node);
                 }
             }
@@ -105,7 +112,7 @@ class TransactionDataHandler {
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
                 if (!node.hasLabel(Label.label("Meta"))) {
-                    this.nodesForTimeStamping.add(node.getId());
+                    this.nodesForTimeStamping.add(node);
                     //System.out.println("relationship created for: " + node);
                 }
             }
@@ -115,7 +122,7 @@ class TransactionDataHandler {
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
                 if (!node.hasLabel(Label.label("Meta"))) {
-                    this.nodesForTimeStamping.add(node.getId());
+                    this.nodesForTimeStamping.add(node);
                     //System.out.println("relationship deleted for: " + node);
                 }
             }
