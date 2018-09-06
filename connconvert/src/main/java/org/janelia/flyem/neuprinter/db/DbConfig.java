@@ -9,7 +9,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Neo4J database connection parameters that can be loaded from a java {@link Properties} file.
+ * Neo4J database connection parameters that can be loaded from a java
+ * {@link Properties} file.
  */
 public class DbConfig {
 
@@ -18,6 +19,14 @@ public class DbConfig {
     private final String password;
     private final int statementsPerTransaction;
 
+    /**
+     * Class constructor.
+     *
+     * @param uri uri for accessing the database
+     * @param user username for database
+     * @param password password for database
+     * @param statementsPerTransaction number of statements per database transaction
+     */
     private DbConfig(final String uri,
                     final String user,
                     final String password,
@@ -28,22 +37,48 @@ public class DbConfig {
         this.statementsPerTransaction = statementsPerTransaction;
     }
 
+    /**
+     *
+     * @return the uri for the database connection
+     */
     public String getUri() {
         return uri;
     }
 
+    /**
+     *
+     * @return the user for the database connection
+     */
     public String getUser() {
         return user;
     }
 
+    /**
+     *
+     * @return the password for the database connection
+     */
     public String getPassword() {
         return password;
     }
 
+    /**
+     *
+     * @return the number of statements per database transaction
+     */
     public int getStatementsPerTransaction() {
         return statementsPerTransaction;
     }
 
+    /**
+     * Returns a DbConfig object based on a java {@link Properties} file. The
+     * properties file must contain uri, username, and password properties.
+     * Optionally, a statementsPerTransaction property can be used to specify
+     * the number of statements per transaction. The default value is 100.
+     *
+     * @param file a {@link File} object representing the properties file
+     * @return a {@link DbConfig} object
+     * @throws IllegalArgumentException when properties file is invalid
+     */
     public static DbConfig fromFile(final File file)
             throws IllegalArgumentException {
 
@@ -82,7 +117,7 @@ public class DbConfig {
                 throw new IllegalArgumentException("failed to read password from " + file);
             }
             if (user==null) {
-                throw new IllegalArgumentException("failed to read password from " + file);
+                throw new IllegalArgumentException("failed to read username from " + file);
             }
 
             dbConfig = new DbConfig(uri, user, password, statementsPerTransaction);
