@@ -119,10 +119,10 @@
                             <version>2.22.0</version>
                             <configuration>
                                 <excludes>
-                                    <!-- exclude tests here -->
-                                    <!--<exclude>-->
-                                    <!--**/TimeStampTest.java-->
-                                    <!--</exclude>-->
+                                     <!--exclude tests here-->
+                                    <exclude>
+                                    **/TimeStampTest.java
+                                    </exclude>
                                 </excludes>
                             </configuration>
                         </plugin>
