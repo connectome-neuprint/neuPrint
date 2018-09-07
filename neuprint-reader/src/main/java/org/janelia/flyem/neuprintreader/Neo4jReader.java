@@ -4,7 +4,6 @@ import org.janelia.flyem.neuprinter.db.DbConfig;
 import org.janelia.flyem.neuprinter.db.DbTransactionBatch;
 import org.janelia.flyem.neuprinter.db.StdOutTransactionBatch;
 import org.janelia.flyem.neuprinter.db.TransactionBatch;
-import org.janelia.flyem.neuprintprocedures.SynapticConnectionVertexMap;
 import org.neo4j.driver.v1.*;
 
 public class Neo4jReader implements AutoCloseable {
