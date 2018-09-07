@@ -28,6 +28,9 @@ import java.util.Map;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
+/**
+ * Tests the {@link Neo4jImporter} class.
+ */
 public class Neo4jImporterTest {
 
     @Rule

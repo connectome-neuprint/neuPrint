@@ -10,7 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Collects statements into transaction batches reducing the total number of database commits.
+ * Collects statements into transaction batches reducing the total number of
+ * database commits.
  */
 public class DbTransactionBatch implements TransactionBatch {
 
@@ -18,6 +19,12 @@ public class DbTransactionBatch implements TransactionBatch {
     private final int statementsPerBatch;
     private final List<Statement> statementsToWrite;
 
+    /**
+     * Class constructor.
+     *
+     * @param session session in which transactions occur
+     * @param statementsPerBatch number of statements per transaction batch
+     */
     public DbTransactionBatch(final Session session,
                               final int statementsPerBatch) {
         this.session = session;

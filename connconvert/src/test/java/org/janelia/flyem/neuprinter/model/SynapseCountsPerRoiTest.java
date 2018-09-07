@@ -7,6 +7,9 @@ import org.junit.Test;
 
 import java.util.Map;
 
+/**
+ * Tests the {@link SynapseCountsPerRoi} class.
+ */
 public class SynapseCountsPerRoiTest {
 
     @Test

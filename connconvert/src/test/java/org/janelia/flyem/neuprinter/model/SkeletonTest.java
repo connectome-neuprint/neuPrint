@@ -10,6 +10,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Tests the {@link Skeleton} class.
+ */
 public class SkeletonTest {
 
     @Test
@@ -20,7 +23,7 @@ public class SkeletonTest {
         BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
         Skeleton skeleton = new Skeleton();
 
-        skeleton.fromSwc(bufferedReader, new Long(10));
+        skeleton.fromSwc(bufferedReader, 10L);
 
         List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
 
@@ -34,7 +37,7 @@ public class SkeletonTest {
 
         Assert.assertEquals(skelNodeList.get(9), skelNodeList.get(10).getParent());
 
-        Assert.assertEquals(null, skelNodeList.get(0).getParent());
+        Assert.assertNull(skelNodeList.get(0).getParent());
 
         Assert.assertEquals(skelNodeList.get(8), skelNodeList.get(26).getParent());
 
@@ -52,7 +55,7 @@ public class SkeletonTest {
         BufferedReader bufferedReader2 = new BufferedReader(new FileReader(file2));
         Skeleton skeleton2 = new Skeleton();
 
-        skeleton2.fromSwc(bufferedReader2, new Long(10));
+        skeleton2.fromSwc(bufferedReader2, 10L);
 
         List<SkelNode> skelNodeList2 = skeleton2.getSkelNodeList();
 

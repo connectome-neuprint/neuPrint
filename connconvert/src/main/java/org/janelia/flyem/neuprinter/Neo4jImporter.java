@@ -9,8 +9,6 @@ import org.janelia.flyem.neuprinter.db.TransactionBatch;
 import org.janelia.flyem.neuprinter.model.AutoName;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
-import org.janelia.flyem.neuprinter.model.NeuronType;
-import org.janelia.flyem.neuprinter.model.NeuronTypeTree;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
@@ -40,12 +38,20 @@ import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
+/**
+ * A class for importing neuron and synapse information into a neuprint neo4j database.
+ */
 public class Neo4jImporter implements AutoCloseable {
 
     private final Driver driver;
     private final int statementsPerTransaction;
     private final LocalDate timeStamp = LocalDate.now();
 
+    /**
+     * Class constructor.
+     *
+     * @param dbConfig {@link DbConfig} object containing the database configuration
+     */
     public Neo4jImporter(final DbConfig dbConfig) {
 
         if (dbConfig == null) {
@@ -64,18 +70,30 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    //for testing
+    /**
+     * Class constructor for testing.
+     *
+     * @param driver neo4j bolt driver
+     */
     public Neo4jImporter(final Driver driver) {
         this.driver = driver;
         this.statementsPerTransaction = 20;
     }
 
+    /**
+     * Closes driver.
+     */
     @Override
     public void close() {
         driver.close();
         System.out.println("Driver closed.");
     }
 
+    /**
+     * Acquires a database transaction batch.
+     *
+     * @return {@link TransactionBatch} object for storing and writing transactions
+     */
     private TransactionBatch getBatch() {
         final TransactionBatch batch;
         if (driver == null) {
@@ -86,6 +104,11 @@ public class Neo4jImporter implements AutoCloseable {
         return batch;
     }
 
+    /**
+     * Adds uniqueness constraints and indices to database.
+     *
+     * @param dataset dataset name
+     */
     public void prepDatabase(String dataset) {
 
         LOG.info("prepDatabase: entry");
@@ -117,9 +140,15 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    //TODO: arbitrary properties
+    /**
+     * Adds Neuron nodes with properties specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.
+     *
+     * @param dataset dataset name
+     * @param neuronList list of {@link Neuron} objects
+     */
     public void addNeurons(final String dataset,
                            final List<Neuron> neuronList) {
+        //TODO: arbitrary properties
         LOG.info("addNeurons: entry");
 
         final String neuronText = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) " +
@@ -159,6 +188,12 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addNeurons: entry");
     }
 
+    /**
+     * Adds ConnectsTo relationships between Neuron nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
+     *
+     * @param dataset dataset name
+     * @param bodyList list of {@link BodyWithSynapses} objects
+     */
     public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addConnectsTo: entry");
@@ -202,6 +237,12 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addConnectsTo: exit");
     }
 
+    /**
+     * Adds Synapse nodes to database as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
+     *
+     * @param dataset dataset
+     * @param bodyList list of {@link BodyWithSynapses} objects
+     */
     public void addSynapsesWithRois(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addSynapses: entry");
@@ -268,6 +309,14 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSynapses: exit");
     }
 
+    /**
+     * Adds SynapsesTo relationship between Synapse nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
+     * Uses a map of presynaptic density locations to postsynaptic density locations.
+     * @see SynapseMapper#getPreToPostMap()
+     *
+     * @param dataset dataset name
+     * @param preToPost map of presynaptic density locations to postsynaptic density locations
+     */
     public void addSynapsesTo(final String dataset, HashMap<String, List<String>> preToPost) {
 
         LOG.info("addSynapsesTo: entry");
@@ -292,6 +341,12 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSynapsesTo: exit");
     }
 
+    /**
+     * Adds roi labels to Neuron nodes.
+     *
+     * @param dataset dataset name
+     * @param bodyList list of {@link BodyWithSynapses} objects
+     */
     public void addNeuronRois(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addNeuronRois: entry");
@@ -317,6 +372,15 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
+    /**
+     * Adds automatically generated names (autoNames) to Neuron nodes that have greater than
+     * autoNameThreshold synaptic densities. If Neuron node does not have a name, the name property
+     * is also set to autoName* (the * marks it as automatically generated).
+     * @see AutoName
+     *
+     * @param dataset dataset name
+     * @param autoNameThreshold Neuron must have greater than autoNameThreshold synapses to be given an autoName
+     */
     public void addAutoNames(final String dataset, int autoNameThreshold) {
 
         LOG.info("addAutoNames: entry");
@@ -347,7 +411,7 @@ public class Neo4jImporter implements AutoCloseable {
                     batch.addStatement(new Statement(autoNameToNameText,
                             parameters("bodyId", autoName.getBodyId(),
                                     "autoName", autoName.getAutoName(),
-                                    "autoNamePlusAsterisk", autoName.getAutoName()+"*")));
+                                    "autoNamePlusAsterisk", autoName.getAutoName() + "*")));
                 } else {
                     batch.addStatement(new Statement(autoNameText,
                             parameters("bodyId", autoName.getBodyId(),
@@ -360,6 +424,12 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addAutoNames: exit");
     }
 
+    /**
+     * Adds SynapseSet nodes to database and connects them to Neuron nodes and Synapse nodes via Contains relationships.
+     *
+     * @param dataset dataset name
+     * @param bodyList list of {@link BodyWithSynapses} objects
+     */
     public void addSynapseSets(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addSynapseSets: entry");
@@ -393,6 +463,14 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSynapseSets: exit");
     }
 
+    /**
+     * Adds Skeleton and SkelNode nodes to database. Neurons are connected to Skeletons via Contains relationships.
+     * Skeletons are connected to SkelNodes via Contains relationships. SkelNodes point to their children with LinksTo
+     * relationships.
+     *
+     * @param dataset dataset name
+     * @param skeletonList list of {@link Skeleton} objects
+     */
     public void addSkeletonNodes(final String dataset, final List<Skeleton> skeletonList) {
 
         LOG.info("addSkeletonNodes: entry");
@@ -473,36 +551,14 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSkeletonNodes: exit");
     }
 
-    public void addCellTypeTree(final String dataset, final HashMap<String, NeuronTypeTree> neuronTypeTreeMap) {
-
-        LOG.info("addCellTypeTree: enter");
-
-        final String cellTypeTreeString = "MERGE (nc:NeuronClass:" + dataset + " {neuronClassId:$neuronClassId}) ON CREATE SET nc.neuronClassId=$neuronClassId, nc.neuronClass=$neuronClass, nc.timeStamp=$timeStamp \n" +
-                "MERGE (nt:NeuronType:" + dataset + "{neuronTypeId:$neuronTypeId}) ON CREATE SET nt.neuronTypeId=$neuronTypeId, nt.neuronType=$neuronType, nt.description=$description, nt.putativeNeurotransmitter=$neurotransmitter, nt.timeStamp=$timeStamp \n" +
-                "MERGE (nc)-[:Contains]->(nt)";
-
-        try (final TransactionBatch batch = getBatch()) {
-
-            for (String neuronClass : neuronTypeTreeMap.keySet()) {
-                for (NeuronType neuronType : neuronTypeTreeMap.get(neuronClass).getNeuronTypeList()) {
-
-                    batch.addStatement(new Statement(cellTypeTreeString, parameters("neuronClassId", dataset + neuronClass,
-                            "neuronClass", neuronClass,
-                            "neuronType", neuronType.getCellType(),
-                            "neuronTypeId", dataset + neuronType.getCellType(),
-                            "description", neuronType.getCellDescription(),
-                            "neurotransmitter", neuronType.getPutativeTransmitter(),
-                            "timeStamp", timeStamp
-                    )));
-                }
-            }
-            batch.writeTransaction();
-        }
-
-        LOG.info("addCellTypeTree: exit");
-
-    }
-
+    /**
+     * Adds a Meta node and DataModel node to the database (if they do not exist). The Meta node stores summary information for
+     * a given dataset. The DataModel node indicates the data model version and links to all Meta nodes in the database with
+     * an Is relationship.
+     *
+     * @param dataset dataset name
+     * @param dataModelVersion version of data model
+     */
     public void createMetaNodeWithDataModelNode(final String dataset, final float dataModelVersion) {
 
         LOG.info("createMetaNodeWithDataModelNode: enter");

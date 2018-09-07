@@ -5,26 +5,37 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * A class representing a skeleton read from an swc file. A skeleton contains
+ * a list of {@link SkelNode} instances and the bodyId of the neuron associated
+ * with this skeleton.
+ */
 public class Skeleton {
-
-    //entry point for skeleton
 
     private List<SkelNode> skelNodeList;
     private Long associatedBodyId;
 
-
-    public Skeleton(final List<SkelNode> skelNodeList, final Long associatedBodyId) {
-        this.skelNodeList = skelNodeList;
-        this.associatedBodyId = associatedBodyId;
-    }
-
+    /**
+     * Class constructor.
+     */
     public Skeleton() {
     }
 
-    public List<SkelNode> getSkelNodeList() { return this.skelNodeList; }
+    /**
+     *
+     * @return list of {@link SkelNode} objects making up this skeleton
+     */
+    public List<SkelNode> getSkelNodeList() {
+        return this.skelNodeList;
+    }
 
-    public Long getAssociatedBodyId() { return this.associatedBodyId;  }
-
+    /**
+     *
+     * @return bodyId of neuron associated with this skeleton
+     */
+    public Long getAssociatedBodyId() {
+        return this.associatedBodyId;
+    }
 
     @Override
     public String toString() {
@@ -53,26 +64,32 @@ public class Skeleton {
         return result;
     }
 
+    /**
+     * Acquires a list of SkelNodes from a {@link BufferedReader} reading from an swc file.
+     * The SkelNodes and bodyId of the neuron are added to the Skeleton object.
+     *
+     * @param reader {@link BufferedReader}
+     * @param associatedBodyId bodyId of neuron
+     * @throws IOException when swc file is not readable
+     */
     public void fromSwc(final BufferedReader reader, final Long associatedBodyId) throws IOException {
         String swcLine;
         List<SkelNode> skelNodeList = new ArrayList<>();
-        List<Integer> location = null;
-        float radius = 0.0f;
-        int type = 0;
-        SkelNode parent = null;
+        List<Integer> location;
+        float radius;
+        int type;
+        SkelNode parent;
 
-        while((swcLine = reader.readLine()) != null) {
+        while ((swcLine = reader.readLine()) != null) {
 
-            if (swcLine.startsWith("#")) {
-                //System.out.println("Skipping header");
-            } else {
+            if (!swcLine.startsWith("#")) {
 
                 String[] lineComponents = swcLine.split(" ");
 
                 location = new ArrayList<>();
-                for(int i=2; i<5; i++) {
-                    Integer coordinate = null;
-                    try{
+                for (int i = 2; i < 5; i++) {
+                    int coordinate;
+                    try {
                         coordinate = Integer.parseInt(lineComponents[i]);
                     } catch (NumberFormatException nfe) {
                         coordinate = Math.round(Float.parseFloat(lineComponents[i]));
@@ -80,18 +97,17 @@ public class Skeleton {
                     location.add(coordinate);
                 }
 
-
                 radius = Float.parseFloat(lineComponents[5]);
 
                 type = Integer.parseInt(lineComponents[1]);
 
-                Integer parentIndex = Integer.parseInt(lineComponents[6]);
+                int parentIndex = Integer.parseInt(lineComponents[6]);
 
                 int rowNumber = Integer.parseInt(lineComponents[0]);
 
-                SkelNode skelNode = null;
-                if (parentIndex!=-1) {
-                    parent = skelNodeList.get(parentIndex-1);
+                SkelNode skelNode;
+                if (parentIndex != -1) {
+                    parent = skelNodeList.get(parentIndex - 1);
                     skelNode = new SkelNode(associatedBodyId, location, radius, type, parent, rowNumber);
                     parent.addChild(skelNode);
 
@@ -101,8 +117,6 @@ public class Skeleton {
 
                 skelNodeList.add(skelNode);
 
-
-
             }
 
         }
@@ -111,8 +125,5 @@ public class Skeleton {
         this.associatedBodyId = associatedBodyId;
 
     }
-
-
-
 
 }

@@ -12,6 +12,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * A class representing a neuron, as read from a
+ * <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.
+ * Each neuron has an id, size, name, and status,
+ * but no synapse information. (cf. the {@link org.janelia.flyem.neuprinter.model.BodyWithSynapses} class
+ * that represents bodies with synapses)
+ */
 public class Neuron {
 
     //TODO: figure out how to add optional properties
@@ -37,6 +44,17 @@ public class Neuron {
     @SerializedName("Soma")
     private final Soma soma;
 
+    /**
+     * Class constructor.
+     *
+     * @param id bodyId
+     * @param status status
+     * @param name name
+     * @param neuronType neuron type
+     * @param size size (in voxels)
+     * @param rois rois associated with this neuron
+     * @param soma soma for this neuron
+     */
     public Neuron(final Long id,
                   final String status,
                   final String name,
@@ -53,27 +71,50 @@ public class Neuron {
         this.soma = soma;
     }
 
-
+    /**
+     *
+     * @return bodyId
+     */
     public Long getId() {
         return id;
     }
 
+    /**
+     *
+     * @return name
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     *
+     * @return type of neuron
+     */
     public String getNeuronType() {
         return neuronType;
     }
 
+    /**
+     *
+     * @return status
+     */
     public String getStatus() {
         return status;
     }
 
+    /**
+     *
+     * @return voxel size
+     */
     public Long getSize() {
         return size;
     }
 
+    /**
+     *
+     * @return rois (without "-lm" suffix if present)
+     */
     public List<String> getRois() {
         // remove -lm tag on rois
         if (this.rois!=null) {
@@ -87,24 +128,39 @@ public class Neuron {
             }
             return newRoiList;
         } else {
-            return rois;
+            return null;
         }
     }
 
+    /**
+     * Returns a list of rois in which this neuron is located with and without
+     * a "dataset-" prefix.
+     *
+     * @param dataset the dataset in which this neuron exists
+     * @return list of rois and rois prefixed with "dataset-"
+     */
     public List<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
         List<String> rois = getRois();
         if (rois!=null) {
             rois.addAll(rois.stream().map(r -> dataset + "-" + r).collect(Collectors.toList()));
             return rois;
         } else {
-            return rois;
+            return null;
         }
     }
 
-    public Soma getSoma() {
+    /**
+     *
+     * @return the {@link Soma} for this neuron
+     */
+    Soma getSoma() {
         return soma;
     }
 
+    /**
+     *
+     * @return the {@link Soma} location as a neo4j {@link Point}
+     */
     public Point getSomaLocation() {
         if (soma != null) {
             return soma.getLocationAsPoint();
@@ -113,6 +169,10 @@ public class Neuron {
         }
     }
 
+    /**
+     *
+     * @return radius of {@link Soma}
+     */
     public Float getSomaRadius() {
         if (soma != null) {
             return soma.getRadius();
@@ -150,14 +210,35 @@ public class Neuron {
                 + " }";
     }
 
+    /**
+     * Returns a list of Neurons deserialized from a neuron JSON string.
+     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON format</a>.
+     *
+     * @param jsonString string containing neuron JSON
+     * @return list of Neurons
+     */
     public static List<Neuron> fromJson(final String jsonString) {
         return JsonUtils.GSON.fromJson(jsonString, NEURON_LIST_TYPE);
     }
 
+    /**
+     * Returns a list of Neurons deserialized from a {@link BufferedReader} reading from a neuron JSON file.
+     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON format</a>.
+     *
+     * @param reader {@link BufferedReader}
+     * @return list of Neurons
+     */
     public static List<Neuron> fromJson(final BufferedReader reader) {
         return JsonUtils.GSON.fromJson(reader,NEURON_LIST_TYPE);
     }
 
+    /**
+     * Returns a Neuron deserialized from a single JSON object from a neuron JSON file.
+     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON format</a>.
+     *
+     * @param reader {@link JsonReader}
+     * @return Neuron
+     */
     public static Neuron fromJsonSingleObject(final JsonReader reader) {
         return JsonUtils.GSON.fromJson(reader,Neuron.class);
     }

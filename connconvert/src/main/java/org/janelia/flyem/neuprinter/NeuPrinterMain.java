@@ -22,8 +22,16 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * The NeuPrinterMain class implements an application that loads neuron and synapse
+ * data provided by JSON files into a neo4j database.
+ * @see <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron and synapse JSON spec</a>
+ */
 public class NeuPrinterMain {
 
+    /**
+     * Class containing {@link JCommander} parameters.
+     */
     @Parameters(separators = "=")
     public static class NeuPrinterParameters {
 
@@ -31,130 +39,114 @@ public class NeuPrinterMain {
                 names = "--dbProperties",
                 description = "Properties file containing database information (required)",
                 required = true)
-        public String dbProperties;
+        String dbProperties;
 
         @Parameter(
                 names = "--loadNeurons",
-                description = "Indicates that data from neurons json should be loaded to database (omit to skip)",
-                required = false,
+                description = "Indicates that data from neurons JSON should be loaded to database (omit to skip)",
                 arity = 0)
-        public boolean loadNeurons;
+        boolean loadNeurons;
 
         @Parameter(
                 names = "--loadSynapses",
-                description = "Indicates that data from synapses json should be loaded to database (omit to skip)",
-                required = false,
+                description = "Indicates that data from synapses JSON should be loaded to database (omit to skip)",
                 arity = 0)
-        public boolean loadSynapses;
+        boolean loadSynapses;
 
         @Parameter(
                 names = "--doAll",
-                description = "Indicates that both Neurons and Synapses jsons should be loaded and all database features added",
-                required = false,
+                description = "Indicates that both Neurons and Synapses JSONs should be loaded and all database features added",
                 arity = 0)
-        public boolean doAll;
+        boolean doAll;
 
         @Parameter(
                 names = "--prepDatabase",
                 description = "Indicates that database constraints and indexes should be setup (omit to skip)",
-                required = false,
                 arity = 0)
         public boolean prepDatabase;
 
         @Parameter(
                 names = "--addConnectsTo",
                 description = "Indicates that ConnectsTo relations should be added (omit to skip)",
-                required = false,
                 arity = 0)
         public boolean addConnectsTo;
 
         @Parameter(
                 names = "--addSynapses",
                 description = "Indicates that synapse nodes should be added (omit to skip)",
-                required = false,
                 arity = 0)
         public boolean addSynapses;
 
         @Parameter(
                 names = "--addSynapsesTo",
                 description = "Indicates that SynapsesTo relations should be added (omit to skip)",
-                required = false,
                 arity = 0)
         public boolean addSynapsesTo;
 
         @Parameter(
                 names = "--addNeuronRois",
                 description = "Indicates that neuron ROI labels should be added (omit to skip)",
-                required = false,
                 arity = 0)
         public boolean addNeuronRois;
 
         @Parameter(
                 names = "--addSynapseSets",
                 description = "Indicates that synapse set nodes should be added (omit to skip)",
-                required = false,
                 arity = 0)
         public boolean addSynapseSets;
 
         @Parameter(
                 names = "--addSkeletons",
                 description = "Indicates that skeleton nodes should be added (omit to skip)",
-                required = false,
                 arity = 0)
-        public boolean addSkeletons;
+        boolean addSkeletons;
 
         @Parameter(
                 names = "--neuronJson",
-                description = "JSON file containing neuron data to import",
-                required = false)
-        public String neuronJson;
+                description = "JSON file containing neuron data to import")
+        String neuronJson;
 
         @Parameter(
                 names = "--datasetLabel",
                 description = "Dataset value for all nodes (required)",
                 required = true)
-        public String datasetLabel;
+        String datasetLabel;
 
         @Parameter(
                 names = "--dataModelVersion",
                 description = "Data model version (required)",
                 required = true)
-        public float dataModelVersion;
+        float dataModelVersion;
 
         @Parameter(
                 names = "--synapseJson",
-                description = "JSON file containing body synapse data to import",
-                required = false)
-        public String synapseJson;
+                description = "JSON file containing body synapse data to import")
+        String synapseJson;
 
         @Parameter(
                 names = "--skeletonDirectory",
-                description = "Path to directory containing skeleton files for this dataset",
-                required = false)
-        public String skeletonDirectory;
+                description = "Path to directory containing skeleton files for this dataset")
+        String skeletonDirectory;
 
         @Parameter(
                 names = "--editMode",
                 description = "Indicates that neuprinter is being used in edit mode to alter data in an existing database (omit to skip).",
-                required = false,
                 arity = 0)
         public boolean editMode;
 
         @Parameter(
                 names = "--addMetaNodeOnly",
                 description = "Indicates that only the Meta Node should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. (omit to skip)",
-                required = false,
                 arity = 0)
-        public boolean addMetaNodeOnly;
+        boolean addMetaNodeOnly;
 
         @Parameter(
                 names = "--addAutoNamesOnly",
                 description = "Indicates that only the autoNames should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. Names are only generated for neurons that have greater than the number of synapses" +
                         "indicated by autoNameThreshold (omit to skip)",
-                required = false,
                 arity = 0
         )
-        public boolean addAutoNamesOnly;
+        boolean addAutoNamesOnly;
 
         @Parameter(
                 names = "--addAutoNames",
@@ -163,23 +155,26 @@ public class NeuPrinterMain {
                         "and ROIB is the roi in which a neuron has the most outputs (presynaptic densities). The final number renders " +
                         "this name unique per dataset. Names are only generated for neurons that have greater than the number of synapses " +
                         "indicated by autoNameThreshold. If neurons do not already have a name, the auto-name is added to the name property. (skip to omit)",
-                required = false,
                 arity = 0)
         public boolean addAutoNames;
 
         @Parameter(
                 names = "--autoNameThreshold",
                 description = "Integer indicating the number of (presynaptic densities + postsynaptic densities) a neuron should have to be given an " +
-                        "auto-name (default is 10). Must have --addAutoName OR --addAutoNamesOnly enabled.",
-                required = false)
-        public Integer autoNameThreshold;
+                        "auto-name (default is 10). Must have --addAutoName OR --addAutoNamesOnly enabled.")
+        Integer autoNameThreshold;
 
         @Parameter(
                 names = "--help",
                 help = true)
-        public boolean help;
+        boolean help;
 
-        public DbConfig getDbConfig() {
+        /**
+         * Returns {@link DbConfig} object containing database configuration read from file.
+         *
+         * @return DbConfig
+         */
+        DbConfig getDbConfig() {
             return (dbProperties == null) ? null : DbConfig.fromFile(new File(dbProperties));
         }
 
@@ -192,6 +187,13 @@ public class NeuPrinterMain {
     private static List<Neuron> neuronList;
     private static List<BodyWithSynapses> bodyList;
 
+    /**
+     * Returns a list of {@link Neuron} objects read from a JSON file
+     * at the provided file path.
+     *
+     * @param filepath path to neuron JSON file
+     * @return list of Neurons
+     */
     public static List<Neuron> readNeuronsJson(String filepath) {
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
@@ -221,6 +223,13 @@ public class NeuPrinterMain {
 
     }
 
+    /**
+     * Returns a list of {@link BodyWithSynapses} objects read from a JSON file
+     * at the provided file path.
+     *
+     * @param filepath path to synapses JSON file
+     * @return list of BodyWithSynapses
+     */
     private static List<BodyWithSynapses> readSynapsesJson(String filepath) {
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
@@ -252,6 +261,12 @@ public class NeuPrinterMain {
         return bodyList;
     }
 
+    /**
+     * Returns a list of {@link Skeleton} objects read from an array of swc files.
+     *
+     * @param arrayOfSwcFiles {@link File} array of swc files
+     * @return list of Skeletons
+     */
     public static List<Skeleton> createSkeletonListFromSwcFileArray(File[] arrayOfSwcFiles) {
         List<Skeleton> skeletonList = new ArrayList<>();
         for (File swcFile : arrayOfSwcFiles) {
@@ -269,14 +284,19 @@ public class NeuPrinterMain {
         return skeletonList;
     }
 
-    public static Long setSkeletonAssociatedBodyId(String swcFilePath) {
+    /**
+     * Returns the associated bodyId for the Skeleton read from the swc file name.
+     *
+     * @param swcFilePath path to swc file
+     * @return bodyId
+     */
+    private static Long setSkeletonAssociatedBodyId(String swcFilePath) {
 
         String patternSurroundingId = ".*/(.*?).swc";
         Pattern r = Pattern.compile(patternSurroundingId);
         Matcher mR = r.matcher(swcFilePath);
         mR.matches();
-        Long associatedBodyId = Long.parseLong(mR.group(1));
-        return associatedBodyId;
+        return Long.parseLong(mR.group(1));
 
     }
 
@@ -314,7 +334,7 @@ public class NeuPrinterMain {
             // read in the neurons data
             Stopwatch timer2 = Stopwatch.createStarted();
             neuronList = readNeuronsJson(parameters.neuronJson);
-            LOG.info("Reading in neurons json took: " + timer2.stop());
+            LOG.info("Reading in neurons JSON took: " + timer2.stop());
             timer2.reset();
             //write it to the database
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
@@ -336,7 +356,7 @@ public class NeuPrinterMain {
             SynapseMapper mapper = new SynapseMapper();
             bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
             LOG.info("Number of bodies with synapses: " + bodyList.size());
-            LOG.info("Reading in synapse json took: " + timer.stop());
+            LOG.info("Reading in synapse JSON took: " + timer.stop());
             timer.reset();
 
             HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
@@ -415,6 +435,7 @@ public class NeuPrinterMain {
             File folder = new File(parameters.skeletonDirectory);
             File[] arrayOfSwcFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".swc"));
 
+            assert arrayOfSwcFiles != null : "No swc files found.";
             LOG.info("Reading in " + arrayOfSwcFiles.length + " swc files.");
 
             List<Skeleton> skeletonList = createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
@@ -456,15 +477,15 @@ public class NeuPrinterMain {
 
         }
 
-        if (parameters.editMode) {
-
-            neuronList = readNeuronsJson(parameters.neuronJson);
-
-            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
-                neo4jEditor.updateNeuronProperties(dataset, neuronList);
-            }
-
-        }
+//        if (parameters.editMode) {
+//
+//            neuronList = readNeuronsJson(parameters.neuronJson);
+//
+//            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
+//                neo4jEditor.updateNeuronProperties(dataset, neuronList);
+//            }
+//
+//        }
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(NeuPrinterMain.class);

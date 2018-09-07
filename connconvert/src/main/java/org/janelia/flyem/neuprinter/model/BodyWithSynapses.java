@@ -15,6 +15,12 @@ import java.util.Set;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
+/**
+ * A class representing a body that contains synapses, as read from a
+ * <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
+ * Each body has a bodyId and a set of synapses. (cf. the {@link Neuron} class
+ * that represents neurons without synapses and their properties)
+ */
 public class BodyWithSynapses {
 
     //TODO: figure out how to add optional properties
@@ -36,65 +42,70 @@ public class BodyWithSynapses {
     private static transient String PRE = "pre";
     private static transient String POST = "post";
 
+    /**
+     * Class constructor.
+     *
+     * @param bodyId     bodyId for this neuron
+     * @param synapseSet this neuron's set of synapses
+     */
     public BodyWithSynapses(Long bodyId, Set<Synapse> synapseSet) {
         this.bodyId = bodyId;
         this.synapseSet = synapseSet; // LinkedHashSet ? if want to preserve order
-
     }
 
     /**
-     * @return the bodyId associated with this body.
+     * @return the bodyId associated with this body
      */
     public Long getBodyId() {
         return this.bodyId;
     }
 
     /**
-     * @return the total number presynaptic densities associated with this body.
+     * @return the total number presynaptic densities associated with this body
      */
     public Integer getNumberOfPreSynapses() {
         return this.numberOfPreSynapses;
     }
 
     /**
-     * @return the total number postsynaptic densities associated with this body.
+     * @return the total number postsynaptic densities associated with this body
      */
     public Integer getNumberOfPostSynapses() {
         return this.numberOfPostSynapses;
     }
 
     /**
-     * @return number of synaptic densities (pre and post) for each ROI associated with this body as SynapseCountsPerRoi object.
+     * @return number of synaptic densities (pre and post) for each ROI associated with this body as SynapseCountsPerRoi object
      */
     public SynapseCountsPerRoi getSynapseCountsPerRoi() {
         return this.synapseCountsPerRoi;
     }
 
     /**
-     * @return set of synapses associated with this body.
+     * @return set of synapses associated with this body
      */
     public Set<Synapse> getSynapseSet() {
         return synapseSet;
     }
 
     /**
-     * @return map of postsynaptic bodyIds to weights for this body.
+     * @return map of postsynaptic bodyIds to weights for this body
      */
     public HashMap<Long, Integer> getConnectsTo() {
         return connectsTo;
     }
 
     /**
-     * @return map of presynaptic bodyIds to weights for this body.
+     * @return map of presynaptic bodyIds to weights for this body
      */
     public HashMap<Long, Integer> getConnectsFrom() {
         return connectsFrom;
     }
 
     /**
-     * @return list of presynaptic density locations for this body as strings ("x:y:z").
+     * @return list of presynaptic density locations for this body as strings ("x:y:z")
      */
-    public List<String> getPreLocations() {
+    List<String> getPreLocations() {
         return this.synapseSet.stream()
                 .filter(synapse -> synapse.getType().equals(PRE))
                 .map(Synapse::getLocationString)
@@ -102,9 +113,9 @@ public class BodyWithSynapses {
     }
 
     /**
-     * @return list of postsynaptic density locations for this body as strings ("x:y:z").
+     * @return list of postsynaptic density locations for this body as strings ("x:y:z")
      */
-    public List<String> getPostLocations() {
+    List<String> getPostLocations() {
         return this.synapseSet.stream()
                 .filter(synapse -> synapse.getType().equals(POST))
                 .map(Synapse::getLocationString)
@@ -112,15 +123,26 @@ public class BodyWithSynapses {
     }
 
     /**
-     * @return List of postsynaptic density locations for this body as strings ("x:y:z").
+     * @return rois that this body has synapses in
      */
-    public List<String> getBodyRois() {
+    List<String> getBodyRois() {
         return this.synapseSet.stream()
                 .map(Synapse::getRois)
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Adds synapses for this body to a {@link SynapseLocationToBodyIdMap}, which
+     * maps three-dimensional synapse locations to a bodyId. For use with
+     * {@link org.janelia.flyem.neuprinter.SynapseMapper}. To map presynaptic
+     * or postsynaptic locations to a bodyId, mapType should be "pre" or "post",
+     * respectively.
+     *
+     * @param mapType                    type of SynapseLocationToBodyIdMap
+     * @param synapseLocationToBodyIdMap map of x,y,z synapse locations to bodyIds
+     * @throws IllegalArgumentException if mapType is not "pre" or "post"
+     */
     public void addSynapsesToBodyIdMapAndSetSynapseCounts(String mapType, SynapseLocationToBodyIdMap synapseLocationToBodyIdMap) throws IllegalArgumentException {
 
         int countPre = 0;
@@ -159,6 +181,16 @@ public class BodyWithSynapses {
 
     }
 
+    /**
+     * Uses a {@link SynapseLocationToBodyIdMap} mapping postsynaptic density
+     * locations to bodyIds and this body's synapse set to generate a map of
+     * postsynaptic bodyIds to weights for this body and set this map as the
+     * connectsTo attribute. This is used to set ConnectsTo relationships
+     * between Neuron nodes in the neo4j database. Complete SynapseLocationToBodyIdMap
+     * must be generated prior to using this method.
+     *
+     * @param postToBody map of postsynaptic locations to bodyIds
+     */
     public void setConnectsTo(SynapseLocationToBodyIdMap postToBody) {
         this.connectsTo = new HashMap<>();
         this.synapseSet
@@ -178,12 +210,19 @@ public class BodyWithSynapses {
                 });
     }
 
+    /**
+     * Adds synapses in this body's synapse set to the provided preToPost map, which
+     * maps presynaptic locations to postsynaptic locations. The preToPost map is used
+     * to generate SynapsesTo relationships between Synapse nodes in the neo4j database.
+     *
+     * @param preToPost map of presynaptic locations to postsynaptic locations
+     */
     public void addSynapsesToPreToPostMap(HashMap<String, List<String>> preToPost) {
         this.synapseSet
                 .stream()
                 .filter(synapse -> synapse.getType().equals(PRE))
                 .collect(Collectors.toSet())
-                .forEach(preSynapse -> preToPost.put(preSynapse.getLocationString(),preSynapse.getConnectionLocationStrings()));
+                .forEach(preSynapse -> preToPost.put(preSynapse.getLocationString(), preSynapse.getConnectionLocationStrings()));
     }
 
     private List<Long> getPostSynapticBodyIdsForSynapse(Synapse synapse, SynapseLocationToBodyIdMap postToBody) {
@@ -191,14 +230,17 @@ public class BodyWithSynapses {
                 .getConnectionLocationStrings()
                 .stream()
                 .map(s -> {
-            if (postToBody.getBodyId(s) == null) {
-                LOG.warning(s + " not in postToBody.");
-            }
-            return postToBody.getBodyId(s);
-            })
+                    if (postToBody.getBodyId(s) == null) {
+                        LOG.warning(s + " not in postToBody.");
+                    }
+                    return postToBody.getBodyId(s);
+                })
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Sets the {@link #synapseCountsPerRoi} attribute using this body's synapse set.
+     */
     public void setSynapseCountsPerRoi() {
         this.synapseCountsPerRoi = getSynapseCountersPerRoiFromSynapseSet(this.synapseSet);
     }
@@ -207,9 +249,9 @@ public class BodyWithSynapses {
         SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
         synapseSet.forEach(synapse -> {
             if (synapse.getType().equals(PRE)) {
-                synapse.getRois().forEach(roi -> synapseCountsPerRoi.incrementPreForRoi(roi.replace("-pt","")));
+                synapse.getRois().forEach(roi -> synapseCountsPerRoi.incrementPreForRoi(roi.replace("-pt", "")));
             } else if (synapse.getType().equals(POST)) {
-                synapse.getRois().forEach(roi -> synapseCountsPerRoi.incrementPostForRoi(roi.replace("-pt","")));
+                synapse.getRois().forEach(roi -> synapseCountsPerRoi.incrementPostForRoi(roi.replace("-pt", "")));
             }
         });
         return synapseCountsPerRoi;
@@ -240,14 +282,35 @@ public class BodyWithSynapses {
         return result;
     }
 
+    /**
+     * Returns a list of BodyWithSynapses deserialized from a synapses JSON string.
+     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON format</a>.
+     *
+     * @param jsonString string containing synapses JSON
+     * @return list of BodyWithSynapses
+     */
     public static List<BodyWithSynapses> fromJson(final String jsonString) {
         return JsonUtils.GSON.fromJson(jsonString, BODY_LIST_TYPE);
     }
 
+    /**
+     * Returns a list of BodyWithSynapses deserialized from a {@link BufferedReader} reading from a synapse JSON file.
+     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapse JSON format</a>.
+     *
+     * @param reader {@link BufferedReader}
+     * @return list of BodyWithSynapses
+     */
     public static List<BodyWithSynapses> fromJson(final BufferedReader reader) {
         return JsonUtils.GSON.fromJson(reader, BODY_LIST_TYPE);
     }
 
+    /**
+     * Returns a BodyWithSynapse deserialized from a single JSON object from a synapse JSON file.
+     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapse JSON format</a>.
+     *
+     * @param reader {@link JsonReader}
+     * @return BodyWithSynapse
+     */
     public static BodyWithSynapses fromJsonSingleObject(final JsonReader reader) {
         return JsonUtils.GSON.fromJson(reader, BodyWithSynapses.class);
     }
@@ -258,3 +321,5 @@ public class BodyWithSynapses {
     private static final Logger LOG = Logger.getLogger("BodyWithSynapses.class");
 
 }
+
+

@@ -3,6 +3,9 @@ package org.janelia.flyem.neuprinter.model;
 import org.junit.Assert;
 import org.junit.Test;
 
+/**
+ * Tests the {@link SynapseCounter} class.
+ */
 public class SynapseCounterTest {
 
     @Test

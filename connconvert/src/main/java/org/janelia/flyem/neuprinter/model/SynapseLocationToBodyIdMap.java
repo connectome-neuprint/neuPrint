@@ -5,34 +5,57 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Map of synapse locations to the body ids that contain them.
+ * Map of synaptic density locations to the body ids that contain them.
  */
 public class SynapseLocationToBodyIdMap {
 
-    private final Map<String, Long> locationToBodyIdMap;
+    private final Map<String, Long> locationToBodyIdMap = new HashMap<>();
 
+    /**
+     * Class constructor.
+     */
     public SynapseLocationToBodyIdMap() {
-        this.locationToBodyIdMap = new HashMap<>();
     }
 
+    /**
+     *
+     * @return number of locations in map
+     */
     public int size() {
         return locationToBodyIdMap.size();
     }
 
-    public Long getBodyId(final String forLocation) {
+    /**
+     *
+     * @param forLocation location as string in format "x:y:z"
+     * @return the bodyId containing the synaptic density at this location
+     */
+    Long getBodyId(final String forLocation) {
         return locationToBodyIdMap.get(forLocation);
     }
 
-    public Set<String> getAllLocationKeys() { return locationToBodyIdMap.keySet(); }
-
-    public void addMap(SynapseLocationToBodyIdMap otherMap) { this.locationToBodyIdMap.putAll(otherMap.locationToBodyIdMap); }
+    /**
+     *
+     * @return set of all locations in the map in format "x:y:z"
+     */
+    Set<String> getAllLocationKeys() {
+        return locationToBodyIdMap.keySet();
+    }
 
     /**
-     * @throws IllegalStateException
-     *   if the specified location has already been mapped to another body.
+     * Adds provided SynapseLocationToBodyIdMap to this map.
+     *
+     * @param otherMap SynapseLocationToBodyIdMap to add to this map
      */
-    public void mapLocationToBodyId(final String location,
-                                  final Long bodyId)
+    public void addMap(SynapseLocationToBodyIdMap otherMap) {
+        this.locationToBodyIdMap.putAll(otherMap.locationToBodyIdMap);
+    }
+
+    /**
+     * @throws IllegalStateException if the specified location has already been mapped to another body.
+     */
+    void mapLocationToBodyId(final String location,
+                             final Long bodyId)
             throws IllegalStateException {
 
         final Long existingBodyId = locationToBodyIdMap.put(location, bodyId);
@@ -46,7 +69,5 @@ public class SynapseLocationToBodyIdMap {
     public String toString() {
         return "{size: " + size() + "}";
     }
-
-
 
 }

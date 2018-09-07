@@ -11,6 +11,8 @@ public interface TransactionBatch
     /**
      * Adds the specified statement to the current batch and
      * if the batch limit is reached, writes (commits) all previously batched statements.
+     *
+     * @param statement statement containing query
      */
     void addStatement(final Statement statement);
 
