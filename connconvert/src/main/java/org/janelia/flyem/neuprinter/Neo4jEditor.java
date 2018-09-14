@@ -8,7 +8,8 @@ import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 /**
  * A class for editing an existing neuprint neo4j database.
@@ -17,7 +18,7 @@ public class Neo4jEditor implements AutoCloseable {
 
     private final Driver driver;
     private final int statementsPerTransaction;
-    private final LocalDate timeStamp = LocalDate.now();
+    private final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
     /**
      * Class constructor for testing.

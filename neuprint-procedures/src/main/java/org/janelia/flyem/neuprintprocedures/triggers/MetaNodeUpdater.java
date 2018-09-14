@@ -6,8 +6,8 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -19,7 +19,7 @@ class MetaNodeUpdater {
         try {
             Node metaNode = dbService.getNodeById(metaNodeId);
             getWriteLockForNode(metaNode, dbService);
-            metaNode.setProperty("lastDatabaseEdit", LocalDate.now());
+            metaNode.setProperty("lastDatabaseEdit", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
 
             if (shouldMetaNodeSynapseCountsBeUpdated) {
                 long preCount = getTotalPreCount(dbService, dataset);
@@ -40,7 +40,7 @@ class MetaNodeUpdater {
                 metaNode.setProperty("totalPreCount", preCount);
                 metaNode.setProperty("totalPostCount", postCount);
                 metaNode.setProperty("synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString());
-                System.out.println(LocalDateTime.now() + " Setting synapseCountPerRoi on Meta node: " + synapseCountsPerRoi.getAsJsonString());
+                System.out.println(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS) + " Setting synapseCountPerRoi on Meta node: " + synapseCountsPerRoi.getAsJsonString());
             }
 
         } catch (Exception e) {

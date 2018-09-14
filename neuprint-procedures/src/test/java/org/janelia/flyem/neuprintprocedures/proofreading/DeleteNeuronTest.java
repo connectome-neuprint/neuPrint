@@ -25,7 +25,8 @@ import org.neo4j.driver.v1.types.Point;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 
@@ -73,8 +74,8 @@ public class DeleteNeuronTest {
             neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
             neo4jImporter.addAutoNames(dataset, 0);
 
-            session.writeTransaction(tx -> tx.run("MATCH (n:Neuron) SET n.timeStamp=$timeStamp", parameters("timeStamp", LocalDate.of(2000, 1, 1))));
-            session.writeTransaction(tx -> tx.run("MATCH (n:Meta) SET n.lastDatabaseEdit=$timeStamp", parameters("timeStamp", LocalDate.of(2000, 1, 1))));
+            session.writeTransaction(tx -> tx.run("MATCH (n:Neuron) SET n.timeStamp=$timeStamp", parameters("timeStamp", LocalDateTime.of(2000, 1, 1,1,1))));
+            session.writeTransaction(tx -> tx.run("MATCH (n:Meta) SET n.lastDatabaseEdit=$timeStamp", parameters("timeStamp", LocalDateTime.of(2000, 1, 1,1,1))));
             String synapseCountPerRoi = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.synapseCountPerRoi").single().get(0).asString());
             long preCount = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.totalPreCount").single().get(0).asLong());
             long postCount = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.totalPostCount").single().get(0).asLong());
@@ -117,14 +118,16 @@ public class DeleteNeuronTest {
             List<Record> neuronTimeStamps = session.readTransaction(tx -> tx.run("MATCH (n:Neuron) WHERE n.bodyId=26311 OR n.bodyId=2589725 OR n.bodyId=831744 RETURN n.timeStamp").list());
 
             for (Record record : neuronTimeStamps) {
-                Assert.assertEquals(LocalDate.now(), record.asMap().get("n.timeStamp"));
+                LocalDateTime dateTime = (LocalDateTime) record.asMap().get("n.timeStamp");
+                Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), dateTime.truncatedTo(ChronoUnit.MINUTES));
             }
 
             // check meta node time stamps and synapseCountsPerRoi/preCount/postCount
 
             Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n").single().get(0).asNode());
 
-            Assert.assertEquals(LocalDate.now(), metaNode.asMap().get("lastDatabaseEdit"));
+            LocalDateTime metaNodeUpdateTime = (LocalDateTime) metaNode.asMap().get("lastDatabaseEdit");
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), metaNodeUpdateTime.truncatedTo(ChronoUnit.MINUTES));
             Assert.assertEquals(synapseCountPerRoi, metaNode.asMap().get("synapseCountPerRoi"));
             Assert.assertEquals(preCount, metaNode.asMap().get("totalPreCount"));
             Assert.assertEquals(postCount, metaNode.asMap().get("totalPostCount"));

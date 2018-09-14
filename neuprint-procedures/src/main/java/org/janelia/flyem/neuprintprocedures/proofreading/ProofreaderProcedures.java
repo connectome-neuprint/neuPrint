@@ -392,8 +392,10 @@ public class ProofreaderProcedures {
     @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
     @Description("proofreader.deleteNeuron(neuronBodyId,datasetLabel) : delete neuron with body Id and associated nodes (except Synapses) from given dataset. ")
     public void deleteNeuron(@Name("neuronBodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
-        if (bodyId == null || datasetLabel == null)
-            throw new Error(String.format("Must provide both a %s and dataset label.", BODY_ID));
+        if (bodyId == null || datasetLabel == null) {
+            log.error("Must provide both a bodyId and dataset label.");
+            throw new RuntimeException("Must provide both a bodyId and dataset label.");
+        }
 
         final Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
 
@@ -413,6 +415,27 @@ public class ProofreaderProcedures {
         deleteSkeletonForNode(neuron);
 
         neuron.delete();
+
+    }
+
+    @Procedure(value = "proofreader.addNeuron", mode = Mode.WRITE)
+    @Description("proofreader.addNeuron(neuronJson,datasetLabel) : add neuron specified in json to given dataset.")
+    public Stream<NodeResult> addNeuron(@Name("neuronJson") String neuronJson, @Name("datasetLabel") String datasetLabel) {
+        if (neuronJson == null || datasetLabel == null) {
+            log.error("Must provide a neuron json and a dataset label.");
+            throw new RuntimeException("Must provide a neuron json and a dataset label.");
+        }
+        //grab write locks on connected nodes (synapses, neurons)
+
+        //add neuron node with properties and labels
+
+        //add connects to relationships
+
+        //add synapseset and connect to synapses
+
+        //add skeleton?
+
+        return Stream.of(new NodeResult(null));
 
     }
 

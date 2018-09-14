@@ -3,8 +3,8 @@ package org.janelia.flyem.neuprintprocedures.triggers;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -16,7 +16,7 @@ class TimeStampProcedure {
 
         for (Node node : nodeSet) {
             try {
-                node.setProperty("timeStamp", LocalDate.now());
+                node.setProperty("timeStamp", LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS));
             } catch (org.neo4j.graphdb.NotFoundException nfe) {
                 notFoundNodes.add(node);
             }

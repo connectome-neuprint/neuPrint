@@ -9,7 +9,8 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -31,9 +32,9 @@ public class TimeStampTest {
                 return 1;
             });
 
-            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n:Neuron{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n:Neuron{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
         }
 
     }
@@ -51,7 +52,7 @@ public class TimeStampTest {
             });
 
             session.writeTransaction(tx -> {
-                tx.run("MATCH (n{bodyId:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                tx.run("MATCH (n{bodyId:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDateTime.of(2000,1,1,1,1)));
                 return 1;
             });
 
@@ -60,9 +61,9 @@ public class TimeStampTest {
                 return 1;
             });
 
-            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n:test{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n:test{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
         }
 
     }
@@ -80,7 +81,7 @@ public class TimeStampTest {
             });
 
             session.writeTransaction(tx -> {
-                tx.run("MATCH (n:test{bodyId:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                tx.run("MATCH (n:test{bodyId:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDateTime.of(2000, 1, 1,1,1)));
                 return 1;
             });
 
@@ -89,9 +90,9 @@ public class TimeStampTest {
                 return 1;
             });
 
-            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
         }
 
     }
@@ -109,7 +110,7 @@ public class TimeStampTest {
             });
 
             session.writeTransaction(tx -> {
-                tx.run("MATCH (n{bodyId:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                tx.run("MATCH (n{bodyId:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDateTime.of(2000, 1, 1,1,1)));
                 return 1;
             });
 
@@ -118,9 +119,9 @@ public class TimeStampTest {
                 return 1;
             });
 
-            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
 
         }
     }
@@ -143,7 +144,7 @@ public class TimeStampTest {
             });
 
             session.writeTransaction(tx -> {
-                tx.run("MATCH (n{bodyId:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                tx.run("MATCH (n{bodyId:1}) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDateTime.of(2000, 1, 1,1,1)));
                 return 1;
             });
 
@@ -152,9 +153,9 @@ public class TimeStampTest {
                 return 1;
             });
 
-            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
 
         }
     }
@@ -174,7 +175,7 @@ public class TimeStampTest {
             });
 
             session.writeTransaction(tx -> {
-                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDateTime.of(2000, 1, 1,1,1)));
                 return 1;
             });
 
@@ -183,13 +184,13 @@ public class TimeStampTest {
                 return 1;
             });
 
-            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
 
-            LocalDate timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp2);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp2.truncatedTo(ChronoUnit.MINUTES));
 
         }
 
@@ -215,7 +216,7 @@ public class TimeStampTest {
             });
 
             session.writeTransaction(tx -> {
-                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDateTime.of(2000, 1, 1,1,1)));
                 return 1;
             });
 
@@ -224,13 +225,13 @@ public class TimeStampTest {
                 return 1;
             });
 
-            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
 
-            LocalDate timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp2);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp2.truncatedTo(ChronoUnit.MINUTES));
 
         }
 
@@ -250,7 +251,7 @@ public class TimeStampTest {
             });
 
             session.writeTransaction(tx -> {
-                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDateTime.of(2000, 1, 1,1,1)));
                 return 1;
             });
 
@@ -266,13 +267,13 @@ public class TimeStampTest {
                 return 1;
             });
 
-            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
 
-            LocalDate timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp2);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp2.truncatedTo(ChronoUnit.MINUTES));
 
         }
 
@@ -293,7 +294,7 @@ public class TimeStampTest {
             });
 
             session.writeTransaction(tx -> {
-                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDateTime.of(2000, 1, 1,1,1)));
                 return 1;
             });
 
@@ -310,13 +311,13 @@ public class TimeStampTest {
                 return 1;
             });
 
-            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
 
-            LocalDate timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.now(), timeStamp2);
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp2.truncatedTo(ChronoUnit.MINUTES));
 
         }
 
@@ -336,15 +337,15 @@ public class TimeStampTest {
             });
 
             session.writeTransaction(tx -> {
-                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDate.of(2000, 1, 1)));
+                tx.run("MATCH (n) SET n.timeStamp=$yesterday", parameters("yesterday", LocalDateTime.of(2000, 1, 1,1,1)));
                 return 1;
             });
 
             session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n"));
 
-            LocalDate timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDate());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDate.of(2000, 1, 1), timeStamp);
+            Assert.assertEquals(LocalDateTime.of(2000, 1, 1,1,1), timeStamp);
 
         }
     }

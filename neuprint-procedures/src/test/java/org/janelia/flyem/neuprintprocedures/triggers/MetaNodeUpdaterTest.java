@@ -21,7 +21,8 @@ import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -79,7 +80,9 @@ public class MetaNodeUpdaterTest {
 
             Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode());
 
-            Assert.assertEquals(LocalDate.now(), metaNode.asMap().get("lastDatabaseEdit"));
+            LocalDateTime metaNodeUpdateTime = (LocalDateTime) metaNode.asMap().get("lastDatabaseEdit");
+
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), metaNodeUpdateTime.truncatedTo(ChronoUnit.MINUTES));
 
             Assert.assertEquals(5L, metaNode.asMap().get("totalPostCount"));
             Assert.assertEquals(3L, metaNode.asMap().get("totalPreCount"));
@@ -118,7 +121,8 @@ public class MetaNodeUpdaterTest {
 
             Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode());
 
-            Assert.assertEquals(LocalDate.now(), metaNode.asMap().get("lastDatabaseEdit"));
+            LocalDateTime metaNodeUpdateTime = (LocalDateTime) metaNode.asMap().get("lastDatabaseEdit");
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES),metaNodeUpdateTime.truncatedTo(ChronoUnit.MINUTES) );
 
             Assert.assertEquals(9L, metaNode.asMap().get("totalPostCount"));
             Assert.assertEquals(13L, metaNode.asMap().get("totalPreCount"));

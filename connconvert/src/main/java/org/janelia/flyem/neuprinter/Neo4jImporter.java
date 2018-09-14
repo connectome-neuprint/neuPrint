@@ -24,7 +24,8 @@ import org.neo4j.driver.v1.Transaction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -45,7 +46,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     private final Driver driver;
     private final int statementsPerTransaction;
-    private final LocalDate timeStamp = LocalDate.now();
+    private final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
     /**
      * Class constructor.
