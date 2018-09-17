@@ -69,7 +69,7 @@ public class MetaNodeUpdaterTest {
 
             //should only trigger an update of lastDatabaseEdit
             session.writeTransaction(tx -> {
-                tx.run("CREATE (n:Neuron:test:roiA:newRoi:`test-roiA`:`test-newRoi`:`test-Neuron`{bodyId:50}) SET n.synapseCountPerRoi=\"{'roiA':{'pre':5,'post':2,'total':7},'newRoi':{'pre':5,'post':2,'total':7}}\", n.pre=10, n.post=4 RETURN n");
+                tx.run("CREATE (n:Neuron:test:roiA:newRoi:`test-roiA`:`test-newRoi`:`test-Neuron`{bodyId:50}) SET n.roiInfo=\"{'roiA':{'pre':5,'post':2,'total':7},'newRoi':{'pre':5,'post':2,'total':7}}\", n.pre=10, n.post=4 RETURN n");
                 return 1;
             });
 
@@ -82,12 +82,12 @@ public class MetaNodeUpdaterTest {
 
             LocalDateTime metaNodeUpdateTime = (LocalDateTime) metaNode.asMap().get("lastDatabaseEdit");
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), metaNodeUpdateTime.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), metaNodeUpdateTime.truncatedTo(ChronoUnit.HOURS));
 
             Assert.assertEquals(5L, metaNode.asMap().get("totalPostCount"));
             Assert.assertEquals(3L, metaNode.asMap().get("totalPreCount"));
 
-            String metaSynapseCountPerRoi = (String) metaNode.asMap().get("synapseCountPerRoi");
+            String metaSynapseCountPerRoi = (String) metaNode.asMap().get("roiInfo");
             Gson gson = new Gson();
             Map<String, SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
             }.getType());
@@ -122,12 +122,12 @@ public class MetaNodeUpdaterTest {
             Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode());
 
             LocalDateTime metaNodeUpdateTime = (LocalDateTime) metaNode.asMap().get("lastDatabaseEdit");
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES),metaNodeUpdateTime.truncatedTo(ChronoUnit.MINUTES) );
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS),metaNodeUpdateTime.truncatedTo(ChronoUnit.HOURS) );
 
             Assert.assertEquals(9L, metaNode.asMap().get("totalPostCount"));
             Assert.assertEquals(13L, metaNode.asMap().get("totalPreCount"));
 
-            String metaSynapseCountPerRoi = (String) metaNode.asMap().get("synapseCountPerRoi");
+            String metaSynapseCountPerRoi = (String) metaNode.asMap().get("roiInfo");
             Gson gson = new Gson();
             Map<String, SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
             }.getType());

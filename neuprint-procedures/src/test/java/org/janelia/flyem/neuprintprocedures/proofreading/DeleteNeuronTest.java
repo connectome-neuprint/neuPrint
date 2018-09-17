@@ -76,7 +76,7 @@ public class DeleteNeuronTest {
 
             session.writeTransaction(tx -> tx.run("MATCH (n:Neuron) SET n.timeStamp=$timeStamp", parameters("timeStamp", LocalDateTime.of(2000, 1, 1,1,1))));
             session.writeTransaction(tx -> tx.run("MATCH (n:Meta) SET n.lastDatabaseEdit=$timeStamp", parameters("timeStamp", LocalDateTime.of(2000, 1, 1,1,1))));
-            String synapseCountPerRoi = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.synapseCountPerRoi").single().get(0).asString());
+            String synapseCountPerRoi = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.roiInfo").single().get(0).asString());
             long preCount = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.totalPreCount").single().get(0).asLong());
             long postCount = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.totalPostCount").single().get(0).asLong());
 
@@ -119,7 +119,7 @@ public class DeleteNeuronTest {
 
             for (Record record : neuronTimeStamps) {
                 LocalDateTime dateTime = (LocalDateTime) record.asMap().get("n.timeStamp");
-                Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), dateTime.truncatedTo(ChronoUnit.MINUTES));
+                Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), dateTime.truncatedTo(ChronoUnit.HOURS));
             }
 
             // check meta node time stamps and synapseCountsPerRoi/preCount/postCount
@@ -127,8 +127,8 @@ public class DeleteNeuronTest {
             Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n").single().get(0).asNode());
 
             LocalDateTime metaNodeUpdateTime = (LocalDateTime) metaNode.asMap().get("lastDatabaseEdit");
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), metaNodeUpdateTime.truncatedTo(ChronoUnit.MINUTES));
-            Assert.assertEquals(synapseCountPerRoi, metaNode.asMap().get("synapseCountPerRoi"));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), metaNodeUpdateTime.truncatedTo(ChronoUnit.HOURS));
+            Assert.assertEquals(synapseCountPerRoi, metaNode.asMap().get("roiInfo"));
             Assert.assertEquals(preCount, metaNode.asMap().get("totalPreCount"));
             Assert.assertEquals(postCount, metaNode.asMap().get("totalPostCount"));
 

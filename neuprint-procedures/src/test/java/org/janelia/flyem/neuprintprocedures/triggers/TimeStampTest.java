@@ -34,7 +34,7 @@ public class TimeStampTest {
 
             LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n:Neuron{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp.truncatedTo(ChronoUnit.HOURS));
         }
 
     }
@@ -63,7 +63,7 @@ public class TimeStampTest {
 
             LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n:test{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp.truncatedTo(ChronoUnit.HOURS));
         }
 
     }
@@ -92,7 +92,7 @@ public class TimeStampTest {
 
             LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp.truncatedTo(ChronoUnit.HOURS));
         }
 
     }
@@ -121,7 +121,7 @@ public class TimeStampTest {
 
             LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp.truncatedTo(ChronoUnit.HOURS));
 
         }
     }
@@ -155,7 +155,7 @@ public class TimeStampTest {
 
             LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp.truncatedTo(ChronoUnit.HOURS));
 
         }
     }
@@ -186,11 +186,11 @@ public class TimeStampTest {
 
             LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp.truncatedTo(ChronoUnit.HOURS));
 
             LocalDateTime timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp2.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp2.truncatedTo(ChronoUnit.HOURS));
 
         }
 
@@ -227,11 +227,11 @@ public class TimeStampTest {
 
             LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp.truncatedTo(ChronoUnit.HOURS));
 
             LocalDateTime timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp2.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp2.truncatedTo(ChronoUnit.HOURS));
 
         }
 
@@ -269,11 +269,11 @@ public class TimeStampTest {
 
             LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp.truncatedTo(ChronoUnit.HOURS));
 
             LocalDateTime timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp2.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp2.truncatedTo(ChronoUnit.HOURS));
 
         }
 
@@ -313,11 +313,11 @@ public class TimeStampTest {
 
             LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp.truncatedTo(ChronoUnit.HOURS));
 
             LocalDateTime timeStamp2 = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.MINUTES), timeStamp2.truncatedTo(ChronoUnit.MINUTES));
+            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp2.truncatedTo(ChronoUnit.HOURS));
 
         }
 

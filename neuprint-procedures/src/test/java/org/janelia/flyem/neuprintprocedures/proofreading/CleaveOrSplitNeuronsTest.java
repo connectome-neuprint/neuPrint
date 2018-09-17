@@ -175,9 +175,9 @@ public class CleaveOrSplitNeuronsTest {
 
             //check synapseCountsPerRoi
             String newSynapseCountPerRoi = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:5555}) RETURN n.synapseCountPerRoi").single().get(0).asString());
+                    tx.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:5555}) RETURN n.roiInfo").single().get(0).asString());
             String origSynapseCountPerRoi = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.synapseCountPerRoi").single().get(0).asString());
+                    tx.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.roiInfo").single().get(0).asString());
             Map<String, SynapseCounter> newSynapseCountMap = gson.fromJson(newSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
             }.getType());
             Map<String, SynapseCounter> origSynapseCountMap = gson.fromJson(origSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
@@ -328,8 +328,8 @@ public class CleaveOrSplitNeuronsTest {
             Node neuron2 = (Node) neurons.get(1);
 
             Assert.assertEquals(0, (long) neuron1.asMap().get("pre") + (long) neuron1.asMap().get("post") + (long) neuron2.asMap().get("pre") + (long) neuron2.asMap().get("post"));
-            Assert.assertEquals("{}", neuron1.asMap().get("synapseCountPerRoi"));
-            Assert.assertEquals("{}", neuron2.asMap().get("synapseCountPerRoi"));
+            Assert.assertEquals("{}", neuron1.asMap().get("roiInfo"));
+            Assert.assertEquals("{}", neuron2.asMap().get("roiInfo"));
             if ((long) neuron1.asMap().get("bodyId") == 5555) {
                 Assert.assertEquals(2778831, (long) neuron1.asMap().get("size"));
             } else {

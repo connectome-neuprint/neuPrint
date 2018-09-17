@@ -204,7 +204,7 @@ public class Neo4jImporter implements AutoCloseable {
                 "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.status=$notAnnotated, n:Neuron, n:" + dataset + " \n" +
                         "MERGE (m:`" + dataset + "-Neuron`{bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m.status=$notAnnotated, m:Neuron, m:" + dataset + " \n" +
                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m)";
-        final String terminalCountText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp, n.synapseCountPerRoi=$synapseCountPerRoi";
+        final String terminalCountText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp, n.roiInfo=$synapseCountPerRoi";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final BodyWithSynapses body : bodyList) {
@@ -597,7 +597,7 @@ public class Neo4jImporter implements AutoCloseable {
                     "dataModelVersion", dataModelVersion
             )));
 
-            String metaNodeRoiString = "MATCH (m:Meta:" + dataset + " {dataset:$dataset}) SET m.synapseCountPerRoi=$synapseCountPerRoi ";
+            String metaNodeRoiString = "MATCH (m:Meta:" + dataset + " {dataset:$dataset}) SET m.roiInfo=$synapseCountPerRoi ";
 
             batch.addStatement(new Statement(metaNodeRoiString,
                     parameters("dataset", dataset,
@@ -623,12 +623,12 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static int getRoiPreCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS pre RETURN sum(pre)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.pre AS pre RETURN sum(pre)");
         return result.single().get(0).asInt();
     }
 
     private static int getRoiPostCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS post RETURN sum(post)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.post AS post RETURN sum(post)");
         return result.single().get(0).asInt();
     }
 
@@ -644,7 +644,7 @@ public class Neo4jImporter implements AutoCloseable {
     private static String getMaxInputRoi(final Transaction tx, final String dataset, Long bodyId) {
 
         Gson gson = new Gson();
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) WITH n.synapseCountPerRoi AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) WITH n.roiInfo AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
 
         String synapseCountPerRoiJson = result.single().get(0).asString();
         Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String, SynapseCounter>>() {
@@ -661,7 +661,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     private static String getMaxOutputRoi(final Transaction tx, final String dataset, Long bodyId) {
         Gson gson = new Gson();
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) WITH n.synapseCountPerRoi AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) WITH n.roiInfo AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
 
         String synapseCountPerRoiJson = result.single().get(0).asString();
         Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String, SynapseCounter>>() {

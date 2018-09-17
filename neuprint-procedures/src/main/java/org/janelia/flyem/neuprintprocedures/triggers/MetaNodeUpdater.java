@@ -39,8 +39,8 @@ class MetaNodeUpdater {
 
                 metaNode.setProperty("totalPreCount", preCount);
                 metaNode.setProperty("totalPostCount", postCount);
-                metaNode.setProperty("synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString());
-                System.out.println(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS) + " Setting synapseCountPerRoi on Meta node: " + synapseCountsPerRoi.getAsJsonString());
+                metaNode.setProperty("roiInfo", synapseCountsPerRoi.getAsJsonString());
+                System.out.println(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS) + " Setting roiInfo on Meta node: " + synapseCountsPerRoi.getAsJsonString());
             }
 
         } catch (Exception e) {
@@ -60,12 +60,12 @@ class MetaNodeUpdater {
     }
 
     private static long getRoiPreCount(GraphDatabaseService dbService, final String dataset, final String roi) {
-        Result roiPreCountQuery = dbService.execute("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.pre AS preCounts RETURN sum(preCounts) AS pre");
+        Result roiPreCountQuery = dbService.execute("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.pre AS preCounts RETURN sum(preCounts) AS pre");
         return (long) roiPreCountQuery.next().get("pre");
     }
 
     private static long getRoiPostCount(GraphDatabaseService dbService, final String dataset, final String roi) {
-        Result roiPostCountQuery = dbService.execute("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.synapseCountPerRoi).`" + roi + "`.post AS postCounts RETURN sum(postCounts) AS post");
+        Result roiPostCountQuery = dbService.execute("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.post AS postCounts RETURN sum(postCounts) AS post");
         return (long) roiPostCountQuery.next().get("post");
     }
 

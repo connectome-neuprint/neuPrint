@@ -52,7 +52,7 @@ public class AnalysisProcedures {
     private static final String PRE = "pre";
     private static final String SKEL_NODE_ID = "skelNodeId";
     private static final String SIZE = "size";
-    private static final String SYNAPSE_COUNT_PER_ROI = "synapseCountPerRoi";
+    private static final String ROI_INFO = "roiInfo";
     private static final String TYPE = "type";
     private static final String WEIGHT = "weight";
     //Relationship names
@@ -280,7 +280,7 @@ public class AnalysisProcedures {
 
     private Map<String, SynapseCounter> getSynapseCounterMapForNeuron(Node neuron) {
 
-        String synapseCountPerRoiJson = (String) neuron.getProperty(SYNAPSE_COUNT_PER_ROI);
+        String synapseCountPerRoiJson = (String) neuron.getProperty(ROI_INFO);
         Gson gson = new Gson();
         Map<String, SynapseCounter> synapseCountPerRoiMap = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String, SynapseCounter>>() {
         }.getType());
@@ -358,7 +358,7 @@ public class AnalysisProcedures {
 
     private List<String> getRoiListForDataset(String datasetLabel) {
 
-        String getRoiFromMeta = "MATCH (n:Meta:" + datasetLabel + ") RETURN keys(apoc.convert.fromJsonMap(n.synapseCountPerRoi)) AS rois";
+        String getRoiFromMeta = "MATCH (n:Meta:" + datasetLabel + ") RETURN keys(apoc.convert.fromJsonMap(n.roiInfo)) AS rois";
 
         Map<String, Object> roiListQueryResult;
         List<String> rois = null;

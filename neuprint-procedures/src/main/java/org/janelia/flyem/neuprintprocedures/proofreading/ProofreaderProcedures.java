@@ -61,7 +61,7 @@ public class ProofreaderProcedures {
     private static final String SIZE = "size";
     private static final String NAME = "name";
     private static final String STATUS = "status";
-    private static final String SYNAPSE_COUNT_PER_ROI = "synapseCountPerRoi";
+    private static final String ROI_INFO = "roiInfo";
     private static final String TYPE = "type";
     private static final String WEIGHT = "weight";
     //Relationship names
@@ -277,10 +277,10 @@ public class ProofreaderProcedures {
         //recreate synapseCountPerRoi
         //cleavedNewBody
         SynapseCountsPerRoi newBodySynapseCountsPerRoi = BodyWithSynapses.getSynapseCountersPerRoiFromSynapseSet(newBodySynapseSet);
-        cleavedNewBody.setProperty(SYNAPSE_COUNT_PER_ROI, newBodySynapseCountsPerRoi.getAsJsonString());
+        cleavedNewBody.setProperty(ROI_INFO, newBodySynapseCountsPerRoi.getAsJsonString());
         //cleavedOriginalBody
         SynapseCountsPerRoi originalBodySynapseCountsPerRoi = BodyWithSynapses.getSynapseCountersPerRoiFromSynapseSet(originalBodySynapseSet);
-        cleavedOriginalBody.setProperty(SYNAPSE_COUNT_PER_ROI, originalBodySynapseCountsPerRoi.getAsJsonString());
+        cleavedOriginalBody.setProperty(ROI_INFO, originalBodySynapseCountsPerRoi.getAsJsonString());
 
         //add proper roi labels to Neuron
         addRoiLabelsToNeuronGivenSynapseCountsPerRoi(cleavedNewBody, newBodySynapseCountsPerRoi, datasetLabel);
@@ -484,13 +484,13 @@ public class ProofreaderProcedures {
         //regenerate synapseCountPerRoi property
         Set<Synapse> mergedSynapseSet = createSynapseSetForNeuron(newNode, datasetLabel);
         SynapseCountsPerRoi synapseCountsPerRoi = BodyWithSynapses.getSynapseCountersPerRoiFromSynapseSet(mergedSynapseSet);
-        newNode.setProperty(SYNAPSE_COUNT_PER_ROI, synapseCountsPerRoi.getAsJsonString());
+        newNode.setProperty(ROI_INFO, synapseCountsPerRoi.getAsJsonString());
 
         //add pre and post count from merged node to new node
         setSummedLongProperty(PRE, newNode, node2, newNode);
         setSummedLongProperty(POST, newNode, node2, newNode);
 
-        log.info("Regenerated pre, post, and synapseCountPerRoi properties on new node.");
+        log.info("Regenerated pre, post, and roiInfo properties on new node.");
 
         //delete skeletons for both nodes
         deleteSkeletonForNode(node2);

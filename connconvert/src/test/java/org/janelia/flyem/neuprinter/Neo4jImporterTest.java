@@ -184,7 +184,7 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(1L, bodyId8426959.asMap().get("post"));
             Assert.assertEquals(2L, bodyId8426959.asMap().get("pre"));
-            Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson((String) bodyId8426959.asMap().get("synapseCountPerRoi"), new TypeToken<Map<String, SynapseCounter>>() {
+            Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson((String) bodyId8426959.asMap().get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
             }.getType());
             Assert.assertEquals(3, synapseCountPerRoi.keySet().size());
             Assert.assertEquals(2, synapseCountPerRoi.get("roiA").getPre());
@@ -200,7 +200,7 @@ public class Neo4jImporterTest {
             Assert.assertEquals(10, neuronCount);
 
             // all neurons with synapses have a synapseCountPerRoi property
-            int synapseCountPerRoiCount = session.run("MATCH (n:Neuron:test:`test-Neuron`) WHERE exists(n.synapseCountPerRoi) RETURN count(n)").single().get(0).asInt();
+            int synapseCountPerRoiCount = session.run("MATCH (n:Neuron:test:`test-Neuron`) WHERE exists(n.roiInfo) RETURN count(n)").single().get(0).asInt();
 
             Assert.assertEquals(4, synapseCountPerRoiCount);
 
@@ -310,7 +310,7 @@ public class Neo4jImporterTest {
             Assert.assertEquals(2L, metaNode.asMap().get("totalPreCount"));
             Assert.assertEquals(4L, metaNode.asMap().get("totalPostCount"));
 
-            String metaSynapseCountPerRoi = (String) metaNode.asMap().get("synapseCountPerRoi");
+            String metaSynapseCountPerRoi = (String) metaNode.asMap().get("roiInfo");
             Gson gson = new Gson();
             Map<String, SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
             }.getType());
