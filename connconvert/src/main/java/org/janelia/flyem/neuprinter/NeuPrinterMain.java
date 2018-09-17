@@ -439,6 +439,11 @@ public class NeuPrinterMain {
                 neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
                 LOG.info("Adding :Meta node took: " + timer.stop());
                 timer.reset();
+
+                timer.start();
+                neo4jImporter.indexBooleanRoiProperties(dataset);
+                LOG.info("Adding indices on boolean roi properties took: " + timer.stop());
+                timer.reset();
             }
         }
 

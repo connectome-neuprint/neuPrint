@@ -641,22 +641,7 @@ public class Neo4jImporter implements AutoCloseable {
         try (Session session = driver.session()) {
             totalPre = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
-            roiNameSet = session.readTransaction(tx -> getAllProperties(tx, dataset))
-                    .stream()
-                    .filter((p) -> (
-                            !p.equals("autoName") &&
-                                    !p.equals("bodyId") &&
-                                    !p.equals("name") &&
-                                    !p.equals("post") &&
-                                    !p.equals("pre") &&
-                                    !p.equals("size") &&
-                                    !p.equals("status") &&
-                                    !p.equals("roiInfo") &&
-                                    !p.equals("timeStamp") &&
-                                    !p.equals("type")) &&
-                            !p.equals("somaLocation") &&
-                            !p.equals("somaRadius"))
-                    .collect(Collectors.toSet());
+            roiNameSet = getRoiSet(session, dataset);
             for (String roi : roiNameSet) {
                 int roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
                 int roiPostCount = session.readTransaction(tx -> getRoiPostCount(tx, dataset, roi));
@@ -684,6 +669,57 @@ public class Neo4jImporter implements AutoCloseable {
         }
 
         LOG.info("createMetaNodeWithDataModelNode: exit");
+
+    }
+
+    public void indexBooleanRoiProperties(String dataset) {
+
+        LOG.info("indexBooleanRoiProperties: entry");
+
+        Set<String> roiNameSet;
+        try (Session session = driver.session()) {
+            roiNameSet = getRoiSet(session, dataset);
+        }
+
+        String[] indexTextArray = new String[roiNameSet.size()];
+        int i = 0;
+        for (String roi : roiNameSet) {
+            indexTextArray[i] = "CREATE INDEX ON :`" + dataset + "-Neuron`(`" + roi + "`)";
+            i++;
+        }
+
+        for (final String indexText : indexTextArray) {
+            try (final TransactionBatch batch = getBatch()) {
+                batch.addStatement(new Statement(indexText));
+                batch.writeTransaction();
+            }
+        }
+        LOG.info("indexBooleanRoiProperties: exit");
+
+    }
+
+    private Set<String> getRoiSet(Session session, String dataset) {
+
+        Set<String> roiNameSet = new HashSet<>();
+
+        roiNameSet = session.readTransaction(tx -> getAllProperties(tx, dataset))
+                .stream()
+                .filter((p) -> (
+                        !p.equals("autoName") &&
+                                !p.equals("bodyId") &&
+                                !p.equals("name") &&
+                                !p.equals("post") &&
+                                !p.equals("pre") &&
+                                !p.equals("size") &&
+                                !p.equals("status") &&
+                                !p.equals("roiInfo") &&
+                                !p.equals("timeStamp") &&
+                                !p.equals("type")) &&
+                        !p.equals("somaLocation") &&
+                        !p.equals("somaRadius"))
+                .collect(Collectors.toSet());
+
+        return roiNameSet;
 
     }
 
