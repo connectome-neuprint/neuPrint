@@ -6,9 +6,9 @@ import java.util.Map;
 /**
  * A class representing automatically generated names for Neuron nodes
  * within a neuprint neo4j database. An AutoName is in the format
- * A-B-id, where A is the ROI (region of interest) in which the
+ * A-B_id, where A is the ROI (region of interest) in which the
  * given neuron has the most inputs (postsynaptic densities), B is the
- * the ROI in which the neuron has the most otuputs (presynaptic densities),
+ * the ROI in which the neuron has the most outputs (presynaptic densities),
  * and id is an integer that renders each AutoName unique.
  */
 public class AutoName {
