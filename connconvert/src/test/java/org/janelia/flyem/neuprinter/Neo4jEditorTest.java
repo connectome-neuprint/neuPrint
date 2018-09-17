@@ -47,7 +47,7 @@
 //
 //            neo4jImporter.prepDatabase("test");
 //
-//            neo4jImporter.addNeurons("test", neuronList);
+//            neo4jImporter.addSegments("test", neuronList);
 //
 //            neo4jImporter.addConnectsTo("test", bodyList);
 //
@@ -55,7 +55,7 @@
 //
 //            neo4jImporter.addSynapsesTo("test", preToPost);
 //
-//            neo4jImporter.addNeuronRois("test", bodyList);
+//            neo4jImporter.addSegmentRois("test", bodyList);
 //
 //            Neo4jEditor neo4jEditor = new Neo4jEditor(driver);
 //

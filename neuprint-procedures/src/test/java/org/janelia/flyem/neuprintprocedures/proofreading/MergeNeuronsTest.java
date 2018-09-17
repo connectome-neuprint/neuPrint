@@ -170,15 +170,15 @@ public class MergeNeuronsTest {
             Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
             neo4jImporter.prepDatabase(dataset);
 
-            neo4jImporter.addNeurons(dataset, neuronList);
+            neo4jImporter.addSegments(dataset, neuronList);
 
             neo4jImporter.addConnectsTo(dataset, bodyList);
             neo4jImporter.addSynapsesWithRois(dataset, bodyList);
             neo4jImporter.addSynapsesTo(dataset, preToPost);
-            neo4jImporter.addNeuronRois(dataset, bodyList);
+            neo4jImporter.addSegmentRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
             neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
-            neo4jImporter.addAutoNames(dataset, 0);
+            neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
             neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 
             Gson gson = new Gson();
@@ -394,15 +394,15 @@ public class MergeNeuronsTest {
             Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
             neo4jImporter.prepDatabase(dataset);
 
-            neo4jImporter.addNeurons(dataset, neuronList);
+            neo4jImporter.addSegments(dataset, neuronList);
 
             neo4jImporter.addConnectsTo(dataset, bodyList);
             neo4jImporter.addSynapsesWithRois(dataset, bodyList);
             neo4jImporter.addSynapsesTo(dataset, preToPost);
-            neo4jImporter.addNeuronRois(dataset, bodyList);
+            neo4jImporter.addSegmentRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
             neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
-            neo4jImporter.addAutoNames(dataset, 0);
+            neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
             neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 
             Gson gson = new Gson();
@@ -462,15 +462,15 @@ public class MergeNeuronsTest {
             Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
             neo4jImporter.prepDatabase(dataset);
 
-            neo4jImporter.addNeurons(dataset, neuronList);
+            neo4jImporter.addSegments(dataset, neuronList);
 
             neo4jImporter.addConnectsTo(dataset, bodyList);
             neo4jImporter.addSynapsesWithRois(dataset, bodyList);
             neo4jImporter.addSynapsesTo(dataset, preToPost);
-            neo4jImporter.addNeuronRois(dataset, bodyList);
+            neo4jImporter.addSegmentRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
             neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
-            neo4jImporter.addAutoNames(dataset, 0);
+            neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
             neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 
             Gson gson = new Gson();

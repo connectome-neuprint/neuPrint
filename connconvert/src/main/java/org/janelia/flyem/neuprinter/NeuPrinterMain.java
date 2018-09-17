@@ -55,7 +55,7 @@ public class NeuPrinterMain {
 
         @Parameter(
                 names = "--doAll",
-                description = "Indicates that both Neurons and Synapses JSONs should be loaded and all database features added",
+                description = "Indicates that both neurons and synapses JSONs should be loaded and all database features added",
                 arity = 0)
         boolean doAll;
 
@@ -84,7 +84,7 @@ public class NeuPrinterMain {
         public boolean addSynapsesTo;
 
         @Parameter(
-                names = "--addNeuronRois",
+                names = "--addSegmentRois",
                 description = "Indicates that neuron ROI labels should be added (omit to skip)",
                 arity = 0)
         public boolean addNeuronRois;
@@ -143,26 +143,27 @@ public class NeuPrinterMain {
         @Parameter(
                 names = "--addAutoNamesOnly",
                 description = "Indicates that only the autoNames should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. Names are only generated for neurons that have greater than the number of synapses" +
-                        "indicated by autoNameThreshold (omit to skip)",
+                        "indicated by neuronThreshold (omit to skip)",
                 arity = 0
         )
         boolean addAutoNamesOnly;
 
         @Parameter(
-                names = "--addAutoNames",
+                names = "--addAutoNamesAndNeuronLabels",
                 description = "Indicates that automatically generated names should be added for this dataset. Auto-names are in the format " +
                         "ROIA-ROIB-8 where ROIA is the roi in which a given neuron has the most inputs (postsynaptic densities) " +
                         "and ROIB is the roi in which a neuron has the most outputs (presynaptic densities). The final number renders " +
                         "this name unique per dataset. Names are only generated for neurons that have greater than the number of synapses " +
-                        "indicated by autoNameThreshold. If neurons do not already have a name, the auto-name is added to the name property. (skip to omit)",
+                        "indicated by neuronThreshold. If neurons do not already have a name, the auto-name is added to the name property. (skip to omit)",
                 arity = 0)
         public boolean addAutoNames;
 
         @Parameter(
-                names = "--autoNameThreshold",
-                description = "Integer indicating the number of (presynaptic densities + postsynaptic densities) a neuron should have to be given an " +
-                        "auto-name (default is 10). Must have --addAutoName OR --addAutoNamesOnly enabled.")
-        Integer autoNameThreshold;
+                names = "--neuronThreshold",
+                description = "Integer indicating the number of (presynaptic densities + postsynaptic densities) a neuron should have to be given " +
+                        "the label of :Neuron (all have the :Segment label by default) and an auto-name (default is 10). To add auto-names, must have" +
+                        " --addAutoName OR --addAutoNamesOnly enabled.")
+        Integer neuronThreshold;
 
         @Parameter(
                 names = "--help",
@@ -198,7 +199,7 @@ public class NeuPrinterMain {
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             neuronList = Neuron.fromJson(reader);
-            LOG.info("Number of neurons: " + neuronList.size());
+            LOG.info("Number of neurons/segments: " + neuronList.size());
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -344,8 +345,8 @@ public class NeuPrinterMain {
                 }
 
                 Stopwatch timer = Stopwatch.createStarted();
-                neo4jImporter.addNeurons(dataset, neuronList);
-                LOG.info("Loading all Neuron nodes took: " + timer.stop());
+                neo4jImporter.addSegments(dataset, neuronList);
+                LOG.info("Loading all Segment nodes took: " + timer.stop());
                 timer.reset();
             }
         }
@@ -392,8 +393,8 @@ public class NeuPrinterMain {
 
                 if (parameters.addNeuronRois || parameters.doAll) {
                     timer.start();
-                    neo4jImporter.addNeuronRois(dataset, bodyList);
-                    LOG.info("Loading all Neuron ROI labels took: " + timer.stop());
+                    neo4jImporter.addSegmentRois(dataset, bodyList);
+                    LOG.info("Loading all Segment ROI labels took: " + timer.stop());
                     timer.reset();
                 }
 
@@ -414,12 +415,21 @@ public class NeuPrinterMain {
 
                 if (parameters.addAutoNames) {
                     timer.start();
-                    if (parameters.autoNameThreshold != null) {
-                        neo4jImporter.addAutoNames(dataset, parameters.autoNameThreshold);
+                    if (parameters.neuronThreshold != null) {
+                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
                     } else {
-                        neo4jImporter.addAutoNames(dataset, 10);
+                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 10);
                     }
-                    LOG.info("Adding autoNames took: " + timer.stop());
+                    LOG.info("Adding autoNames and :Neuron labels took: " + timer.stop());
+                    timer.reset();
+                } else {
+                    timer.start();
+                    if (parameters.neuronThreshold != null) {
+                        neo4jImporter.addNeuronLabels(dataset, parameters.neuronThreshold);
+                    } else {
+                        neo4jImporter.addNeuronLabels(dataset, 10);
+                    }
+                    LOG.info("Adding :Neuron labels took: " + timer.stop());
                     timer.reset();
                 }
 
@@ -466,10 +476,10 @@ public class NeuPrinterMain {
             Stopwatch timer = Stopwatch.createStarted();
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
                 neo4jImporter.prepDatabase(dataset);
-                if (parameters.autoNameThreshold != null) {
-                    neo4jImporter.addAutoNames(dataset, parameters.autoNameThreshold);
+                if (parameters.neuronThreshold != null) {
+                    neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
                 } else {
-                    neo4jImporter.addAutoNames(dataset, 10);
+                    neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 10);
                 }
                 LOG.info("Adding autoNames took: " + timer.stop());
                 timer.reset();

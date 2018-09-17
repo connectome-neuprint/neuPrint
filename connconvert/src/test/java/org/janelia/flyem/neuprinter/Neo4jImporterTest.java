@@ -80,7 +80,7 @@ public class Neo4jImporterTest {
             Assert.assertEquals(0L, skelNodeProperties.get("s.type"));
             Assert.assertEquals("test:101:5096:9281:1624", skelNodeProperties.get("s.skelNodeId"));
 
-            int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
+            int noStatusCount = session.run("MATCH (n:Segment) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
             Assert.assertEquals(0, noStatusCount);
 
             int noDatasetLabel = session.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
@@ -90,7 +90,7 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void testAddNeurons() {
+    public void testAddSegments() {
 
         String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
 
@@ -104,20 +104,20 @@ public class Neo4jImporterTest {
 
             neo4jImporter.prepDatabase("test");
 
-            neo4jImporter.addNeurons("test", neuronList);
+            neo4jImporter.addSegments("test", neuronList);
 
-            int numberOfNeurons = session.run("MATCH (n:Neuron:test:`test-Neuron`) RETURN count(n)").single().get(0).asInt();
+            int numberOfSegments = session.run("MATCH (n:Segment:test:`test-Segment`) RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(8, numberOfNeurons);
+            Assert.assertEquals(8, numberOfSegments);
 
             // test uniqueness constraint by trying to add again
-            neo4jImporter.addNeurons("test", neuronList);
+            neo4jImporter.addSegments("test", neuronList);
 
-            int numberOfNeurons2 = session.run("MATCH (n:Neuron:test:`test-Neuron`) RETURN count(n)").single().get(0).asInt();
+            int numberOfSegments2 = session.run("MATCH (n:Segment:test:`test-Segment`) RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(8, numberOfNeurons2);
+            Assert.assertEquals(8, numberOfSegments2);
 
-            Node bodyId100569 = session.run("MATCH (n:Neuron:`test-Neuron`:test{bodyId:100569}) RETURN n").single().get(0).asNode();
+            Node bodyId100569 = session.run("MATCH (n:Segment:`test-Segment`:test{bodyId:100569}) RETURN n").single().get(0).asNode();
 
             Assert.assertEquals("final", bodyId100569.asMap().get("status"));
             Assert.assertEquals(1031L, bodyId100569.asMap().get("size"));
@@ -140,7 +140,7 @@ public class Neo4jImporterTest {
             }
             Assert.assertEquals(7, labelCount);
 
-            int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
+            int noStatusCount = session.run("MATCH (n:Segment) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
             Assert.assertEquals(0, noStatusCount);
 
             int noDatasetLabel = session.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
@@ -174,11 +174,11 @@ public class Neo4jImporterTest {
 
             neo4jImporter.prepDatabase("test");
 
-            neo4jImporter.addNeurons("test", neuronList);
+            neo4jImporter.addSegments("test", neuronList);
 
             neo4jImporter.addConnectsTo("test", bodyList);
 
-            Node bodyId8426959 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN s").single().get(0).asNode();
+            Node bodyId8426959 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN s").single().get(0).asNode();
 
             Assert.assertEquals(8426959L, bodyId8426959.asMap().get("bodyId"));
 
@@ -191,20 +191,20 @@ public class Neo4jImporterTest {
             Assert.assertEquals(0, synapseCountPerRoi.get("seven_column_roi").getPost());
             Assert.assertEquals(1, synapseCountPerRoi.get("roiB").getPost());
 
-            int weight = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN r.weight").single().get(0).asInt();
+            int weight = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN r.weight").single().get(0).asInt();
 
             Assert.assertEquals(2, weight);
 
-            int neuronCount = session.run("MATCH (n:Neuron:test:`test-Neuron`) RETURN count(n)").single().get(0).asInt();
+            int SegmentCount = session.run("MATCH (n:Segment:test:`test-Segment`) RETURN count(n)").single().get(0).asInt();
 
-            Assert.assertEquals(10, neuronCount);
+            Assert.assertEquals(10, SegmentCount);
 
-            // all neurons with synapses have a synapseCountPerRoi property
-            int synapseCountPerRoiCount = session.run("MATCH (n:Neuron:test:`test-Neuron`) WHERE exists(n.roiInfo) RETURN count(n)").single().get(0).asInt();
+            // all Segments with synapses have a synapseCountPerRoi property
+            int synapseCountPerRoiCount = session.run("MATCH (n:Segment:test:`test-Segment`) WHERE exists(n.roiInfo) RETURN count(n)").single().get(0).asInt();
 
             Assert.assertEquals(4, synapseCountPerRoiCount);
 
-            int noStatusCount = session.run("MATCH (n:Neuron) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
+            int noStatusCount = session.run("MATCH (n:Segment) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
             Assert.assertEquals(0, noStatusCount);
 
             int noDatasetLabel = session.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
@@ -236,7 +236,7 @@ public class Neo4jImporterTest {
 
             neo4jImporter.prepDatabase("test");
 
-            neo4jImporter.addNeurons("test", neuronList);
+            neo4jImporter.addSegments("test", neuronList);
 
             neo4jImporter.addConnectsTo("test", bodyList);
 
@@ -244,13 +244,13 @@ public class Neo4jImporterTest {
 
             neo4jImporter.addSynapsesTo("test", preToPost);
 
-            neo4jImporter.addNeuronRois("test", bodyList);
+            neo4jImporter.addSegmentRois("test", bodyList);
 
             neo4jImporter.addSynapseSets("test", bodyList);
 
             neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F);
 
-            neo4jImporter.addAutoNames("test", 0);
+            neo4jImporter.addAutoNamesAndNeuronLabels("test", 0);
 
             Point preLocationPoint = Values.point(9157, 4287, 2277, 1502).asPoint();
             Node preSynNode = session.run("MATCH (s:Synapse:PreSyn:`test-Synapse`:`test-PreSyn`:test{location:$location}) RETURN s",
@@ -280,14 +280,14 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(3, synapsesToCount);
 
-            Node neuronNode = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n").single().get(0).asNode();
+            Node segmentNode = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959}) RETURN n").single().get(0).asNode();
 
-            Assert.assertTrue(neuronNode.hasLabel("seven_column_roi"));
-            Assert.assertTrue(neuronNode.hasLabel("roiA"));
-            Assert.assertTrue(neuronNode.hasLabel("roiB"));
-            Assert.assertTrue(neuronNode.hasLabel("test-seven_column_roi"));
-            Assert.assertTrue(neuronNode.hasLabel("test-roiA"));
-            Assert.assertTrue(neuronNode.hasLabel("test-roiB"));
+            Assert.assertTrue(segmentNode.hasLabel("seven_column_roi"));
+            Assert.assertTrue(segmentNode.hasLabel("roiA"));
+            Assert.assertTrue(segmentNode.hasLabel("roiB"));
+            Assert.assertTrue(segmentNode.hasLabel("test-seven_column_roi"));
+            Assert.assertTrue(segmentNode.hasLabel("test-roiA"));
+            Assert.assertTrue(segmentNode.hasLabel("test-roiB"));
 
             int synapseSetContainsCount = session.run("MATCH (t:SynapseSet:test:`test-SynapseSet`{datasetBodyId:\"test:8426959\"})-[:Contains]->(s) RETURN count(s)").single().get(0).asInt();
 
@@ -299,7 +299,7 @@ public class Neo4jImporterTest {
 
             int noDatasetLabelCount = session.run("MATCH (n) WHERE NOT n:test RETURN count(n)").single().get(0).asInt();
             int noTimeStampCount = session.run("MATCH (n) WHERE NOT exists(n.timeStamp) RETURN count(n)").single().get(0).asInt();
-            int noStatusCount = session.run("MATCH (n:Neuron) WHERE NOT exists(n.status) RETURN count(n)").single().get(0).asInt();
+            int noStatusCount = session.run("MATCH (n:Segment) WHERE NOT exists(n.status) RETURN count(n)").single().get(0).asInt();
 
             //Only node without dataset label should be :DataModel
             Assert.assertEquals(1, noDatasetLabelCount);
@@ -330,19 +330,118 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(new Float(1.0F), dataModelVersion);
 
-            String neuronName = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.name").single().get(0).asString();
-            String neuronAutoName = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();
+            String segmentName = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959}) RETURN n.name").single().get(0).asString();
+            String segmentAutoName = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();
 
-            Assert.assertEquals("ROIA-ROIA-0*", neuronName);
-            Assert.assertEquals(neuronName.replace("*",""), neuronAutoName);
+            Assert.assertEquals("ROIA-ROIA-0*", segmentName);
+            Assert.assertEquals(segmentName.replace("*", ""), segmentAutoName);
 
-            String neuronName2 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN n.name").single().get(0).asString();
-            String neuronAutoName2 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN n.autoName").single().get(0).asString();
+            String segmentName2 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311}) RETURN n.name").single().get(0).asString();
+            String segmentAutoName2 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311}) RETURN n.autoName").single().get(0).asString();
 
-            Assert.assertEquals("Dm12-4", neuronName2);
-            Assert.assertEquals("ROIA-ROIA-1", neuronAutoName2);
+            Assert.assertEquals("Dm12-4", segmentName2);
+            Assert.assertEquals("ROIA-ROIA-1", segmentAutoName2);
+
+            //check that all :Neurons have autonames and all :Segments with autonames are labeled :Neuron
+
+            int neuronWithoutAutoNameCount = session.run("MATCH (n:Neuron:`test-Neuron`:test) WHERE NOT exists(n.autoName) RETURN count(n)").single().get(0).asInt();
+            Assert.assertEquals(0, neuronWithoutAutoNameCount);
+            int autoNamesWithoutNeuronCount = session.run("MATCH (n:Segment:`test-Segment`:test) WHERE exists(n.autoName) AND NOT n:Neuron RETURN count(n)").single().get(0).asInt();
+            Assert.assertEquals(0, autoNamesWithoutNeuronCount);
 
         }
 
+    }
+
+    @Test
+    public void testThatAutoNamesAreAddedToAboveThresholdNeurons() {
+
+        String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
+        String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
+
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
+
+        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+
+        bodyList.sort(new SortBodyByNumberOfSynapses());
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+
+            neo4jImporter.prepDatabase("test");
+
+            neo4jImporter.addSegments("test", neuronList);
+
+            neo4jImporter.addConnectsTo("test", bodyList);
+
+            neo4jImporter.addSynapsesWithRois("test", bodyList);
+
+            neo4jImporter.addSynapsesTo("test", preToPost);
+
+            neo4jImporter.addSegmentRois("test", bodyList);
+
+            neo4jImporter.addSynapseSets("test", bodyList);
+
+            neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F);
+
+            neo4jImporter.addAutoNamesAndNeuronLabels("test", 2);
+
+            int belowThresholdAutoNameCount = session.run("MATCH (n:Segment) WHERE n.pre+n.post>2 AND NOT exists(n.autoName) RETURN count(n)").single().get(0).asInt();
+
+            Assert.assertEquals(0, belowThresholdAutoNameCount);
+
+        }
+    }
+
+    @Test
+    public void testThatNeuronLabelsAreAddedToAboveThresholdNeurons() {
+
+        String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
+        String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
+
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
+
+        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+
+        bodyList.sort(new SortBodyByNumberOfSynapses());
+
+        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+
+            Session session = driver.session();
+
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+
+            neo4jImporter.prepDatabase("test");
+
+            neo4jImporter.addSegments("test", neuronList);
+
+            neo4jImporter.addConnectsTo("test", bodyList);
+
+            neo4jImporter.addSynapsesWithRois("test", bodyList);
+
+            neo4jImporter.addSynapsesTo("test", preToPost);
+
+            neo4jImporter.addSegmentRois("test", bodyList);
+
+            neo4jImporter.addSynapseSets("test", bodyList);
+
+            neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F);
+
+            neo4jImporter.addNeuronLabels("test", 2);
+
+            int belowThresholdNeuronCount = session.run("MATCH (n:Segment) WHERE n.pre+n.post>2 AND NOT n:Neuron RETURN count(n)").single().get(0).asInt();
+
+            Assert.assertEquals(0, belowThresholdNeuronCount);
+
+        }
     }
 }

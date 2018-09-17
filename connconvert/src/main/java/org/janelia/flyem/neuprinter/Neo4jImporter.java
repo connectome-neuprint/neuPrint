@@ -115,6 +115,7 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("prepDatabase: entry");
         final String[] prepTextArray = {
                 "CREATE CONSTRAINT ON (n:`" + dataset + "-Neuron`) ASSERT n.bodyId IS UNIQUE",
+                "CREATE CONSTRAINT ON (n:`" + dataset + "-Segment`) ASSERT n.bodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-SynapseSet`) ASSERT s.datasetBodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-Synapse`) ASSERT s.location IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-SkelNode`) ASSERT s.skelNodeId IS UNIQUE",
@@ -143,19 +144,19 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     /**
-     * Adds Neuron nodes with properties specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.
+     * Adds Segment nodes with properties specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.
      *
-     * @param dataset dataset name
+     * @param dataset    dataset name
      * @param neuronList list of {@link Neuron} objects
      */
-    public void addNeurons(final String dataset,
-                           final List<Neuron> neuronList) {
+    public void addSegments(final String dataset,
+                            final List<Neuron> neuronList) {
         //TODO: arbitrary properties
-        LOG.info("addNeurons: entry");
+        LOG.info("addSegments: entry");
 
-        final String neuronText = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) " +
+        final String segmentText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) " +
                 "ON CREATE SET n.bodyId = $bodyId," +
-                " n:Neuron," +
+                " n:Segment," +
                 " n:" + dataset + "," +
                 " n.name = $name," +
                 " n.type = $type," +
@@ -172,7 +173,7 @@ public class Neo4jImporter implements AutoCloseable {
             for (final Neuron neuron : neuronList) {
                 String status = neuron.getStatus() != null ? neuron.getStatus() : "not annotated";
                 batch.addStatement(
-                        new Statement(neuronText,
+                        new Statement(segmentText,
                                 parameters("bodyId", neuron.getId(),
                                         "name", neuron.getName(),
                                         "type", neuron.getNeuronType(),
@@ -187,13 +188,13 @@ public class Neo4jImporter implements AutoCloseable {
             batch.writeTransaction();
         }
 
-        LOG.info("addNeurons: entry");
+        LOG.info("addSegments: entry");
     }
 
     /**
-     * Adds ConnectsTo relationships between Neuron nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
+     * Adds ConnectsTo relationships between Segment nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
      *
-     * @param dataset dataset name
+     * @param dataset  dataset name
      * @param bodyList list of {@link BodyWithSynapses} objects
      */
     public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList) {
@@ -201,10 +202,10 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addConnectsTo: entry");
 
         final String connectsToText =
-                "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.status=$notAnnotated, n:Neuron, n:" + dataset + " \n" +
-                        "MERGE (m:`" + dataset + "-Neuron`{bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m.status=$notAnnotated, m:Neuron, m:" + dataset + " \n" +
+                "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
+                        "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m.status=$notAnnotated, m:Segment, m:" + dataset + " \n" +
                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m)";
-        final String terminalCountText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp, n.roiInfo=$synapseCountPerRoi";
+        final String terminalCountText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp, n.roiInfo=$synapseCountPerRoi";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final BodyWithSynapses body : bodyList) {
@@ -242,7 +243,7 @@ public class Neo4jImporter implements AutoCloseable {
     /**
      * Adds Synapse nodes to database as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
      *
-     * @param dataset dataset
+     * @param dataset  dataset
      * @param bodyList list of {@link BodyWithSynapses} objects
      */
     public void addSynapsesWithRois(final String dataset, final List<BodyWithSynapses> bodyList) {
@@ -314,10 +315,10 @@ public class Neo4jImporter implements AutoCloseable {
     /**
      * Adds SynapsesTo relationship between Synapse nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
      * Uses a map of presynaptic density locations to postsynaptic density locations.
-     * @see SynapseMapper#getPreToPostMap()
      *
-     * @param dataset dataset name
+     * @param dataset   dataset name
      * @param preToPost map of presynaptic density locations to postsynaptic density locations
+     * @see SynapseMapper#getPreToPostMap()
      */
     public void addSynapsesTo(final String dataset, HashMap<String, List<String>> preToPost) {
 
@@ -344,16 +345,16 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     /**
-     * Adds roi labels to Neuron nodes.
+     * Adds roi labels to Segment nodes.
      *
-     * @param dataset dataset name
+     * @param dataset  dataset name
      * @param bodyList list of {@link BodyWithSynapses} objects
      */
-    public void addNeuronRois(final String dataset, final List<BodyWithSynapses> bodyList) {
+    public void addSegmentRois(final String dataset, final List<BodyWithSynapses> bodyList) {
 
-        LOG.info("addNeuronRois: entry");
+        LOG.info("addSegmentRois: entry");
 
-        final String roiNeuronText = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId = $bodyId, n.timeStamp=$timeStamp, n.status=$notAnnotated, n:Neuron, n:" + dataset + " \n" +
+        final String roiSegmentText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId = $bodyId, n.timeStamp=$timeStamp, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
                 "WITH n \n" +
                 "CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
                 "RETURN node";
@@ -361,7 +362,7 @@ public class Neo4jImporter implements AutoCloseable {
         try (final TransactionBatch batch = getBatch()) {
             for (BodyWithSynapses bws : bodyList) {
                 for (Synapse synapse : bws.getSynapseSet()) {
-                    batch.addStatement(new Statement(roiNeuronText, parameters("bodyId", bws.getBodyId(),
+                    batch.addStatement(new Statement(roiSegmentText, parameters("bodyId", bws.getBodyId(),
                             "timeStamp", timeStamp,
                             "notAnnotated", "not annotated",
                             "rois", synapse.getRoisWithAndWithoutDatasetPrefix(dataset))));
@@ -370,32 +371,32 @@ public class Neo4jImporter implements AutoCloseable {
             batch.writeTransaction();
         }
 
-        LOG.info("addNeuronRois: exit");
+        LOG.info("addSegmentRois: exit");
 
     }
 
     /**
-     * Adds automatically generated names (autoNames) to Neuron nodes that have greater than
-     * autoNameThreshold synaptic densities. If Neuron node does not have a name, the name property
+     * Adds automatically generated names (autoNames) and :Neuron labels to Segment nodes that have greater than
+     * neuronThreshold synaptic densities. If Neuron node does not have a name, the name property
      * is also set to autoName* (the * marks it as automatically generated).
-     * @see AutoName
      *
-     * @param dataset dataset name
-     * @param autoNameThreshold Neuron must have greater than autoNameThreshold synapses to be given an autoName
+     * @param dataset         dataset name
+     * @param neuronThreshold Neuron must have greater than neuronThreshold synapses to be given an autoName and :Neuron label
+     * @see AutoName
      */
-    public void addAutoNames(final String dataset, int autoNameThreshold) {
+    public void addAutoNamesAndNeuronLabels(final String dataset, int neuronThreshold) {
 
-        LOG.info("addAutoNames: entry");
+        LOG.info("addAutoNamesAndNeuronLabels: entry");
 
         List<AutoName> autoNameList = new ArrayList<>();
         List<Long> bodyIdsWithoutNames;
-        final String autoNameText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) SET n.autoName=$autoName";
-        final String autoNameToNameText = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) SET n.autoName=$autoName, n.name=$autoNamePlusAsterisk ";
+        final String autoNameText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId}) SET n.autoName=$autoName, n:Neuron, n:`" + dataset + "-Neuron`";
+        final String autoNameToNameText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId}) SET n.autoName=$autoName, n.name=$autoNamePlusAsterisk, n:Neuron, n:`\" + dataset + \"-Neuron`";
 
         try (Session session = driver.session()) {
 
             // get body ids for generating auto-name
-            List<Long> bodyIdList = session.readTransaction(tx -> getAllNeuronBodyIdsWithGreaterThanThresholdSynapses(tx, dataset, autoNameThreshold));
+            List<Long> bodyIdList = session.readTransaction(tx -> getAllSegmentBodyIdsWithGreaterThanThresholdSynapses(tx, dataset, neuronThreshold));
             for (Long bodyId : bodyIdList) {
                 String maxPostRoiName = session.readTransaction(tx -> getMaxInputRoi(tx, dataset, bodyId));
                 String maxPreRoiName = session.readTransaction(tx -> getMaxOutputRoi(tx, dataset, bodyId));
@@ -403,7 +404,7 @@ public class Neo4jImporter implements AutoCloseable {
                 autoNameList.add(autoName);
             }
             // get body ids above threshold without names
-            bodyIdsWithoutNames = session.readTransaction(tx -> getAllNeuronBodyIdsWithGreaterThanThresholdSynapsesAndWithoutNames(tx, dataset, autoNameThreshold));
+            bodyIdsWithoutNames = session.readTransaction(tx -> getAllSegmentBodyIdsWithGreaterThanThresholdSynapsesAndWithoutNames(tx, dataset, neuronThreshold));
         }
 
         try (final TransactionBatch batch = getBatch()) {
@@ -423,20 +424,51 @@ public class Neo4jImporter implements AutoCloseable {
             batch.writeTransaction();
         }
 
-        LOG.info("addAutoNames: exit");
+        LOG.info("addAutoNamesAndNeuronLabels: exit");
     }
 
     /**
-     * Adds SynapseSet nodes to database and connects them to Neuron nodes and Synapse nodes via Contains relationships.
+     * Adds :Neuron labels to Segment nodes that have greater than neuronThreshold synaptic densities.
      *
-     * @param dataset dataset name
+     * @param dataset         dataset name
+     * @param neuronThreshold Neuron must have greater than neuronThreshold synapses to be given :Neuron label
+     */
+    public void addNeuronLabels(final String dataset, int neuronThreshold) {
+
+        LOG.info("addNeuronLabels: entry");
+
+        final String neuronText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId}) SET n:Neuron, n:`" + dataset + "-Neuron`";
+
+        List<Long> bodyIdList;
+        try (Session session = driver.session()) {
+
+            // get body ids for adding :Neuron label
+            bodyIdList = session.readTransaction(tx -> getAllSegmentBodyIdsWithGreaterThanThresholdSynapses(tx, dataset, neuronThreshold));
+        }
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (Long bodyId : bodyIdList) {
+                batch.addStatement(new Statement(neuronText,
+                        parameters("bodyId", bodyId)));
+            }
+            batch.writeTransaction();
+        }
+
+        LOG.info("addNeuronLabels: exit");
+
+    }
+
+    /**
+     * Adds SynapseSet nodes to database and connects them to Segment nodes and Synapse nodes via Contains relationships.
+     *
+     * @param dataset  dataset name
      * @param bodyList list of {@link BodyWithSynapses} objects
      */
     public void addSynapseSets(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addSynapseSets: entry");
 
-        final String neuronContainsSSText = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated, n:Neuron, n:" + dataset + " \n" +
+        final String segmentContainsSSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
                 "MERGE (s:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId, s.timeStamp=$timeStamp, s:SynapseSet, s:" + dataset + " \n" +
                 "MERGE (n)-[:Contains]->(s)";
 
@@ -446,7 +478,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         try (final TransactionBatch batch = getBatch()) {
             for (BodyWithSynapses bws : bodyList) {
-                batch.addStatement(new Statement(neuronContainsSSText, parameters("bodyId", bws.getBodyId(),
+                batch.addStatement(new Statement(segmentContainsSSText, parameters("bodyId", bws.getBodyId(),
                         "notAnnotated", "not annotated",
                         "datasetBodyId", dataset + ":" + bws.getBodyId(),
                         "timeStamp", timeStamp))
@@ -466,18 +498,18 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     /**
-     * Adds Skeleton and SkelNode nodes to database. Neurons are connected to Skeletons via Contains relationships.
+     * Adds Skeleton and SkelNode nodes to database. Segments are connected to Skeletons via Contains relationships.
      * Skeletons are connected to SkelNodes via Contains relationships. SkelNodes point to their children with LinksTo
      * relationships.
      *
-     * @param dataset dataset name
+     * @param dataset      dataset name
      * @param skeletonList list of {@link Skeleton} objects
      */
     public void addSkeletonNodes(final String dataset, final List<Skeleton> skeletonList) {
 
         LOG.info("addSkeletonNodes: entry");
 
-        final String neuronToSkeletonConnectionString = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated, n:Neuron, n:" + dataset + " \n" +
+        final String segmentToSkeletonConnectionString = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
                 "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp, r:Skeleton, r:" + dataset + " \n" +
                 "MERGE (n)-[:Contains]->(r) \n";
 
@@ -499,7 +531,7 @@ public class Neo4jImporter implements AutoCloseable {
                 Long associatedBodyId = skeleton.getAssociatedBodyId();
                 List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
 
-                batch.addStatement(new Statement(neuronToSkeletonConnectionString, parameters("bodyId", associatedBodyId,
+                batch.addStatement(new Statement(segmentToSkeletonConnectionString, parameters("bodyId", associatedBodyId,
                         "notAnnotated", "not annotated",
                         "skeletonId", dataset + ":" + associatedBodyId,
                         "timeStamp", timeStamp
@@ -558,7 +590,7 @@ public class Neo4jImporter implements AutoCloseable {
      * a given dataset. The DataModel node indicates the data model version and links to all Meta nodes in the database with
      * an Is relationship.
      *
-     * @param dataset dataset name
+     * @param dataset          dataset name
      * @param dataModelVersion version of data model
      */
     public void createMetaNodeWithDataModelNode(final String dataset, final float dataModelVersion) {
@@ -580,7 +612,7 @@ public class Neo4jImporter implements AutoCloseable {
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
             roiNameSet = session.readTransaction(tx -> getAllLabels(tx, dataset))
                     .stream()
-                    .filter((l) -> (!l.equals("Neuron") && !l.startsWith(dataset)))
+                    .filter((l) -> (!l.equals("Segment") && !l.equals("Neuron") && !l.startsWith(dataset)))
                     .collect(Collectors.toSet());
             for (String roi : roiNameSet) {
                 int roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
@@ -613,12 +645,12 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static long getTotalPreCount(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) RETURN sum(n.pre)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) RETURN sum(n.pre)");
         return result.single().get(0).asLong();
     }
 
     private static long getTotalPostCount(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) RETURN sum(n.post)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) RETURN sum(n.post)");
         return result.single().get(0).asLong();
     }
 
@@ -633,7 +665,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<String> getAllLabels(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
         List<String> roiList = new ArrayList<>();
         while (result.hasNext()) {
             roiList.add(result.next().asMap().get("label").toString());
@@ -644,7 +676,7 @@ public class Neo4jImporter implements AutoCloseable {
     private static String getMaxInputRoi(final Transaction tx, final String dataset, Long bodyId) {
 
         Gson gson = new Gson();
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) WITH n.roiInfo AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId}) WITH n.roiInfo AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
 
         String synapseCountPerRoiJson = result.single().get(0).asString();
         Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String, SynapseCounter>>() {
@@ -661,7 +693,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     private static String getMaxOutputRoi(final Transaction tx, final String dataset, Long bodyId) {
         Gson gson = new Gson();
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) WITH n.roiInfo AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId}) WITH n.roiInfo AS roiJson RETURN roiJson", parameters("bodyId", bodyId));
 
         String synapseCountPerRoiJson = result.single().get(0).asString();
         Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String, SynapseCounter>>() {
@@ -676,8 +708,8 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    private static List<Long> getAllNeuronBodyIdsWithGreaterThanThresholdSynapses(final Transaction tx, final String dataset, final int synapseThreshold) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) WHERE (n.pre+n.post)>" + synapseThreshold + " RETURN n.bodyId ");
+    private static List<Long> getAllSegmentBodyIdsWithGreaterThanThresholdSynapses(final Transaction tx, final String dataset, final int synapseThreshold) {
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE (n.pre+n.post)>" + synapseThreshold + " RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
@@ -685,8 +717,8 @@ public class Neo4jImporter implements AutoCloseable {
         return bodyIdList;
     }
 
-    private static List<Long> getAllNeuronBodyIdsWithGreaterThanThresholdSynapsesAndWithoutNames(final Transaction tx, final String dataset, final int synapseThreshold) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) WHERE (n.pre+n.post)>" + synapseThreshold + " AND (NOT exists(n.name) OR n.name=\"unknown\") RETURN n.bodyId ");
+    private static List<Long> getAllSegmentBodyIdsWithGreaterThanThresholdSynapsesAndWithoutNames(final Transaction tx, final String dataset, final int synapseThreshold) {
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE (n.pre+n.post)>" + synapseThreshold + " AND (NOT exists(n.name) OR n.name=\"unknown\") RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
