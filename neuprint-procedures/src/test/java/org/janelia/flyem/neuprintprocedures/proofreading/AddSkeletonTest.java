@@ -38,7 +38,7 @@ public class AddSkeletonTest {
 
             Session session = driver.session();
 
-            session.run("CREATE (n:`test-Neuron`{bodyId:101}) SET n:Neuron, n:test");
+            session.run("CREATE (n:`test-Segment`{bodyId:101}) SET n:Segment, n:test");
 
             Node skeleton = session.run("CALL proofreader.addSkeleton($fileUrl,$datasetLabel) YIELD node RETURN node", parameters("fileUrl", fileCall, "datasetLabel", datasetLabel)).single().get(0).asNode();
 

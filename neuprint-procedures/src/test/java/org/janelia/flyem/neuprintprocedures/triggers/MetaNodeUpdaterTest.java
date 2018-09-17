@@ -69,7 +69,7 @@ public class MetaNodeUpdaterTest {
 
             //should only trigger an update of lastDatabaseEdit
             session.writeTransaction(tx -> {
-                tx.run("CREATE (n:Neuron:test:roiA:newRoi:`test-roiA`:`test-newRoi`:`test-Neuron`{bodyId:50}) SET n.roiInfo=\"{'roiA':{'pre':5,'post':2,'total':7},'newRoi':{'pre':5,'post':2,'total':7}}\", n.pre=10, n.post=4 RETURN n");
+                tx.run("CREATE (n:Segment:test:roiA:newRoi:`test-roiA`:`test-newRoi`:`test-Segment`{bodyId:50}) SET n.roiInfo=\"{'roiA':{'pre':5,'post':2,'total':7},'newRoi':{'pre':5,'post':2,'total':7}}\", n.pre=10, n.post=4 RETURN n");
                 return 1;
             });
 

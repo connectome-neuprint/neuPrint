@@ -28,11 +28,11 @@ public class TimeStampTest {
             Session session = driver.session();
 
             session.writeTransaction(tx -> {
-                tx.run("CREATE (n:Neuron:test{bodyId:1}) RETURN n");
+                tx.run("CREATE (n:Segment:test{bodyId:1}) RETURN n");
                 return 1;
             });
 
-            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n:Neuron{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
+            LocalDateTime timeStamp = session.readTransaction(tx -> tx.run("MATCH (n:Segment{bodyId:1}) RETURN n.timeStamp").single().get(0).asLocalDateTime());
 
             Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), timeStamp.truncatedTo(ChronoUnit.HOURS));
         }

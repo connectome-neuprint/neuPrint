@@ -37,6 +37,7 @@ public class AnalysisProcedures {
     //Node names
     private static final String HISTORY = "History";
     private static final String NEURON = "Neuron";
+    private static final String SEGMENT = "Segment";
     private static final String SKELETON = "Skeleton";
     private static final String SKEL_NODE = "SkelNode";
     private static final String SYNAPSE = "Synapse";
@@ -172,7 +173,7 @@ public class AnalysisProcedures {
         String centroidJson = synapticConnectionVertexMap.getVerticesAboveThresholdAsJsonObjects(vertexSynapseThreshold);
 
         //get skeleton points
-        Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+        Node neuron = acquireSegmentFromDatabase(bodyId, datasetLabel);
         List<Node> nodeList = getSkelNodesForSkeleton(neuron);
         List<SkelNode> skelNodeList = nodeList.stream()
                 .map((node) -> new SkelNode(bodyId, getNeo4jPointLocationAsLocationList((Point) node.getProperty("location")), (float) ((double) node.getProperty("radius")), (int) ((long) node.getProperty("rowNumber"))))
@@ -213,7 +214,7 @@ public class AnalysisProcedures {
 
         //Location synapseLocation = getSkelOrSynapseNodeLocation(synapse);
         Location location = new Location(x, y, z);
-        Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+        Node neuron = acquireSegmentFromDatabase(bodyId, datasetLabel);
 
         //get all skelnodes for the skeleton and distances to point
         List<SkelNodeDistanceToPoint> skelNodeDistanceToPointList = getSkelNodesForSkeleton(neuron)
@@ -230,7 +231,7 @@ public class AnalysisProcedures {
     public Stream<StringResult> getInputAndOutputCountsForRois(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
         if (datasetLabel == null || bodyId == null) return Stream.empty();
         // NOTE: assumes rois are mutually exclusive.
-        Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+        Node neuron = acquireSegmentFromDatabase(bodyId, datasetLabel);
 
         Map<String, SynapseCounter> synapseCounterMap = getSynapseCounterMapForNeuron(neuron);
 
@@ -260,7 +261,7 @@ public class AnalysisProcedures {
         //to be normalized and/or combined into one vector later.
         Set<ClusteringFeatureVector> clusteringFeatureVectors = new HashSet<>();
         for (Long bodyId : bodyIdSet) {
-            Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+            Node neuron = acquireSegmentFromDatabase(bodyId, datasetLabel);
             Map<String, SynapseCounter> synapseCounterMap = getSynapseCounterMapForNeuron(neuron);
             long[] inputFeatureVector = new long[roiList.size()];
             long[] outputFeatureVector = new long[roiList.size()];
@@ -396,7 +397,7 @@ public class AnalysisProcedures {
 
     }
 
-    private Node acquireNeuronFromDatabase(Long nodeBodyId, String datasetLabel) throws Error {
+    private Node acquireSegmentFromDatabase(Long nodeBodyId, String datasetLabel) throws Error {
 
         Map<String, Object> parametersMap = new HashMap<>();
         parametersMap.put(BODY_ID, nodeBodyId);
@@ -404,17 +405,17 @@ public class AnalysisProcedures {
         Node foundNode;
 
         try {
-            nodeQueryResult = dbService.execute("MATCH (node:`" + datasetLabel + "-Neuron`{bodyId:$bodyId}) RETURN node", parametersMap).next();
+            nodeQueryResult = dbService.execute("MATCH (node:`" + datasetLabel + "-Segment`{bodyId:$bodyId}) RETURN node", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
             nse.printStackTrace();
-            throw new Error(String.format("Error using analysis procedures: Node must exist in the dataset and be labeled :%s-%s.", datasetLabel, NEURON));
+            throw new Error(String.format("Error using analysis procedures: Node must exist in the dataset and be labeled :%s-%s.", datasetLabel, SEGMENT));
         }
 
         try {
             foundNode = (Node) nodeQueryResult.get("node");
         } catch (NullPointerException npe) {
             npe.printStackTrace();
-            throw new Error(String.format("Error using analysis procedures: Node must exist in the dataset and be labeled :%s-%s.", datasetLabel, NEURON));
+            throw new Error(String.format("Error using analysis procedures: Node must exist in the dataset and be labeled :%s-%s.", datasetLabel, SEGMENT));
         }
 
         return foundNode;
@@ -438,7 +439,7 @@ public class AnalysisProcedures {
 
         for (Long neuronBodyId : neuronBodyIdSet) {
 
-            Node neuron = acquireNeuronFromDatabase(neuronBodyId, datasetLabel);
+            Node neuron = acquireSegmentFromDatabase(neuronBodyId, datasetLabel);
             Node neuronSynapseSet = getSynapseSetForNode(neuron);
 
             if (neuronSynapseSet != null) {
@@ -473,7 +474,7 @@ public class AnalysisProcedures {
                             }
 
                         } else {
-                            log.info(String.format("Connected %s is not associated with any %s: %s", SYNAPSE, NEURON, connectedSynapseNode.getAllProperties()));
+                            log.info(String.format("Connected %s is not associated with any %s: %s", SYNAPSE, SEGMENT, connectedSynapseNode.getAllProperties()));
                         }
                     }
                 }

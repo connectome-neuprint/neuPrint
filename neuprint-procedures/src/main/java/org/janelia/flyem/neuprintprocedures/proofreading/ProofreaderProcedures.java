@@ -46,6 +46,7 @@ public class ProofreaderProcedures {
     //Node names
     private static final String HISTORY = "History";
     private static final String NEURON = "Neuron";
+    private static final String SEGMENT = "Segment";
     private static final String SKELETON = "Skeleton";
     private static final String SYNAPSE = "Synapse";
     private static final String SYNAPSE_SET = "SynapseSet";
@@ -78,6 +79,8 @@ public class ProofreaderProcedures {
     private static final String MERGED = "merged";
     private static final String SPLIT = "split";
 
+//TODO: Decide when to add :Neuron label
+
     @Context
     public GraphDatabaseService dbService;
 
@@ -85,7 +88,7 @@ public class ProofreaderProcedures {
     public Log log;
 
     @Procedure(value = "proofreader.mergeNeuronsFromJson", mode = Mode.WRITE)
-    @Description("proofreader.mergeNeuronsFromJson(mergeJson,datasetLabel) : merge neurons from json file containing single mergeaction json")
+    @Description("proofreader.mergeNeuronsFromJson(mergeJson,datasetLabel) : merge neurons/segments from json file containing single mergeaction json")
     public Stream<NodeResult> mergeNeuronsFromJson(@Name("mergeJson") String mergeJson, @Name("datasetLabel") String datasetLabel) {
 
         if (mergeJson == null || datasetLabel == null) {
@@ -109,7 +112,7 @@ public class ProofreaderProcedures {
         Set<Long> mergedBodiesNotFound = new HashSet<>();
         for (Long mergedBodyId : mergeAction.getBodiesMerged()) {
             try {
-                Node mergedBody = acquireNeuronFromDatabase(mergedBodyId, datasetLabel);
+                Node mergedBody = acquireSegmentFromDatabase(mergedBodyId, datasetLabel);
                 mergedBodies.add(mergedBody);
             } catch (NoSuchElementException | NullPointerException nse) {
                 mergedBodiesNotFound.add(mergedBodyId);
@@ -122,10 +125,10 @@ public class ProofreaderProcedures {
 
         Node targetBody;
         try {
-            targetBody = acquireNeuronFromDatabase(mergeAction.getTargetBodyId(), datasetLabel);
+            targetBody = acquireSegmentFromDatabase(mergeAction.getTargetBodyId(), datasetLabel);
         } catch (NoSuchElementException | NullPointerException nse) {
             log.info(String.format("proofreader.mergeNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node and synapse set...", mergeAction.getTargetBodyId(), datasetLabel));
-            targetBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel), Label.label(datasetLabel + "-" + NEURON));
+            targetBody = dbService.createNode(Label.label(SEGMENT), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SEGMENT));
             targetBody.setProperty(BODY_ID, mergeAction.getTargetBodyId());
             if (mergeAction.getTargetBodySize() != null) {
                 targetBody.setProperty(SIZE, mergeAction.getTargetBodySize());
@@ -142,9 +145,9 @@ public class ProofreaderProcedures {
         }
 
         // grab write locks upfront
-        acquireWriteLockForNeuronSubgraph(targetBody);
+        acquireWriteLockForSegmentSubgraph(targetBody);
         for (Node body : mergedBodies) {
-            acquireWriteLockForNeuronSubgraph(body);
+            acquireWriteLockForSegmentSubgraph(body);
         }
 
         final Node newNode = recursivelyMergeNodes(targetBody, mergedBodies, mergeAction.getTargetBodySize(), mergeAction.getTargetBodyName(), mergeAction.getTargetBodyStatus(), datasetLabel, mergeAction);
@@ -162,7 +165,7 @@ public class ProofreaderProcedures {
     }
 
     @Procedure(value = "proofreader.cleaveNeuronFromJson", mode = Mode.WRITE)
-    @Description("proofreader.cleaveNeuronFromJson(cleaveJson,datasetLabel) : cleave neuron from json file containing a single cleaveaction json")
+    @Description("proofreader.cleaveNeuronFromJson(cleaveJson,datasetLabel) : cleave neuron/segment from json file containing a single cleaveaction json")
     public Stream<NodeListResult> cleaveNeuronFromJson(@Name("cleaveJson") String cleaveJson, @Name("datasetLabel") String datasetLabel) {
 
         if (cleaveJson == null || datasetLabel == null) {
@@ -175,10 +178,10 @@ public class ProofreaderProcedures {
 
         Node originalBody;
         try {
-            originalBody = acquireNeuronFromDatabase(cleaveOrSplitAction.getOriginalBodyId(), datasetLabel);
+            originalBody = acquireSegmentFromDatabase(cleaveOrSplitAction.getOriginalBodyId(), datasetLabel);
         } catch (NoSuchElementException | NullPointerException nse) {
             log.info(String.format("proofreader.cleaveNeuronsFromJson: Target body %d does not exist in dataset %s. Creating target body node and synapse set...", cleaveOrSplitAction.getOriginalBodyId(), datasetLabel));
-            originalBody = dbService.createNode(Label.label(NEURON), Label.label(datasetLabel), Label.label(datasetLabel + "-" + NEURON));
+            originalBody = dbService.createNode(Label.label(SEGMENT), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SEGMENT));
             originalBody.setProperty("bodyId", cleaveOrSplitAction.getOriginalBodyId());
             Node originalBodySynapseSet = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
             originalBodySynapseSet.setProperty(DATASET_BODY_ID, datasetLabel + ":" + cleaveOrSplitAction.getOriginalBodyId());
@@ -186,7 +189,7 @@ public class ProofreaderProcedures {
         }
 
         // grab write locks upfront
-        acquireWriteLockForNeuronSubgraph(originalBody);
+        acquireWriteLockForSegmentSubgraph(originalBody);
 
         //check if action is cleave or split
         String typeOfAction = null;
@@ -203,14 +206,14 @@ public class ProofreaderProcedures {
             throw new RuntimeException("Unknown action type. Available actions for json are \"cleave\" or \"split\"");
         }
 
-        // create new neuron nodes with properties
+        // create new segment nodes with properties
         final Node cleavedOriginalBody = copyPropertiesToNewNodeForCleaveSplitOrMerge(originalBody, typeOfAction);
         final Node cleavedNewBody = dbService.createNode();
         cleavedNewBody.setProperty(BODY_ID, cleaveOrSplitAction.getNewBodyId());
         cleavedNewBody.setProperty(SIZE, cleaveOrSplitAction.getNewBodySize());
         log.info(String.format("Cleaving %s from %s...", cleavedNewBody.getProperty(BODY_ID), cleavedOriginalBody.getProperty(BODY_ID)));
 
-        // original neuron synapse set
+        // original segment synapse set
         Node originalSynapseSetNode = getSynapseSetForNodeAndDeleteConnectionToNode(originalBody);
         if (originalSynapseSetNode == null) {
             log.info(String.format("proofreader.cleaveNeuronsFromJson: No %s node on original body. Creating one...", SYNAPSE_SET));
@@ -282,9 +285,9 @@ public class ProofreaderProcedures {
         SynapseCountsPerRoi originalBodySynapseCountsPerRoi = BodyWithSynapses.getSynapseCountersPerRoiFromSynapseSet(originalBodySynapseSet);
         cleavedOriginalBody.setProperty(ROI_INFO, originalBodySynapseCountsPerRoi.getAsJsonString());
 
-        //add proper roi labels to Neuron
-        addRoiLabelsToNeuronGivenSynapseCountsPerRoi(cleavedNewBody, newBodySynapseCountsPerRoi, datasetLabel);
-        addRoiLabelsToNeuronGivenSynapseCountsPerRoi(cleavedOriginalBody, originalBodySynapseCountsPerRoi, datasetLabel);
+        //add proper roi labels to Segment
+        addRoiLabelsToSegmentGivenSynapseCountsPerRoi(cleavedNewBody, newBodySynapseCountsPerRoi, datasetLabel);
+        addRoiLabelsToSegmentGivenSynapseCountsPerRoi(cleavedOriginalBody, originalBodySynapseCountsPerRoi, datasetLabel);
         //update pre, post properties for new nodes
         cleavedNewBody.setProperty(PRE, newBodySynapseCounter.getPre());
         cleavedNewBody.setProperty(POST, newBodySynapseCounter.getPost());
@@ -301,10 +304,10 @@ public class ProofreaderProcedures {
         // create a new history node
         Node newBodyHistoryNode = dbService.createNode(Label.label(HISTORY), Label.label(datasetLabel));
         Node originalBodyHistoryNode = dbService.createNode(Label.label(HISTORY), Label.label(datasetLabel));
-        // connect history node to new neuron
+        // connect history node to new Segment
         cleavedNewBody.createRelationshipTo(newBodyHistoryNode, RelationshipType.withName(FROM));
         cleavedOriginalBody.createRelationshipTo(originalBodyHistoryNode, RelationshipType.withName(FROM));
-        // connect ghost nodes to history neuron
+        // connect ghost nodes to history Segment
         originalBody.createRelationshipTo(originalBodyHistoryNode, RelationshipType.withName(historyRelationshipType));
         originalBody.createRelationshipTo(newBodyHistoryNode, RelationshipType.withName(historyRelationshipType));
 
@@ -319,13 +322,13 @@ public class ProofreaderProcedures {
         except.add(SPLIT_TO);
         removeAllRelationshipsExceptTypesWithName(originalBody, except);
 
-        //add dataset and Neuron labels to new nodes
-        cleavedOriginalBody.addLabel(Label.label(NEURON));
+        //add dataset and Segment labels to new nodes
+        cleavedOriginalBody.addLabel(Label.label(SEGMENT));
         cleavedOriginalBody.addLabel(Label.label(datasetLabel));
-        cleavedOriginalBody.addLabel(Label.label(datasetLabel + "-" + NEURON));
-        cleavedNewBody.addLabel(Label.label(NEURON));
+        cleavedOriginalBody.addLabel(Label.label(datasetLabel + "-" + SEGMENT));
+        cleavedNewBody.addLabel(Label.label(SEGMENT));
         cleavedNewBody.addLabel(Label.label(datasetLabel));
-        cleavedNewBody.addLabel(Label.label(datasetLabel + "-" + NEURON));
+        cleavedNewBody.addLabel(Label.label(datasetLabel + "-" + SEGMENT));
 
         List<Node> listOfCleavedNodes = new ArrayList<>();
         listOfCleavedNodes.add(cleavedNewBody);
@@ -344,16 +347,16 @@ public class ProofreaderProcedures {
     }
 
     @Procedure(value = "proofreader.addSkeleton", mode = Mode.WRITE)
-    @Description("proofreader.addSkeleton(fileUrl,datasetLabel) : load skeleton from provided url and connect to its associated neuron (note: file URL must contain body id of neuron) ")
+    @Description("proofreader.addSkeleton(fileUrl,datasetLabel) : load skeleton from provided url and connect to its associated neuron/segment (note: file URL must contain body id of neuron/segment) ")
     public Stream<NodeResult> addSkeleton(@Name("fileUrl") String fileUrlString, @Name("datasetLabel") String datasetLabel) {
 
         if (fileUrlString == null || datasetLabel == null) return Stream.empty();
 
-        String neuronIdPattern = ".*/(.*?)[._]swc";
-        Pattern rN = Pattern.compile(neuronIdPattern);
+        String bodyIdPattern = ".*/(.*?)[._]swc";
+        Pattern rN = Pattern.compile(bodyIdPattern);
         Matcher mN = rN.matcher(fileUrlString);
         mN.matches();
-        Long neuronBodyId = Long.parseLong(mN.group(1));
+        Long bodyId = Long.parseLong(mN.group(1));
 
         Skeleton skeleton = new Skeleton();
         URL fileUrl;
@@ -366,22 +369,22 @@ public class ProofreaderProcedures {
         }
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(fileUrl.openStream()))) {
-            skeleton.fromSwc(reader, neuronBodyId);
+            skeleton.fromSwc(reader, bodyId);
         } catch (IOException e) {
             log.error(String.format("proofreader.addSkeleton: IOException: %s", e.getMessage()));
             throw new RuntimeException(String.format("IOException: %s", e.getMessage()));
         }
 
-        Node neuron;
+        Node segment;
         try {
-            neuron = acquireNeuronFromDatabase(neuronBodyId, datasetLabel);
+            segment = acquireSegmentFromDatabase(bodyId, datasetLabel);
         } catch (NoSuchElementException | NullPointerException nse) {
-            log.error(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", neuronBodyId, datasetLabel));
-            throw new RuntimeException(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", neuronBodyId, datasetLabel));
+            log.error(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
+            throw new RuntimeException(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
         }
 
         // grab write locks upfront
-        acquireWriteLockForNeuronSubgraph(neuron);
+        acquireWriteLockForSegmentSubgraph(segment);
 
         Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton);
 
@@ -390,36 +393,36 @@ public class ProofreaderProcedures {
     }
 
     @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
-    @Description("proofreader.deleteNeuron(neuronBodyId,datasetLabel) : delete neuron with body Id and associated nodes (except Synapses) from given dataset. ")
+    @Description("proofreader.deleteNeuron(neuronBodyId,datasetLabel) : delete neuron/segment with body Id and associated nodes (except Synapses) from given dataset. ")
     public void deleteNeuron(@Name("neuronBodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
         if (bodyId == null || datasetLabel == null) {
             log.error("Must provide both a bodyId and dataset label.");
             throw new RuntimeException("Must provide both a bodyId and dataset label.");
         }
 
-        final Node neuron = acquireNeuronFromDatabase(bodyId, datasetLabel);
+        final Node segment = acquireSegmentFromDatabase(bodyId, datasetLabel);
 
         // grab write locks upfront
-        acquireWriteLockForNeuronSubgraph(neuron);
+        acquireWriteLockForSegmentSubgraph(segment);
 
         //delete History
 //        removeHistoryForNode(neuron);
 
         //delete connectsTo relationships
-        removeConnectsToRelationshipsForNode(neuron);
+        removeConnectsToRelationshipsForNode(segment);
 
         //delete synapse set and synapses
-        removeSynapseSetsAndContainsRelationshipsToSynapses(neuron);
+        removeSynapseSetsAndContainsRelationshipsToSynapses(segment);
 
         //delete skeleton
-        deleteSkeletonForNode(neuron);
+        deleteSkeletonForNode(segment);
 
-        neuron.delete();
+        segment.delete();
 
     }
 
     @Procedure(value = "proofreader.addNeuron", mode = Mode.WRITE)
-    @Description("proofreader.addNeuron(neuronJson,datasetLabel) : add neuron specified in json to given dataset.")
+    @Description("proofreader.addNeuron(neuronJson,datasetLabel) : add neuron/segment specified in json to given dataset.")
     public Stream<NodeResult> addNeuron(@Name("neuronJson") String neuronJson, @Name("datasetLabel") String datasetLabel) {
         if (neuronJson == null || datasetLabel == null) {
             log.error("Must provide a neuron json and a dataset label.");
@@ -482,7 +485,7 @@ public class ProofreaderProcedures {
         log.info(String.format("Merged %s nodes from original neurons onto new neuron.", SYNAPSE_SET));
 
         //regenerate synapseCountPerRoi property
-        Set<Synapse> mergedSynapseSet = createSynapseSetForNeuron(newNode, datasetLabel);
+        Set<Synapse> mergedSynapseSet = createSynapseSetForSegment(newNode, datasetLabel);
         SynapseCountsPerRoi synapseCountsPerRoi = BodyWithSynapses.getSynapseCountersPerRoiFromSynapseSet(mergedSynapseSet);
         newNode.setProperty(ROI_INFO, synapseCountsPerRoi.getAsJsonString());
 
@@ -503,9 +506,9 @@ public class ProofreaderProcedures {
 
         // create a new history node
         Node newHistoryNode = dbService.createNode(Label.label(HISTORY), Label.label(datasetLabel));
-        // connect history node to new neuron
+        // connect history node to new Segment
         newNode.createRelationshipTo(newHistoryNode, RelationshipType.withName(FROM));
-        // connect ghost nodes to history neuron
+        // connect ghost nodes to history Segment
         node1.createRelationshipTo(newHistoryNode, RelationshipType.withName(MERGED_TO));
         node2.createRelationshipTo(newHistoryNode, RelationshipType.withName(MERGED_TO));
 
@@ -586,16 +589,16 @@ public class ProofreaderProcedures {
         }
     }
 
-    private void addSynapseToConnectsToRelationshipMap(Node synapseNode, Synapse synapse, Node neuronWithSynapse, ConnectsToRelationshipMap connectsToRelationshipMap) {
+    private void addSynapseToConnectsToRelationshipMap(Node synapseNode, Synapse synapse, Node segmentWithSynapse, ConnectsToRelationshipMap connectsToRelationshipMap) {
         final long weightOfOne = 1L;
         // get the node that this synapse connects to
-        List<Node> listOfConnectedNeurons = getPostOrPreSynapticNeuronsGivenSynapse(synapseNode);
+        List<Node> listOfConnectedSegments = getPostOrPreSynapticSegmentGivenSynapse(synapseNode);
         // add to the connectsToRelationshipMap
-        for (Node connectedNeuron : listOfConnectedNeurons) {
+        for (Node connectedSegment : listOfConnectedSegments) {
             if (synapse.getType().equals(PRE)) {
-                connectsToRelationshipMap.insertConnectsToRelationship(neuronWithSynapse, connectedNeuron, weightOfOne);
+                connectsToRelationshipMap.insertConnectsToRelationship(segmentWithSynapse, connectedSegment, weightOfOne);
             } else if (synapse.getType().equals(POST)) {
-                connectsToRelationshipMap.insertConnectsToRelationship(connectedNeuron, neuronWithSynapse, weightOfOne);
+                connectsToRelationshipMap.insertConnectsToRelationship(connectedSegment, segmentWithSynapse, weightOfOne);
             }
         }
     }
@@ -626,14 +629,14 @@ public class ProofreaderProcedures {
 
     }
 
-    private Set<Synapse> createSynapseSetForNeuron(Node neuron, String datasetLabel) {
+    private Set<Synapse> createSynapseSetForSegment(Node segment, String datasetLabel) {
 
-        Node synapseSetNode = getSynapseSetNodeForNeuron(neuron);
+        Node synapseSetNode = getSynapseSetNodeForSegment(segment);
         if (synapseSetNode == null) {
-            log.info(String.format("ProofreaderProcedures createSynapseSetForNeuron: No %s on neuron %s. Creating one...", SYNAPSE_SET, neuron.getProperty("bodyId")));
+            log.info(String.format("ProofreaderProcedures createSynapseSetForSegment: No %s on neuron %s. Creating one...", SYNAPSE_SET, segment.getProperty("bodyId")));
             synapseSetNode = dbService.createNode(Label.label(SYNAPSE_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + SYNAPSE_SET));
-            synapseSetNode.setProperty(DATASET_BODY_ID, datasetLabel + ":" + neuron.getProperty("bodyId"));
-            neuron.createRelationshipTo(synapseSetNode, RelationshipType.withName(CONTAINS));
+            synapseSetNode.setProperty(DATASET_BODY_ID, datasetLabel + ":" + segment.getProperty("bodyId"));
+            segment.createRelationshipTo(synapseSetNode, RelationshipType.withName(CONTAINS));
 //            throw new RuntimeException(String.format("No %s on neuron.", SYNAPSE_SET));
         }
 
@@ -652,7 +655,7 @@ public class ProofreaderProcedures {
                     synapseSet.add(synapse);
                 } catch (org.neo4j.graphdb.NotFoundException nfe) {
                     nfe.printStackTrace();
-                    log.error(String.format("ProofreaderProcedures createSynapseSetForNeuron: %s does not have %s or %s properties: %s ", SYNAPSE, TYPE, LOCATION, synapseNode.getAllProperties()));
+                    log.error(String.format("ProofreaderProcedures createSynapseSetForSegment: %s does not have %s or %s properties: %s ", SYNAPSE, TYPE, LOCATION, synapseNode.getAllProperties()));
                     throw new RuntimeException(String.format("%s does not have %s or %s properties: %s ", SYNAPSE, TYPE, LOCATION, synapseNode.getAllProperties()));
                 }
             }
@@ -737,13 +740,13 @@ public class ProofreaderProcedures {
 
     private void compareMergeActionSynapseSetWithDatabaseSynapseSet(Node resultingBody, MergeAction mergeAction, String datasetLabel) {
 
-        Node synapseSet = getSynapseSetNodeForNeuron(resultingBody);
+        Node synapseSet = getSynapseSetNodeForSegment(resultingBody);
         if (synapseSet == null) {
             log.error(String.format("ProofreaderProcedures compareMergeActionSynapseSetWithDatabaseSynapseSet: No %s on the resulting body.", SYNAPSE_SET));
             throw new RuntimeException(String.format("No %s on the resulting body.", SYNAPSE_SET));
         }
 
-        Set<Synapse> resultBodySynapseSet = createSynapseSetForNeuron(resultingBody, datasetLabel);
+        Set<Synapse> resultBodySynapseSet = createSynapseSetForSegment(resultingBody, datasetLabel);
 
         //compare the two sets
         Set<Synapse> mergeActionSynapseSet = new HashSet<>(mergeAction.getTargetBodySynapses());
@@ -852,7 +855,7 @@ public class ProofreaderProcedures {
         return nodeSynapseSetNode;
     }
 
-    private Node getSynapseSetNodeForNeuron(final Node node) {
+    private Node getSynapseSetNodeForSegment(final Node node) {
         Node nodeSynapseSetNode = null;
         for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName(CONTAINS))) {
             Node containedNode = nodeRelationship.getEndNode();
@@ -869,13 +872,13 @@ public class ProofreaderProcedures {
         }
     }
 
-    private Node acquireNeuronFromDatabase(Long nodeBodyId, String datasetLabel) throws NoSuchElementException, NullPointerException {
+    private Node acquireSegmentFromDatabase(Long nodeBodyId, String datasetLabel) throws NoSuchElementException, NullPointerException {
         Map<String, Object> parametersMap = new HashMap<>();
         parametersMap.put(BODY_ID, nodeBodyId);
         Map<String, Object> nodeQueryResult;
         Node foundNode;
 //        try {
-        nodeQueryResult = dbService.execute("MATCH (node:`" + datasetLabel + "-Neuron`{bodyId:$bodyId}) RETURN node", parametersMap).next();
+        nodeQueryResult = dbService.execute("MATCH (node:`" + datasetLabel + "-Segment`{bodyId:$bodyId}) RETURN node", parametersMap).next();
 //        } catch (java.util.NoSuchElementException nse) {
 //            nse.printStackTrace();
 //            log.error(String.format("%d not found in dataset %s.", nodeBodyId, datasetLabel));
@@ -893,24 +896,24 @@ public class ProofreaderProcedures {
         return foundNode;
     }
 
-    private List<Node> getPostOrPreSynapticNeuronsGivenSynapse(Node synapse) {
+    private List<Node> getPostOrPreSynapticSegmentGivenSynapse(Node synapse) {
         // list so that multiple connections per neuron are each counted as 1 additional weight
-        List<Node> listOfConnectedNeurons = new ArrayList<>();
+        List<Node> listOfConnectedSegments = new ArrayList<>();
         if (synapse.hasRelationship(RelationshipType.withName(SYNAPSES_TO))) {
             for (Relationship synapsesToRelationship : synapse.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
                 Node connectedSynapse = synapsesToRelationship.getOtherNode(synapse);
-                Node connectedNeuron;
+                Node connectedSegment;
                 try {
                     Node connectedSynapseSet = connectedSynapse.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING).getStartNode();
-                    connectedNeuron = connectedSynapseSet.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING).getStartNode();
+                    connectedSegment = connectedSynapseSet.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING).getStartNode();
                 } catch (NoSuchElementException nse) {
-                    log.error(String.format("Connected %s has no %s or connected %ss: %s", SYNAPSE, SYNAPSE_SET, NEURON, connectedSynapse.getAllProperties()));
-                    throw new RuntimeException(String.format("Connected %s has no %s or connected %ss: %s", SYNAPSE, SYNAPSE_SET, NEURON, connectedSynapse.getAllProperties()));
+                    log.error(String.format("Connected %s has no %s or connected %ss: %s", SYNAPSE, SYNAPSE_SET, SEGMENT, connectedSynapse.getAllProperties()));
+                    throw new RuntimeException(String.format("Connected %s has no %s or connected %ss: %s", SYNAPSE, SYNAPSE_SET, SEGMENT, connectedSynapse.getAllProperties()));
                 }
-                listOfConnectedNeurons.add(connectedNeuron);
+                listOfConnectedSegments.add(connectedSegment);
             }
         }
-        return listOfConnectedNeurons;
+        return listOfConnectedSegments;
     }
 
     private void incrementSynapseCounterWithSynapse(Synapse synapse, SynapseCounter synapseCounter) {
@@ -921,9 +924,9 @@ public class ProofreaderProcedures {
         }
     }
 
-    private void addRoiLabelsToNeuronGivenSynapseCountsPerRoi(Node neuron, SynapseCountsPerRoi synapseCountsPerRoi, String datasetLabel) {
+    private void addRoiLabelsToSegmentGivenSynapseCountsPerRoi(Node segment, SynapseCountsPerRoi synapseCountsPerRoi, String datasetLabel) {
         for (String roi : synapseCountsPerRoi.getSetOfRoisWithAndWithoutDatasetLabel(datasetLabel)) {
-            neuron.addLabel(Label.label(roi));
+            segment.addLabel(Label.label(roi));
         }
     }
 
@@ -998,7 +1001,7 @@ public class ProofreaderProcedures {
 
     private Node addSkeletonNodes(final String dataset, final Skeleton skeleton) {
 
-        final String neuronToSkeletonConnectionString = "MERGE (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:Neuron, n:" + dataset + " \n" +
+        final String segmentToSkeletonConnectionString = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:Segment, n:" + dataset + " \n" +
                 "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r:Skeleton, r:" + dataset + " \n" +
                 "MERGE (n)-[:Contains]->(r) \n";
 
@@ -1017,12 +1020,12 @@ public class ProofreaderProcedures {
         Long associatedBodyId = skeleton.getAssociatedBodyId();
         List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
 
-        Map<String, Object> neuronToSkeletonParametersMap = new HashMap<String, Object>() {{
+        Map<String, Object> segmentToSkeletonParametersMap = new HashMap<String, Object>() {{
             put(BODY_ID, associatedBodyId);
             put("skeletonId", dataset + ":" + associatedBodyId);
         }};
 
-        dbService.execute(neuronToSkeletonConnectionString, neuronToSkeletonParametersMap);
+        dbService.execute(segmentToSkeletonConnectionString, segmentToSkeletonParametersMap);
 
         for (SkelNode skelNode : skelNodeList) {
 
@@ -1143,16 +1146,16 @@ public class ProofreaderProcedures {
         }
     }
 
-    private void acquireWriteLockForNeuronSubgraph(Node neuron) {
+    private void acquireWriteLockForSegmentSubgraph(Node segment) {
         // neuron
-        acquireWriteLockForNode(neuron);
+        acquireWriteLockForNode(segment);
         // connects to relationships and 1-degree connections
-        for (Relationship connectsToRelationship : neuron.getRelationships(RelationshipType.withName(CONNECTS_TO))) {
+        for (Relationship connectsToRelationship : segment.getRelationships(RelationshipType.withName(CONNECTS_TO))) {
             acquireWriteLockForRelationship(connectsToRelationship);
-            acquireWriteLockForNode(connectsToRelationship.getOtherNode(neuron));
+            acquireWriteLockForNode(connectsToRelationship.getOtherNode(segment));
         }
         // skeleton and synapse set
-        for (Relationship containsRelationship : neuron.getRelationships(RelationshipType.withName(CONTAINS))) {
+        for (Relationship containsRelationship : segment.getRelationships(RelationshipType.withName(CONTAINS))) {
             acquireWriteLockForRelationship(containsRelationship);
             Node skeletonOrSynapseSetNode = containsRelationship.getEndNode();
             acquireWriteLockForNode(skeletonOrSynapseSetNode);

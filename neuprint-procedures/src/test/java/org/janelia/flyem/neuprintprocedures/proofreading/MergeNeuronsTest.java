@@ -52,7 +52,7 @@ public class MergeNeuronsTest {
                     "\"Action\": \"merge\", \"TargetBodyID\": 1, \"BodiesMerged\": [2], " +
                     "\"TargetBodySize\": 216685762}";
 
-            session.writeTransaction(tx -> tx.run("CREATE (n:`test-Neuron`:Neuron:test{bodyId:$id1}), (m:`test-Neuron`:Neuron:test{bodyId:$id2})," +
+            session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`:Segment:test{bodyId:$id1}), (m:`test-Segment`:Segment:test{bodyId:$id2})," +
                             " (o{bodyId:$id3}), (p{bodyId:$id4}), (s:SynapseSet{datasetBodyId:\"test:1\"})," +
                             " (ss:SynapseSet{datasetBodyId:\"test:2\"}) \n" +
                             "CREATE (n)-[:ConnectsTo{weight:7}]->(o) \n" +
@@ -200,9 +200,9 @@ public class MergeNeuronsTest {
             Assert.assertEquals("{\"roiA\":{\"pre\":2,\"post\":3},\"roiB\":{\"pre\":0,\"post\":3},\"anotherRoi\":{\"pre\":1,\"post\":0},\"seven_column_roi\":{\"pre\":2,\"post\":5}}", neuronProperties.get("roiInfo"));
 
             //check labels
-            Assert.assertTrue(neuron.hasLabel("Neuron"));
+            Assert.assertTrue(neuron.hasLabel("Segment"));
             Assert.assertTrue(neuron.hasLabel(dataset));
-            Assert.assertTrue(neuron.hasLabel(dataset + "-Neuron"));
+            Assert.assertTrue(neuron.hasLabel(dataset + "-Segment"));
             String[] roiArray = new String[]{"seven_column_roi", "roiB", "roiA", "anotherRoi"};
             for (String roi : roiArray) {
                 Assert.assertTrue(neuron.hasLabel(roi));
@@ -211,21 +211,21 @@ public class MergeNeuronsTest {
 
             //check weight of connectsTo relationship
             List<Record> connectsToRelationshipList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:`test-Neuron`{bodyId:8426959})-[r:ConnectsTo]-(m) RETURN r.weight").list());
+                    tx.run("MATCH (n:`test-Segment`{bodyId:8426959})-[r:ConnectsTo]-(m) RETURN r.weight").list());
 
             Assert.assertEquals(1, connectsToRelationshipList.size());
             Assert.assertEquals(8, connectsToRelationshipList.get(0).get("r.weight").asInt());
 
             //check synapse set
             List<Record> synapseSetList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:`test-Neuron`{bodyId:8426959})-[r:Contains]-(m:SynapseSet)-[:Contains]->(l:Synapse) RETURN m,count(l)").list());
+                    tx.run("MATCH (n:`test-Segment`{bodyId:8426959})-[r:Contains]-(m:SynapseSet)-[:Contains]->(l:Synapse) RETURN m,count(l)").list());
 
             Assert.assertEquals(1, synapseSetList.size());
             Assert.assertEquals(8, synapseSetList.get(0).get("count(l)").asInt());
 
             //no skeleton
             List<Record> skeletonCountList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:`test-Neuron`{bodyId:8426959})-[r:Contains]-(s:Skeleton) RETURN count(s)").list());
+                    tx.run("MATCH (n:`test-Segment`{bodyId:8426959})-[r:Contains]-(s:Skeleton) RETURN count(s)").list());
 
             Assert.assertEquals(0, skeletonCountList.get(0).get("count(s)").asInt());
             Assert.assertFalse(session.run("MATCH (n:`test-Skeleton`) RETURN n").hasNext());
@@ -233,7 +233,7 @@ public class MergeNeuronsTest {
 
             //check history
             List<Record> m1HistoryList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:`test-Neuron`{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-(m1) RETURN count(h),m1.mergedBodyId,m1.mergedPost,m1.mergedPre,m1.mergedDvidUuid,m1.mergedMutationId").list());
+                    tx.run("MATCH (n:`test-Segment`{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-(m1) RETURN count(h),m1.mergedBodyId,m1.mergedPost,m1.mergedPre,m1.mergedDvidUuid,m1.mergedMutationId").list());
 
             Assert.assertEquals(2, m1HistoryList.size());
             Assert.assertEquals(1, m1HistoryList.get(0).get("count(h)").asInt());
@@ -267,7 +267,7 @@ public class MergeNeuronsTest {
             Assert.assertEquals(neuronProperties.get("post"), bodyId1m1Post + bodyId2m1Post);
 
             List<Record> m2HistoryList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:`test-Neuron`{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-(m2) RETURN m2.mergedBodyId,m2.mergedPost,m2.mergedPre,m2.mergedDvidUuid,m2.mergedMutationId").list());
+                    tx.run("MATCH (n:`test-Segment`{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-(m2) RETURN m2.mergedBodyId,m2.mergedPost,m2.mergedPre,m2.mergedDvidUuid,m2.mergedMutationId").list());
 
             Assert.assertEquals(2, m2HistoryList.size());
 
@@ -299,7 +299,7 @@ public class MergeNeuronsTest {
             Assert.assertEquals((long) bodyId1m1Post, bodyId1m2Post + bodyId3m2Post);
 
             List<Record> m3HistoryList = session.writeTransaction(tx ->
-                    tx.run("MATCH (n:`test-Neuron`{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-()<-[:MergedTo]-(m3) RETURN m3.mergedBodyId,m3.mergedPost,m3.mergedPre").list());
+                    tx.run("MATCH (n:`test-Segment`{bodyId:8426959})-[r:From]-(h:History)<-[:MergedTo]-()<-[:MergedTo]-()<-[:MergedTo]-(m3) RETURN m3.mergedBodyId,m3.mergedPost,m3.mergedPre").list());
 
             Assert.assertEquals(2, m2HistoryList.size());
 

@@ -25,9 +25,9 @@ class MetaNodeUpdater {
                 long preCount = getTotalPreCount(dbService, dataset);
                 long postCount = getTotalPostCount(dbService, dataset);
 
-                Set<String> roiNameSet = getAllRoisFromNeurons(dbService, dataset)
+                Set<String> roiNameSet = getAllRoisFromSegments(dbService, dataset)
                         .stream()
-                        .filter((l) -> (!l.equals("Neuron") && !l.startsWith(dataset)))
+                        .filter((l) -> (!l.equals("Neuron") && !l.equals("Segment") && !l.startsWith(dataset)))
                         .collect(Collectors.toSet());
                 SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
 
@@ -50,12 +50,12 @@ class MetaNodeUpdater {
     }
 
     private static long getTotalPreCount(GraphDatabaseService dbService, final String dataset) {
-        Result preCountQuery = dbService.execute("MATCH (n:`" + dataset + "-Neuron`) RETURN sum(n.pre) AS pre");
+        Result preCountQuery = dbService.execute("MATCH (n:`" + dataset + "-Segment`) RETURN sum(n.pre) AS pre");
         return (long) preCountQuery.next().get("pre");
     }
 
     private static long getTotalPostCount(GraphDatabaseService dbService, final String dataset) {
-        Result postCountQuery = dbService.execute("MATCH (n:`" + dataset + "-Neuron`) RETURN sum(n.post) AS post");
+        Result postCountQuery = dbService.execute("MATCH (n:`" + dataset + "-Segment`) RETURN sum(n.post) AS post");
         return (long) postCountQuery.next().get("post");
     }
 
@@ -69,9 +69,9 @@ class MetaNodeUpdater {
         return (long) roiPostCountQuery.next().get("post");
     }
 
-    private static Set<String> getAllRoisFromNeurons(GraphDatabaseService dbService, final String dataset) {
+    private static Set<String> getAllRoisFromSegments(GraphDatabaseService dbService, final String dataset) {
         Set<String> roiSet = new HashSet<>();
-        Result roiLabelQuery = dbService.execute("MATCH (n:`" + dataset + "-Neuron`) WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
+        Result roiLabelQuery = dbService.execute("MATCH (n:`" + dataset + "-Segment`) WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
 
         while (roiLabelQuery.hasNext()) {
             roiSet.add(roiLabelQuery.next().get("label").toString());

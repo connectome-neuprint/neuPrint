@@ -74,7 +74,7 @@ public class DeleteNeuronTest {
             neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
             neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
 
-            session.writeTransaction(tx -> tx.run("MATCH (n:Neuron) SET n.timeStamp=$timeStamp", parameters("timeStamp", LocalDateTime.of(2000, 1, 1,1,1))));
+            session.writeTransaction(tx -> tx.run("MATCH (n:Segment) SET n.timeStamp=$timeStamp", parameters("timeStamp", LocalDateTime.of(2000, 1, 1,1,1))));
             session.writeTransaction(tx -> tx.run("MATCH (n:Meta) SET n.lastDatabaseEdit=$timeStamp", parameters("timeStamp", LocalDateTime.of(2000, 1, 1,1,1))));
             String synapseCountPerRoi = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.roiInfo").single().get(0).asString());
             long preCount = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.totalPreCount").single().get(0).asLong());
@@ -82,7 +82,7 @@ public class DeleteNeuronTest {
 
             session.writeTransaction(tx -> tx.run("CALL proofreader.deleteNeuron($bodyId,$dataset)", parameters("bodyId", 8426959, "dataset", "test")));
 
-            int deletedNeuronNodeCount = session.readTransaction(tx -> tx.run("MATCH (n:Neuron{bodyId:8426959}) RETURN count(n)").single().get(0).asInt());
+            int deletedNeuronNodeCount = session.readTransaction(tx -> tx.run("MATCH (n:Segment{bodyId:8426959}) RETURN count(n)").single().get(0).asInt());
 
             Assert.assertEquals(0, deletedNeuronNodeCount);
 
@@ -115,7 +115,7 @@ public class DeleteNeuronTest {
 
             // check time stamps on previously connected nodes
 
-            List<Record> neuronTimeStamps = session.readTransaction(tx -> tx.run("MATCH (n:Neuron) WHERE n.bodyId=26311 OR n.bodyId=2589725 OR n.bodyId=831744 RETURN n.timeStamp").list());
+            List<Record> neuronTimeStamps = session.readTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=26311 OR n.bodyId=2589725 OR n.bodyId=831744 RETURN n.timeStamp").list());
 
             for (Record record : neuronTimeStamps) {
                 LocalDateTime dateTime = (LocalDateTime) record.asMap().get("n.timeStamp");

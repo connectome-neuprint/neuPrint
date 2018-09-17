@@ -41,6 +41,7 @@ public class SkeletonDistanceTest {
 
             neo4jImporter.addSkeletonNodes("test", skeletonList);
 
+
             Long distance = session.readTransaction(tx -> tx.run("MATCH (n:SkelNode{skelNodeId:\"test:101:5464:9385:1248\"}), (m:SkelNode{skelNodeId:\"test:101:5328:9385:1368\"}) WITH n,m CALL analysis.calculateSkeletonDistance(\"test\",n,m) YIELD value RETURN value").single().get(0).asLong());
 
             Assert.assertEquals(new Long(207), distance);
