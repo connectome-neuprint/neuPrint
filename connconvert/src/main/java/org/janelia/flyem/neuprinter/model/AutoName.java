@@ -47,7 +47,7 @@ public class AutoName {
      * @return automatically generated name for Neuron
      */
     public String getAutoName() {
-        return this.maxInputRoi.toUpperCase() + "-" + this.maxOutputRoi.toUpperCase() + "-" + id;
+        return this.maxInputRoi.toUpperCase() + "-" + this.maxOutputRoi.toUpperCase() + "_" + id;
     }
 
     /**

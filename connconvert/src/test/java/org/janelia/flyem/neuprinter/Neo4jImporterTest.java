@@ -333,14 +333,14 @@ public class Neo4jImporterTest {
             String segmentName = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959}) RETURN n.name").single().get(0).asString();
             String segmentAutoName = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();
 
-            Assert.assertEquals("ROIA-ROIA-0*", segmentName);
+            Assert.assertEquals("ROIA-ROIA_0*", segmentName);
             Assert.assertEquals(segmentName.replace("*", ""), segmentAutoName);
 
             String segmentName2 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311}) RETURN n.name").single().get(0).asString();
             String segmentAutoName2 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311}) RETURN n.autoName").single().get(0).asString();
 
             Assert.assertEquals("Dm12-4", segmentName2);
-            Assert.assertEquals("ROIA-ROIA-1", segmentAutoName2);
+            Assert.assertEquals("ROIA-ROIA_1", segmentAutoName2);
 
             //check that all :Neurons have autonames and all :Segments with autonames are labeled :Neuron
 
