@@ -14,7 +14,6 @@
     <modules>
         <module>connconvert</module>
         <module>neuprint-procedures</module>
-        <module>neuprint-reader</module>
     </modules>
 
     <properties>
