@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.json.JsonUtils;
@@ -178,14 +179,14 @@ public class BodyWithSynapsesTest {
 
         final List<BodyWithSynapses> parsedBodyList = BodyWithSynapses.fromJson(BODY_LIST_JSON);
 
-        final HashMap<String,List<String>> preToPostMap = new HashMap<>();
+        final HashMap<String, Set<String>> preToPostMap = new HashMap<>();
 
         BodyWithSynapses body1 = parsedBodyList.get(0);
 
         body1.addSynapsesToPreToPostMap(preToPostMap);
 
         Assert.assertEquals(3,preToPostMap.get("4287:2277:1542").size());
-        Assert.assertEquals("4292:2261:1542",preToPostMap.get("4287:2277:1542").get(0));
+        Assert.assertTrue(preToPostMap.get("4287:2277:1542").contains("4292:2261:1542"));
 
     }
 

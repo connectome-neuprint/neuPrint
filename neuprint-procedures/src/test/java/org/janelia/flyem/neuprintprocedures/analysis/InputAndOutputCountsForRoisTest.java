@@ -24,6 +24,7 @@ import org.neo4j.harness.junit.Neo4jRule;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class InputAndOutputCountsForRoisTest {
 
@@ -40,7 +41,7 @@ public class InputAndOutputCountsForRoisTest {
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {

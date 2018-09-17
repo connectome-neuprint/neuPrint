@@ -29,6 +29,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -87,7 +88,7 @@ public class Neo4jImporter implements AutoCloseable {
     @Override
     public void close() {
         driver.close();
-        System.out.println("Driver closed.");
+        LOG.info("Driver closed.");
     }
 
     /**
@@ -154,6 +155,8 @@ public class Neo4jImporter implements AutoCloseable {
         //TODO: arbitrary properties
         LOG.info("addSegments: entry");
 
+        String roiPropertyBaseString = " n.`%s` = TRUE,";
+
         final String segmentText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) " +
                 "ON CREATE SET n.bodyId = $bodyId," +
                 " n:Segment," +
@@ -164,16 +167,23 @@ public class Neo4jImporter implements AutoCloseable {
                 " n.size = $size," +
                 " n.somaLocation = $somaLocation," +
                 " n.somaRadius = $somaRadius, " +
-                " n.timeStamp = $timeStamp \n" +
-                " WITH n \n" +
-                " CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
-                " RETURN node";
+                "%s" + //placeholder for roi properties
+                " n.timeStamp = $timeStamp";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
                 String status = neuron.getStatus() != null ? neuron.getStatus() : "not annotated";
+
+                StringBuilder roiProperties = new StringBuilder();
+                Set<String> roiSet = neuron.getRois();
+                if (roiSet != null) {
+                    for (String roi : roiSet) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                }
+
+                String segmentTextWithRois = String.format(segmentText, roiProperties.toString());
+
                 batch.addStatement(
-                        new Statement(segmentText,
+                        new Statement(segmentTextWithRois,
                                 parameters("bodyId", neuron.getId(),
                                         "name", neuron.getName(),
                                         "type", neuron.getNeuronType(),
@@ -181,8 +191,7 @@ public class Neo4jImporter implements AutoCloseable {
                                         "size", neuron.getSize(),
                                         "somaLocation", neuron.getSomaLocation(),
                                         "somaRadius", neuron.getSomaRadius(),
-                                        "timeStamp", timeStamp,
-                                        "rois", neuron.getRoisWithAndWithoutDatasetPrefix(dataset)))
+                                        "timeStamp", timeStamp))
                 );
             }
             batch.writeTransaction();
@@ -250,6 +259,8 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSynapses: entry");
 
+        String roiPropertyBaseString = " s.`%s` = TRUE,";
+
         final String preSynapseText =
                 "MERGE (s:`" + dataset + "-Synapse`:`" + dataset + "-PreSyn`{location:$location}) " +
                         " ON CREATE SET s.location=$location, " +
@@ -258,10 +269,8 @@ public class Neo4jImporter implements AutoCloseable {
                         "s:" + dataset + "," +
                         " s.confidence=$confidence, " +
                         " s.type=$type, " +
-                        " s.timeStamp=$timeStamp \n" +
-                        " WITH s \n" +
-                        " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
-                        " RETURN node";
+                        "%s" + //placeholder for roi properties
+                        " s.timeStamp=$timeStamp";
 
         final String postSynapseText =
                 "MERGE (s:`" + dataset + "-Synapse`:`" + dataset + "-PostSyn`{location:$location}) " +
@@ -271,36 +280,45 @@ public class Neo4jImporter implements AutoCloseable {
                         "s:" + dataset + "," +
                         " s.confidence=$confidence, " +
                         " s.type=$type, " +
-                        " s.timeStamp=$timeStamp \n" +
-                        " WITH s \n" +
-                        " CALL apoc.create.addLabels(id(s),$rois) YIELD node \n" +
-                        " RETURN node";
+                        "%s" + //placeholder for roi properties
+                        " s.timeStamp=$timeStamp";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final BodyWithSynapses bws : bodyList) {
                 // issue with this body id in mb6
                 if (bws.getBodyId() != 304654117 || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
+
                     for (final Synapse synapse : bws.getSynapseSet()) {
+
+                        StringBuilder roiProperties = new StringBuilder();
+                        Set<String> roiSet = synapse.getRois();
+                        if (roiSet != null) {
+                            for (String roi : roiSet) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                        }
+
                         if (synapse.getType().equals("pre")) {
 
+                            String preSynapseTextWithRois = String.format(preSynapseText, roiProperties.toString());
+
                             batch.addStatement(new Statement(
-                                    preSynapseText,
+                                    preSynapseTextWithRois,
                                     parameters("location", synapse.getLocationAsPoint(),
                                             "datasetLocation", dataset + ":" + synapse.getLocationString(),
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType(),
-                                            "timeStamp", timeStamp,
-                                            "rois", synapse.getRoiPtsWithAndWithoutDatasetPrefix(dataset)))
+                                            "timeStamp", timeStamp))
                             );
                         } else if (synapse.getType().equals("post")) {
+
+                            String postSynapseTextWithRois = String.format(postSynapseText, roiProperties.toString());
+
                             batch.addStatement(new Statement(
-                                    postSynapseText,
+                                    postSynapseTextWithRois,
                                     parameters("location", synapse.getLocationAsPoint(),
                                             "datasetLocation", dataset + ":" + synapse.getLocationString(),
                                             "confidence", synapse.getConfidence(),
                                             "type", synapse.getType(),
-                                            "timeStamp", timeStamp,
-                                            "rois", synapse.getRoiPtsWithAndWithoutDatasetPrefix(dataset)))
+                                            "timeStamp", timeStamp))
                             );
 
                         }
@@ -320,7 +338,7 @@ public class Neo4jImporter implements AutoCloseable {
      * @param preToPost map of presynaptic density locations to postsynaptic density locations
      * @see SynapseMapper#getPreToPostMap()
      */
-    public void addSynapsesTo(final String dataset, HashMap<String, List<String>> preToPost) {
+    public void addSynapsesTo(final String dataset, HashMap<String, Set<String>> preToPost) {
 
         LOG.info("addSynapsesTo: entry");
 
@@ -354,18 +372,28 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSegmentRois: entry");
 
-        final String roiSegmentText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId = $bodyId, n.timeStamp=$timeStamp, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
-                "WITH n \n" +
-                "CALL apoc.create.addLabels(id(n),$rois) YIELD node \n" +
-                "RETURN node";
+        String roiPropertyBaseString = " n.`%s` = TRUE,";
+
+        final String roiSegmentText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId}) SET" +
+                "%s" + //placeholder for roi properties
+                " n.timeStamp=$timeStamp";
 
         try (final TransactionBatch batch = getBatch()) {
             for (BodyWithSynapses bws : bodyList) {
                 for (Synapse synapse : bws.getSynapseSet()) {
-                    batch.addStatement(new Statement(roiSegmentText, parameters("bodyId", bws.getBodyId(),
-                            "timeStamp", timeStamp,
-                            "notAnnotated", "not annotated",
-                            "rois", synapse.getRoisWithAndWithoutDatasetPrefix(dataset))));
+
+                    StringBuilder roiProperties = new StringBuilder();
+                    Set<String> roiSet = synapse.getRois();
+                    if (roiSet != null) {
+                        for (String roi : roiSet) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                    }
+
+                    String roiSegmentTextWithRois = String.format(roiSegmentText, roiProperties);
+
+                    batch.addStatement(new Statement(roiSegmentTextWithRois,
+                            parameters("bodyId", bws.getBodyId(),
+                                    "timeStamp", timeStamp,
+                                    "notAnnotated", "not annotated")));
                 }
             }
             batch.writeTransaction();
@@ -597,8 +625,11 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("createMetaNodeWithDataModelNode: enter");
 
-        final String metaNodeString = "MERGE (m:Meta:" + dataset + " {dataset:$dataset}) ON CREATE SET m.lastDatabaseEdit=$timeStamp," +
-                "m.dataset=$dataset, m.totalPreCount=$totalPre, m.totalPostCount=$totalPost \n" +
+        final String metaNodeString = "MERGE (m:Meta:" + dataset + " {dataset:$dataset}) ON CREATE SET " +
+                "m.lastDatabaseEdit=$timeStamp," +
+                "m.dataset=$dataset, " +
+                "m.totalPreCount=$totalPre, " +
+                "m.totalPostCount=$totalPost \n" +
                 "MERGE (d:DataModel{dataModelVersion:$dataModelVersion}) ON CREATE SET d.dataModelVersion=$dataModelVersion, d.timeStamp=$timeStamp \n" +
                 "MERGE (m)-[:Is]->(d)";
 
@@ -610,9 +641,21 @@ public class Neo4jImporter implements AutoCloseable {
         try (Session session = driver.session()) {
             totalPre = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
-            roiNameSet = session.readTransaction(tx -> getAllLabels(tx, dataset))
+            roiNameSet = session.readTransaction(tx -> getAllProperties(tx, dataset))
                     .stream()
-                    .filter((l) -> (!l.equals("Segment") && !l.equals("Neuron") && !l.startsWith(dataset)))
+                    .filter((p) -> (
+                            !p.equals("autoName") &&
+                                    !p.equals("bodyId") &&
+                                    !p.equals("name") &&
+                                    !p.equals("post") &&
+                                    !p.equals("pre") &&
+                                    !p.equals("size") &&
+                                    !p.equals("status") &&
+                                    !p.equals("roiInfo") &&
+                                    !p.equals("timeStamp") &&
+                                    !p.equals("type")) &&
+                            !p.equals("somaLocation") &&
+                            !p.equals("somaRadius"))
                     .collect(Collectors.toSet());
             for (String roi : roiNameSet) {
                 int roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
@@ -654,23 +697,23 @@ public class Neo4jImporter implements AutoCloseable {
         return result.single().get(0).asLong();
     }
 
-    private static int getRoiPreCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.pre AS pre RETURN sum(pre)");
+    private static int getRoiPreCount(final Transaction tx, final String dataset, String roi) {
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE exists(n.`" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.pre AS pre RETURN sum(pre)");
         return result.single().get(0).asInt();
     }
 
-    private static int getRoiPostCount(final Transaction tx, final String dataset, final String roi) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.post AS post RETURN sum(post)");
+    private static int getRoiPostCount(final Transaction tx, final String dataset, String roi) {
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE exists(n.`" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.post AS post RETURN sum(post)");
         return result.single().get(0).asInt();
     }
 
-    private static List<String> getAllLabels(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
-        List<String> roiList = new ArrayList<>();
+    private static Set<String> getAllProperties(final Transaction tx, final String dataset) {
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WITH keys(n) AS props UNWIND props AS prop WITH DISTINCT prop ORDER BY prop RETURN prop");
+        Set<String> roiSet = new HashSet<>();
         while (result.hasNext()) {
-            roiList.add(result.next().asMap().get("label").toString());
+            roiSet.add(result.next().asMap().get("prop").toString());
         }
-        return roiList;
+        return roiSet;
     }
 
     private static String getMaxInputRoi(final Transaction tx, final String dataset, Long bodyId) {

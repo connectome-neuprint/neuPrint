@@ -6,6 +6,7 @@ import org.junit.Test;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Tests the {@link SynapseMapper} class.
@@ -44,10 +45,10 @@ public class SynapseMapperTest {
         Assert.assertEquals(4, postToBody.getAllLocationKeys().size());
         Assert.assertEquals(new Long(831744), postToBody.getBodyId("4292:2261:1542"));
 
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
 
         Assert.assertEquals(3, preToPost.get("4287:2277:1542").size());
-        Assert.assertEquals("4298:2294:1542", preToPost.get("4287:2277:1542").get(0));
+        Assert.assertTrue(preToPost.get("4287:2277:1542").contains("4298:2294:1542"));
 
     }
 

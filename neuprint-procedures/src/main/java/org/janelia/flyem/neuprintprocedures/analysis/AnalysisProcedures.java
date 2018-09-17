@@ -345,7 +345,7 @@ public class AnalysisProcedures {
     private Set<Long> getNeuronBodyIdSetFromRoi(String roi, String datasetLabel, Long synapseThreshold) {
 
         Map<String, Object> roiQueryResult = null;
-        String bigQuery = "MATCH (node:`" + datasetLabel + "-" + roi + "`) WHERE (node.pre+node.post)>" + synapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList";
+        String bigQuery = "MATCH (node:`" + datasetLabel + "-Segment`) WHERE (node.pre+node.post)>" + synapseThreshold + " AND exists(node.`" + roi + "`) WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList";
         try {
             roiQueryResult = dbService.execute(bigQuery).next();
         } catch (Exception e) {
@@ -385,7 +385,7 @@ public class AnalysisProcedures {
         Map<String, Object> parametersMap = new HashMap<>();
         parametersMap.put("nodeBodyId", bodyId);
         Map<String, Object> roiQueryResult = null;
-        String firstDegreeConnectionQuery = "MATCH (node:`" + datasetLabel + "-Neuron`{bodyId:$nodeBodyId})-[:ConnectsTo]-(p:`" + datasetLabel + "-Neuron`) WHERE (p.pre+p.post)>" + synapseThreshold + " WITH collect(p.bodyId) AS bodyIdList RETURN bodyIdList";
+        String firstDegreeConnectionQuery = "MATCH (node:`" + datasetLabel + "-Segment`{bodyId:$nodeBodyId})-[:ConnectsTo]-(p:`" + datasetLabel + "-Segment`) WHERE (p.pre+p.post)>" + synapseThreshold + " WITH collect(p.bodyId) AS bodyIdList RETURN bodyIdList";
         try {
             roiQueryResult = dbService.execute(firstDegreeConnectionQuery, parametersMap).next();
         } catch (Exception e) {

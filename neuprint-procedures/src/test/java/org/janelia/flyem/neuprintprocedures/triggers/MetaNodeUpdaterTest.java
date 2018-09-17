@@ -26,6 +26,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 public class MetaNodeUpdaterTest {
     @Rule
@@ -39,7 +40,7 @@ public class MetaNodeUpdaterTest {
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
@@ -69,7 +70,12 @@ public class MetaNodeUpdaterTest {
 
             //should only trigger an update of lastDatabaseEdit
             session.writeTransaction(tx -> {
-                tx.run("CREATE (n:Segment:test:roiA:newRoi:`test-roiA`:`test-newRoi`:`test-Segment`{bodyId:50}) SET n.roiInfo=\"{'roiA':{'pre':5,'post':2,'total':7},'newRoi':{'pre':5,'post':2,'total':7}}\", n.pre=10, n.post=4 RETURN n");
+                tx.run("CREATE (n:Segment:test:`test-Segment`{bodyId:50}) SET n.roiInfo=\"{'roiA':{'pre':5,'post':2,'total':7},'newRoi':{'pre':5,'post':2,'total':7}}\", " +
+                        "n.pre=10, " +
+                        "n.post=4, " +
+                        "n.roiA=TRUE, " +
+                        "n.newRoi=TRUE " +
+                        "RETURN n");
                 return 1;
             });
 
@@ -110,7 +116,7 @@ public class MetaNodeUpdaterTest {
             //should trigger complete meta node update
             //note that update is based on synapse count per roi on neurons, not info from synapse nodes directly
             session.writeTransaction(tx -> {
-                tx.run("CREATE (n:Synapse:test:`test-Synapse`:`roiA-pt`:`newRoi-pt`:`test-roiA-pt`:`test-newRoi-pt`) RETURN n");
+                tx.run("CREATE (n:Synapse:test:`test-Synapse`) SET n.`roiA`=TRUE, n.`newRoi`=TRUE RETURN n");
                 return 1;
             });
 
@@ -122,7 +128,7 @@ public class MetaNodeUpdaterTest {
             Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode());
 
             LocalDateTime metaNodeUpdateTime = (LocalDateTime) metaNode.asMap().get("lastDatabaseEdit");
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS),metaNodeUpdateTime.truncatedTo(ChronoUnit.HOURS) );
+            Assert.assertTrue(LocalDateTime.now().isAfter(metaNodeUpdateTime));
 
             Assert.assertEquals(9L, metaNode.asMap().get("totalPostCount"));
             Assert.assertEquals(13L, metaNode.asMap().get("totalPreCount"));

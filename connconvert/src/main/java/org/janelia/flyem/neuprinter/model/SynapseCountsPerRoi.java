@@ -34,22 +34,8 @@ public class SynapseCountsPerRoi {
      *
      * @return the set of all rois in this SynapseCountsPerRoi
      */
-    private Set<String> getSetOfRois() {
+    public Set<String> getSetOfRois() {
         return this.synapseCountsPerRoi.keySet();
-    }
-
-    /**
-     *
-     * @param datasetLabel name of the dataset being evaluated
-     * @return a set of all rois in this SynapseCountsPerRoi with and without "dataset-" prefix
-     */
-    public Set<String> getSetOfRoisWithAndWithoutDatasetLabel(String datasetLabel) {
-        Set<String> roiPtSet = getSetOfRois();
-        Set<String> roiPtSetWithDatasetPrefix = roiPtSet.stream()
-                    .map(roi -> datasetLabel + "-" + roi)
-                    .collect(Collectors.toSet());
-        roiPtSetWithDatasetPrefix.addAll(roiPtSet);
-        return roiPtSetWithDatasetPrefix;
     }
 
     /**

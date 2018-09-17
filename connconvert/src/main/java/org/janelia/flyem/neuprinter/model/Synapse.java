@@ -8,14 +8,18 @@ import org.neo4j.driver.v1.types.Point;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.janelia.flyem.neuprinter.model.Neuron.removeLMTagFromRois;
 
 /**
  * A class representing a synaptic density. A Synapse has a type (pre or post), a three-
- * dimensional location, a confidence, a list of rois, and a list of Synapse locations representing
- * its connections. Presynaptic densities have a list of locations they connect to, while postsynaptic
- * densities have a list of locations they connect from.
+ * dimensional location, a confidence, a set of rois, and a set of Synapse locations representing
+ * its connections. Presynaptic densities have a set of locations they connect to, while postsynaptic
+ * densities have a set of locations they connect from.
  */
 public class Synapse {
 
@@ -29,23 +33,23 @@ public class Synapse {
     private float confidence;
 
     @SerializedName("rois")
-    public List<String> rois;
+    public Set<String> rois;
 
     @SerializedName("ConnectsTo")
-    private List<List<Integer>> connectsTo;
+    private Set<List<Integer>> connectsTo;
 
     @SerializedName("ConnectsFrom")
-    private List<List<Integer>> connectsFrom;
+    private Set<List<Integer>> connectsFrom;
 
     /**
      * Class constructor used for testing.
      *
-     * @param type type of synaptic density (pre or post)
-     * @param confidence confidence of prediction
-     * @param location 3D location of density
-     * @param connections list of connections (connections to if pre, connections from if post)
+     * @param type        type of synaptic density (pre or post)
+     * @param confidence  confidence of prediction
+     * @param location    3D location of density
+     * @param connections set of connections (connections to if pre, connections from if post)
      */
-    public Synapse(String type, float confidence, List<Integer> location, List<List<Integer>> connections) {
+    public Synapse(String type, float confidence, List<Integer> location, Set<List<Integer>> connections) {
         this.type = type;
         this.confidence = confidence;
         this.location = location;
@@ -59,13 +63,13 @@ public class Synapse {
     /**
      * Class constructor used for neo4j stored procedures.
      *
-     * @param type type of synaptic density (pre or post)
-     * @param x x coordinate of location
-     * @param y y coordinate of location
-     * @param z z coordinate of location
-     * @param roiList list of rois that this density is in
+     * @param type   type of synaptic density (pre or post)
+     * @param x      x coordinate of location
+     * @param y      y coordinate of location
+     * @param z      z coordinate of location
+     * @param roiSet set of rois that this density is in
      */
-    public Synapse(String type, Integer x, Integer y, Integer z, List<String> roiList) {
+    public Synapse(String type, Integer x, Integer y, Integer z, Set<String> roiSet) {
         this.type = type;
         this.confidence = 0.0F;
         List<Integer> location = new ArrayList<>();
@@ -73,7 +77,7 @@ public class Synapse {
         location.add(y);
         location.add(z);
         this.location = location;
-        this.rois = roiList;
+        this.rois = roiSet;
     }
 
     @Override
@@ -107,13 +111,13 @@ public class Synapse {
         return result;
     }
 
-    private List<String> locationListToStringKeys(List<List<Integer>> locationList) {
-        List<String> locationStringList = new ArrayList<>();
-        for (List<Integer> location : locationList) {
-            locationStringList.add(locationToStringKey(location));
+    private Set<String> locationSetToStringKeys(Set<List<Integer>> locationSet) {
+        Set<String> locationStringSet = new HashSet<>();
+        for (List<Integer> location : locationSet) {
+            locationStringSet.add(locationToStringKey(location));
 
         }
-        return locationStringList;
+        return locationStringSet;
     }
 
     private String locationToStringKey(List<Integer> location) {
@@ -121,7 +125,6 @@ public class Synapse {
     }
 
     /**
-     *
      * @return the location represented as a string in format "x:y:z"
      */
     public String getLocationString() {
@@ -129,7 +132,6 @@ public class Synapse {
     }
 
     /**
-     *
      * @return list of integers representing synaptic density's 3D location
      */
     public List<Integer> getLocation() {
@@ -137,7 +139,6 @@ public class Synapse {
     }
 
     /**
-     *
      * @return x coordinate of location
      */
     public Integer getX() {
@@ -145,7 +146,6 @@ public class Synapse {
     }
 
     /**
-     *
      * @return y coordinate of location
      */
     public Integer getY() {
@@ -153,7 +153,6 @@ public class Synapse {
     }
 
     /**
-     *
      * @return z coordinate of location
      */
     public Integer getZ() {
@@ -181,7 +180,6 @@ public class Synapse {
     }
 
     /**
-     *
      * @return confidence of prediction
      */
     public float getConfidence() {
@@ -189,21 +187,21 @@ public class Synapse {
     }
 
     /**
-     * Returns a list of locations that are connected to this synaptic density
+     * Returns a set of locations that are connected to this synaptic density
      * as strings in the format "x:y:z". Presynaptic densities have connections to
      * postsynaptic densities, and postsynaptic densities have connections from
      * presynaptic densities.
      *
-     * @return list of location strings
+     * @return set of location strings
      */
-    List<String> getConnectionLocationStrings() {
-        List<String> connections = new ArrayList<>();
+    Set<String> getConnectionLocationStrings() {
+        Set<String> connections = new HashSet<>();
         switch (this.type) {
             case ("post"):
-                connections = locationListToStringKeys(this.connectsFrom);
+                connections = locationSetToStringKeys(this.connectsFrom);
                 break;
             case ("pre"):
-                connections = locationListToStringKeys(this.connectsTo);
+                connections = locationSetToStringKeys(this.connectsTo);
                 break;
             default:
                 connections.add("Type not listed.");
@@ -214,14 +212,14 @@ public class Synapse {
     }
 
     /**
-     * Returns a list of locations that are connected to this synaptic density.
+     * Returns a set of locations that are connected to this synaptic density.
      * Presynaptic densities have connections to postsynaptic densities, and
      * postsynaptic densities have connections from presynaptic densities.
      *
-     * @return list of locations, which are lists of integers representing 3D locations
+     * @return set of locations, which are lists of integers representing 3D locations
      */
-    List<List<Integer>> getConnectionLocations() {
-        List<List<Integer>> connections = new ArrayList<>();
+    Set<List<Integer>> getConnectionLocations() {
+        Set<List<Integer>> connections = new HashSet<>();
         switch (this.type) {
             case ("post"):
                 connections = this.connectsFrom;
@@ -244,7 +242,6 @@ public class Synapse {
     }
 
     /**
-     *
      * @return type of synaptic density (pre or post)
      */
     public String getType() {
@@ -252,73 +249,58 @@ public class Synapse {
     }
 
     /**
-     *
-     * @return list of rois in which this synaptic density is located ("-lm" suffix
+     * @return set of rois in which this synaptic density is located ("-lm" suffix
      * removed if present)
      */
-    public List<String> getRois() {
+    public Set<String> getRois() {
         // remove -lm tag on rois
-        if (this.rois != null) {
-            List<String> newRoiList = new ArrayList<>();
-            for (String roi : rois) {
-                if (roi.endsWith("-lm")) {
-                    newRoiList.add(roi.replace("-lm", ""));
-                } else {
-                    newRoiList.add(roi);
-                }
-            }
-            return newRoiList;
-        } else {
-            return null;
-        }
+        return removeLMTagFromRois(this.rois);
     }
 
-    private List<String> getRoiPts() {
+    private Set<String> getRoiPts() {
         // remove -lm tag on rois
         if (this.rois != null) {
-            List<String> newRoiList = new ArrayList<>();
+            Set<String> newRoiSet = new HashSet<>();
             for (String roi : rois) {
                 if (roi.endsWith("-lm")) {
-                    newRoiList.add(roi.replace("-lm", "") + "-pt");
+                    newRoiSet.add(roi.replace("-lm", "") + "-pt");
                 } else {
-                    newRoiList.add(roi + "-pt");
+                    newRoiSet.add(roi + "-pt");
                 }
             }
-            return newRoiList;
+            return newRoiSet;
         } else {
             return null;
         }
     }
 
     /**
-     *
      * @param dataset name of dataset in which this Synapse exists
-     * @return list of rois with "-pt" suffix both with and without "dataset-" prefix
+     * @return set of rois with "-pt" suffix both with and without "dataset-" prefix
      */
-    public List<String> getRoiPtsWithAndWithoutDatasetPrefix(String dataset) {
-        List<String> roiPts = getRoiPts();
+    public Set<String> getRoiPtsWithAndWithoutDatasetPrefix(String dataset) {
+        Set<String> roiPts = getRoiPts();
         assert roiPts != null : "no rois associated with this Synapse";
-        roiPts.addAll(roiPts.stream().map(r -> dataset + "-" + r).collect(Collectors.toList()));
+        roiPts.addAll(roiPts.stream().map(r -> dataset + "-" + r).collect(Collectors.toSet()));
         return roiPts;
     }
 
     /**
-     *
      * @param dataset name of dataset in which this Synapse exists
-     * @return list of rois both with and without "dataset-" prefix
+     * @return set of rois both with and without "dataset-" prefix
      */
-    public List<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
-        List<String> roiList = getRois();
-        roiList.addAll(roiList.stream().map(r -> dataset + "-" + r).collect(Collectors.toList()));
-        return roiList;
+    public Set<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
+        Set<String> roiSet = getRois();
+        roiSet.addAll(roiSet.stream().map(r -> dataset + "-" + r).collect(Collectors.toSet()));
+        return roiSet;
     }
 
     /**
-     * Adds a provided list of rois to this Synapse instance.
+     * Adds a provided set of rois to this Synapse instance.
      *
-     * @param rois a list of rois
+     * @param rois a set of rois
      */
-    public void addRoiList(List<String> rois) {
+    public void addRoiSet(Set<String> rois) {
         this.rois = rois;
     }
 

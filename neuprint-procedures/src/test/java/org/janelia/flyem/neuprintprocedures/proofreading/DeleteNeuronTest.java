@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -47,7 +48,7 @@ public class DeleteNeuronTest {
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         File swcFile = new File("src/test/resources/8426959.swc");

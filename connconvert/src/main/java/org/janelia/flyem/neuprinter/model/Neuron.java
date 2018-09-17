@@ -8,8 +8,8 @@ import org.neo4j.driver.v1.types.Point;
 
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -39,7 +39,7 @@ public class Neuron {
     private final String neuronType;
 
     @SerializedName("rois")
-    private final List<String> rois;
+    private final Set<String> rois;
 
     @SerializedName("Soma")
     private final Soma soma;
@@ -47,20 +47,20 @@ public class Neuron {
     /**
      * Class constructor.
      *
-     * @param id bodyId
-     * @param status status
-     * @param name name
+     * @param id         bodyId
+     * @param status     status
+     * @param name       name
      * @param neuronType neuron type
-     * @param size size (in voxels)
-     * @param rois rois associated with this neuron
-     * @param soma soma for this neuron
+     * @param size       size (in voxels)
+     * @param rois       rois associated with this neuron
+     * @param soma       soma for this neuron
      */
     public Neuron(final Long id,
                   final String status,
                   final String name,
                   final String neuronType,
                   final Long size,
-                  final List<String> rois,
+                  final Set<String> rois,
                   final Soma soma) {
         this.id = id;
         this.status = status;
@@ -72,7 +72,6 @@ public class Neuron {
     }
 
     /**
-     *
      * @return bodyId
      */
     public Long getId() {
@@ -80,7 +79,6 @@ public class Neuron {
     }
 
     /**
-     *
      * @return name
      */
     public String getName() {
@@ -88,7 +86,6 @@ public class Neuron {
     }
 
     /**
-     *
      * @return type of neuron
      */
     public String getNeuronType() {
@@ -96,7 +93,6 @@ public class Neuron {
     }
 
     /**
-     *
      * @return status
      */
     public String getStatus() {
@@ -104,7 +100,6 @@ public class Neuron {
     }
 
     /**
-     *
      * @return voxel size
      */
     public Long getSize() {
@@ -112,37 +107,38 @@ public class Neuron {
     }
 
     /**
-     *
      * @return rois (without "-lm" suffix if present)
      */
-    public List<String> getRois() {
-        // remove -lm tag on rois
-        if (this.rois!=null) {
-            List<String> newRoiList = new ArrayList<>();
-            for (String roi : rois) {
-                if (roi.endsWith("-lm")) {
-                    newRoiList.add(roi.replace("-lm", ""));
-                } else {
-                    newRoiList.add(roi);
-                }
-            }
-            return newRoiList;
+    public Set<String> getRois() {
+        return removeLMTagFromRois(this.rois);
+    }
+
+    static Set<String> removeLMTagFromRois(Set<String> rois) {
+        Set<String> newRoiSet;
+        if (rois != null) {
+            newRoiSet = rois.stream()
+                    .map(r -> {
+                        if (r.endsWith("-lm")) return r.replace("-lm", "");
+                        else return r;
+                    })
+                    .collect(Collectors.toSet());
+            return newRoiSet;
         } else {
             return null;
         }
     }
 
     /**
-     * Returns a list of rois in which this neuron is located with and without
+     * Returns a set of rois in which this neuron is located with and without
      * a "dataset-" prefix.
      *
      * @param dataset the dataset in which this neuron exists
-     * @return list of rois and rois prefixed with "dataset-"
+     * @return set of rois and rois prefixed with "dataset-"
      */
-    public List<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
-        List<String> rois = getRois();
-        if (rois!=null) {
-            rois.addAll(rois.stream().map(r -> dataset + "-" + r).collect(Collectors.toList()));
+    public Set<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
+        Set<String> rois = getRois();
+        if (rois != null) {
+            rois.addAll(rois.stream().map(r -> dataset + "-" + r).collect(Collectors.toSet()));
             return rois;
         } else {
             return null;
@@ -150,7 +146,6 @@ public class Neuron {
     }
 
     /**
-     *
      * @return the {@link Soma} for this neuron
      */
     Soma getSoma() {
@@ -158,7 +153,6 @@ public class Neuron {
     }
 
     /**
-     *
      * @return the {@link Soma} location as a neo4j {@link Point}
      */
     public Point getSomaLocation() {
@@ -170,7 +164,6 @@ public class Neuron {
     }
 
     /**
-     *
      * @return radius of {@link Soma}
      */
     public Float getSomaRadius() {
@@ -229,7 +222,7 @@ public class Neuron {
      * @return list of Neurons
      */
     public static List<Neuron> fromJson(final BufferedReader reader) {
-        return JsonUtils.GSON.fromJson(reader,NEURON_LIST_TYPE);
+        return JsonUtils.GSON.fromJson(reader, NEURON_LIST_TYPE);
     }
 
     /**
@@ -240,10 +233,10 @@ public class Neuron {
      * @return Neuron
      */
     public static Neuron fromJsonSingleObject(final JsonReader reader) {
-        return JsonUtils.GSON.fromJson(reader,Neuron.class);
+        return JsonUtils.GSON.fromJson(reader, Neuron.class);
     }
 
-    private static Type NEURON_LIST_TYPE = new TypeToken<List<Neuron>>(){}.getType();
-
+    private static Type NEURON_LIST_TYPE = new TypeToken<List<Neuron>>() {
+    }.getType();
 
 }

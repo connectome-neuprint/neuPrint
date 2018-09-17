@@ -27,7 +27,19 @@ class MetaNodeUpdater {
 
                 Set<String> roiNameSet = getAllRoisFromSegments(dbService, dataset)
                         .stream()
-                        .filter((l) -> (!l.equals("Neuron") && !l.equals("Segment") && !l.startsWith(dataset)))
+                        .filter((p) -> (
+                                !p.equals("autoName") &&
+                                        !p.equals("bodyId") &&
+                                        !p.equals("name") &&
+                                        !p.equals("post") &&
+                                        !p.equals("pre") &&
+                                        !p.equals("size") &&
+                                        !p.equals("status") &&
+                                        !p.equals("roiInfo") &&
+                                        !p.equals("timeStamp") &&
+                                        !p.equals("type")) &&
+                                !p.equals("somaLocation") &&
+                                !p.equals("somaRadius"))
                         .collect(Collectors.toSet());
                 SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
 
@@ -60,21 +72,21 @@ class MetaNodeUpdater {
     }
 
     private static long getRoiPreCount(GraphDatabaseService dbService, final String dataset, final String roi) {
-        Result roiPreCountQuery = dbService.execute("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.pre AS preCounts RETURN sum(preCounts) AS pre");
+        Result roiPreCountQuery = dbService.execute("MATCH (n:`" + dataset + "-Segment`) WHERE exists(n.`" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.pre AS preCounts RETURN sum(preCounts) AS pre");
         return (long) roiPreCountQuery.next().get("pre");
     }
 
     private static long getRoiPostCount(GraphDatabaseService dbService, final String dataset, final String roi) {
-        Result roiPostCountQuery = dbService.execute("MATCH (n:`" + dataset + "-" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.post AS postCounts RETURN sum(postCounts) AS post");
+        Result roiPostCountQuery = dbService.execute("MATCH (n:`" + dataset + "-Segment`) WHERE exists(n.`" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.post AS postCounts RETURN sum(postCounts) AS post");
         return (long) roiPostCountQuery.next().get("post");
     }
 
     private static Set<String> getAllRoisFromSegments(GraphDatabaseService dbService, final String dataset) {
         Set<String> roiSet = new HashSet<>();
-        Result roiLabelQuery = dbService.execute("MATCH (n:`" + dataset + "-Segment`) WITH labels(n) AS labels UNWIND labels AS label WITH DISTINCT label ORDER BY label RETURN label");
+        Result roiLabelQuery = dbService.execute("MATCH (n:`" + dataset + "-Segment`) WITH keys(n) AS props UNWIND props AS prop WITH DISTINCT prop ORDER BY prop RETURN prop");
 
         while (roiLabelQuery.hasNext()) {
-            roiSet.add(roiLabelQuery.next().get("label").toString());
+            roiSet.add(roiLabelQuery.next().get("prop").toString());
         }
         return roiSet;
     }

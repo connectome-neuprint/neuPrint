@@ -25,6 +25,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -127,18 +128,18 @@ public class Neo4jImporterTest {
             Assert.assertEquals(Values.point(9157, 1.0, 2.0, 3.0).asPoint(), bodyId100569.asMap().get("somaLocation"));
             Assert.assertEquals(5.0, bodyId100569.asMap().get("somaRadius"));
 
-            Assert.assertTrue(bodyId100569.hasLabel("test-roi1"));
-            Assert.assertTrue(bodyId100569.hasLabel("test-roi2"));
-            Assert.assertTrue(bodyId100569.hasLabel("roi1"));
-            Assert.assertTrue(bodyId100569.hasLabel("roi2"));
+            Assert.assertTrue(bodyId100569.asMap().containsKey("roi1"));
+            Assert.assertEquals(true, bodyId100569.asMap().get("roi1"));
+            Assert.assertTrue(bodyId100569.asMap().containsKey("roi1"));
+            Assert.assertTrue(bodyId100569.asMap().containsKey("roi2"));
 
             int labelCount = 0;
             Iterable<String> bodyLabels = bodyId100569.labels();
 
-            for (String roi : bodyLabels) {
+            for (String label : bodyLabels) {
                 labelCount++;
             }
-            Assert.assertEquals(7, labelCount);
+            Assert.assertEquals(3, labelCount);
 
             int noStatusCount = session.run("MATCH (n:Segment) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
             Assert.assertEquals(0, noStatusCount);
@@ -162,7 +163,7 @@ public class Neo4jImporterTest {
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
 
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
 
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
@@ -224,7 +225,7 @@ public class Neo4jImporterTest {
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
 
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
 
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
@@ -258,10 +259,10 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(1.0, preSynNode.asMap().get("confidence"));
             Assert.assertEquals("pre", preSynNode.asMap().get("type"));
-            Assert.assertTrue(preSynNode.hasLabel("seven_column_roi-pt"));
-            Assert.assertTrue(preSynNode.hasLabel("roiA-pt"));
-            Assert.assertTrue(preSynNode.hasLabel("test-seven_column_roi-pt"));
-            Assert.assertTrue(preSynNode.hasLabel("test-roiA-pt"));
+            Assert.assertTrue(preSynNode.asMap().containsKey("seven_column_roi"));
+            Assert.assertTrue(preSynNode.asMap().containsKey("roiA"));
+            Assert.assertEquals(true, preSynNode.asMap().get("roiA"));
+
 
             Point postLocationPoint = Values.point(9157, 4301, 2276, 1535).asPoint();
             Node postSynNode = session.run("MATCH (s:Synapse:`test-Synapse`:`test-PostSyn`:test:PostSyn{location:$location}) RETURN s",
@@ -269,10 +270,9 @@ public class Neo4jImporterTest {
 
             Assert.assertEquals(1.0, postSynNode.asMap().get("confidence"));
             Assert.assertEquals("post", postSynNode.asMap().get("type"));
-            Assert.assertTrue(postSynNode.hasLabel("seven_column_roi-pt"));
-            Assert.assertTrue(postSynNode.hasLabel("roiA-pt"));
-            Assert.assertTrue(postSynNode.hasLabel("test-seven_column_roi-pt"));
-            Assert.assertTrue(postSynNode.hasLabel("test-roiA-pt"));
+            Assert.assertTrue(postSynNode.asMap().containsKey("seven_column_roi"));
+            Assert.assertTrue(postSynNode.asMap().containsKey("roiA"));
+            Assert.assertEquals(true,postSynNode.asMap().get("seven_column_roi"));
 
             Point preLocationPoint2 = Values.point(9157, 4287, 2277, 1502).asPoint();
             int synapsesToCount = session.run("MATCH (s:Synapse:PreSyn:`test-Synapse`:`test-PreSyn`:test{location:$location})-[:SynapsesTo]->(l) RETURN count(l)",
@@ -282,12 +282,9 @@ public class Neo4jImporterTest {
 
             Node segmentNode = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959}) RETURN n").single().get(0).asNode();
 
-            Assert.assertTrue(segmentNode.hasLabel("seven_column_roi"));
-            Assert.assertTrue(segmentNode.hasLabel("roiA"));
-            Assert.assertTrue(segmentNode.hasLabel("roiB"));
-            Assert.assertTrue(segmentNode.hasLabel("test-seven_column_roi"));
-            Assert.assertTrue(segmentNode.hasLabel("test-roiA"));
-            Assert.assertTrue(segmentNode.hasLabel("test-roiB"));
+            Assert.assertTrue(segmentNode.asMap().containsKey("seven_column_roi"));
+            Assert.assertTrue(segmentNode.asMap().containsKey("roiA"));
+            Assert.assertTrue(segmentNode.asMap().containsKey("roiB"));
 
             int synapseSetContainsCount = session.run("MATCH (t:SynapseSet:test:`test-SynapseSet`{datasetBodyId:\"test:8426959\"})-[:Contains]->(s) RETURN count(s)").single().get(0).asInt();
 
@@ -319,6 +316,7 @@ public class Neo4jImporterTest {
             Assert.assertEquals(2L, metaSynapseCountPerRoiMap.get("roiA").getPre());
             Assert.assertEquals(0L, metaSynapseCountPerRoiMap.get("roiB").getPre());
             Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiB").getPost());
+
             // test to handle ' characters predictably
             Assert.assertEquals(0L, metaSynapseCountPerRoiMap.get("roi'C").getPre());
             Assert.assertEquals(1L, metaSynapseCountPerRoiMap.get("roi'C").getPost());
@@ -364,7 +362,7 @@ public class Neo4jImporterTest {
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
 
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
 
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
@@ -410,7 +408,7 @@ public class Neo4jImporterTest {
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
 
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
 
         bodyList.sort(new SortBodyByNumberOfSynapses());
 

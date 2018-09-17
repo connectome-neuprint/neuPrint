@@ -9,6 +9,7 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.logging.Logger;
 
 /**
@@ -18,7 +19,7 @@ import java.util.logging.Logger;
 public class SynapseMapper {
 
     private final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap;
-    private final HashMap<String, List<String>> preToPostMap = new HashMap<>();
+    private final HashMap<String, Set<String>> preToPostMap = new HashMap<>();
 
     /**
      * Class constructor.
@@ -37,7 +38,7 @@ public class SynapseMapper {
     /**
      * @return map of presynaptic density locations to postsynaptic density locations
      */
-    public HashMap<String, List<String>> getPreToPostMap() {
+    public HashMap<String, Set<String>> getPreToPostMap() {
         return preToPostMap;
     }
 

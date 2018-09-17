@@ -26,6 +26,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -156,7 +157,7 @@ public class MergeNeuronsTest {
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         File swcFile1 = new File("src/test/resources/8426959.swc");
@@ -205,8 +206,7 @@ public class MergeNeuronsTest {
             Assert.assertTrue(neuron.hasLabel(dataset + "-Segment"));
             String[] roiArray = new String[]{"seven_column_roi", "roiB", "roiA", "anotherRoi"};
             for (String roi : roiArray) {
-                Assert.assertTrue(neuron.hasLabel(roi));
-                Assert.assertTrue(neuron.hasLabel(dataset + "-" + roi));
+                Assert.assertTrue(neuron.asMap().containsKey(roi));
             }
 
             //check weight of connectsTo relationship
@@ -380,7 +380,7 @@ public class MergeNeuronsTest {
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         File swcFile1 = new File("src/test/resources/8426959.swc");
@@ -448,7 +448,7 @@ public class MergeNeuronsTest {
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         File swcFile1 = new File("src/test/resources/8426959.swc");

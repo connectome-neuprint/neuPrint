@@ -217,7 +217,7 @@ public class BodyWithSynapses {
      *
      * @param preToPost map of presynaptic locations to postsynaptic locations
      */
-    public void addSynapsesToPreToPostMap(HashMap<String, List<String>> preToPost) {
+    public void addSynapsesToPreToPostMap(HashMap<String, Set<String>> preToPost) {
         this.synapseSet
                 .stream()
                 .filter(synapse -> synapse.getType().equals(PRE))
@@ -249,9 +249,9 @@ public class BodyWithSynapses {
         SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
         synapseSet.forEach(synapse -> {
             if (synapse.getType().equals(PRE)) {
-                synapse.getRois().forEach(roi -> synapseCountsPerRoi.incrementPreForRoi(roi.replace("-pt", "")));
+                synapse.getRois().forEach(synapseCountsPerRoi::incrementPreForRoi);
             } else if (synapse.getType().equals(POST)) {
-                synapse.getRois().forEach(roi -> synapseCountsPerRoi.incrementPostForRoi(roi.replace("-pt", "")));
+                synapse.getRois().forEach(synapseCountsPerRoi::incrementPostForRoi);
             }
         });
         return synapseCountsPerRoi;

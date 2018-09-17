@@ -19,12 +19,14 @@ import java.io.FileReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
  * The NeuPrinterMain class implements an application that loads neuron and synapse
  * data provided by JSON files into a neo4j database.
+ *
  * @see <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron and synapse JSON spec</a>
  */
 public class NeuPrinterMain {
@@ -360,7 +362,7 @@ public class NeuPrinterMain {
             LOG.info("Reading in synapse JSON took: " + timer.stop());
             timer.reset();
 
-            HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+            HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 

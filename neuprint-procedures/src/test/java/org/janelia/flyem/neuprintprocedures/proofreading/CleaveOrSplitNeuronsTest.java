@@ -30,6 +30,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -57,7 +58,7 @@ public class CleaveOrSplitNeuronsTest {
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         File swcFile1 = new File("src/test/resources/8426959.swc");
@@ -110,16 +111,14 @@ public class CleaveOrSplitNeuronsTest {
             Assert.assertTrue(neuron1.hasLabel(dataset + "-Segment"));
             String[] roiArray1 = new String[]{"seven_column_roi", "roiB", "roiA"};
             for (String roi : roiArray1) {
-                Assert.assertTrue(neuron1.hasLabel(roi));
-                Assert.assertTrue(neuron1.hasLabel(dataset + "-" + roi));
+                Assert.assertTrue(neuron1.asMap().containsKey(roi));
             }
             Assert.assertTrue(neuron2.hasLabel("Segment"));
             Assert.assertTrue(neuron2.hasLabel(dataset));
             Assert.assertTrue(neuron1.hasLabel(dataset + "-Segment"));
             String[] roiArray2 = new String[]{"seven_column_roi", "roiA"};
             for (String roi : roiArray2) {
-                Assert.assertTrue(neuron2.hasLabel(roi));
-                Assert.assertTrue(neuron1.hasLabel(dataset + "-" + roi));
+                Assert.assertTrue(neuron2.asMap().containsKey(roi));
             }
             Assert.assertFalse(neuron2.hasLabel("roiB"));
 
@@ -187,6 +186,8 @@ public class CleaveOrSplitNeuronsTest {
             Assert.assertEquals(1, newSynapseCountMap.get("roiA").getPre());
             Assert.assertEquals(1, newSynapseCountMap.get("roiB").getPost());
 
+            System.out.println(origSynapseCountPerRoi);
+
             Assert.assertEquals(2, origSynapseCountMap.keySet().size());
             Assert.assertEquals(0, origSynapseCountMap.get("seven_column_roi").getPost());
             Assert.assertEquals(1, origSynapseCountMap.get("roiA").getPre());
@@ -223,7 +224,7 @@ public class CleaveOrSplitNeuronsTest {
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         File swcFile1 = new File("src/test/resources/8426959.swc");
@@ -296,7 +297,7 @@ public class CleaveOrSplitNeuronsTest {
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, List<String>> preToPost = mapper.getPreToPostMap();
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
         File swcFile1 = new File("src/test/resources/8426959.swc");

@@ -40,6 +40,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 //TODO: get rid of history nodes? or replace with something else
 public class ProofreaderProcedures {
 
@@ -54,6 +55,7 @@ public class ProofreaderProcedures {
     private static final String PRE_SYN = "PreSyn";
     //Property names
     private static final String BODY_ID = "bodyId";
+    private static final String CONFIDENCE = "confidence";
     private static final String DATASET_BODY_ID = "datasetBodyId";
     private static final String LOCATION = "location";
     private static final String MERGED_BODY_ID = "mergedBodyId";
@@ -63,6 +65,7 @@ public class ProofreaderProcedures {
     private static final String NAME = "name";
     private static final String STATUS = "status";
     private static final String ROI_INFO = "roiInfo";
+    private static final String TIME_STAMP = "timeStamp";
     private static final String TYPE = "type";
     private static final String WEIGHT = "weight";
     //Relationship names
@@ -251,7 +254,7 @@ public class ProofreaderProcedures {
                             synapseLocation.get(0),
                             synapseLocation.get(1),
                             synapseLocation.get(2),
-                            getSynapseNodeRoiList(synapseNode, datasetLabel));
+                            getSynapseNodeRoiSet(synapseNode));
                     if (newBodySynapseSet.contains(synapse)) {
                         //delete connection to original synapse set
                         synapseRelationship.delete();
@@ -286,8 +289,8 @@ public class ProofreaderProcedures {
         cleavedOriginalBody.setProperty(ROI_INFO, originalBodySynapseCountsPerRoi.getAsJsonString());
 
         //add proper roi labels to Segment
-        addRoiLabelsToSegmentGivenSynapseCountsPerRoi(cleavedNewBody, newBodySynapseCountsPerRoi, datasetLabel);
-        addRoiLabelsToSegmentGivenSynapseCountsPerRoi(cleavedOriginalBody, originalBodySynapseCountsPerRoi, datasetLabel);
+        addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(cleavedNewBody, newBodySynapseCountsPerRoi);
+        addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(cleavedOriginalBody, originalBodySynapseCountsPerRoi);
         //update pre, post properties for new nodes
         cleavedNewBody.setProperty(PRE, newBodySynapseCounter.getPre());
         cleavedNewBody.setProperty(POST, newBodySynapseCounter.getPost());
@@ -489,6 +492,11 @@ public class ProofreaderProcedures {
         SynapseCountsPerRoi synapseCountsPerRoi = BodyWithSynapses.getSynapseCountersPerRoiFromSynapseSet(mergedSynapseSet);
         newNode.setProperty(ROI_INFO, synapseCountsPerRoi.getAsJsonString());
 
+        //add boolean roi props
+        for (String roi : synapseCountsPerRoi.getSetOfRois()) {
+            newNode.setProperty(roi, true);
+        }
+
         //add pre and post count from merged node to new node
         setSummedLongProperty(PRE, newNode, node2, newNode);
         setSummedLongProperty(POST, newNode, node2, newNode);
@@ -651,7 +659,7 @@ public class ProofreaderProcedures {
                             synapseLocation.get(0),
                             synapseLocation.get(1),
                             synapseLocation.get(2),
-                            getSynapseNodeRoiList(synapseNode, datasetLabel));
+                            getSynapseNodeRoiSet(synapseNode));
                     synapseSet.add(synapse);
                 } catch (org.neo4j.graphdb.NotFoundException nfe) {
                     nfe.printStackTrace();
@@ -777,8 +785,12 @@ public class ProofreaderProcedures {
         parametersMap.put("z", (double) synapse.getZ());
 
         try {
-            roiQueryResult = dbService.execute("MATCH (s:`" + datasetLabel + "-Synapse`) WHERE s.location=neuprint.locationAs3dCartPoint($x,$y,$z) WITH labels(s) AS labels " +
-                    "RETURN filter(label IN labels WHERE NOT label=\"Synapse\" AND NOT label=\"PreSyn\" AND NOT label=\"PostSyn\" AND NOT label=\"" + datasetLabel + "\") AS l", parametersMap).next();
+            roiQueryResult = dbService.execute("MATCH (s:`" + datasetLabel + "-Synapse`) WHERE s.location=neuprint.locationAs3dCartPoint($x,$y,$z) WITH keys(s) AS props " +
+                    "RETURN filter(prop IN props WHERE " +
+                    "NOT prop=\"type\" AND " +
+                    "NOT prop=\"confidence\" AND " +
+                    "NOT prop=\"location\" AND " +
+                    "NOT prop=\"timeStamp\") AS l", parametersMap).next();
         } catch (java.util.NoSuchElementException nse) {
             nse.printStackTrace();
             log.error(String.format("ProofreaderProcedures getRoisForSynapse: Error using proofreader procedures: %s not found in the dataset.", SYNAPSE));
@@ -789,26 +801,24 @@ public class ProofreaderProcedures {
     }
 
     private void setSynapseRoisFromDatabase(Synapse synapse, String datasetLabel) {
-        List<String> roiList = getRoisForSynapse(synapse, datasetLabel)
-                .stream()
-                .filter(label -> !label.startsWith(datasetLabel))
-                .collect(Collectors.toList());
+        List<String> roiList = getRoisForSynapse(synapse, datasetLabel);
         if (roiList.size() == 0) {
             log.info(String.format("ProofreaderProcedures setSynapseRoisFromDatabase: No roi found on %s: %s", SYNAPSE, synapse));
             //throw new RuntimeException(String.format("No roi found on %s: %s", SYNAPSE, synapse));
         }
-        synapse.addRoiList(roiList);
+        synapse.addRoiSet(new HashSet<>(roiList));
     }
 
-    private List<String> getSynapseNodeRoiList(Node synapseNode, String datasetLabel) {
-        List<String> roiList = new ArrayList<>();
-        Iterable<Label> labelIterator = synapseNode.getLabels();
-        for (Label label : labelIterator) {
-            if (!label.name().equals(SYNAPSE) && !label.name().equals(PRE_SYN) && !label.name().equals(POST_SYN) && !label.name().startsWith(datasetLabel)) {
-                roiList.add(label.name());
-            }
-        }
-        return roiList;
+    private Set<String> getSynapseNodeRoiSet(Node synapseNode) {
+        Map<String, Object> synapseNodeProperties = synapseNode.getAllProperties();
+        return synapseNodeProperties.keySet().stream()
+                .filter(p -> (
+                        !p.equals(TIME_STAMP) &&
+                                !p.equals(LOCATION) &&
+                                !p.equals(TYPE) &&
+                                !p.equals(CONFIDENCE))
+                )
+                .collect(Collectors.toSet());
     }
 
     private ConnectsToRelationshipMap getConnectsToRelationshipMapForNodesAndDeletePreviousRelationships(final Node node1, final Node node2, final Node newNode) {
@@ -924,9 +934,9 @@ public class ProofreaderProcedures {
         }
     }
 
-    private void addRoiLabelsToSegmentGivenSynapseCountsPerRoi(Node segment, SynapseCountsPerRoi synapseCountsPerRoi, String datasetLabel) {
-        for (String roi : synapseCountsPerRoi.getSetOfRoisWithAndWithoutDatasetLabel(datasetLabel)) {
-            segment.addLabel(Label.label(roi));
+    private void addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(Node segment, SynapseCountsPerRoi synapseCountsPerRoi) {
+        for (String roi : synapseCountsPerRoi.getSetOfRois()) {
+            segment.setProperty(roi, true);
         }
     }
 
@@ -972,7 +982,7 @@ public class ProofreaderProcedures {
         }
     }
 
-    public List<Integer> getNeo4jPointLocationAsLocationList(Point neo4jPoint) {
+    private List<Integer> getNeo4jPointLocationAsLocationList(Point neo4jPoint) {
         return neo4jPoint.getCoordinate().getCoordinate().stream().map(d -> (int) Math.round(d)).collect(Collectors.toList());
     }
 

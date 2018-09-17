@@ -5,6 +5,7 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * Tests the {@link Synapse} class.
@@ -23,15 +24,15 @@ public class SynapseTest {
         final Synapse secondSynapse = parsedList.get(1);
         final Synapse thirdSynapse = parsedList.get(3);
 
-        final List<String> roiNames = firstSynapse.getRois();
+        final Set<String> roiNames = firstSynapse.getRois();
         final List<Integer> location = firstSynapse.getLocation();
 
         Assert.assertNotNull("roiNames not parsed for " + firstSynapse,
                 roiNames);
         Assert.assertEquals("invalid number of roiNames parsed for " + firstSynapse,
                 2, roiNames.size());
-        Assert.assertEquals("invalid roiName parsed for " + firstSynapse,
-                "seven_column_roi", roiNames.get(0));
+        Assert.assertTrue("invalid roiName parsed for " + firstSynapse,
+                roiNames.contains("seven_column_roi"));
 
         Assert.assertEquals("incorrect synapse type for " + firstSynapse, "pre", firstSynapse.getType());
 
