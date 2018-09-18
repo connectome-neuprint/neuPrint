@@ -141,7 +141,7 @@ All nodes have a time stamp indicating last update in the format YYYY-MM-DDTHH:M
 * somaRadius: radius of soma
 * roiInfo: string containing json map in format {"roiA":{"pre":1,"post":2},...}
 * \<roi\>: boolean indicating that body is located in a particular roi (if present, always true)
-* (optional) autoName: automatically generated name in format <max input roi>-<max output roi>_<instance number> (unique per dataset)
+* (optional) autoName: automatically generated name in format \<max input roi\>-\<max output roi\>_\<instance number\> (unique per dataset)
 
 ### :Synapse properties
 * type: type of synapse
