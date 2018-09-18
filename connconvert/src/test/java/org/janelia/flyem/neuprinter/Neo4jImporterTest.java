@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.neo4j.driver.v1.Config;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Values;
 import org.neo4j.driver.v1.types.Node;
@@ -74,7 +75,7 @@ public class Neo4jImporterTest {
         neo4jImporter.addSynapsesWithRois("test", bodyList);
         neo4jImporter.addSynapsesTo("test", preToPost);
         neo4jImporter.addSegmentRois("test", bodyList);
-        neo4jImporter.addSynapseSets("test", bodyList);
+        neo4jImporter.addConnectionSets("test", mapper.getConnectionSetMap());
         neo4jImporter.addSkeletonNodes("test", skeletonList);
         neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F);
         neo4jImporter.addAutoNamesAndNeuronLabels("test", 1);
@@ -303,22 +304,40 @@ public class Neo4jImporterTest {
         int synapsesToCount = session.run("MATCH (s:Synapse:PreSyn:`test-Synapse`:`test-PreSyn`:test{location:$location})-[:SynapsesTo]->(l) RETURN count(l)",
                 parameters("location", preLocationPoint2)).single().get(0).asInt();
 
-        Assert.assertEquals(3, synapsesToCount);
+        Assert.assertEquals(4, synapsesToCount);
 
     }
 
     @Test
-    public void synapseSetShouldContainAllSynapsesForNeuron() {
+    public void connectionSetShouldContainAllSynapsesForConnection() {
 
         Session session = driver.session();
 
-        int synapseSetContainsCount = session.run("MATCH (t:SynapseSet:test:`test-SynapseSet`{datasetBodyId:\"test:8426959\"})-[:Contains]->(s) RETURN count(s)").single().get(0).asInt();
+        List<Record> synapseCS_8426959_2589725 = session.run("MATCH (t:ConnectionSet:test:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:2589725\"})-[:Contains]->(s) RETURN s").list();
+        Assert.assertEquals(3, synapseCS_8426959_2589725.size());
+        Node node1 = (Node) synapseCS_8426959_2589725.get(0).asMap().get("s");
+        Node node2 = (Node) synapseCS_8426959_2589725.get(1).asMap().get("s");
+        Node node3 = (Node) synapseCS_8426959_2589725.get(2).asMap().get("s");
 
-        Assert.assertEquals(3, synapseSetContainsCount);
+        Point synapseLocation1 = (Point) node1.asMap().get("location");
+        Point synapseLocation2 = (Point) node2.asMap().get("location");
+        Point synapseLocation3 = (Point) node3.asMap().get("location");
+        Point location1 = Values.point(9157, 4287, 2277, 1542).asPoint();
+        Point location2 = Values.point(9157, 4298, 2294, 1542).asPoint();
+        Point location3 = Values.point(9157, 4287, 2277, 1502).asPoint();
 
-        int synapseSetContainedCount = session.run("MATCH (t:SynapseSet:test:`test-SynapseSet`{datasetBodyId:\"test:8426959\"})<-[:Contains]-(n) RETURN count(n)").single().get(0).asInt();
+        Assert.assertTrue(synapseLocation1.equals(location1) || synapseLocation2.equals(location1) || synapseLocation3.equals(location1));
+        Assert.assertTrue(synapseLocation1.equals(location2) || synapseLocation2.equals(location2) || synapseLocation3.equals(location2));
+        Assert.assertTrue(synapseLocation1.equals(location3) || synapseLocation2.equals(location3) || synapseLocation3.equals(location3));
 
-        Assert.assertEquals(1L, synapseSetContainedCount);
+        int connectionSetCount = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})-[:Contains]->(c:ConnectionSet) RETURN count(c)").single().get(0).asInt();
+
+        Assert.assertEquals(5, connectionSetCount);
+
+        List<Record> connections = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PreSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.weight, cs.datasetBodyIds, count(s)").list();
+        for (Record record : connections) {
+            Assert.assertEquals(record.asMap().get("c.weight"), record.asMap().get("count(s)"));
+        }
 
     }
 
@@ -328,16 +347,16 @@ public class Neo4jImporterTest {
         Session session = driver.session();
 
         Node metaNode = session.run("MATCH (n:Meta:test) RETURN n").single().get(0).asNode();
-        Assert.assertEquals(2L, metaNode.asMap().get("totalPreCount"));
-        Assert.assertEquals(5L, metaNode.asMap().get("totalPostCount"));
+        Assert.assertEquals(3L, metaNode.asMap().get("totalPreCount"));
+        Assert.assertEquals(4L, metaNode.asMap().get("totalPostCount"));
 
         String metaSynapseCountPerRoi = (String) metaNode.asMap().get("roiInfo");
         Gson gson = new Gson();
         Map<String, SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
         }.getType());
 
-        Assert.assertEquals(4L, metaSynapseCountPerRoiMap.get("roiA").getPost());
-        Assert.assertEquals(2L, metaSynapseCountPerRoiMap.get("roiA").getPre());
+        Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiA").getPost());
+        Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiA").getPre());
         Assert.assertEquals(0L, metaSynapseCountPerRoiMap.get("roiB").getPre());
         Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiB").getPost());
 

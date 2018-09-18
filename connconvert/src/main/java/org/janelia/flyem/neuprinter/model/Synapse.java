@@ -194,7 +194,7 @@ public class Synapse {
      *
      * @return set of location strings
      */
-    Set<String> getConnectionLocationStrings() {
+    public Set<String> getConnectionLocationStrings() {
         Set<String> connections = new HashSet<>();
         switch (this.type) {
             case ("post"):

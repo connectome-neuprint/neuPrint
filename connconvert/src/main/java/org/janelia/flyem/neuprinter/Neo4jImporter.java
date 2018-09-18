@@ -8,6 +8,8 @@ import org.janelia.flyem.neuprinter.db.StdOutTransactionBatch;
 import org.janelia.flyem.neuprinter.db.TransactionBatch;
 import org.janelia.flyem.neuprinter.model.AutoName;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
+import org.janelia.flyem.neuprinter.model.ConnectionSet;
+import org.janelia.flyem.neuprinter.model.ConnectionSetMap;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
@@ -117,7 +119,7 @@ public class Neo4jImporter implements AutoCloseable {
         final String[] prepTextArray = {
                 "CREATE CONSTRAINT ON (n:`" + dataset + "-Neuron`) ASSERT n.bodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (n:`" + dataset + "-Segment`) ASSERT n.bodyId IS UNIQUE",
-                "CREATE CONSTRAINT ON (s:`" + dataset + "-SynapseSet`) ASSERT s.datasetBodyId IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-ConnectionSet`) ASSERT s.datasetBodyIds IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-Synapse`) ASSERT s.location IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-SkelNode`) ASSERT s.skelNodeId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-Skeleton`) ASSERT s.skeletonId IS UNIQUE",
@@ -496,7 +498,7 @@ public class Neo4jImporter implements AutoCloseable {
      */
     public void addSynapseSets(final String dataset, final List<BodyWithSynapses> bodyList) {
 
-        LOG.info("addSynapseSets: entry");
+        LOG.info("addConnectionSets: entry");
 
         final String segmentContainsSSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
                 "MERGE (s:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId, s.timeStamp=$timeStamp, s:SynapseSet, s:" + dataset + " \n" +
@@ -524,7 +526,56 @@ public class Neo4jImporter implements AutoCloseable {
             batch.writeTransaction();
         }
 
-        LOG.info("addSynapseSets: exit");
+        LOG.info("addConnectionSets: exit");
+    }
+
+    /**
+     * Adds ConnectionSet nodes to database and connects them to appropriate Segment and Synapse nodes via Contains Relationships.
+     *
+     * @param dataset          dataset name
+     * @param connectionSetMap {@link ConnectionSetMap} containing synapse locations for each connection A->B
+     */
+    public void addConnectionSets(final String dataset, final ConnectionSetMap connectionSetMap) {
+
+        LOG.info("addConnectionSets: entry");
+
+        final String segmentContainsCSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId=$bodyId1, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
+                "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId=$bodyId2, m.status=$notAnnotated, m:Segment, m:" + dataset + " \n" +
+                "MERGE (s:`" + dataset + "-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) ON CREATE SET s.datasetBodyIds=$datasetBodyIds, s.timeStamp=$timeStamp, s:ConnectionSet, s:" + dataset + " \n" +
+                "MERGE (n)-[:Contains]->(s) \n" +
+                "MERGE (m)-[:Contains]->(s) ";
+
+        final String csContainsSynapseText = "MERGE (s:`" + dataset + "-Synapse`{location:$location}) ON CREATE SET s.location=$location, s:Synapse, s:" + dataset + " \n" +
+                "MERGE (t:`" + dataset + "-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) ON CREATE SET t.datasetBodyIds=$datasetBodyIds, t:ConnectionSet, t:" + dataset + " \n" +
+                "MERGE (t)-[:Contains]->(s) \n";
+
+        try (final TransactionBatch batch = getBatch()) {
+
+            for (String connectionSetKey : connectionSetMap.getConnectionSetKeys()) {
+                ConnectionSet connectionSet = connectionSetMap.getConnectionSetForKey(connectionSetKey);
+
+                batch.addStatement(new Statement(segmentContainsCSText,
+                        parameters(
+                                "bodyId1", connectionSet.getPresynapticBodyId(),
+                                "bodyId2", connectionSet.getPostsynapticBodyId(),
+                                "notAnnotated", "not annotated",
+                                "datasetBodyIds", dataset + ":" + connectionSetKey,
+                                "timeStamp", timeStamp)));
+
+                for (String synapseLocationString : connectionSet.getConnectingSynapseLocationStrings()) {
+
+                    batch.addStatement(new Statement(csContainsSynapseText,
+                            parameters(
+                                    "location", Synapse.convertLocationStringToPoint(synapseLocationString),
+                                    "datasetBodyIds", dataset + ":" + connectionSetKey)));
+                }
+
+            }
+            batch.writeTransaction();
+        }
+
+        LOG.info("addConnectionSets: exit");
+
     }
 
     /**

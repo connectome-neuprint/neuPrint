@@ -8,6 +8,7 @@ import com.google.common.base.Stopwatch;
 import org.janelia.flyem.neuprinter.db.DbConfig;
 import org.janelia.flyem.neuprinter.json.JsonUtils;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
+import org.janelia.flyem.neuprinter.model.ConnectionSetMap;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.slf4j.Logger;
@@ -92,10 +93,10 @@ public class NeuPrinterMain {
         public boolean addNeuronRois;
 
         @Parameter(
-                names = "--addSynapseSets",
-                description = "Indicates that synapse set nodes should be added (omit to skip)",
+                names = "--addConnectionSets",
+                description = "Indicates that connection set nodes should be added (omit to skip)",
                 arity = 0)
-        public boolean addSynapseSets;
+        public boolean addConnectionSets;
 
         @Parameter(
                 names = "--addSkeletons",
@@ -369,6 +370,7 @@ public class NeuPrinterMain {
             timer.reset();
 
             HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
+            ConnectionSetMap connectionSetMap = mapper.getConnectionSetMap();
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
@@ -406,10 +408,10 @@ public class NeuPrinterMain {
                     timer.reset();
                 }
 
-                if (parameters.addSynapseSets || parameters.doAll) {
+                if (parameters.addConnectionSets || parameters.doAll) {
                     timer.start();
-                    neo4jImporter.addSynapseSets(dataset, bodyList);
-                    LOG.info("Loading SynapseSets took: " + timer.stop());
+                    neo4jImporter.addConnectionSets(dataset, connectionSetMap);
+                    LOG.info("Loading ConnectionSets took: " + timer.stop());
                     timer.reset();
                 }
 

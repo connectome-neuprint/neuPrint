@@ -30,7 +30,7 @@ public class SynapseLocationToBodyIdMap {
      * @param forLocation location as string in format "x:y:z"
      * @return the bodyId containing the synaptic density at this location
      */
-    Long getBodyId(final String forLocation) {
+    public Long getBodyId(final String forLocation) {
         return locationToBodyIdMap.get(forLocation);
     }
 

@@ -2,6 +2,8 @@ package org.janelia.flyem.neuprinter;
 
 import com.google.common.base.Stopwatch;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
+import org.janelia.flyem.neuprinter.model.ConnectionSetMap;
+import org.janelia.flyem.neuprinter.model.Synapse;
 import org.janelia.flyem.neuprinter.model.SynapseLocationToBodyIdMap;
 
 import java.io.BufferedReader;
@@ -20,6 +22,7 @@ public class SynapseMapper {
 
     private final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap;
     private final HashMap<String, Set<String>> preToPostMap = new HashMap<>();
+    private final ConnectionSetMap connectionSetMap = new ConnectionSetMap();
 
     /**
      * Class constructor.
@@ -32,19 +35,25 @@ public class SynapseMapper {
      * @return map of synaptic density locations to bodyIds
      */
     public SynapseLocationToBodyIdMap getSynapseLocationToBodyIdMap() {
-        return synapseLocationToBodyIdMap;
+        return this.synapseLocationToBodyIdMap;
     }
 
     /**
      * @return map of presynaptic density locations to postsynaptic density locations
      */
     public HashMap<String, Set<String>> getPreToPostMap() {
-        return preToPostMap;
+        return this.preToPostMap;
     }
+
+    /**
+     *
+     * @return map of ConnectionSet nodes to be added to database
+     */
+    public ConnectionSetMap getConnectionSetMap() { return this.connectionSetMap; }
 
     @Override
     public String toString() {
-        return "{ numberOfMappedLocations: " + synapseLocationToBodyIdMap.size() + " }";
+        return "{ numberOfMappedLocations: " + this.synapseLocationToBodyIdMap.size() + " }";
     }
 
     /**
@@ -84,8 +93,20 @@ public class SynapseMapper {
         }
 
         for (final BodyWithSynapses body : bodyList) {
-            body.setConnectsTo(synapseLocationToBodyIdMap);
-            body.addSynapsesToPreToPostMap(preToPostMap);
+            body.setConnectsTo(this.synapseLocationToBodyIdMap);
+            body.addSynapsesToPreToPostMap(this.preToPostMap);
+
+            long presynapticBodyId = body.getBodyId();
+            for (final Synapse synapse : body.getSynapseSet()) {
+                if (synapse.getType().equals("pre")) {
+                    final String presynapticLocationString = synapse.getLocationString();
+                    final Set<String> connectionLocationStrings = synapse.getConnectionLocationStrings();
+                    for (final String postsynapticLocationString : connectionLocationStrings) {
+                        long postsynapticBodyId = this.synapseLocationToBodyIdMap.getBodyId(postsynapticLocationString);
+                        this.connectionSetMap.addConnection(presynapticBodyId, postsynapticBodyId, presynapticLocationString, postsynapticLocationString);
+                    }
+                }
+            }
         }
 
     }
