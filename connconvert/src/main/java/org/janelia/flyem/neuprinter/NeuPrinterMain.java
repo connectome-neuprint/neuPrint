@@ -151,7 +151,7 @@ public class NeuPrinterMain {
         boolean addAutoNamesOnly;
 
         @Parameter(
-                names = "--addAutoNamesAndNeuronLabels",
+                names = "--addAutoNames",
                 description = "Indicates that automatically generated names should be added for this dataset. Auto-names are in the format " +
                         "ROIA-ROIB_8 where ROIA is the roi in which a given neuron has the most inputs (postsynaptic densities) " +
                         "and ROIB is the roi in which a neuron has the most outputs (presynaptic densities). The final number renders " +

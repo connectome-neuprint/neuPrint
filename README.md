@@ -1,7 +1,7 @@
 [![Build Status](https://travis-ci.org/janelia-flyem/neuPrint.svg?branch=master)](https://travis-ci.org/janelia-flyem/neuPrint)
 
-# neuPrint
-A tool for loading connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [neuPrintExplorer](https://github.com/janelia-flyem/neuPrintExplorer). 
+# Neuprint
+A blueprint of the brain. A set of tools for loading and analyzing connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [neuprintExplorer](https://github.com/janelia-flyem/neuPrintExplorer). 
 
 [Javadocs](https://janelia-flyem.github.io/neuPrint/)
 
@@ -32,35 +32,41 @@ $ java -jar neuprinter.jar --dbProperties=example.properties --doAll --datasetLa
 ```console
 $ java -jar neuprinter.jar --dbProperties=example.properties --prepDatabase --addSkeletons --datasetLabel=mb6 --dataModelVersion=1.0 --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons
 ```
-## Load your own connectome data into Neo4j using neuPrint
+## Load your own connectome data into Neo4j using neuprint
 
 Follow these [input specifications](jsonspecs.md) to create your own neurons.json, synapses.json, and skeleton files. To create a database on your computer, use [Neo4j Desktop](https://neo4j.com/download/?ref=product).
 
 ```console
 $ java -jar neuprinter.jar --help
 
-Usage: java -cp neuprinter.jar ConnConvert
-      [options]
+Usage: java -cp neuprinter.jar org.janelia.flyem.neuprinter.NeuPrinterMain 
+      [options] 
   Options:
     --addAutoNames
-      Indicates that automatically generated names should be added for this
-      dataset. Auto-names are in the format ROIA-ROIB-8 where ROIA is the roi
-      in which a given neuron has the most inputs (postsynaptic densities) and
-      ROIB is the roi in which a neuron has the most outputs (presynaptic
-      densities). The final number renders this name unique per dataset. Names
-      are only generated for neurons that have greater than the number of
-      synapses indicated by autoNameThreshold. If neurons do not already have
-      a name, the auto-name is added to the name property. (skip to omit)
+      Indicates that automatically generated names should be added for this 
+      dataset. Auto-names are in the format ROIA-ROIB_8 where ROIA is the roi 
+      in which a given neuron has the most inputs (postsynaptic densities) and 
+      ROIB is the roi in which a neuron has the most outputs (presynaptic 
+      densities). The final number renders this name unique per dataset. Names 
+      are only generated for neurons that have greater than the number of 
+      synapses indicated by neuronThreshold. If neurons do not already have a 
+      name, the auto-name is added to the name property. (skip to omit)
+      Default: false
+    --addAutoNamesOnly
+      Indicates that only the autoNames should be added for this dataset. 
+      Requires the existing dataset to be completely loaded into neo4j. Names 
+      are only generated for neurons that have greater than the number of 
+      synapsesindicated by neuronThreshold (omit to skip)
       Default: false
     --addConnectsTo
       Indicates that ConnectsTo relations should be added (omit to skip)
       Default: false
     --addMetaNodeOnly
-      Indicates that only the Meta Node should be added for this dataset.
-      Requires the existing dataset to be completely loaded into neo4j. (omit
+      Indicates that only the Meta Node should be added for this dataset. 
+      Requires the existing dataset to be completely loaded into neo4j. (omit 
       to skip)
       Default: false
-    --addNeuronRois
+    --addSegmentRois
       Indicates that neuron ROI labels should be added (omit to skip)
       Default: false
     --addSkeletons
@@ -75,10 +81,6 @@ Usage: java -cp neuprinter.jar ConnConvert
     --addSynapsesTo
       Indicates that SynapsesTo relations should be added (omit to skip)
       Default: false
-    --autoNameThreshold
-      Integer indicating the number of (presynaptic densities + postsynaptic
-      densities) a neuron should have to be given an auto-name (default is
-      10). Must have --addAutoName enabled.
   * --dataModelVersion
       Data model version (required)
       Default: 0.0
@@ -87,28 +89,33 @@ Usage: java -cp neuprinter.jar ConnConvert
   * --dbProperties
       Properties file containing database information (required)
     --doAll
-      Indicates that both Neurons and Synapses jsons should be loaded and all
+      Indicates that both neurons and synapses JSONs should be loaded and all 
       database features added
       Default: false
     --editMode
-      Indicates that neuprinter is being used in edit mode to alter data in an
+      Indicates that neuprinter is being used in edit mode to alter data in an 
       existing database (omit to skip).
       Default: false
     --help
 
     --loadNeurons
-      Indicates that data from neurons json should be loaded to database (omit
+      Indicates that data from neurons JSON should be loaded to database (omit 
       to skip)
       Default: false
     --loadSynapses
-      Indicates that data from synapses json should be loaded to database
+      Indicates that data from synapses JSON should be loaded to database 
       (omit to skip)
       Default: false
     --neuronJson
       JSON file containing neuron data to import
+    --neuronThreshold
+      Integer indicating the number of (presynaptic densities + postsynaptic 
+      densities) a neuron should have to be given the label of :Neuron (all 
+      have the :Segment label by default) and an auto-name (default is 10). To 
+      add auto-names, must have --addAutoName OR --addAutoNamesOnly enabled.
     --prepDatabase
-      Indicates that database constraints and indexes should be setup (omit to
-      skip)
+      Indicates that database constraints and indexes should be setup (omit to 
+      skip) 
       Default: false
     --skeletonDirectory
       Path to directory containing skeleton files for this dataset
@@ -120,22 +127,27 @@ Usage: java -cp neuprinter.jar ConnConvert
 
 ![Property Graph Model](pgmv1.svg)
 
-### :Neuron properties
+All nodes have a time stamp indicating last update in the format YYYY-MM-DDTHH:MM:SS. Segments with greater than a specified number of synaptic densities are labeled Neuron.
+
+### :Neuron/:Segment properties
 * pre: number of presynaptic densities
 * post: number of postsynaptic densities
 * size: size of body in voxels
 * name: name of neuron
 * type: type of neuron
-* bodyId: int64 identifier (unique per data set)
+* bodyId: int64 identifier (unique per dataset)
 * status: status of neuron
 * somaLocation: 3D Cartesian location
 * somaRadius: radius of soma
-* synapseCountPerRoi: string containing json map in format {"roiA":{"pre":1,"post":2},...}
+* roiInfo: string containing json map in format {"roiA":{"pre":1,"post":2},...}
+* \<roi\>: boolean indicating that body is located in a particular roi (if present, always true)
+* (optional) autoName: automatically generated name in format <max input roi>-<max output roi>_<instance number> (unique per dataset)
 
 ### :Synapse properties
 * type: type of synapse
 * confidence: confidence
-* location: 3D Cartesian location (unique per data set)
+* location: 3D Cartesian location (unique per dataset)
+* \<roi\>: boolean indicating that synapse is located in a particular roi (if present, always true)
 
 ### :SkelNode properties
 * location: 3D Cartesian location
@@ -147,18 +159,18 @@ Usage: java -cp neuprinter.jar ConnConvert
 * weight: number of presynaptic densities per connection
 
 ### :Meta
-* lastDatabaseEdit: date of last database edit
+* lastDatabaseEdit: date and time of last database edit (YYYY-MM-DDTHH:MM:SS).
 * dataset: string indicating dataset name
 * totalPreCount: number of presynaptic densities in dataset
 * totalPostCount: number of postsynaptic densities in dataset
-* synapseCountPerRoi: string containing json map in format {"roiA":{"pre":1,"post":2},...}
+* roiInfo: string containing json map in format {"roiA":{"pre":1,"post":2},...}
 
 ### :DataModel
 * dataModelVersion: property graph model version number for database
 
-## neuPrint Neo4j Stored Procedures
+## Neuprint Neo4j Stored Procedures
 
-Place neuprint-procedures.jar into the plugins folder of your neo4j database, and restart the datbase. Under development. All features are experimental. 
+Place neuprint-procedures.jar into the plugins folder of your neo4j database, and restart the database. Under development. All features are experimental. 
 ### Proofreader procedures (READ/WRITE)
 1. applies time stamp to nodes when they are created, when their properties change, when relationships are changed, and when relationship properties are changed. 
 2. proofreader.mergeNeuronsFromJson(mergeJson, datasetLabel) : merge neurons from json file containing single mergeaction json
@@ -172,7 +184,7 @@ under key "Centroids" and the skeleton json under key "Skeleton".
 4. analysis.getNearestSkelNodeOnBodyToPoint(bodyId,datasetLabel,x,y,z): Returns the :SkelNode on the given body's skeleton that is closest to the provided point. To be used with #3.
 5. analysis.getInputAndOutputCountsForRois(bodyId,datasetLabel): Produces json array with counts of inputs and outputs per roi for a given neuron.
 6. analysis.getInputAndOutputFeatureVectorsForNeuronsInRoi(roi,datasetLabel,synapseThreshold): Produces json array with input and output feature vectors for each neuron in the provide ROI. Vectors contain the synapse count per ROI.
-### neuPrintUserFunctions (READ, output a single value)
+### neuprintUserFunctions (READ, output a single value)
 1. neuprint.locationAs3dCartPoint(x,y,z) : returns a 3D Cartesian org.neo4j.graphdb.spatial.Point type with the provided coordinates. 
       
 
