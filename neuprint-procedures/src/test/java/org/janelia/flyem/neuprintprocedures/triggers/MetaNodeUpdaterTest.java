@@ -11,8 +11,10 @@ import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.Rule;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Test;
 import org.neo4j.driver.v1.Config;
 import org.neo4j.driver.v1.Driver;
@@ -22,20 +24,26 @@ import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class MetaNodeUpdaterTest {
-    @Rule
-    public Neo4jRule neo4j = new Neo4jRule()
-            .withFunction(Json.class)
-            .withProcedure(Create.class);
 
-    @Test
-    public void shouldUpdateMetaNodeAfterCommits() {
+    @ClassRule
+    public static Neo4jRule neo4j;
+    private static Driver driver;
+
+    static {
+        neo4j = new Neo4jRule()
+                .withFunction(Json.class)
+                .withProcedure(Create.class);
+    }
+
+    @BeforeClass
+    public static void before() {
 
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
@@ -43,115 +51,113 @@ public class MetaNodeUpdaterTest {
         HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+        driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
-            String dataset = "test";
+        String dataset = "test";
 
-            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-            neo4jImporter.prepDatabase(dataset);
+        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+        neo4jImporter.prepDatabase(dataset);
 
-            neo4jImporter.addSegments(dataset, neuronList);
+        neo4jImporter.addSegments(dataset, neuronList);
 
-            neo4jImporter.addConnectsTo(dataset, bodyList);
-            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
-            neo4jImporter.addSynapsesTo(dataset, preToPost);
-            neo4jImporter.addSegmentRois(dataset, bodyList);
-            neo4jImporter.addSynapseSets(dataset, bodyList);
-            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
+        neo4jImporter.addConnectsTo(dataset, bodyList);
+        neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+        neo4jImporter.addSynapsesTo(dataset, preToPost);
+        neo4jImporter.addSegmentRois(dataset, bodyList);
+        neo4jImporter.addSynapseSets(dataset, bodyList);
+        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
 
-            Session session = driver.session();
+    }
 
-            session.readTransaction(tx -> tx.run("MATCH (n:Meta:test) RETURN n").single().get(0).asNode());
-        }
+    @AfterClass
+    public static void after() {
+        driver.close();
+    }
 
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+    @Test
+    public void metaNodeLastDatabaseEditShouldUpdateButNotSynapseCountsUponNonSynapseChangesAndSynapseChangeShouldTriggerCompleteMetaNodeUpdate() throws InterruptedException {
 
-            Session session = driver.session();
+        Session session = driver.session();
 
-            //should only trigger an update of lastDatabaseEdit
-            session.writeTransaction(tx -> {
-                tx.run("CREATE (n:Segment:test:`test-Segment`{bodyId:50}) SET n.roiInfo=\"{'roiA':{'pre':5,'post':2,'total':7},'newRoi':{'pre':5,'post':2,'total':7}}\", " +
-                        "n.pre=10, " +
-                        "n.post=4, " +
-                        "n.roiA=TRUE, " +
-                        "n.newRoi=TRUE " +
-                        "RETURN n");
-                return 1;
-            });
+        LocalDateTime metaNodeUpdateTimeBefore = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n.lastDatabaseEdit").single().get(0).asLocalDateTime());
 
-        }
+        //delay to move time stamp
+        TimeUnit.SECONDS.sleep(3);
 
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
-            Session session = driver.session();
+        session.writeTransaction(tx -> {
+            tx.run("MERGE (n:`test-Segment`{bodyId:50}) ON CREATE SET n:test, n:Segment, n.roiInfo=\"{'roiA':{'pre':5,'post':2},'newRoi':{'pre':5,'post':2}}\", " +
+                    "n.pre=10, " +
+                    "n.post=4, " +
+                    "n.roiA=TRUE, " +
+                    "n.newRoi=TRUE " +
+                    "RETURN n");
+            return 1;
+        });
 
-            Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode());
+        //delay to allow for update
+        TimeUnit.SECONDS.sleep(5);
 
-            LocalDateTime metaNodeUpdateTime = (LocalDateTime) metaNode.asMap().get("lastDatabaseEdit");
+        Node metaNodeAfter = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode());
 
-            Assert.assertEquals(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS), metaNodeUpdateTime.truncatedTo(ChronoUnit.HOURS));
+        LocalDateTime metaNodeUpdateTimeAfter = (LocalDateTime) metaNodeAfter.asMap().get("lastDatabaseEdit");
 
-            Assert.assertEquals(5L, metaNode.asMap().get("totalPostCount"));
-            Assert.assertEquals(3L, metaNode.asMap().get("totalPreCount"));
+        Assert.assertTrue(metaNodeUpdateTimeBefore.isBefore(metaNodeUpdateTimeAfter));
 
-            String metaSynapseCountPerRoi = (String) metaNode.asMap().get("roiInfo");
-            Gson gson = new Gson();
-            Map<String, SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
-            }.getType());
+        Assert.assertEquals(5L, metaNodeAfter.asMap().get("totalPostCount"));
+        Assert.assertEquals(3L, metaNodeAfter.asMap().get("totalPreCount"));
 
-            Assert.assertEquals(2L, metaSynapseCountPerRoiMap.get("roiA").getPre());
-            Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiA").getPost());
+        String metaSynapseCountPerRoi = (String) metaNodeAfter.asMap().get("roiInfo");
+        Gson gson = new Gson();
+        Map<String, SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
 
-            Assert.assertEquals(4, metaSynapseCountPerRoiMap.keySet().size());
-            Assert.assertTrue(metaSynapseCountPerRoiMap.containsKey("roiA")
-                    && metaSynapseCountPerRoiMap.containsKey("roiB")
-                    && metaSynapseCountPerRoiMap.containsKey("anotherRoi")
-                    && metaSynapseCountPerRoiMap.containsKey("seven_column_roi"));
+        Assert.assertEquals(2L, metaSynapseCountPerRoiMap.get("roiA").getPre());
+        Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiA").getPost());
 
-        }
+        Assert.assertEquals(4, metaSynapseCountPerRoiMap.keySet().size());
+        Assert.assertTrue(metaSynapseCountPerRoiMap.containsKey("roiA")
+                && metaSynapseCountPerRoiMap.containsKey("roiB")
+                && metaSynapseCountPerRoiMap.containsKey("anotherRoi")
+                && metaSynapseCountPerRoiMap.containsKey("seven_column_roi"));
 
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
+        LocalDateTime metaNodeUpdateTimeBefore2 = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n.lastDatabaseEdit").single().get(0).asLocalDateTime());
 
-            Session session = driver.session();
+        //delay to move time stamp
+        TimeUnit.SECONDS.sleep(3);
 
-            //should trigger complete meta node update
-            //note that update is based on synapse count per roi on neurons, not info from synapse nodes directly
-            session.writeTransaction(tx -> {
-                tx.run("CREATE (n:Synapse:test:`test-Synapse`) SET n.`roiA`=TRUE, n.`newRoi`=TRUE RETURN n");
-                return 1;
-            });
+        //note that update is based on synapse count per roi on neurons, not info from synapse nodes directly
+        session.writeTransaction(tx -> {
+            tx.run("CREATE (n:Synapse:test:`test-Synapse`) SET n.`roiA`=TRUE, n.`newRoi`=TRUE RETURN n");
+            return 1;
+        });
 
-        }
+        //delay to allow for update
+        TimeUnit.SECONDS.sleep(5);
 
-        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
-            Session session = driver.session();
+        Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode());
 
-            Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode());
+        LocalDateTime metaNodeUpdateTimeAfter2 = (LocalDateTime) metaNode.asMap().get("lastDatabaseEdit");
 
-            LocalDateTime metaNodeUpdateTime = (LocalDateTime) metaNode.asMap().get("lastDatabaseEdit");
-            Assert.assertTrue(LocalDateTime.now().isAfter(metaNodeUpdateTime));
+        Assert.assertTrue(metaNodeUpdateTimeBefore2.isBefore(metaNodeUpdateTimeAfter2));
 
-            Assert.assertEquals(9L, metaNode.asMap().get("totalPostCount"));
-            Assert.assertEquals(13L, metaNode.asMap().get("totalPreCount"));
+        Assert.assertEquals(9L, metaNode.asMap().get("totalPostCount"));
+        Assert.assertEquals(13L, metaNode.asMap().get("totalPreCount"));
 
-            String metaSynapseCountPerRoi = (String) metaNode.asMap().get("roiInfo");
-            Gson gson = new Gson();
-            Map<String, SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
-            }.getType());
+        String metaSynapseCountPerRoi2 = (String) metaNode.asMap().get("roiInfo");
+        Map<String, SynapseCounter> metaSynapseCountPerRoiMap2 = gson.fromJson(metaSynapseCountPerRoi2, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
 
-            Assert.assertEquals(7L, metaSynapseCountPerRoiMap.get("roiA").getPre());
-            Assert.assertEquals(5L, metaSynapseCountPerRoiMap.get("roiA").getPost());
+        Assert.assertEquals(7L, metaSynapseCountPerRoiMap2.get("roiA").getPre());
+        Assert.assertEquals(5L, metaSynapseCountPerRoiMap2.get("roiA").getPost());
 
-            Assert.assertEquals(5, metaSynapseCountPerRoiMap.keySet().size());
-            Assert.assertTrue(metaSynapseCountPerRoiMap.containsKey("roiA")
-                    && metaSynapseCountPerRoiMap.containsKey("roiB")
-                    && metaSynapseCountPerRoiMap.containsKey("anotherRoi")
-                    && metaSynapseCountPerRoiMap.containsKey("newRoi")
-                    && metaSynapseCountPerRoiMap.containsKey("seven_column_roi"));
-
-        }
+        Assert.assertEquals(5, metaSynapseCountPerRoiMap2.keySet().size());
+        Assert.assertTrue(metaSynapseCountPerRoiMap2.containsKey("roiA")
+                && metaSynapseCountPerRoiMap2.containsKey("roiB")
+                && metaSynapseCountPerRoiMap2.containsKey("anotherRoi")
+                && metaSynapseCountPerRoiMap2.containsKey("newRoi")
+                && metaSynapseCountPerRoiMap2.containsKey("seven_column_roi"));
 
     }
 }
-
 
 

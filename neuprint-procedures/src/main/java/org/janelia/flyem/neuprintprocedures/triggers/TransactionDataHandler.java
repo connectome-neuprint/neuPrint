@@ -37,65 +37,37 @@ class TransactionDataHandler {
         shouldMetaNodeSynapseCountsBeUpdated = false;
 
         for (Node node : transactionData.createdNodes()) {
-            if (!node.hasLabel(Label.label(META)) && !transactionData.isDeleted(node)) {
-                this.nodesForTimeStamping.add(node);
-                //System.out.println("node created: " + node);
-            }
-            if (node.hasLabel(Label.label(SYNAPSE)) && !transactionData.isDeleted(node)) {
-                shouldMetaNodeSynapseCountsBeUpdated = true;
-            }
+            addNodeForTimeStamping(node);
+            checkIfShouldUpdateMetaNodeSynapseCounts(node);
         }
 
         for (LabelEntry labelEntry : transactionData.assignedLabels()) {
-            Node node = labelEntry.node();
-            if (!node.hasLabel(Label.label(META)) && !transactionData.isDeleted(node)) {
-                this.nodesForTimeStamping.add(node);
-                //System.out.println("label entry assigned: " + labelEntry);
-            }
-            if (node.hasLabel(Label.label(SYNAPSE)) && !transactionData.isDeleted(node)) {
-                shouldMetaNodeSynapseCountsBeUpdated = true;
-            }
+           addNodeForTimeStamping(labelEntry.node());
         }
 
         for (LabelEntry labelEntry : transactionData.removedLabels()) {
-            Node node = labelEntry.node();
-            if (!node.hasLabel(Label.label(META)) && !transactionData.isDeleted(node)) {
-                this.nodesForTimeStamping.add(node);
-                //System.out.println("label entry removed: " + labelEntry);
-            }
-            if (node.hasLabel(Label.label(SYNAPSE)) && !transactionData.isDeleted(node)) {
-                shouldMetaNodeSynapseCountsBeUpdated = true;
-            }
+            addNodeForTimeStamping(labelEntry.node());
         }
 
         for (PropertyEntry<Node> propertyEntry : transactionData.assignedNodeProperties()) {
             if (!propertyEntry.key().equals(TIME_STAMP)) {
-                Node node = propertyEntry.entity();
-                if (!node.hasLabel(Label.label(META)) && !transactionData.isDeleted(node)) {
-                    this.nodesForTimeStamping.add(node);
-                    //System.out.println("node properties assigned: " + propertyEntry);
-                }
+                addNodeForTimeStamping(propertyEntry.entity());
             }
+            checkIfShouldUpdateMetaNodeSynapseCounts(propertyEntry.entity());
         }
 
         for (PropertyEntry<Node> propertyEntry : transactionData.removedNodeProperties()) {
             if (!propertyEntry.key().equals(TIME_STAMP)) {
-                Node node = propertyEntry.entity();
-                if (!node.hasLabel(Label.label(META)) && !transactionData.isDeleted(node)) {
-                    this.nodesForTimeStamping.add(node);
-                    //System.out.println("node properties removed: " + propertyEntry);
-                }
+                addNodeForTimeStamping(propertyEntry.entity());
             }
+            checkIfShouldUpdateMetaNodeSynapseCounts(propertyEntry.entity());
         }
 
         for (PropertyEntry<Relationship> propertyEntry : transactionData.assignedRelationshipProperties()) {
             Relationship relationship = propertyEntry.entity();
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
-                if (!node.hasLabel(Label.label(META)) && !transactionData.isDeleted(node)) {
-                    this.nodesForTimeStamping.add(node);
-                    //System.out.println("relationship properties added for: " + node);
-                }
+                addNodeForTimeStamping(node);
             }
         }
 
@@ -103,35 +75,38 @@ class TransactionDataHandler {
             Relationship relationship = propertyEntry.entity();
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
-                if (!node.hasLabel(Label.label(META)) && !transactionData.isDeleted(node)) {
-                    this.nodesForTimeStamping.add(node);
-                    //System.out.println("relationship properties removed for: " + node);
-                }
+                addNodeForTimeStamping(node);
             }
         }
 
         for (Relationship relationship : transactionData.createdRelationships()) {
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
-                if (!node.hasLabel(Label.label(META)) && !transactionData.isDeleted(node)) {
-                    this.nodesForTimeStamping.add(node);
-                    //System.out.println("relationship created for: " + node);
-                }
+                addNodeForTimeStamping(node);
             }
         }
 
         for (Relationship relationship : transactionData.deletedRelationships()) {
             Node[] nodes = relationship.getNodes();
             for (Node node : nodes) {
-                if (!node.hasLabel(Label.label(META)) && !transactionData.isDeleted(node)) {
-                    this.nodesForTimeStamping.add(node);
-                    //System.out.println("relationship deleted for: " + node);
-                }
+                addNodeForTimeStamping(node);
             }
         }
 
         return nodesForTimeStamping;
 
+    }
+
+    private void addNodeForTimeStamping(Node node) {
+        if (!node.hasLabel(Label.label(META)) && !transactionData.isDeleted(node)) {
+            this.nodesForTimeStamping.add(node);
+        }
+    }
+
+    private void checkIfShouldUpdateMetaNodeSynapseCounts(Node node) {
+        if (node.hasLabel(Label.label(SYNAPSE)) && !transactionData.isDeleted(node)) {
+            shouldMetaNodeSynapseCountsBeUpdated = true;
+        }
     }
 
     boolean shouldTimeStampAndUpdateMetaNodeTimeStamp() {
