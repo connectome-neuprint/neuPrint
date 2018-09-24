@@ -387,14 +387,14 @@ public class Neo4jImporterTest {
         String segmentName = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.name").single().get(0).asString();
         String segmentAutoName = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();
 
-        Assert.assertEquals("ROIA-ROIA_0*", segmentName);
+        Assert.assertTrue(segmentName.startsWith("ROIA-ROIA_") && segmentName.endsWith("*"));
         Assert.assertEquals(segmentName.replace("*", ""), segmentAutoName);
 
         String segmentName2 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN n.name").single().get(0).asString();
         String segmentAutoName2 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN n.autoName").single().get(0).asString();
 
         Assert.assertEquals("Dm12-4", segmentName2);
-        Assert.assertEquals("ROIA-ROIA_1", segmentAutoName2);
+        Assert.assertTrue(segmentAutoName2.startsWith("ROIA-ROIA_") && !segmentAutoName2.endsWith("*"));
 
     }
 
