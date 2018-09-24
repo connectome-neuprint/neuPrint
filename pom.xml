@@ -120,7 +120,7 @@
                                 <excludes>
                                      <!--exclude tests here-->
                                     <exclude>
-                                    **/TimeStampTest.java
+                                    <!--**/TimeStampTest.java-->
                                     </exclude>
                                 </excludes>
                             </configuration>
