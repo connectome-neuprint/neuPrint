@@ -700,7 +700,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     private Set<String> getRoiSet(Session session, String dataset) {
 
-        Set<String> roiNameSet = new HashSet<>();
+        Set<String> roiNameSet;
 
         roiNameSet = session.readTransaction(tx -> getAllProperties(tx, dataset))
                 .stream()
