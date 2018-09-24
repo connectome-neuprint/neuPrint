@@ -20,7 +20,8 @@
   {
     "BodyId": 26311,
     "SynapseSet": [
-      { "Type": "post", "Location": [ 4301, 2276, 1535 ], "ConnectsFrom": [ [ 4287, 2277, 1542 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi-lm", "roiA-lm" ] }
+      { "Type": "post", "Location": [ 4301, 2276, 1535 ], "ConnectsFrom": [ [ 4287, 2277, 1542 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi-lm", "roiA-lm" ] },
+      { "Type": "post", "Location": [ 4300, 2200, 1500 ], "ConnectsFrom": [ [ 4000,2000,1500 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi-lm", "roiA-lm" ] }
     ]
   },
   {
