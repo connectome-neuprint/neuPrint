@@ -262,8 +262,9 @@ public class Neo4jImporter implements AutoCloseable {
         String roiPropertyBaseString = " s.`%s` = TRUE,";
 
         final String preSynapseText =
-                "MERGE (s:`" + dataset + "-Synapse`:`" + dataset + "-PreSyn`{location:$location}) " +
+                "MERGE (s:`" + dataset + "-Synapse`{location:$location}) " +
                         " ON CREATE SET s.location=$location, " +
+                        "s:`" + dataset + "-PreSyn`," +
                         "s:Synapse," +
                         "s:PreSyn," +
                         "s:" + dataset + "," +
@@ -273,8 +274,9 @@ public class Neo4jImporter implements AutoCloseable {
                         " s.timeStamp=$timeStamp";
 
         final String postSynapseText =
-                "MERGE (s:`" + dataset + "-Synapse`:`" + dataset + "-PostSyn`{location:$location}) " +
+                "MERGE (s:`" + dataset + "-Synapse`{location:$location}) " +
                         " ON CREATE SET s.location=$location, " +
+                        "s:`" + dataset + "-PostSyn`," +
                         "s:Synapse," +
                         "s:PostSyn," +
                         "s:" + dataset + "," +
@@ -342,8 +344,8 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSynapsesTo: entry");
 
-        final String synapseRelationsText = "MERGE (s:Synapse:" + dataset + ":`" + dataset + "-Synapse`{location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto, s.timeStamp=$timeStamp, s:Synapse, s:" + dataset + " \n" +
-                "MERGE (t:`" + dataset + "-Synapse`{location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto, t.timeStamp=$timeStamp, t:Synapse, t:" + dataset + " \n" +
+        final String synapseRelationsText = "MERGE (s:`" + dataset + "-Synapse`{location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto, s.timeStamp=$timeStamp, s:Synapse, s:" + dataset + ", s:PreSyn, s:`" + dataset + "-PreSyn` \n" +
+                "MERGE (t:`" + dataset + "-Synapse`{location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto, t.timeStamp=$timeStamp, t:Synapse, t:" + dataset + ", s:PostSyn, s:`" + dataset + "-PostSyn` \n" +
                 "MERGE (s)-[:SynapsesTo]->(t)";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -625,7 +627,8 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("createMetaNodeWithDataModelNode: enter");
 
-        final String metaNodeString = "MERGE (m:Meta:" + dataset + " {dataset:$dataset}) ON CREATE SET " +
+        final String metaNodeString = "MERGE (m:Meta{dataset:$dataset}) ON CREATE SET " +
+                "m:" + dataset + "," +
                 "m.lastDatabaseEdit=$timeStamp," +
                 "m.dataset=$dataset, " +
                 "m.totalPreCount=$totalPre, " +
@@ -657,7 +660,7 @@ public class Neo4jImporter implements AutoCloseable {
                     "dataModelVersion", dataModelVersion
             )));
 
-            String metaNodeRoiString = "MATCH (m:Meta:" + dataset + " {dataset:$dataset}) SET m.roiInfo=$synapseCountPerRoi ";
+            String metaNodeRoiString = "MATCH (m:Meta{dataset:$dataset}) SET m.roiInfo=$synapseCountPerRoi ";
 
             batch.addStatement(new Statement(metaNodeRoiString,
                     parameters("dataset", dataset,
@@ -734,12 +737,12 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static int getRoiPreCount(final Transaction tx, final String dataset, String roi) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE exists(n.`" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.pre AS pre RETURN sum(pre)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`{`" + roi + "`:true}) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.pre AS pre RETURN sum(pre)");
         return result.single().get(0).asInt();
     }
 
     private static int getRoiPostCount(final Transaction tx, final String dataset, String roi) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE exists(n.`" + roi + "`) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.post AS post RETURN sum(post)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`{`" + roi + "`:true}) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.post AS post RETURN sum(post)");
         return result.single().get(0).asInt();
     }
 

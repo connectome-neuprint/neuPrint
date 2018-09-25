@@ -143,6 +143,12 @@ public class NeuPrinterMain {
         boolean addMetaNodeOnly;
 
         @Parameter(
+                names = "--indexBooleanRoiPropertiesOnly",
+                description = "Indicates that only boolean roi properties should be indexed. Requires the existing dataset to be completely loaded into neo4j. (omit to skip)",
+                arity = 0)
+        boolean indexBooleanRoiPropertiesOnly;
+
+        @Parameter(
                 names = "--addAutoNamesOnly",
                 description = "Indicates that only the autoNames should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. Names are only generated for neurons that have greater than the number of synapses" +
                         "indicated by neuronThreshold (omit to skip)",
@@ -436,13 +442,13 @@ public class NeuPrinterMain {
                 }
 
                 timer.start();
-                neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
-                LOG.info("Adding :Meta node took: " + timer.stop());
+                neo4jImporter.indexBooleanRoiProperties(dataset);
+                LOG.info("Adding indices on boolean roi properties took: " + timer.stop());
                 timer.reset();
 
                 timer.start();
-                neo4jImporter.indexBooleanRoiProperties(dataset);
-                LOG.info("Adding indices on boolean roi properties took: " + timer.stop());
+                neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
+                LOG.info("Adding :Meta node took: " + timer.stop());
                 timer.reset();
             }
         }
@@ -469,6 +475,13 @@ public class NeuPrinterMain {
                 timer.reset();
             }
 
+        }
+
+        if (parameters.indexBooleanRoiPropertiesOnly) {
+            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                neo4jImporter.prepDatabase(dataset);
+                neo4jImporter.indexBooleanRoiProperties(dataset);
+            }
         }
 
         if (parameters.addMetaNodeOnly) {
