@@ -2,6 +2,7 @@ package org.janelia.flyem.neuprintprocedures.analysis;
 
 import com.google.gson.Gson;
 
+import java.util.Arrays;
 import java.util.Set;
 
 public class ClusteringFeatureVector {
@@ -9,6 +10,9 @@ public class ClusteringFeatureVector {
     private Long bodyId;
     private long[] inputFeatureVector;
     private long[] outputFeatureVector;
+    private Set<Long> inputIds;
+    private Set<Long> outputIds;
+    private boolean isPrimaryNeuron = false;
 
     private final static Gson gson = new Gson();
 
@@ -18,20 +22,27 @@ public class ClusteringFeatureVector {
         this.outputFeatureVector = outputFeatureVector;
     }
 
-    static String getClusteringFeatureVectorSetJson(Set<ClusteringFeatureVector> clusteringFeatureVectors) {
-        return gson.toJson(clusteringFeatureVectors);
+    public void setInputAndOutputIds(Set<Long> inputIds, Set<Long> outputIds) {
+        this.inputIds = inputIds;
+        this.outputIds = outputIds;
+        this.isPrimaryNeuron = true;
+    }
+
+    public static String getClusteringFeatureVectorSetJson(Set<ClusteringFeatureVector> clusteringFeatureVectors) {
+            return gson.toJson(clusteringFeatureVectors);
     }
 
     public Long getBodyId() {
-        return bodyId;
+        return this.bodyId;
     }
 
-    long[] getInputFeatureVector() {
-        return inputFeatureVector;
+
+    public long[] getInputFeatureVector() {
+        return this.inputFeatureVector;
     }
 
     public long[] getOutputFeatureVector() {
-        return outputFeatureVector;
+        return this.outputFeatureVector;
     }
 
     @Override
@@ -46,7 +57,7 @@ public class ClusteringFeatureVector {
             isEqual = true;
         } else if (o instanceof ClusteringFeatureVector) {
             final ClusteringFeatureVector that = (ClusteringFeatureVector) o;
-            isEqual = this.bodyId.equals(that.bodyId) ;
+            isEqual = this.bodyId.equals(that.bodyId);
         }
         return isEqual;
     }
