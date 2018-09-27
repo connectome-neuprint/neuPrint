@@ -14,8 +14,8 @@
         <!-- Daily rollover -->
         <fileNamePattern>log/connconvert.%d{yyyy-MM-dd}.log</fileNamePattern>
 
-        <!-- Keep 3 days' worth of history -->
-        <maxHistory>3</maxHistory>
+        <!-- Keep 30 days' worth of history -->
+        <maxHistory>30</maxHistory>
     </rollingPolicy>
 
 
