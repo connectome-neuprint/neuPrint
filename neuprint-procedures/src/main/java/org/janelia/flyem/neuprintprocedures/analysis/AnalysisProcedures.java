@@ -355,12 +355,46 @@ public class AnalysisProcedures {
         log.info("analysis.getInputAndOutputFeatureVectorsForNeuronsInRoi: " + neuronSet.size() + " neurons within roi " +
                 "with greater than " + synapseThreshold + " total synapses and greater than " + roiSynapseThreshold + " synapses within roi.");
 
+        Set<ClusteringFeatureVector> clusteringFeatureVectors = getSetOfClusteringFeatureVectors(neuronSet, roiList);
+
+        String featureVectorsJson = ClusteringFeatureVector.getClusteringFeatureVectorSetJson(clusteringFeatureVectors);
+
+        return Stream.of(new StringResult(featureVectorsJson));
+    }
+
+    @Procedure(value = "analysis.getInputAndOutputFeatureVectorsForAllNeurons", mode = Mode.READ)
+    @Description("")
+    public Stream<StringResult> getInputAndOutputFeatureVectorsForAllNeurons(@Name("datasetLabel") String datasetLabel,
+                                                                               @Name("synapseThreshold") Long synapseThreshold) {
+        if (datasetLabel == null || synapseThreshold == null) {
+            log.error("analysis.getInputAndOutputFeatureVectorsForAllNeurons: Missing input arguments.");
+            throw new RuntimeException("analysis.getInputAndOutputFeatureVectorsForAllNeurons: Missing input arguments.");
+        }
+
+        //get all rois for dataset except for kc_alpha_roi and seven_column_roi
+        List<String> roiList = getRoiListForDataset(datasetLabel).stream().sorted().collect(Collectors.toList());
+        log.info("analysis.getInputAndOutputFeatureVectorsForAllNeurons: " + roiList.size() + " rois in " + datasetLabel);
+        log.info(roiList.toString());
+
+        Set<NeuronWithRoiInfoMap> neuronSet = getNeuronSetFromDataset(datasetLabel, synapseThreshold);
+        log.info("analysis.getInputAndOutputFeatureVectorsForAllNeurons: " + neuronSet.size() + " neurons within " + datasetLabel +
+                " dataset with greater than " + synapseThreshold + " total synapses.");
+
+
+        Set<ClusteringFeatureVector> clusteringFeatureVectors = getSetOfClusteringFeatureVectors(neuronSet, roiList);
+
+        String featureVectorsJson = ClusteringFeatureVector.getClusteringFeatureVectorSetJson(clusteringFeatureVectors);
+
+        return Stream.of(new StringResult(featureVectorsJson));
+    }
+
+    private Set<ClusteringFeatureVector> getSetOfClusteringFeatureVectors(Set<NeuronWithRoiInfoMap> neuronSet, List<String> roiList) {
+
         //for each neuron get the number of inputs per roi
         //another vector with number of outputs per roi
         //to be normalized and/or combined into one vector later.
         Set<ClusteringFeatureVector> clusteringFeatureVectors = new HashSet<>();
         for (NeuronWithRoiInfoMap neuron : neuronSet) {
-//            Node neuron = acquireSegmentFromDatabase(bodyId, datasetLabel);
             Map<String, SynapseCounter> synapseCounterMap = getSynapseCounterMapForNeuron(neuron);
             long[] inputFeatureVector = new long[roiList.size()];
             long[] outputFeatureVector = new long[roiList.size()];
@@ -373,9 +407,8 @@ public class AnalysisProcedures {
             clusteringFeatureVectors.add(new ClusteringFeatureVector(neuron.getBodyId(), inputFeatureVector, outputFeatureVector));
         }
 
-        String featureVectorsJson = ClusteringFeatureVector.getClusteringFeatureVectorSetJson(clusteringFeatureVectors);
+        return clusteringFeatureVectors;
 
-        return Stream.of(new StringResult(featureVectorsJson));
     }
 
     private Map<String, SynapseCounter> getSynapseCounterMapForNeuron(NeuronWithRoiInfoMap neuron) {
@@ -438,6 +471,38 @@ public class AnalysisProcedures {
         }
 
         return (ArrayList<Node>) pathQueryResult.get("nodeList");
+
+    }
+
+    private Set<NeuronWithRoiInfoMap> getNeuronSetFromDataset(String datasetLabel, Long synapseThreshold) {
+
+        ResourceIterator<Node> nodes = dbService.findNodes(Label.label(datasetLabel + "-Neuron"));
+        Set<NeuronWithRoiInfoMap> relevantNeuronNodes = new HashSet<>();
+        Gson gson = new Gson();
+        while (nodes.hasNext()) {
+            Node currentNode = nodes.next();
+            Map<String, Object> properties = currentNode.getProperties("pre", "post", "roiInfo", "bodyId");
+            Map<String, SynapseCounter> roiInfo = gson.fromJson((String) properties.get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
+            }.getType());
+            long pre = (long) properties.get("pre");
+            long post = (long) properties.get("post");
+            if ((pre + post) > synapseThreshold) {
+                relevantNeuronNodes.add(new NeuronWithRoiInfoMap(currentNode, (long) properties.get("bodyId"), roiInfo, pre, post));
+            }
+        }
+//        Map<String, Object> roiQueryResult = null;
+//        String bigQuery = "MATCH (node:`" + datasetLabel + "-Neuron`{`" + roi + "`:true}) WHERE (node.pre+node.post)>" + synapseThreshold +
+//                " AND apoc.convert.fromJsonMap(node.roiInfo).`" + roi + "`.pre+apoc.convert.fromJsonMap(node.roiInfo).`" + roi + "`.post>" + roiSynapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList";
+//            try {
+//            roiQueryResult = dbService.execute(bigQuery).next();
+//        } catch (Exception e) {
+//            log.error("getNeuronSetFromRoi: Error getting node body ids for roi with name " + roi + ".");
+//            e.printStackTrace();
+//        }
+
+//        return new HashSet<>((ArrayList<Long>) roiQueryResult.get("bodyIdList"));
+
+        return relevantNeuronNodes;
 
     }
 
