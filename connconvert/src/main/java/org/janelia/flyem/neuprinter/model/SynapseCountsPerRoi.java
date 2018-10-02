@@ -2,10 +2,9 @@ package org.janelia.flyem.neuprinter.model;
 
 import com.google.gson.Gson;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.TreeMap;
 
 /**
  * A class for counting the the number of synaptic densities per roi. Used to produce
@@ -19,11 +18,10 @@ public class SynapseCountsPerRoi {
      * Class constructor.
      */
     public SynapseCountsPerRoi() {
-        this.synapseCountsPerRoi = new HashMap<>();
+        this.synapseCountsPerRoi = new TreeMap<>();
     }
 
     /**
-     *
      * @return a map of rois to {@link SynapseCounter} instances
      */
     Map<String, SynapseCounter> getSynapseCountsPerRoi() {
@@ -31,7 +29,6 @@ public class SynapseCountsPerRoi {
     }
 
     /**
-     *
      * @return the set of all rois in this SynapseCountsPerRoi
      */
     public Set<String> getSetOfRois() {
@@ -52,8 +49,8 @@ public class SynapseCountsPerRoi {
      * Adds provided roi to the SynapseCountsPerRoi mapped to a new {@link SynapseCounter} instance
      * initialized with pre and post equal to provided values.
      *
-     * @param roi roi name
-     * @param pre presynaptic density count
+     * @param roi  roi name
+     * @param pre  presynaptic density count
      * @param post postsynaptic density count
      */
     public void addSynapseCountsForRoi(String roi, int pre, int post) {
@@ -61,7 +58,6 @@ public class SynapseCountsPerRoi {
     }
 
     /**
-     *
      * @param roi roi name
      * @return {@link SynapseCounter} for provided roi
      */
@@ -94,7 +90,6 @@ public class SynapseCountsPerRoi {
     }
 
     /**
-     *
      * @return JSON of SynapseCountsPerRoi to be added as a synapseCountPerRoi property
      * on a node
      */

@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -226,6 +227,15 @@ public class Neo4jImporterTest {
         Assert.assertEquals(2L, bodyId8426959.asMap().get("pre"));
         Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson((String) bodyId8426959.asMap().get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
         }.getType());
+
+        //should be in lexicographic order
+        Set<String> roiSet = new TreeSet<>();
+        roiSet.add("seven_column_roi");
+        roiSet.add("roiA");
+        roiSet.add("roiB");
+
+        Assert.assertEquals(roiSet, synapseCountPerRoi.keySet());
+
         Assert.assertEquals(3, synapseCountPerRoi.keySet().size());
         Assert.assertEquals(2, synapseCountPerRoi.get("roiA").getPre());
         Assert.assertEquals(0, synapseCountPerRoi.get("seven_column_roi").getPost());

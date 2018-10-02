@@ -6,6 +6,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Tests the {@link SynapseCountsPerRoi} class.
@@ -41,9 +43,28 @@ public class SynapseCountsPerRoiTest {
         String synapseCountsPerRoiJson = synapseCountsPerRoi.getAsJsonString();
 
         Gson gson = new Gson();
-        Map<String,SynapseCounter> deserializedSynapseCountsPerRoi = gson.fromJson(synapseCountsPerRoiJson, new TypeToken<Map<String,SynapseCounter>>() {}.getType());
+        Map<String, SynapseCounter> deserializedSynapseCountsPerRoi = gson.fromJson(synapseCountsPerRoiJson, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
 
         Assert.assertTrue(deserializedSynapseCountsPerRoi.containsKey("testRoi"));
+
+    }
+
+    @Test
+    public void shouldStoreRoisInLexicographicOrder() {
+
+        SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
+
+        synapseCountsPerRoi.incrementPreForRoi("roiA");
+        synapseCountsPerRoi.incrementPreForRoi("roiB");
+        synapseCountsPerRoi.incrementPreForRoi("RoiA");
+
+        Set<String> roiSet = new TreeSet<>();
+        roiSet.add("roiA");
+        roiSet.add("roiB");
+        roiSet.add("RoiA");
+
+        Assert.assertEquals(roiSet, synapseCountsPerRoi.getSetOfRois());
 
     }
 

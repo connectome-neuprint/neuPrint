@@ -198,7 +198,7 @@ public class MergeNeuronsTest {
             Assert.assertEquals(mergeAction.getTargetBodyId(), neuronProperties.get("bodyId"));
             Assert.assertEquals(mergeAction.getTargetBodyStatus(), neuronProperties.get("status"));
             Assert.assertEquals(mergeAction.getTargetBodyName(), neuronProperties.get("name"));
-            Assert.assertEquals("{\"roiA\":{\"pre\":2,\"post\":3},\"roiB\":{\"pre\":0,\"post\":3},\"anotherRoi\":{\"pre\":1,\"post\":0},\"seven_column_roi\":{\"pre\":2,\"post\":5}}", neuronProperties.get("roiInfo"));
+            Assert.assertEquals("{\"anotherRoi\":{\"pre\":1,\"post\":0},\"roiA\":{\"pre\":2,\"post\":3},\"roiB\":{\"pre\":0,\"post\":3},\"seven_column_roi\":{\"pre\":2,\"post\":5}}", neuronProperties.get("roiInfo"));
 
             //check labels
             Assert.assertTrue(neuron.hasLabel("Segment"));
