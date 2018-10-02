@@ -195,7 +195,7 @@ public class BodyWithSynapsesTest {
         final String bodyJsonFilePath = "src/test/resources/smallBodyListWithExtraRois.json";
 
         final SynapseMapper mapper = new SynapseMapper();
-        final List<BodyWithSynapses> parsedBodyList = mapper.loadAndMapBodies(bodyJsonFilePath);
+        final List<BodyWithSynapses> parsedBodyList = mapper.loadAndMapBodies(bodyJsonFilePath, "test");
 
 //        for (BodyWithSynapses bws: parsedBodyList) {
 //            bws.setNeuronParts();

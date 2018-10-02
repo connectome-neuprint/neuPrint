@@ -62,7 +62,7 @@ public class Neo4jImporterTest {
         String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
 
         SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath, "test");
         HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());

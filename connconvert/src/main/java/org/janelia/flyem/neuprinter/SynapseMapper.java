@@ -46,10 +46,11 @@ public class SynapseMapper {
     }
 
     /**
-     *
      * @return map of ConnectionSet nodes to be added to database
      */
-    public ConnectionSetMap getConnectionSetMap() { return this.connectionSetMap; }
+    public ConnectionSetMap getConnectionSetMap() {
+        return this.connectionSetMap;
+    }
 
     @Override
     public String toString() {
@@ -60,15 +61,16 @@ public class SynapseMapper {
      * Loads bodies from the specified JSON file and then maps their relational data.
      *
      * @param filepath to synapse JSON file
+     * @param dataset
      * @return list of loaded bodies with mapped data.
      */
-    public List<BodyWithSynapses> loadAndMapBodies(final String filepath) {
+    public List<BodyWithSynapses> loadAndMapBodies(final String filepath, final String dataset) {
 
         Stopwatch timer = Stopwatch.createStarted();
 
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             final List<BodyWithSynapses> bodyList = BodyWithSynapses.fromJson(reader);
-            mapBodies(bodyList);
+            mapBodies(bodyList, dataset);
             timer.reset();
             return bodyList;
 
@@ -86,7 +88,7 @@ public class SynapseMapper {
      *
      * @param bodyList list of BodyWithSynapses
      */
-    private void mapBodies(final List<BodyWithSynapses> bodyList) {
+    private void mapBodies(final List<BodyWithSynapses> bodyList, String dataset) {
 
         for (final BodyWithSynapses body : bodyList) {
             body.addSynapsesToBodyIdMapAndSetSynapseCounts("post", synapseLocationToBodyIdMap);
@@ -102,13 +104,20 @@ public class SynapseMapper {
                     final String presynapticLocationString = synapse.getLocationString();
                     final Set<String> connectionLocationStrings = synapse.getConnectionLocationStrings();
                     for (final String postsynapticLocationString : connectionLocationStrings) {
-                        long postsynapticBodyId = this.synapseLocationToBodyIdMap.getBodyId(postsynapticLocationString);
-                        this.connectionSetMap.addConnection(presynapticBodyId, postsynapticBodyId, presynapticLocationString, postsynapticLocationString);
+                        //deal with problematic synapses from mb6 dataset
+                        if (!(isMb6ProblematicSynapse(postsynapticLocationString)) || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
+                            long postsynapticBodyId = this.synapseLocationToBodyIdMap.getBodyId(postsynapticLocationString);
+                            this.connectionSetMap.addConnection(presynapticBodyId, postsynapticBodyId, presynapticLocationString, postsynapticLocationString);
+                        }
                     }
                 }
             }
         }
 
+    }
+
+    private boolean isMb6ProblematicSynapse(String locationString) {
+        return locationString.equals("3936:4764:9333") || locationString.equals("4042:5135:9887");
     }
 
     private static final Logger LOG = Logger.getLogger("SynapseMapper.class");

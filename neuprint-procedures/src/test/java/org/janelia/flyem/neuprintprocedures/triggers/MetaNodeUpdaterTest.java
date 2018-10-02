@@ -47,7 +47,7 @@ public class MetaNodeUpdaterTest {
 
         List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
         SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json", "test");
         HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
         bodyList.sort(new SortBodyByNumberOfSynapses());
 

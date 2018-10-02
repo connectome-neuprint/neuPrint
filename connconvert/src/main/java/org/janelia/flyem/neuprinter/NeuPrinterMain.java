@@ -364,7 +364,7 @@ public class NeuPrinterMain {
 
             Stopwatch timer = Stopwatch.createStarted();
             SynapseMapper mapper = new SynapseMapper();
-            bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
+            bodyList = mapper.loadAndMapBodies(parameters.synapseJson, dataset);
             LOG.info("Number of bodies with synapses: " + bodyList.size());
             LOG.info("Reading in synapse JSON took: " + timer.stop());
             timer.reset();
