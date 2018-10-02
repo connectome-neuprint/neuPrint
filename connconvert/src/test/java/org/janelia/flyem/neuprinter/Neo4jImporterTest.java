@@ -76,6 +76,7 @@ public class Neo4jImporterTest {
         neo4jImporter.addSynapsesTo("test", preToPost);
         neo4jImporter.addSegmentRois("test", bodyList);
         neo4jImporter.addConnectionSets("test", mapper.getConnectionSetMap());
+        neo4jImporter.addSynapseSets("test", bodyList);
         neo4jImporter.addSkeletonNodes("test", skeletonList);
         neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F);
         neo4jImporter.addAutoNamesAndNeuronLabels("test", 1);
@@ -339,6 +340,14 @@ public class Neo4jImporterTest {
             Assert.assertEquals(record.asMap().get("c.weight"), record.asMap().get("count(s)"));
         }
 
+    }
+
+    @Test
+    public void synapseSetShouldContainAllSynapsesForNeuron() {
+        Session session = driver.session();
+
+        List<Record> synapseSS_8426959 = session.run("MATCH (n:`test-Segment`{bodyId:8426959})-[:Contains]->(ss:SynapseSet)-[:Contains]->(s) RETURN s").list();
+        Assert.assertEquals(3, synapseSS_8426959.size());
     }
 
     @Test

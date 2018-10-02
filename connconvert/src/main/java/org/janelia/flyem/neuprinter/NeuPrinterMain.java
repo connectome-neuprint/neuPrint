@@ -413,6 +413,11 @@ public class NeuPrinterMain {
                     neo4jImporter.addConnectionSets(dataset, connectionSetMap);
                     LOG.info("Loading ConnectionSets took: " + timer.stop());
                     timer.reset();
+
+                    timer.start();
+                    neo4jImporter.addSynapseSets(dataset, bodyList);
+                    LOG.info("Loading SynapseSets took: " + timer.stop());
+                    timer.reset();
                 }
 
             }

@@ -120,6 +120,7 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE CONSTRAINT ON (n:`" + dataset + "-Neuron`) ASSERT n.bodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (n:`" + dataset + "-Segment`) ASSERT n.bodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-ConnectionSet`) ASSERT s.datasetBodyIds IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-SynapseSet`) ASSERT s.datasetBodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-Synapse`) ASSERT s.location IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-SkelNode`) ASSERT s.skelNodeId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-Skeleton`) ASSERT s.skeletonId IS UNIQUE",
@@ -498,7 +499,7 @@ public class Neo4jImporter implements AutoCloseable {
      */
     public void addSynapseSets(final String dataset, final List<BodyWithSynapses> bodyList) {
 
-        LOG.info("addConnectionSets: entry");
+        LOG.info("addSynapseSets: entry");
 
         final String segmentContainsSSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
                 "MERGE (s:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId, s.timeStamp=$timeStamp, s:SynapseSet, s:" + dataset + " \n" +
@@ -526,7 +527,7 @@ public class Neo4jImporter implements AutoCloseable {
             batch.writeTransaction();
         }
 
-        LOG.info("addConnectionSets: exit");
+        LOG.info("addSynapseSets: exit");
     }
 
     /**
@@ -569,7 +570,8 @@ public class Neo4jImporter implements AutoCloseable {
                                     "location", Synapse.convertLocationStringToPoint(synapseLocationString),
                                     "datasetBodyIds", dataset + ":" + connectionSetKey)));
                 }
-
+//                //write transactions for each connection set to prevent read/write locks from interfering with load
+//                batch.writeTransaction();
             }
             batch.writeTransaction();
         }
