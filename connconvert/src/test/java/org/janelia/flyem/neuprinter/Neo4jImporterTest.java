@@ -25,6 +25,7 @@ import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -344,13 +345,16 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void metaNodeShouldHaveCorrectSynapseCounts() {
+    public void metaNodeShouldHaveCorrectSynapseCountsAndSuperLevelRois() {
 
         Session session = driver.session();
 
         Node metaNode = session.run("MATCH (n:Meta:test) RETURN n").single().get(0).asNode();
         Assert.assertEquals(3L, metaNode.asMap().get("totalPreCount"));
         Assert.assertEquals(4L, metaNode.asMap().get("totalPostCount"));
+
+        List<String> superLevelRois = (List) metaNode.asMap().get("superLevelRois");
+        Assert.assertTrue(superLevelRois.contains("roiA") && superLevelRois.contains("roiB") && superLevelRois.contains("roi1"));
 
         String metaSynapseCountPerRoi = (String) metaNode.asMap().get("roiInfo");
         Gson gson = new Gson();

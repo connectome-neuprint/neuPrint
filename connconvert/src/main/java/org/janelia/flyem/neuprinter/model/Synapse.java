@@ -33,7 +33,7 @@ public class Synapse {
     private float confidence;
 
     @SerializedName("rois")
-    public Set<String> rois;
+    public List<String> rois;
 
     @SerializedName("ConnectsTo")
     private Set<List<Integer>> connectsTo;
@@ -69,7 +69,7 @@ public class Synapse {
      * @param z      z coordinate of location
      * @param roiSet set of rois that this density is in
      */
-    public Synapse(String type, Integer x, Integer y, Integer z, Set<String> roiSet) {
+    public Synapse(String type, Integer x, Integer y, Integer z, List<String> roiSet) {
         this.type = type;
         this.confidence = 0.0F;
         List<Integer> location = new ArrayList<>();
@@ -249,22 +249,22 @@ public class Synapse {
     }
 
     /**
-     * @return set of rois in which this synaptic density is located ("-lm" suffix
+     * @return list of rois in which this synaptic density is located ("-lm" suffix
      * removed if present)
      */
-    public Set<String> getRois() {
+    public List<String> getRois() {
         // remove -lm tag on rois and unwanted rois from mb6 and fib25
         return removeUnwantedRois(this.rois);
     }
 
     /**
      * @param dataset name of dataset in which this Synapse exists
-     * @return set of rois both with and without "dataset-" prefix
+     * @return list of rois both with and without "dataset-" prefix
      */
-    public Set<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
-        Set<String> roiSet = getRois();
-        roiSet.addAll(roiSet.stream().map(r -> dataset + "-" + r).collect(Collectors.toSet()));
-        return roiSet;
+    public List<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
+        List<String> roiList = getRois();
+        roiList.addAll(roiList.stream().map(r -> dataset + "-" + r).collect(Collectors.toList()));
+        return roiList;
     }
 
     /**
@@ -272,7 +272,7 @@ public class Synapse {
      *
      * @param rois a set of rois
      */
-    public void addRoiSet(Set<String> rois) {
+    public void addRoiList(List<String> rois) {
         this.rois = rois;
     }
 

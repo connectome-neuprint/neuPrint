@@ -1,9 +1,6 @@
 package org.janelia.flyem.neuprintprocedures.proofreading;
 
-import apoc.result.NodeListResult;
 import apoc.result.NodeResult;
-import com.google.gson.Gson;
-import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
@@ -797,7 +794,7 @@ public class ProofreaderProcedures {
             log.info(String.format("ProofreaderProcedures setSynapseRoisFromDatabase: No roi found on %s: %s", SYNAPSE, synapse));
             //throw new RuntimeException(String.format("No roi found on %s: %s", SYNAPSE, synapse));
         }
-        synapse.addRoiSet(new HashSet<>(roiList));
+        synapse.addRoiList(new ArrayList<>(roiList));
     }
 
     private Set<String> getSynapseNodeRoiSet(Node synapseNode) {

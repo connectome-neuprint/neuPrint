@@ -9,7 +9,6 @@ import org.neo4j.driver.v1.types.Point;
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -39,7 +38,7 @@ public class Neuron {
     private final String neuronType;
 
     @SerializedName("rois")
-    private final Set<String> rois;
+    private final List<String> rois;
 
     @SerializedName("Soma")
     private final Soma soma;
@@ -60,7 +59,7 @@ public class Neuron {
                   final String name,
                   final String neuronType,
                   final Long size,
-                  final Set<String> rois,
+                  final List<String> rois,
                   final Soma soma) {
         this.id = id;
         this.status = status;
@@ -109,16 +108,16 @@ public class Neuron {
     /**
      * @return rois (without "-lm" suffix if present)
      */
-    public Set<String> getRois() {
+    public List<String> getRois() {
         return removeUnwantedRois(this.rois);
     }
 
-    static Set<String> removeUnwantedRois(Set<String> rois) {
-        Set<String> newRoiSet;
+    static List<String> removeUnwantedRois(List<String> rois) {
+        List<String> newRoiSet;
         if (rois != null) {
             newRoiSet = rois.stream()
                     .filter(r -> !(r.equals("seven_column_roi") || r.equals("kc_alpha_roi")))
-                    .collect(Collectors.toSet());
+                    .collect(Collectors.toList());
             return newRoiSet;
         } else {
             return null;
@@ -126,14 +125,14 @@ public class Neuron {
     }
 
     /**
-     * Returns a set of rois in which this neuron is located with and without
+     * Returns a list of rois in which this neuron is located with and without
      * a "dataset-" prefix.
      *
      * @param dataset the dataset in which this neuron exists
      * @return set of rois and rois prefixed with "dataset-"
      */
-    public Set<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
-        Set<String> rois = getRois();
+    public List<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
+        List<String> rois = getRois();
         if (rois != null) {
             rois.addAll(rois.stream().map(r -> dataset + "-" + r).collect(Collectors.toSet()));
             return rois;

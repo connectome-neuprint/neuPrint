@@ -51,6 +51,7 @@ public class Neo4jImporter implements AutoCloseable {
     private final Driver driver;
     private final int statementsPerTransaction;
     private final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+    private final Set<String> rootRois = new HashSet<>();
 
     /**
      * Class constructor.
@@ -178,9 +179,10 @@ public class Neo4jImporter implements AutoCloseable {
             for (final Neuron neuron : neuronList) {
 
                 StringBuilder roiProperties = new StringBuilder();
-                Set<String> roiSet = neuron.getRois();
-                if (roiSet != null) {
-                    for (String roi : roiSet) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                List<String> roiList = neuron.getRois();
+                if (roiList != null) {
+                    rootRois.add(roiList.get(0));
+                    for (String roi : roiList) roiProperties.append(String.format(roiPropertyBaseString, roi));
                 }
 
                 String segmentTextWithRois = String.format(segmentText, roiProperties.toString());
@@ -295,9 +297,10 @@ public class Neo4jImporter implements AutoCloseable {
                     for (final Synapse synapse : bws.getSynapseSet()) {
 
                         StringBuilder roiProperties = new StringBuilder();
-                        Set<String> roiSet = synapse.getRois();
-                        if (roiSet != null) {
-                            for (String roi : roiSet) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                        List<String> roiList = synapse.getRois();
+                        if (roiList != null) {
+                            rootRois.add(roiList.get(0));
+                            for (String roi : roiList) roiProperties.append(String.format(roiPropertyBaseString, roi));
                         }
 
                         if (synapse.getType().equals("pre")) {
@@ -387,9 +390,9 @@ public class Neo4jImporter implements AutoCloseable {
                 for (Synapse synapse : bws.getSynapseSet()) {
 
                     StringBuilder roiProperties = new StringBuilder();
-                    Set<String> roiSet = synapse.getRois();
-                    if (roiSet != null) {
-                        for (String roi : roiSet) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                    List<String> roiList = synapse.getRois();
+                    if (roiList != null) {
+                        for (String roi : roiList) roiProperties.append(String.format(roiPropertyBaseString, roi));
                     }
 
                     String roiSegmentTextWithRois = String.format(roiSegmentText, roiProperties);
@@ -530,8 +533,8 @@ public class Neo4jImporter implements AutoCloseable {
     /**
      * Adds ConnectionSet nodes to database and connects them to appropriate Segment and Synapse nodes via Contains Relationships.
      *
-     * @param dataset dataset name
-     * @param bodyList list of BodyWithSynapse objects
+     * @param dataset                    dataset name
+     * @param bodyList                   list of BodyWithSynapse objects
      * @param synapseLocationToBodyIdMap map of synapse locations to body ids
      */
     public void addConnectionSets(final String dataset, final List<BodyWithSynapses> bodyList, final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap) {
@@ -728,11 +731,12 @@ public class Neo4jImporter implements AutoCloseable {
                     "dataModelVersion", dataModelVersion
             )));
 
-            String metaNodeRoiString = "MATCH (m:Meta{dataset:$dataset}) SET m.roiInfo=$synapseCountPerRoi ";
+            String metaNodeRoiString = "MATCH (m:Meta{dataset:$dataset}) SET m.roiInfo=$synapseCountPerRoi, m.superLevelRois=$superLevelRois ";
 
             batch.addStatement(new Statement(metaNodeRoiString,
                     parameters("dataset", dataset,
-                            "synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString()
+                            "synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString(),
+                            "superLevelRois", rootRois
                     )));
 
             batch.writeTransaction();

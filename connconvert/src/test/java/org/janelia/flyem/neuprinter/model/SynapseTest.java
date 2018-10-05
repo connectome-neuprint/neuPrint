@@ -24,7 +24,7 @@ public class SynapseTest {
         final Synapse secondSynapse = parsedList.get(1);
         final Synapse thirdSynapse = parsedList.get(3);
 
-        final Set<String> roiNames = firstSynapse.getRois();
+        final List<String> roiNames = firstSynapse.getRois();
         final List<Integer> location = firstSynapse.getLocation();
 
         Assert.assertNotNull("roiNames not parsed for " + firstSynapse,
