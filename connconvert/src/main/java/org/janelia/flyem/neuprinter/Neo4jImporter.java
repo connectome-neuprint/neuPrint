@@ -176,7 +176,6 @@ public class Neo4jImporter implements AutoCloseable {
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
-                String status = neuron.getStatus() != null ? neuron.getStatus() : "not annotated";
 
                 StringBuilder roiProperties = new StringBuilder();
                 Set<String> roiSet = neuron.getRois();
@@ -191,7 +190,7 @@ public class Neo4jImporter implements AutoCloseable {
                                 parameters("bodyId", neuron.getId(),
                                         "name", neuron.getName(),
                                         "type", neuron.getNeuronType(),
-                                        "status", status,
+                                        "status", neuron.getStatus(),
                                         "size", neuron.getSize(),
                                         "somaLocation", neuron.getSomaLocation(),
                                         "somaRadius", neuron.getSomaRadius(),
@@ -215,8 +214,8 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addConnectsTo: entry");
 
         final String connectsToText =
-                "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
-                        "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m.status=$notAnnotated, m:Segment, m:" + dataset + " \n" +
+                "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n:Segment, n:" + dataset + " \n" +
+                        "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m:Segment, m:" + dataset + " \n" +
                         "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m)";
         final String terminalCountText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp, n.roiInfo=$synapseCountPerRoi";
 
@@ -232,7 +231,6 @@ public class Neo4jImporter implements AutoCloseable {
                                     parameters("bodyId1", body.getBodyId(),
                                             "bodyId2", postsynapticBodyId,
                                             "timeStamp", timeStamp,
-                                            "notAnnotated", "not annotated",
                                             "weight", body.getConnectsTo().get(postsynapticBodyId)))
                     );
                 }
@@ -398,8 +396,7 @@ public class Neo4jImporter implements AutoCloseable {
 
                     batch.addStatement(new Statement(roiSegmentTextWithRois,
                             parameters("bodyId", bws.getBodyId(),
-                                    "timeStamp", timeStamp,
-                                    "notAnnotated", "not annotated")));
+                                    "timeStamp", timeStamp)));
                 }
             }
             batch.writeTransaction();
@@ -502,7 +499,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSynapseSets: entry");
 
-        final String segmentContainsSSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
+        final String segmentContainsSSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:Segment, n:" + dataset + " \n" +
                 "MERGE (s:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) ON CREATE SET s.datasetBodyId=$datasetBodyId, s.timeStamp=$timeStamp, s:SynapseSet, s:" + dataset + " \n" +
                 "MERGE (n)-[:Contains]->(s)";
 
@@ -513,7 +510,6 @@ public class Neo4jImporter implements AutoCloseable {
         try (final TransactionBatch batch = getBatch()) {
             for (BodyWithSynapses bws : bodyList) {
                 batch.addStatement(new Statement(segmentContainsSSText, parameters("bodyId", bws.getBodyId(),
-                        "notAnnotated", "not annotated",
                         "datasetBodyId", dataset + ":" + bws.getBodyId(),
                         "timeStamp", timeStamp))
                 );
@@ -541,8 +537,8 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addConnectionSets: entry");
 
-        final String segmentContainsCSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId=$bodyId1, n.status=$notAnnotated, n:Segment, n:" + dataset + " \n" +
-                "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId=$bodyId2, m.status=$notAnnotated, m:Segment, m:" + dataset + " \n" +
+        final String segmentContainsCSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId=$bodyId1, n:Segment, n:" + dataset + " \n" +
+                "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId=$bodyId2, m:Segment, m:" + dataset + " \n" +
                 "MERGE (s:`" + dataset + "-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) ON CREATE SET s.datasetBodyIds=$datasetBodyIds, s.timeStamp=$timeStamp, s:ConnectionSet, s:" + dataset + " \n" +
                 "MERGE (n)-[:Contains]->(s) \n" +
                 "MERGE (m)-[:Contains]->(s) ";
@@ -578,7 +574,6 @@ public class Neo4jImporter implements AutoCloseable {
                             parameters(
                                     "bodyId1", connectionSet.getPresynapticBodyId(),
                                     "bodyId2", connectionSet.getPostsynapticBodyId(),
-                                    "notAnnotated", "not annotated",
                                     "datasetBodyIds", dataset + ":" + connectionSetKey,
                                     "timeStamp", timeStamp)));
 
@@ -612,7 +607,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSkeletonNodes: entry");
 
-        final String segmentToSkeletonConnectionString = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.status=$notAnnotated, n.timeStamp=$timeStamp, n:Segment, n:" + dataset + " \n" +
+        final String segmentToSkeletonConnectionString = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n.timeStamp=$timeStamp, n:Segment, n:" + dataset + " \n" +
                 "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp, r:Skeleton, r:" + dataset + " \n" +
                 "MERGE (n)-[:Contains]->(r) \n";
 
@@ -635,7 +630,6 @@ public class Neo4jImporter implements AutoCloseable {
                 List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
 
                 batch.addStatement(new Statement(segmentToSkeletonConnectionString, parameters("bodyId", associatedBodyId,
-                        "notAnnotated", "not annotated",
                         "skeletonId", dataset + ":" + associatedBodyId,
                         "timeStamp", timeStamp
                 )));
