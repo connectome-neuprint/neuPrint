@@ -531,7 +531,8 @@ public class Neo4jImporter implements AutoCloseable {
      * Adds ConnectionSet nodes to database and connects them to appropriate Segment and Synapse nodes via Contains Relationships.
      *
      * @param dataset dataset name
-     * @param
+     * @param bodyList list of BodyWithSynapse objects
+     * @param synapseLocationToBodyIdMap map of synapse locations to body ids
      */
     public void addConnectionSets(final String dataset, final List<BodyWithSynapses> bodyList, final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap) {
 
