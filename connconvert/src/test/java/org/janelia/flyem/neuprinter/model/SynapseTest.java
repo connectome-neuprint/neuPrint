@@ -30,9 +30,9 @@ public class SynapseTest {
         Assert.assertNotNull("roiNames not parsed for " + firstSynapse,
                 roiNames);
         Assert.assertEquals("invalid number of roiNames parsed for " + firstSynapse,
-                2, roiNames.size());
+                1, roiNames.size());
         Assert.assertTrue("invalid roiName parsed for " + firstSynapse,
-                roiNames.contains("seven_column_roi"));
+                roiNames.contains("distal"));
 
         Assert.assertEquals("incorrect synapse type for " + firstSynapse, "pre", firstSynapse.getType());
 

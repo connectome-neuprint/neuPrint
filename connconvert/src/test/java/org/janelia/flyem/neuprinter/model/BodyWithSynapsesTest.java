@@ -105,11 +105,9 @@ public class BodyWithSynapsesTest {
 
         List<String> firstBodyRois = parsedBodyList.get(0).getBodyRois();
         List<String> roiList = new ArrayList<>();
-        roiList.add("seven_column_roi");
         roiList.add("testroi");
-        roiList.add("seven_column_roi");
 
-        Assert.assertEquals(firstBodyRois,roiList);
+        Assert.assertEquals(roiList,firstBodyRois);
 
 
     }

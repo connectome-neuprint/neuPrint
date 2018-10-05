@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.janelia.flyem.neuprinter.model.Neuron.removeLMTagFromRois;
+import static org.janelia.flyem.neuprinter.model.Neuron.removeLMTagFromRoisAndUnwantedRois;
 
 /**
  * A class representing a synaptic density. A Synapse has a type (pre or post), a three-
@@ -253,8 +253,8 @@ public class Synapse {
      * removed if present)
      */
     public Set<String> getRois() {
-        // remove -lm tag on rois
-        return removeLMTagFromRois(this.rois);
+        // remove -lm tag on rois and unwanted rois from mb6 and fib25
+        return removeLMTagFromRoisAndUnwantedRois(this.rois);
     }
 
     private Set<String> getRoiPts() {

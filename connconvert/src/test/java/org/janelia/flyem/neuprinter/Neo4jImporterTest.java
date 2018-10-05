@@ -232,15 +232,13 @@ public class Neo4jImporterTest {
 
         //should be in lexicographic order
         Set<String> roiSet = new TreeSet<>();
-        roiSet.add("seven_column_roi");
         roiSet.add("roiA");
         roiSet.add("roiB");
 
         Assert.assertEquals(roiSet, synapseCountPerRoi.keySet());
 
-        Assert.assertEquals(3, synapseCountPerRoi.keySet().size());
+        Assert.assertEquals(2, synapseCountPerRoi.keySet().size());
         Assert.assertEquals(2, synapseCountPerRoi.get("roiA").getPre());
-        Assert.assertEquals(0, synapseCountPerRoi.get("seven_column_roi").getPost());
         Assert.assertEquals(1, synapseCountPerRoi.get("roiB").getPost());
 
     }
@@ -252,7 +250,6 @@ public class Neo4jImporterTest {
 
         Node segmentNode = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959}) RETURN n").single().get(0).asNode();
 
-        Assert.assertTrue(segmentNode.asMap().containsKey("seven_column_roi"));
         Assert.assertTrue(segmentNode.asMap().containsKey("roiA"));
         Assert.assertTrue(segmentNode.asMap().containsKey("roiB"));
 
@@ -280,7 +277,6 @@ public class Neo4jImporterTest {
 
         Assert.assertEquals(1.0, preSynNode.asMap().get("confidence"));
         Assert.assertEquals("pre", preSynNode.asMap().get("type"));
-        Assert.assertTrue(preSynNode.asMap().containsKey("seven_column_roi"));
         Assert.assertTrue(preSynNode.asMap().containsKey("roiA"));
         Assert.assertEquals(true, preSynNode.asMap().get("roiA"));
 
@@ -290,10 +286,7 @@ public class Neo4jImporterTest {
 
         Assert.assertEquals(1.0, postSynNode.asMap().get("confidence"));
         Assert.assertEquals("post", postSynNode.asMap().get("type"));
-        Assert.assertTrue(postSynNode.asMap().containsKey("seven_column_roi"));
         Assert.assertTrue(postSynNode.asMap().containsKey("roiA"));
-        Assert.assertEquals(true, postSynNode.asMap().get("seven_column_roi"));
-
     }
 
     @Test
@@ -373,7 +366,7 @@ public class Neo4jImporterTest {
         Assert.assertEquals(0L, metaSynapseCountPerRoiMap.get("roi'C").getPre());
         Assert.assertEquals(1L, metaSynapseCountPerRoiMap.get("roi'C").getPost());
         // test that all rois are listed in meta
-        Assert.assertEquals(6, metaSynapseCountPerRoiMap.keySet().size());
+        Assert.assertEquals(5, metaSynapseCountPerRoiMap.keySet().size());
 
     }
 
