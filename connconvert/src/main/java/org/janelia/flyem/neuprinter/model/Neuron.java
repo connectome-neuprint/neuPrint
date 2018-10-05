@@ -110,17 +110,13 @@ public class Neuron {
      * @return rois (without "-lm" suffix if present)
      */
     public Set<String> getRois() {
-        return removeLMTagFromRoisAndUnwantedRois(this.rois);
+        return removeUnwantedRois(this.rois);
     }
 
-    static Set<String> removeLMTagFromRoisAndUnwantedRois(Set<String> rois) {
+    static Set<String> removeUnwantedRois(Set<String> rois) {
         Set<String> newRoiSet;
         if (rois != null) {
             newRoiSet = rois.stream()
-                    .map(r -> {
-                        if (r.endsWith("-lm")) return r.replace("-lm", "");
-                        else return r;
-                    })
                     .filter(r -> !(r.equals("seven_column_roi") || r.equals("kc_alpha_roi")))
                     .collect(Collectors.toSet());
             return newRoiSet;

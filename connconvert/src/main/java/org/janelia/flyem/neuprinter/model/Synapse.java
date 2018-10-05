@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.janelia.flyem.neuprinter.model.Neuron.removeLMTagFromRoisAndUnwantedRois;
+import static org.janelia.flyem.neuprinter.model.Neuron.removeUnwantedRois;
 
 /**
  * A class representing a synaptic density. A Synapse has a type (pre or post), a three-
@@ -254,35 +254,7 @@ public class Synapse {
      */
     public Set<String> getRois() {
         // remove -lm tag on rois and unwanted rois from mb6 and fib25
-        return removeLMTagFromRoisAndUnwantedRois(this.rois);
-    }
-
-    private Set<String> getRoiPts() {
-        // remove -lm tag on rois
-        if (this.rois != null) {
-            Set<String> newRoiSet = new HashSet<>();
-            for (String roi : rois) {
-                if (roi.endsWith("-lm")) {
-                    newRoiSet.add(roi.replace("-lm", "") + "-pt");
-                } else {
-                    newRoiSet.add(roi + "-pt");
-                }
-            }
-            return newRoiSet;
-        } else {
-            return null;
-        }
-    }
-
-    /**
-     * @param dataset name of dataset in which this Synapse exists
-     * @return set of rois with "-pt" suffix both with and without "dataset-" prefix
-     */
-    public Set<String> getRoiPtsWithAndWithoutDatasetPrefix(String dataset) {
-        Set<String> roiPts = getRoiPts();
-        assert roiPts != null : "no rois associated with this Synapse";
-        roiPts.addAll(roiPts.stream().map(r -> dataset + "-" + r).collect(Collectors.toSet()));
-        return roiPts;
+        return removeUnwantedRois(this.rois);
     }
 
     /**
