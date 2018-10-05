@@ -16,6 +16,7 @@ import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.janelia.flyem.neuprinter.model.SynapseCountsPerRoi;
+import org.janelia.flyem.neuprinter.model.SynapseLocationToBodyIdMap;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
@@ -200,7 +201,7 @@ public class Neo4jImporter implements AutoCloseable {
             batch.writeTransaction();
         }
 
-        LOG.info("addSegments: entry");
+        LOG.info("addSegments: exit");
     }
 
     /**
@@ -533,10 +534,10 @@ public class Neo4jImporter implements AutoCloseable {
     /**
      * Adds ConnectionSet nodes to database and connects them to appropriate Segment and Synapse nodes via Contains Relationships.
      *
-     * @param dataset          dataset name
-     * @param connectionSetMap {@link ConnectionSetMap} containing synapse locations for each connection A->B
+     * @param dataset dataset name
+     * @param
      */
-    public void addConnectionSets(final String dataset, final ConnectionSetMap connectionSetMap) {
+    public void addConnectionSets(final String dataset, final List<BodyWithSynapses> bodyList, final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap) {
 
         LOG.info("addConnectionSets: entry");
 
@@ -552,26 +553,45 @@ public class Neo4jImporter implements AutoCloseable {
 
         try (final TransactionBatch batch = getBatch()) {
 
-            for (String connectionSetKey : connectionSetMap.getConnectionSetKeys()) {
-                ConnectionSet connectionSet = connectionSetMap.getConnectionSetForKey(connectionSetKey);
+            for (final BodyWithSynapses body : bodyList) {
+                ConnectionSetMap connectionSetMap = new ConnectionSetMap();
 
-                batch.addStatement(new Statement(segmentContainsCSText,
-                        parameters(
-                                "bodyId1", connectionSet.getPresynapticBodyId(),
-                                "bodyId2", connectionSet.getPostsynapticBodyId(),
-                                "notAnnotated", "not annotated",
-                                "datasetBodyIds", dataset + ":" + connectionSetKey,
-                                "timeStamp", timeStamp)));
-
-                for (String synapseLocationString : connectionSet.getConnectingSynapseLocationStrings()) {
-
-                    batch.addStatement(new Statement(csContainsSynapseText,
-                            parameters(
-                                    "location", Synapse.convertLocationStringToPoint(synapseLocationString),
-                                    "datasetBodyIds", dataset + ":" + connectionSetKey)));
+                long presynapticBodyId = body.getBodyId();
+                for (final Synapse synapse : body.getSynapseSet()) {
+                    if (synapse.getType().equals("pre")) {
+                        final String presynapticLocationString = synapse.getLocationString();
+                        final Set<String> connectionLocationStrings = synapse.getConnectionLocationStrings();
+                        for (final String postsynapticLocationString : connectionLocationStrings) {
+                            //deal with problematic synapses from mb6 dataset
+                            if (!(isMb6ProblematicSynapse(postsynapticLocationString)) || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
+                                long postsynapticBodyId = synapseLocationToBodyIdMap.getBodyId(postsynapticLocationString);
+                                connectionSetMap.addConnection(presynapticBodyId, postsynapticBodyId, presynapticLocationString, postsynapticLocationString);
+                            }
+                        }
+                    }
                 }
+
+                for (String connectionSetKey : connectionSetMap.getConnectionSetKeys()) {
+                    ConnectionSet connectionSet = connectionSetMap.getConnectionSetForKey(connectionSetKey);
+
+                    batch.addStatement(new Statement(segmentContainsCSText,
+                            parameters(
+                                    "bodyId1", connectionSet.getPresynapticBodyId(),
+                                    "bodyId2", connectionSet.getPostsynapticBodyId(),
+                                    "notAnnotated", "not annotated",
+                                    "datasetBodyIds", dataset + ":" + connectionSetKey,
+                                    "timeStamp", timeStamp)));
+
+                    for (String synapseLocationString : connectionSet.getConnectingSynapseLocationStrings()) {
+
+                        batch.addStatement(new Statement(csContainsSynapseText,
+                                parameters(
+                                        "location", Synapse.convertLocationStringToPoint(synapseLocationString),
+                                        "datasetBodyIds", dataset + ":" + connectionSetKey)));
+                    }
 //                //write transactions for each connection set to prevent read/write locks from interfering with load
 //                batch.writeTransaction();
+                }
             }
             batch.writeTransaction();
         }
@@ -877,6 +897,10 @@ public class Neo4jImporter implements AutoCloseable {
         Comparator<Map.Entry<String, SynapseCounter>> comparator = (e1, e2) ->
                 e1.getValue().getPre() == e2.getValue().getPre() ? e1.getKey().compareTo(e2.getKey()) : e2.getValue().getPre() - e1.getValue().getPre();
         return entriesSortedByComparator(roiSynapseCountMap, comparator);
+    }
+
+    private boolean isMb6ProblematicSynapse(String locationString) {
+        return locationString.equals("3936:4764:9333") || locationString.equals("4042:5135:9887");
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(Neo4jImporter.class);

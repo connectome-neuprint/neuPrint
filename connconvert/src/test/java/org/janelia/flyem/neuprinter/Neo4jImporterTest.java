@@ -62,7 +62,7 @@ public class Neo4jImporterTest {
         String bodiesJsonPath = "src/test/resources/smallBodyListWithExtraRois.json";
 
         SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath, "test");
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
         HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
@@ -75,7 +75,7 @@ public class Neo4jImporterTest {
         neo4jImporter.addSynapsesWithRois("test", bodyList);
         neo4jImporter.addSynapsesTo("test", preToPost);
         neo4jImporter.addSegmentRois("test", bodyList);
-        neo4jImporter.addConnectionSets("test", mapper.getConnectionSetMap());
+        neo4jImporter.addConnectionSets("test", bodyList, mapper.getSynapseLocationToBodyIdMap());
         neo4jImporter.addSynapseSets("test", bodyList);
         neo4jImporter.addSkeletonNodes("test", skeletonList);
         neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F);

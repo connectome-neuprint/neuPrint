@@ -8,9 +8,9 @@ import com.google.common.base.Stopwatch;
 import org.janelia.flyem.neuprinter.db.DbConfig;
 import org.janelia.flyem.neuprinter.json.JsonUtils;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
-import org.janelia.flyem.neuprinter.model.ConnectionSetMap;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
+import org.janelia.flyem.neuprinter.model.SynapseLocationToBodyIdMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -364,13 +364,13 @@ public class NeuPrinterMain {
 
             Stopwatch timer = Stopwatch.createStarted();
             SynapseMapper mapper = new SynapseMapper();
-            bodyList = mapper.loadAndMapBodies(parameters.synapseJson, dataset);
+            bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
             LOG.info("Number of bodies with synapses: " + bodyList.size());
             LOG.info("Reading in synapse JSON took: " + timer.stop());
             timer.reset();
 
             HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
-            ConnectionSetMap connectionSetMap = mapper.getConnectionSetMap();
+            SynapseLocationToBodyIdMap synapseLocationToBodyIdMap = mapper.getSynapseLocationToBodyIdMap();
 
             try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
@@ -410,7 +410,7 @@ public class NeuPrinterMain {
 
                 if (parameters.addConnectionSets || parameters.doAll) {
                     timer.start();
-                    neo4jImporter.addConnectionSets(dataset, connectionSetMap);
+                    neo4jImporter.addConnectionSets(dataset, bodyList, synapseLocationToBodyIdMap);
                     LOG.info("Loading ConnectionSets took: " + timer.stop());
                     timer.reset();
 

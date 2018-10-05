@@ -19,7 +19,7 @@ public class SynapseMapperTest {
         final String bodyJsonFilePath = "src/test/resources/smallBodyList.json";
 
         final SynapseMapper mapper = new SynapseMapper();
-        final List<BodyWithSynapses> parsedBodyList = mapper.loadAndMapBodies(bodyJsonFilePath, "test");
+        final List<BodyWithSynapses> parsedBodyList = mapper.loadAndMapBodies(bodyJsonFilePath);
 
         Assert.assertEquals("invalid number of bodies parsed",
                 4, parsedBodyList.size());
