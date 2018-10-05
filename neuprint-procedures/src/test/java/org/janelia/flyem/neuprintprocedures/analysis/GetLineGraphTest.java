@@ -61,7 +61,7 @@ public class GetLineGraphTest {
             neo4jImporter.addSegmentRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
 
-            Map<String, Object> jsonData = session.writeTransaction(tx -> tx.run("CALL analysis.getLineGraphForRoi(\"seven_column_roi\",\"test\",0,1) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap());
+            Map<String, Object> jsonData = session.writeTransaction(tx -> tx.run("CALL analysis.getLineGraphForRoi(\"roiA\",\"test\",0,1) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap());
 
             String nodes = (String) jsonData.get("Vertices");
             String edges = (String) jsonData.get("Edges");

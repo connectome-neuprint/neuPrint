@@ -114,11 +114,10 @@ public class MetaNodeUpdaterTest {
         Assert.assertEquals(2L, metaSynapseCountPerRoiMap.get("roiA").getPre());
         Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiA").getPost());
 
-        Assert.assertEquals(4, metaSynapseCountPerRoiMap.keySet().size());
+        Assert.assertEquals(3, metaSynapseCountPerRoiMap.keySet().size());
         Assert.assertTrue(metaSynapseCountPerRoiMap.containsKey("roiA")
                 && metaSynapseCountPerRoiMap.containsKey("roiB")
-                && metaSynapseCountPerRoiMap.containsKey("anotherRoi")
-                && metaSynapseCountPerRoiMap.containsKey("seven_column_roi"));
+                && metaSynapseCountPerRoiMap.containsKey("anotherRoi"));
 
         LocalDateTime metaNodeUpdateTimeBefore2 = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n.lastDatabaseEdit").single().get(0).asLocalDateTime());
 
@@ -150,12 +149,11 @@ public class MetaNodeUpdaterTest {
         Assert.assertEquals(7L, metaSynapseCountPerRoiMap2.get("roiA").getPre());
         Assert.assertEquals(5L, metaSynapseCountPerRoiMap2.get("roiA").getPost());
 
-        Assert.assertEquals(5, metaSynapseCountPerRoiMap2.keySet().size());
+        Assert.assertEquals(4, metaSynapseCountPerRoiMap2.keySet().size());
         Assert.assertTrue(metaSynapseCountPerRoiMap2.containsKey("roiA")
                 && metaSynapseCountPerRoiMap2.containsKey("roiB")
                 && metaSynapseCountPerRoiMap2.containsKey("anotherRoi")
-                && metaSynapseCountPerRoiMap2.containsKey("newRoi")
-                && metaSynapseCountPerRoiMap2.containsKey("seven_column_roi"));
+                && metaSynapseCountPerRoiMap2.containsKey("newRoi"));
 
     }
 }
