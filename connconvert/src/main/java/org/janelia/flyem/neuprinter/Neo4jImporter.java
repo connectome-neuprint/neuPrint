@@ -135,7 +135,9 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE INDEX ON :`" + dataset + "-SkelNode`(location)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(pre)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(post)",
-                "CREATE INDEX ON :Neuron(name)"
+                "CREATE INDEX ON :Neuron(name)",
+                "CREATE INDEX ON :`" + dataset + "-Segment`(pre)",
+                "CREATE INDEX ON :`" + dataset + "-Segment`(post)"
         };
 
         for (final String prepText : prepTextArray) {
@@ -717,6 +719,9 @@ public class Neo4jImporter implements AutoCloseable {
         SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
 
         try (Session session = driver.session()) {
+            //set temporary indices
+
+
             totalPre = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
             roiNameSet = getRoiSet(session, dataset);
@@ -760,11 +765,12 @@ public class Neo4jImporter implements AutoCloseable {
             roiNameSet = getRoiSet(session, dataset);
         }
 
-        String[] indexTextArray = new String[roiNameSet.size()];
+        String[] indexTextArray = new String[roiNameSet.size()*2];
         int i = 0;
         for (String roi : roiNameSet) {
             indexTextArray[i] = "CREATE INDEX ON :`" + dataset + "-Neuron`(`" + roi + "`)";
-            i++;
+            indexTextArray[i+1] = "CREATE INDEX ON :`" + dataset + "-Segment`(`" + roi + "`)";
+            i += 2;
         }
 
         for (final String indexText : indexTextArray) {
