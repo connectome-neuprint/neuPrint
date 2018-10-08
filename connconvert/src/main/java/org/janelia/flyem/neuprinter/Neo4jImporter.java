@@ -180,7 +180,7 @@ public class Neo4jImporter implements AutoCloseable {
 
                 StringBuilder roiProperties = new StringBuilder();
                 List<String> roiList = neuron.getRois();
-                if (roiList != null) {
+                if (roiList != null && roiList.size() > 0) {
                     rootRois.add(roiList.get(0));
                     for (String roi : roiList) roiProperties.append(String.format(roiPropertyBaseString, roi));
                 }
@@ -298,9 +298,11 @@ public class Neo4jImporter implements AutoCloseable {
 
                         StringBuilder roiProperties = new StringBuilder();
                         List<String> roiList = synapse.getRois();
-                        if (roiList != null) {
+                        if (roiList != null && roiList.size() > 0) {
                             rootRois.add(roiList.get(0));
                             for (String roi : roiList) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                        } else {
+                            LOG.warn("No ROI found on synapse " + synapse);
                         }
 
                         if (synapse.getType().equals("pre")) {
@@ -391,8 +393,10 @@ public class Neo4jImporter implements AutoCloseable {
 
                     StringBuilder roiProperties = new StringBuilder();
                     List<String> roiList = synapse.getRois();
-                    if (roiList != null) {
+                    if (roiList != null && roiList.size() > 0) {
                         for (String roi : roiList) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                    } else {
+                        LOG.warn("No ROI found on synapse " + synapse);
                     }
 
                     String roiSegmentTextWithRois = String.format(roiSegmentText, roiProperties);

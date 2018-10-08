@@ -113,12 +113,12 @@ public class Neuron {
     }
 
     static List<String> removeUnwantedRois(List<String> rois) {
-        List<String> newRoiSet;
+        List<String> newRoiList;
         if (rois != null) {
-            newRoiSet = rois.stream()
+            newRoiList = rois.stream()
                     .filter(r -> !(r.equals("seven_column_roi") || r.equals("kc_alpha_roi")))
                     .collect(Collectors.toList());
-            return newRoiSet;
+            return newRoiList;
         } else {
             return null;
         }
