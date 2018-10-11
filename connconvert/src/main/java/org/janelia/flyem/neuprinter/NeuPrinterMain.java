@@ -175,6 +175,12 @@ public class NeuPrinterMain {
         Integer neuronThreshold;
 
         @Parameter(
+                names = "--getSuperLevelRoisFromSynapses",
+                description = ""
+        )
+        public boolean getSuperLevelRoisFromSynapses;
+
+        @Parameter(
                 names = "--help",
                 help = true)
         boolean help;
@@ -422,14 +428,6 @@ public class NeuPrinterMain {
                         timer.reset();
                     }
 
-                }
-            }
-
-            if (parameters.doAll) {
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                    Stopwatch timer = Stopwatch.createUnstarted();
-
                     if (parameters.addAutoNames) {
                         timer.start();
                         if (parameters.neuronThreshold != null) {
@@ -459,6 +457,7 @@ public class NeuPrinterMain {
                     neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
                     LOG.info("Adding :Meta node took: " + timer.stop());
                     timer.reset();
+
                 }
             }
 
@@ -497,6 +496,20 @@ public class NeuPrinterMain {
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
                     neo4jImporter.prepDatabase(dataset);
                     neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
+                }
+            }
+
+            if (parameters.getSuperLevelRoisFromSynapses) {
+
+                Stopwatch timer = Stopwatch.createStarted();
+                SynapseMapper mapper = new SynapseMapper();
+                bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
+                LOG.info("Number of bodies with synapses: " + bodyList.size());
+                LOG.info("Reading in synapse JSON took: " + timer.stop());
+                timer.reset();
+
+                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                    neo4jImporter.setSuperLevelRois(dataset, bodyList);
                 }
             }
 

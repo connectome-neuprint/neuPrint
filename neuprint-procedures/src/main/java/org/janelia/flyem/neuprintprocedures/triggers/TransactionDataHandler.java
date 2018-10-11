@@ -38,6 +38,7 @@ class TransactionDataHandler {
 
         for (Node node : transactionData.createdNodes()) {
             addNodeForTimeStamping(node);
+            // synapse counts updated if new synapses are created
             checkIfShouldUpdateMetaNodeSynapseCounts(node);
         }
 
@@ -53,6 +54,7 @@ class TransactionDataHandler {
             if (!propertyEntry.key().equals(TIME_STAMP)) {
                 addNodeForTimeStamping(propertyEntry.entity());
             }
+            // synapse counts updated if new properties are added to a synapse (indicating an roi has been added; should we anticipate other changes?)
             checkIfShouldUpdateMetaNodeSynapseCounts(propertyEntry.entity());
         }
 
@@ -60,6 +62,7 @@ class TransactionDataHandler {
             if (!propertyEntry.key().equals(TIME_STAMP)) {
                 addNodeForTimeStamping(propertyEntry.entity());
             }
+            // synapse counts updated if new properties are removed from a synapse (indicating an roi has been removed; should we anticipate other changes?)
             checkIfShouldUpdateMetaNodeSynapseCounts(propertyEntry.entity());
         }
 

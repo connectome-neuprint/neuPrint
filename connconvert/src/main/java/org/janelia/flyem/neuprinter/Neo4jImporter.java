@@ -721,7 +721,6 @@ public class Neo4jImporter implements AutoCloseable {
         try (Session session = driver.session()) {
             //set temporary indices
 
-
             totalPre = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
             roiNameSet = getRoiSet(session, dataset);
@@ -765,11 +764,11 @@ public class Neo4jImporter implements AutoCloseable {
             roiNameSet = getRoiSet(session, dataset);
         }
 
-        String[] indexTextArray = new String[roiNameSet.size()*2];
+        String[] indexTextArray = new String[roiNameSet.size() * 2];
         int i = 0;
         for (String roi : roiNameSet) {
             indexTextArray[i] = "CREATE INDEX ON :`" + dataset + "-Neuron`(`" + roi + "`)";
-            indexTextArray[i+1] = "CREATE INDEX ON :`" + dataset + "-Segment`(`" + roi + "`)";
+            indexTextArray[i + 1] = "CREATE INDEX ON :`" + dataset + "-Segment`(`" + roi + "`)";
             i += 2;
         }
 
@@ -781,6 +780,24 @@ public class Neo4jImporter implements AutoCloseable {
         }
         LOG.info("indexBooleanRoiProperties: exit");
 
+    }
+
+    public void setSuperLevelRois(String dataset, List<BodyWithSynapses> bodyList) {
+
+        Set<String> superLevelRoisFromSynapses = getSuperLevelRoisFromSynapses(dataset, bodyList);
+
+        try (final TransactionBatch batch = getBatch()) {
+
+            String metaNodeRoiString = "MATCH (m:Meta{dataset:$dataset}) SET m.superLevelRois=$superLevelRois ";
+
+            batch.addStatement(new Statement(metaNodeRoiString,
+                    parameters("dataset", dataset,
+                            "superLevelRois", superLevelRoisFromSynapses
+                    )));
+
+            batch.writeTransaction();
+
+        }
     }
 
     private Set<String> getRoiSet(Session session, String dataset) {
@@ -910,6 +927,27 @@ public class Neo4jImporter implements AutoCloseable {
 
     private boolean isMb6ProblematicSynapse(String locationString) {
         return locationString.equals("3936:4764:9333") || locationString.equals("4042:5135:9887");
+    }
+
+    private Set<String> getSuperLevelRoisFromSynapses(String dataset, List<BodyWithSynapses> bodyList) {
+
+        Set<String> superLevelRois = new HashSet<>();
+
+        for (final BodyWithSynapses bws : bodyList) {
+            // issue with this body id in mb6
+            if (bws.getBodyId() != 304654117 || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
+
+                for (final Synapse synapse : bws.getSynapseSet()) {
+
+                    List<String> roiList = synapse.getRois();
+                    if (roiList != null && roiList.size() > 0) {
+                        superLevelRois.add(roiList.get(0));
+                    }
+                }
+            }
+        }
+
+        return superLevelRois;
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(Neo4jImporter.class);
