@@ -41,6 +41,8 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+//TODO: remove unknown as a name and not examined as a status
+
 import static org.neo4j.driver.v1.Values.parameters;
 
 /**

@@ -143,6 +143,8 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
+        //4 from smallBodyListWithExtraRois, 2 from skeletons, 6 additional from smallBodyList = 12
+
         int numberOfSegments = session.run("MATCH (n:Segment:test:`test-Segment`) RETURN count(n)").single().get(0).asInt();
 
         Assert.assertEquals(12, numberOfSegments);
@@ -195,12 +197,24 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void allSegmentsShouldHaveAStatus() {
+    public void allSegmentsShouldHaveAStatusWhenListedInJson() {
 
         Session session = driver.session();
 
-        int noStatusCount = session.run("MATCH (n:Segment) WHERE n.status=null RETURN count(n)").single().get(0).asInt();
-        Assert.assertEquals(0, noStatusCount);
+        //bodyId 100541 has no status listed in the json, 2 skeleton bodies have no status, and 2 bodies from smallBodyListWithExtraRois have no status = 5
+        int noStatusCount = session.run("MATCH (n:Segment) WHERE NOT exists(n.status) RETURN count(n)").single().get(0).asInt();
+        Assert.assertEquals(5, noStatusCount);
+
+    }
+
+    @Test
+    public void allSegmentsShouldHaveANameWhenListedInJson() {
+
+        Session session = driver.session();
+
+        //10 segments should have no name from json, but 1 qualifies as a neuron so will have an autoname for its name property
+        int noNameCount = session.run("MATCH (n:Segment) WHERE NOT exists(n.name) RETURN count(n)").single().get(0).asInt();
+        Assert.assertEquals(9, noNameCount);
 
     }
 
@@ -225,7 +239,7 @@ public class Neo4jImporterTest {
 
         Assert.assertEquals(8426959L, bodyId8426959.asMap().get("bodyId"));
 
-        Assert.assertEquals(1L, bodyId8426959.asMap().get("post"));
+        Assert.assertEquals(3L, bodyId8426959.asMap().get("post"));
         Assert.assertEquals(2L, bodyId8426959.asMap().get("pre"));
         Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson((String) bodyId8426959.asMap().get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
         }.getType());
@@ -239,7 +253,9 @@ public class Neo4jImporterTest {
 
         Assert.assertEquals(2, synapseCountPerRoi.keySet().size());
         Assert.assertEquals(2, synapseCountPerRoi.get("roiA").getPre());
+        Assert.assertEquals(3, synapseCountPerRoi.get("roiA").getPost());
         Assert.assertEquals(1, synapseCountPerRoi.get("roiB").getPost());
+        Assert.assertEquals(0, synapseCountPerRoi.get("roiB").getPre());
 
     }
 
@@ -260,9 +276,26 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        int weight = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN r.weight").single().get(0).asInt();
+        // weight is equal to number of psds (can have a 1 pre to many post or 1 pre to 1 post connection, but no many pre to 1 post)
+        int weight_8426959To2589725 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:2589725})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
 
-        Assert.assertEquals(2, weight);
+        Assert.assertEquals(1, weight_8426959To2589725);
+
+        int weight_8426959To26311 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
+
+        Assert.assertEquals(1, weight_8426959To26311);
+
+        int weight_8426959To831744 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:831744})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
+
+        Assert.assertEquals(1, weight_8426959To831744);
+
+        int weight_26311To8426959 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311})-[r:ConnectsTo]->(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
+
+        Assert.assertEquals(2, weight_26311To8426959);
+
+        int weight_8426959To8426959 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959})-[r:ConnectsTo]->(n) RETURN r.weight").single().get(0).asInt();
+
+        Assert.assertEquals(1, weight_8426959To8426959);
 
     }
 
@@ -298,7 +331,7 @@ public class Neo4jImporterTest {
         int synapsesToCount = session.run("MATCH (s:Synapse:PreSyn:`test-Synapse`:`test-PreSyn`:test{location:$location})-[:SynapsesTo]->(l) RETURN count(l)",
                 parameters("location", preLocationPoint2)).single().get(0).asInt();
 
-        Assert.assertEquals(4, synapsesToCount);
+        Assert.assertEquals(2, synapsesToCount);
 
     }
 
@@ -308,27 +341,25 @@ public class Neo4jImporterTest {
         Session session = driver.session();
 
         List<Record> synapseCS_8426959_2589725 = session.run("MATCH (t:ConnectionSet:test:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:2589725\"})-[:Contains]->(s) RETURN s").list();
-        Assert.assertEquals(3, synapseCS_8426959_2589725.size());
+        Assert.assertEquals(2, synapseCS_8426959_2589725.size());
         Node node1 = (Node) synapseCS_8426959_2589725.get(0).asMap().get("s");
         Node node2 = (Node) synapseCS_8426959_2589725.get(1).asMap().get("s");
-        Node node3 = (Node) synapseCS_8426959_2589725.get(2).asMap().get("s");
 
         Point synapseLocation1 = (Point) node1.asMap().get("location");
         Point synapseLocation2 = (Point) node2.asMap().get("location");
-        Point synapseLocation3 = (Point) node3.asMap().get("location");
+
         Point location1 = Values.point(9157, 4287, 2277, 1542).asPoint();
         Point location2 = Values.point(9157, 4298, 2294, 1542).asPoint();
-        Point location3 = Values.point(9157, 4287, 2277, 1502).asPoint();
 
-        Assert.assertTrue(synapseLocation1.equals(location1) || synapseLocation2.equals(location1) || synapseLocation3.equals(location1));
-        Assert.assertTrue(synapseLocation1.equals(location2) || synapseLocation2.equals(location2) || synapseLocation3.equals(location2));
-        Assert.assertTrue(synapseLocation1.equals(location3) || synapseLocation2.equals(location3) || synapseLocation3.equals(location3));
+        Assert.assertTrue(synapseLocation1.equals(location1) || synapseLocation2.equals(location1));
+        Assert.assertTrue(synapseLocation1.equals(location2) || synapseLocation2.equals(location2));
 
         int connectionSetCount = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})-[:Contains]->(c:ConnectionSet) RETURN count(c)").single().get(0).asInt();
 
         Assert.assertEquals(5, connectionSetCount);
 
-        List<Record> connections = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PreSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.weight, cs.datasetBodyIds, count(s)").list();
+        // weight should be equal to the number of psds per connection (assuming no many pre to one post connections)
+        List<Record> connections = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PostSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.weight, cs.datasetBodyIds, count(s)").list();
         for (Record record : connections) {
             Assert.assertEquals(record.asMap().get("c.weight"), record.asMap().get("count(s)"));
         }
@@ -340,7 +371,7 @@ public class Neo4jImporterTest {
         Session session = driver.session();
 
         List<Record> synapseSS_8426959 = session.run("MATCH (n:`test-Segment`{bodyId:8426959})-[:Contains]->(ss:SynapseSet)-[:Contains]->(s) RETURN s").list();
-        Assert.assertEquals(3, synapseSS_8426959.size());
+        Assert.assertEquals(5, synapseSS_8426959.size());
     }
 
     @Test
@@ -350,7 +381,7 @@ public class Neo4jImporterTest {
 
         Node metaNode = session.run("MATCH (n:Meta:test) RETURN n").single().get(0).asNode();
         Assert.assertEquals(3L, metaNode.asMap().get("totalPreCount"));
-        Assert.assertEquals(4L, metaNode.asMap().get("totalPostCount"));
+        Assert.assertEquals(6L, metaNode.asMap().get("totalPostCount"));
 
         List<String> superLevelRois = (List) metaNode.asMap().get("superLevelRois");
         Assert.assertTrue(superLevelRois.contains("roiA") && superLevelRois.contains("roiB") && superLevelRois.contains("roi1"));
@@ -360,7 +391,7 @@ public class Neo4jImporterTest {
         Map<String, SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
         }.getType());
 
-        Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiA").getPost());
+        Assert.assertEquals(5L, metaSynapseCountPerRoiMap.get("roiA").getPost());
         Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiA").getPre());
         Assert.assertEquals(0L, metaSynapseCountPerRoiMap.get("roiB").getPre());
         Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiB").getPost());

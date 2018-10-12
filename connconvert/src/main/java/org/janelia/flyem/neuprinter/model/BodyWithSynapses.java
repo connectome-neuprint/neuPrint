@@ -89,10 +89,10 @@ public class BodyWithSynapses {
     }
 
     /**
-     * @return map of postsynaptic bodyIds to weights for this body
+     * @return map of postsynaptic bodyIds to ConnectsTo weights for this body
      */
     public HashMap<Long, Integer> getConnectsTo() {
-        return connectsTo;
+        return this.connectsTo;
     }
 
     /**
@@ -184,15 +184,19 @@ public class BodyWithSynapses {
     /**
      * Uses a {@link SynapseLocationToBodyIdMap} mapping postsynaptic density
      * locations to bodyIds and this body's synapse set to generate a map of
-     * postsynaptic bodyIds to weights for this body and set this map as the
-     * connectsTo attribute. This is used to set ConnectsTo relationships
-     * between Neuron nodes in the neo4j database. Complete SynapseLocationToBodyIdMap
-     * must be generated prior to using this method.
+     * postsynaptic bodyIds to weights* for this body and set this map as the
+     * connectsTo attribute. This is used to set ConnectsTo relationships between
+     * Neuron nodes in the neo4j database. Complete SynapseLocationToBodyIdMap must
+     * be generated prior to using this method. (*Note: weight is equal to the number
+     * of SynapsesTo relationships for this connection. Assuming that the ratio of
+     * pre to post for each synaptic connection can be 1:1 or 1:many but never many:1,
+     * this is equal to number of postsynaptic densities for a connection.)
      *
      * @param postToBody map of postsynaptic locations to bodyIds
      */
     public void setConnectsTo(SynapseLocationToBodyIdMap postToBody) {
         this.connectsTo = new HashMap<>();
+        // weight is the number of postsynaptic densities
         this.synapseSet
                 .stream()
                 .filter(synapse -> synapse.getType().equals(PRE))

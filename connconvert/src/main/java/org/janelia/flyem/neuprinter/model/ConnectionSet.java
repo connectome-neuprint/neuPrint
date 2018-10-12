@@ -1,5 +1,7 @@
 package org.janelia.flyem.neuprinter.model;
 
+import org.neo4j.graphdb.Node;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -8,28 +10,26 @@ import java.util.Set;
  * presynaptic body to a postsynaptic body. Each ConnectionSet has a presynaptic bodyId, a
  * postsynaptic bodyId, and a set of synapse locations (represented by string keys in the
  * format "x:y:z").
- *
  */
 public class ConnectionSet {
 
     private long presynapticBodyId;
     private long postsynapticBodyId;
-    private Set<String> connectingSynapseLocationStrings;
+    private Set<String> connectingSynapseLocationStrings = new HashSet<>();
+    private Set<Node> synapseNodes = new HashSet<>();
 
     /**
      * Class constructor.
      *
-     * @param presynapticBodyId bodyId of presynaptic neuron
+     * @param presynapticBodyId  bodyId of presynaptic neuron
      * @param postsynapticBodyId bodyId of postsynaptic neuron
      */
-    ConnectionSet(long presynapticBodyId, long postsynapticBodyId) {
+    public ConnectionSet(long presynapticBodyId, long postsynapticBodyId) {
         this.presynapticBodyId = presynapticBodyId;
         this.postsynapticBodyId = postsynapticBodyId;
-        this.connectingSynapseLocationStrings = new HashSet<>();
     }
 
     /**
-     *
      * @return presynaptic bodyId
      */
     public long getPresynapticBodyId() {
@@ -37,7 +37,6 @@ public class ConnectionSet {
     }
 
     /**
-     *
      * @return postsynaptic bodyId
      */
     public long getPostsynapticBodyId() {
@@ -45,7 +44,6 @@ public class ConnectionSet {
     }
 
     /**
-     *
      * @return set of synapse location strings ("x:y:z")
      */
     public Set<String> getConnectingSynapseLocationStrings() {
@@ -53,14 +51,28 @@ public class ConnectionSet {
     }
 
     /**
+     * @return set of synapse nodes for this connection set (used in live merging/cleaving operations)
+     */
+    public Set<Node> getSynapseNodes() {
+        return this.synapseNodes;
+    }
+
+    /**
      * Add a presynaptic and postsynaptic location to this ConnectionSet.
      *
-     * @param presynapticLocation presynaptic location string ("x:y:z")
+     * @param presynapticLocation  presynaptic location string ("x:y:z")
      * @param postsynapticLocation postsynaptic location string ("x:y:z")
      */
-    void addPreAndPostsynapticLocations(String presynapticLocation, String postsynapticLocation) {
+    public void addPreAndPostsynapticLocations(String presynapticLocation, String postsynapticLocation) {
         this.connectingSynapseLocationStrings.add(presynapticLocation);
         this.connectingSynapseLocationStrings.add(postsynapticLocation);
+    }
+
+    /**
+     * @param synapseNode synapse node to add to ConnectionSet (for live merging/cleaving operations)
+     */
+    public void addSynapseNode(Node synapseNode) {
+        this.synapseNodes.add(synapseNode);
     }
 
     /**
@@ -75,7 +87,6 @@ public class ConnectionSet {
     }
 
     /**
-     *
      * @return number of synaptic densities in this ConnectionSet
      */
     public int size() {
