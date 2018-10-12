@@ -4,20 +4,25 @@ import org.neo4j.graphdb.Node;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public class ConnectsToRelationshipMap {
 
     private Map<String,ConnectsToRelationship> nodeIdToConnectsToRelationshipHashMap = new HashMap<>();
 
-    void insertConnectsToRelationship(Node startNode, Node endNode, Long weight) {
+    void insertSynapsesIntoConnectsToRelationship(Node startNode, Node endNode, Node preSynapseNode, Node postSynapseNode) {
         String stringKey = nodeIdsToStringKey(startNode, endNode);
         if (this.nodeIdToConnectsToRelationshipHashMap.get(stringKey) != null) {
-            this.nodeIdToConnectsToRelationshipHashMap.get(stringKey).addWeight(weight);
+            this.nodeIdToConnectsToRelationshipHashMap.get(stringKey).addPreAndPostSynapseNodesToConnectionSet(preSynapseNode, postSynapseNode);
         } else {
             ConnectsToRelationship newRelationship = new ConnectsToRelationship(startNode, endNode);
-            newRelationship.addWeight(weight);
+            newRelationship.addPreAndPostSynapseNodesToConnectionSet(preSynapseNode, postSynapseNode);
             this.nodeIdToConnectsToRelationshipHashMap.put(stringKey,newRelationship);
         }
+    }
+
+    Set<String> getSetOfConnectionKeys() {
+        return this.nodeIdToConnectsToRelationshipHashMap.keySet();
     }
 
     public Long getWeightOfConnection(Node startNode, Node endNode) {
@@ -30,7 +35,7 @@ public class ConnectsToRelationshipMap {
     }
 
     ConnectsToRelationship getConnectsToRelationshipByKey(String key) {
-        return nodeIdToConnectsToRelationshipHashMap.get(key);
+        return this.nodeIdToConnectsToRelationshipHashMap.get(key);
     }
 
     Map<String,ConnectsToRelationship> getNodeIdToConnectsToRelationshipHashMap() {

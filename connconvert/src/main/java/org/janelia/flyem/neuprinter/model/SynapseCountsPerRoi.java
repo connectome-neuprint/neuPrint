@@ -70,7 +70,7 @@ public class SynapseCountsPerRoi {
      *
      * @param roi roi name
      */
-    void incrementPreForRoi(String roi) {
+    public void incrementPreForRoi(String roi) {
         if (!this.synapseCountsPerRoi.containsKey(roi)) {
             addSynapseCountsForRoi(roi);
         }
@@ -82,7 +82,7 @@ public class SynapseCountsPerRoi {
      *
      * @param roi roi name
      */
-    void incrementPostForRoi(String roi) {
+    public void incrementPostForRoi(String roi) {
         if (!this.synapseCountsPerRoi.containsKey(roi)) {
             addSynapseCountsForRoi(roi);
         }

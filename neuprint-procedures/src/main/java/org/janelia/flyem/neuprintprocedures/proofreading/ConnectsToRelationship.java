@@ -1,21 +1,27 @@
 package org.janelia.flyem.neuprintprocedures.proofreading;
 
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+
+import java.util.HashSet;
+import java.util.Set;
 
 public class ConnectsToRelationship {
 
     private final Node startNode;
     private final Node endNode;
-    private Long weight;
+    private Set<Node> synapsesInConnectionSet = new HashSet<>();
 
     ConnectsToRelationship(Node startNode, Node endNode) {
         this.startNode = startNode;
         this.endNode = endNode;
-        this.weight = 0L;
     }
 
-    Long getWeight() {
-        return this.weight;
+    long getWeight() {
+        long weight = 0L;
+        for (Node synapseNode : this.synapsesInConnectionSet)
+            if (synapseNode.hasLabel(Label.label("PostSyn"))) weight++;
+        return weight;
     }
 
     Node getStartNode() {
@@ -26,8 +32,13 @@ public class ConnectsToRelationship {
         return this.endNode;
     }
 
-    void addWeight(Long addedWeight) {
-        this.weight += addedWeight;
+    public Set<Node> getSynapsesInConnectionSet() {
+        return this.synapsesInConnectionSet;
+    }
+
+    void addPreAndPostSynapseNodesToConnectionSet(Node preSynapseNode, Node postSynapseNode) {
+        this.synapsesInConnectionSet.add(preSynapseNode);
+        this.synapsesInConnectionSet.add(postSynapseNode);
     }
 
     @Override
@@ -52,6 +63,6 @@ public class ConnectsToRelationship {
 
     @Override
     public String toString() {
-        return "Start Node: " + this.startNode + " ,End Node: " + this.endNode + " ,weight: " + this.weight;
+        return "Start Node: " + this.startNode + " ,End Node: " + this.endNode + " ,weight: " + this.getWeight();
     }
 }

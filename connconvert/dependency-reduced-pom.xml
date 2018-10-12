@@ -43,42 +43,6 @@
   </build>
   <dependencies>
     <dependency>
-      <groupId>org.neo4j</groupId>
-      <artifactId>neo4j</artifactId>
-      <version>3.4.5</version>
-      <scope>provided</scope>
-      <exclusions>
-        <exclusion>
-          <artifactId>neo4j-kernel</artifactId>
-          <groupId>org.neo4j</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>neo4j-lucene-index</artifactId>
-          <groupId>org.neo4j</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>neo4j-graph-algo</artifactId>
-          <groupId>org.neo4j</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>neo4j-udc</artifactId>
-          <groupId>org.neo4j</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>neo4j-cypher</artifactId>
-          <groupId>org.neo4j</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>neo4j-jmx</artifactId>
-          <groupId>org.neo4j</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>neo4j-consistency-check</artifactId>
-          <groupId>org.neo4j</groupId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
       <groupId>org.neo4j.procedure</groupId>
       <artifactId>apoc</artifactId>
       <version>3.4.0.2</version>
@@ -133,6 +97,10 @@
       <scope>test</scope>
       <exclusions>
         <exclusion>
+          <artifactId>neo4j</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>neo4j-server</artifactId>
           <groupId>org.neo4j.app</groupId>
         </exclusion>
@@ -163,6 +131,10 @@
         <exclusion>
           <artifactId>httpcore</artifactId>
           <groupId>org.apache.httpcomponents</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-kernel</artifactId>
+          <groupId>org.neo4j</groupId>
         </exclusion>
         <exclusion>
           <artifactId>commons-codec</artifactId>
