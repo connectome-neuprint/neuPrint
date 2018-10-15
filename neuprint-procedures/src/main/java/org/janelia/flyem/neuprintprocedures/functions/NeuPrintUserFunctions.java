@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.Context;
@@ -11,6 +12,7 @@ import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.UserFunction;
 
+import java.util.List;
 import java.util.Map;
 
 public class NeuPrintUserFunctions {
@@ -39,8 +41,8 @@ public class NeuPrintUserFunctions {
     }
 
     @UserFunction("neuprint.roiInfoAsName")
-    @Description("neuprint.roiInfoAsName(roiInfo, totalPre, totalPost, threshold) ")
-    public String roiInfoAsName(@Name("roiInfo") String roiInfo, @Name("totalPre") Long totalPre, @Name("totalPost") Long totalPost, @Name("threshold") Double threshold) {
+    @Description("neuprint.roiInfoAsName(roiInfo, totalPre, totalPost, threshold, includedRois) ")
+    public String roiInfoAsName(@Name("roiInfo") String roiInfo, @Name("totalPre") Long totalPre, @Name("totalPost") Long totalPost, @Name("threshold") Double threshold, @Name("includedRois") List<String> includedRois) {
         if (roiInfo == null || totalPre == null || totalPost == null || threshold == null) {
             throw new Error("Must provide roiInfo, totalPre, totalPost, and threshold.");
         }
@@ -52,11 +54,13 @@ public class NeuPrintUserFunctions {
         StringBuilder inputs = new StringBuilder();
         StringBuilder outputs = new StringBuilder();
         for (String roi : roiInfoMap.keySet()) {
-            if ((roiInfoMap.get(roi).getPre() * 1.0) / totalPre > threshold) {
-                outputs.append(roi).append(".");
-            }
-            if ((roiInfoMap.get(roi).getPost() * 1.0) / totalPost > threshold) {
-                inputs.append(roi).append(".");
+            if (includedRois.contains(roi)) {
+                if ((roiInfoMap.get(roi).getPre() * 1.0) / totalPre > threshold) {
+                    outputs.append(roi).append(".");
+                }
+                if ((roiInfoMap.get(roi).getPost() * 1.0) / totalPost > threshold) {
+                    inputs.append(roi).append(".");
+                }
             }
         }
         if (outputs.length() > 0) {

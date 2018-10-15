@@ -20,9 +20,12 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.harness.junit.Neo4jRule;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
+
+import static org.neo4j.driver.v1.Values.parameters;
 
 public class RoiInfoNameTest {
 
@@ -68,11 +71,14 @@ public class RoiInfoNameTest {
     public void shouldProduceCorrectRoiBasedName() {
         Session session = driver.session();
 
-        String name5percent = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`{bodyId:8426959}) WITH neuprint.roiInfoAsName(n.roiInfo,n.pre,n.post,.05) AS name RETURN name ")).single().get(0).asString();
+        List<String> superLevelRois = new ArrayList<>();
+        superLevelRois.add("roiA");
 
-        Assert.assertEquals("roiB-roiA", name5percent);
+        String name5percent = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`{bodyId:8426959}) WITH neuprint.roiInfoAsName(n.roiInfo,n.pre,n.post,.05,$superLevelRois) AS name RETURN name ", parameters("superLevelRois", superLevelRois))).single().get(0).asString();
 
-        String name100percent = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`{bodyId:8426959}) WITH neuprint.roiInfoAsName(n.roiInfo,n.pre,n.post,1.0) AS name RETURN name ")).single().get(0).asString();
+        Assert.assertEquals("none-roiA", name5percent);
+
+        String name100percent = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`{bodyId:8426959}) WITH neuprint.roiInfoAsName(n.roiInfo,n.pre,n.post,1.0,$superLevelRois) AS name RETURN name ", parameters("superLevelRois", superLevelRois))).single().get(0).asString();
 
         Assert.assertEquals("none-none", name100percent);
 
