@@ -64,6 +64,8 @@ public class MetaNodeUpdaterTest {
         neo4jImporter.addSegmentRois(dataset, bodyList);
         neo4jImporter.addSynapseSets(dataset, bodyList);
         neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
+        neo4jImporter.createMetaNodeWithDataModelNode("otherDataset", 1.0F);
+
 
     }
 
@@ -78,6 +80,7 @@ public class MetaNodeUpdaterTest {
         Session session = driver.session();
 
         LocalDateTime metaNodeUpdateTimeBefore = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n.lastDatabaseEdit").single().get(0).asLocalDateTime());
+        LocalDateTime otherDatasetMetaNodeTimeBefore = session.readTransaction(tx -> tx.run("MATCH (n:Meta:otherDataset{dataset:\"otherDataset\"}) RETURN n.lastDatabaseEdit").single().get(0).asLocalDateTime());
 
         //delay to move time stamp
         TimeUnit.SECONDS.sleep(3);
@@ -96,6 +99,7 @@ public class MetaNodeUpdaterTest {
         TimeUnit.SECONDS.sleep(5);
 
         Node metaNodeAfter = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n").single().get(0).asNode());
+        LocalDateTime otherDatasetMetaNodeTimeAfter = session.readTransaction(tx -> tx.run("MATCH (n:Meta:otherDataset{dataset:\"otherDataset\"}) RETURN n.lastDatabaseEdit").single().get(0).asLocalDateTime());
 
         LocalDateTime metaNodeUpdateTimeAfter = (LocalDateTime) metaNodeAfter.asMap().get("lastDatabaseEdit");
 
@@ -152,6 +156,9 @@ public class MetaNodeUpdaterTest {
                 && metaSynapseCountPerRoiMap2.containsKey("roiB")
                 && metaSynapseCountPerRoiMap2.containsKey("roi'C")
                 && metaSynapseCountPerRoiMap2.containsKey("newRoi"));
+
+        // only relevant meta node time stamp should be updated
+        Assert.assertEquals(otherDatasetMetaNodeTimeBefore,otherDatasetMetaNodeTimeAfter);
 
     }
 }
