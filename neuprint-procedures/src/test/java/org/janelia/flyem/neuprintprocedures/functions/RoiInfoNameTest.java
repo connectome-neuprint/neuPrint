@@ -70,7 +70,7 @@ public class RoiInfoNameTest {
 
         String name5percent = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`{bodyId:8426959}) WITH neuprint.roiInfoAsName(n.roiInfo,n.pre,n.post,.05) AS name RETURN name ")).single().get(0).asString();
 
-        Assert.assertEquals("roiB.seven_column_roi-roiA.seven_column_roi", name5percent);
+        Assert.assertEquals("roiB-roiA", name5percent);
 
         String name100percent = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`{bodyId:8426959}) WITH neuprint.roiInfoAsName(n.roiInfo,n.pre,n.post,1.0) AS name RETURN name ")).single().get(0).asString();
 
