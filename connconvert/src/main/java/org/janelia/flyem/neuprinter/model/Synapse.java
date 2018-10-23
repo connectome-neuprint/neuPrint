@@ -80,6 +80,21 @@ public class Synapse {
         this.rois = roiSet;
     }
 
+    /**
+     * Class constructor used for quickly comparing synapses in neo4j stored procedures.
+     *
+     * @param x x coordinate of location
+     * @param y y coordinate of location
+     * @param z z coordinate of location
+     */
+    public Synapse(Integer x, Integer y, Integer z) {
+        List<Integer> location = new ArrayList<>();
+        location.add(x);
+        location.add(y);
+        location.add(z);
+        this.location = location;
+    }
+
     @Override
     public String toString() {
         return "Synapse { " + "type=" + type +

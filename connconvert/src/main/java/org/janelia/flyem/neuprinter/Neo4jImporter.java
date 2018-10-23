@@ -41,9 +41,9 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-//TODO: remove unknown as a name and not examined as a status
-
 import static org.neo4j.driver.v1.Values.parameters;
+
+//TODO: remove unknown as a name and not examined as a status
 
 /**
  * A class for importing neuron and synapse information into a neuprint neo4j database.
@@ -139,7 +139,9 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(post)",
                 "CREATE INDEX ON :Neuron(name)",
                 "CREATE INDEX ON :`" + dataset + "-Segment`(pre)",
-                "CREATE INDEX ON :`" + dataset + "-Segment`(post)"
+                "CREATE INDEX ON :`" + dataset + "-Segment`(post)",
+                "CREATE CONSTRAINT ON (s:SynapseStore) ASSERT s.dataset IS UNIQUE", //used for live updates
+                "CREATE CONSTRAINT ON (n:`" + dataset + "-Segment`) ASSERT n.mutationUuidAndId IS UNIQUE" //used for live updates
         };
 
         for (final String prepText : prepTextArray) {
