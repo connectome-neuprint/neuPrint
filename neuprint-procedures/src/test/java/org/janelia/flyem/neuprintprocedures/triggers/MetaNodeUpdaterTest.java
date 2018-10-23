@@ -9,7 +9,6 @@ import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
-import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -49,7 +48,6 @@ public class MetaNodeUpdaterTest {
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
         HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
-        bodyList.sort(new SortBodyByNumberOfSynapses());
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
@@ -103,21 +101,21 @@ public class MetaNodeUpdaterTest {
 
         Assert.assertTrue(metaNodeUpdateTimeBefore.isBefore(metaNodeUpdateTimeAfter));
 
-        Assert.assertEquals(5L, metaNodeAfter.asMap().get("totalPostCount"));
-        Assert.assertEquals(3L, metaNodeAfter.asMap().get("totalPreCount"));
+        Assert.assertEquals(7L, metaNodeAfter.asMap().get("totalPostCount"));
+        Assert.assertEquals(4L, metaNodeAfter.asMap().get("totalPreCount"));
 
         String metaSynapseCountPerRoi = (String) metaNodeAfter.asMap().get("roiInfo");
         Gson gson = new Gson();
         Map<String, SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
         }.getType());
 
-        Assert.assertEquals(2L, metaSynapseCountPerRoiMap.get("roiA").getPre());
-        Assert.assertEquals(3L, metaSynapseCountPerRoiMap.get("roiA").getPost());
+        Assert.assertEquals(4L, metaSynapseCountPerRoiMap.get("roiA").getPre());
+        Assert.assertEquals(6L, metaSynapseCountPerRoiMap.get("roiA").getPost());
 
         Assert.assertEquals(3, metaSynapseCountPerRoiMap.keySet().size());
         Assert.assertTrue(metaSynapseCountPerRoiMap.containsKey("roiA")
                 && metaSynapseCountPerRoiMap.containsKey("roiB")
-                && metaSynapseCountPerRoiMap.containsKey("anotherRoi"));
+                && metaSynapseCountPerRoiMap.containsKey("roi'C"));
 
         LocalDateTime metaNodeUpdateTimeBefore2 = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n.lastDatabaseEdit").single().get(0).asLocalDateTime());
 
@@ -139,20 +137,20 @@ public class MetaNodeUpdaterTest {
 
         Assert.assertTrue(metaNodeUpdateTimeBefore2.isBefore(metaNodeUpdateTimeAfter2));
 
-        Assert.assertEquals(9L, metaNode.asMap().get("totalPostCount"));
-        Assert.assertEquals(13L, metaNode.asMap().get("totalPreCount"));
+        Assert.assertEquals(11L, metaNode.asMap().get("totalPostCount"));
+        Assert.assertEquals(14L, metaNode.asMap().get("totalPreCount"));
 
         String metaSynapseCountPerRoi2 = (String) metaNode.asMap().get("roiInfo");
         Map<String, SynapseCounter> metaSynapseCountPerRoiMap2 = gson.fromJson(metaSynapseCountPerRoi2, new TypeToken<Map<String, SynapseCounter>>() {
         }.getType());
 
-        Assert.assertEquals(7L, metaSynapseCountPerRoiMap2.get("roiA").getPre());
-        Assert.assertEquals(5L, metaSynapseCountPerRoiMap2.get("roiA").getPost());
+        Assert.assertEquals(9L, metaSynapseCountPerRoiMap2.get("roiA").getPre());
+        Assert.assertEquals(8L, metaSynapseCountPerRoiMap2.get("roiA").getPost());
 
         Assert.assertEquals(4, metaSynapseCountPerRoiMap2.keySet().size());
         Assert.assertTrue(metaSynapseCountPerRoiMap2.containsKey("roiA")
                 && metaSynapseCountPerRoiMap2.containsKey("roiB")
-                && metaSynapseCountPerRoiMap2.containsKey("anotherRoi")
+                && metaSynapseCountPerRoiMap2.containsKey("roi'C")
                 && metaSynapseCountPerRoiMap2.containsKey("newRoi"));
 
     }

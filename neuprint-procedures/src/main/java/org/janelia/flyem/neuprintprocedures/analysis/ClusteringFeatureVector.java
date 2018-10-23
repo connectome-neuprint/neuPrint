@@ -10,23 +10,23 @@ public class ClusteringFeatureVector {
     private long[] inputFeatureVector;
     private long[] outputFeatureVector;
 
-    public ClusteringFeatureVector(Long bodyId, long[] inputFeatureVector, long[] outputFeatureVector) {
+    private final static Gson gson = new Gson();
+
+    ClusteringFeatureVector(Long bodyId, long[] inputFeatureVector, long[] outputFeatureVector) {
         this.bodyId = bodyId;
         this.inputFeatureVector = inputFeatureVector;
         this.outputFeatureVector = outputFeatureVector;
     }
 
-    public static String getClusteringFeatureVectorSetJson(Set<ClusteringFeatureVector> clusteringFeatureVectors) {
-        final Gson gson = new Gson();
-        String json = gson.toJson(clusteringFeatureVectors);
-        return json;
+    static String getClusteringFeatureVectorSetJson(Set<ClusteringFeatureVector> clusteringFeatureVectors) {
+        return gson.toJson(clusteringFeatureVectors);
     }
 
     public Long getBodyId() {
         return bodyId;
     }
 
-    public long[] getInputFeatureVector() {
+    long[] getInputFeatureVector() {
         return inputFeatureVector;
     }
 
@@ -36,7 +36,7 @@ public class ClusteringFeatureVector {
 
     @Override
     public String toString() {
-        return this.bodyId + ":" + this.inputFeatureVector + " ; " + this.outputFeatureVector;
+        return gson.toJson(this);
     }
 
     @Override

@@ -65,10 +65,10 @@ public class InputAndOutputCountsForRoisTest {
             String jsonData = session.readTransaction(tx -> tx.run("CALL analysis.getInputAndOutputCountsForRois(8426959,\"test\") YIELD value AS dataJson RETURN dataJson").single().get(0).asString());
 
             Gson gson = new Gson();
-            System.out.println(jsonData);
+
             Map<String, SynapseCounter> synapseCounterMap = gson.fromJson(jsonData, new TypeToken<Map<String, SynapseCounter>>() {
             }.getType());
-            System.out.println(synapseCounterMap);
+
             //is 4 due to overlapping rois which should not occur in real data
             Assert.assertEquals(2L, synapseCounterMap.get("total").getPre());
             Assert.assertEquals(1L, synapseCounterMap.get("roiB").getPost());
@@ -77,7 +77,7 @@ public class InputAndOutputCountsForRoisTest {
 
             ClusteringFeatureVector[] clusteringFeatureVectors = gson.fromJson(featureVectorJson, ClusteringFeatureVector[].class);
 
-            long[] expectedInputVector = {0, 0, 1};
+            long[] expectedInputVector = {0, 3, 1};
             Assert.assertEquals(expectedInputVector[0], clusteringFeatureVectors[2].getInputFeatureVector()[0]);
             Assert.assertEquals(expectedInputVector[1], clusteringFeatureVectors[2].getInputFeatureVector()[1]);
             Assert.assertEquals(expectedInputVector[2], clusteringFeatureVectors[2].getInputFeatureVector()[2]);
