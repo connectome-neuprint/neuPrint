@@ -140,7 +140,6 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE INDEX ON :Neuron(name)",
                 "CREATE INDEX ON :`" + dataset + "-Segment`(pre)",
                 "CREATE INDEX ON :`" + dataset + "-Segment`(post)",
-                "CREATE CONSTRAINT ON (s:SynapseStore) ASSERT s.dataset IS UNIQUE", //used for live updates
                 "CREATE CONSTRAINT ON (n:`" + dataset + "-Segment`) ASSERT n.mutationUuidAndId IS UNIQUE" //used for live updates
         };
 

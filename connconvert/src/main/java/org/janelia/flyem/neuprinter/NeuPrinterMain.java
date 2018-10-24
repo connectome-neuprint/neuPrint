@@ -5,6 +5,7 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Stopwatch;
+import com.google.gson.Gson;
 import org.janelia.flyem.neuprinter.db.DbConfig;
 import org.janelia.flyem.neuprinter.json.JsonUtils;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
@@ -532,15 +533,34 @@ public class NeuPrinterMain {
             LOG.error("An error occurred: ", e);
         }
 
-//        if (parameters.editMode) {
-//
-//            neuronList = readNeuronsJson(parameters.neuronJson);
-//
-//            try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
-//                neo4jEditor.updateNeuronProperties(dataset, neuronList);
-//            }
-//
-//        }
+        if (parameters.editMode) {
+
+            UpdateNeuronsAction updateNeuronsAction;
+
+            try {
+
+                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                    neo4jImporter.prepDatabase(dataset);
+                }
+
+                Gson gson = new Gson();
+
+                try (BufferedReader reader = new BufferedReader(new FileReader("/groups/flyem/home/flyem/bin/update_neo4j/formatted_28841_Neuprint_Update.json"))) { //"/groups/flyem/home/flyem/bin/update_neo4j/formatted_28841_Neuprint_Update.json"
+                    updateNeuronsAction = gson.fromJson(reader, UpdateNeuronsAction.class);
+                } catch (Exception e) {
+                    LOG.error("Error reading file: ", e);
+                    throw new RuntimeException(e.getMessage());
+                }
+
+                try (Neo4jEditor neo4jEditor = new Neo4jEditor(parameters.getDbConfig())) {
+                    neo4jEditor.deleteAndUpdateNeurons(dataset, updateNeuronsAction);
+                }
+
+            } catch (Exception e) {
+                LOG.error("Error during edit mode: ", e);
+            }
+
+        }
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(NeuPrinterMain.class);

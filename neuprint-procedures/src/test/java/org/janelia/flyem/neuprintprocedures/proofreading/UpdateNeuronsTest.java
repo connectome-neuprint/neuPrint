@@ -2,6 +2,7 @@ package org.janelia.flyem.neuprintprocedures.proofreading;
 
 import apoc.convert.Json;
 import apoc.create.Create;
+import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
@@ -34,9 +35,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
+
+// TODO: add tests for dataset label, meta node update, time stamp
 
 public class UpdateNeuronsTest {
 
@@ -141,7 +145,30 @@ public class UpdateNeuronsTest {
 
         Session session = driver.session();
 
-        session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuronsFromJson($updateJson,$dataset) YIELD node RETURN node", parameters("updateJson", updateJson, "dataset", "test")));
+        long[] bodyIdsToDelete = new long[]{831744L,2589725L,8426959L};
+
+        for (int i = 0; i < bodyIdsToDelete.length ; i++) {
+            int finalI = i;
+            session.writeTransaction(tx -> tx.run("CALL proofreader.deleteNeuron($bodyId, $dataset)", parameters("bodyId", bodyIdsToDelete[finalI], "dataset", "test")));
+        }
+
+        Gson gson = new Gson();
+        UpdateNeuronsAction updateNeuronsAction = gson.fromJson(updateJson,UpdateNeuronsAction.class);
+        for (NeuronUpdate neuronUpdate : updateNeuronsAction.getUpdatedNeurons()) {
+            String neuronUpdateJson = gson.toJson(neuronUpdate);
+            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson, $dataset)", parameters("updateJson", neuronUpdateJson, "dataset", "test")));
+        }
+
+//        TimeUnit.SECONDS.sleep(5);
+//
+//        Stopwatch timer = Stopwatch.createStarted();
+//
+//        session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuronsFromJson($updateJson,$dataset) YIELD node RETURN node", parameters("updateJson", updateJson, "dataset", "test")));
+//
+//        System.out.println(timer.stop());
+//
+//        //delay to allow for update
+//        TimeUnit.SECONDS.sleep(5);
 
     }
 
@@ -205,12 +232,11 @@ public class UpdateNeuronsTest {
     }
 
     @Test
-    public void nothingShouldBeLeftOnSynapseStore() {
+    public void allSynapsesShouldBeAssigned() {
 
         Session session = driver.session();
-        // nothing should be left on the synapse store
-        int synapseSetsCount = session.readTransaction(tx -> tx.run("MATCH (n:SynapseSet)<-[:Has]-(:SynapseStore) RETURN count(n)").single().get(0).asInt());
-        Assert.assertEquals(0, synapseSetsCount);
+        int unassignedSynapseCount = session.readTransaction(tx -> tx.run("MATCH (n:Synapse) WHERE NOT (n)<-[:Contains]-(:SynapseSet) RETURN count(n)").single().get(0).asInt());
+        Assert.assertEquals(0, unassignedSynapseCount);
     }
 
     @Test
@@ -320,62 +346,58 @@ public class UpdateNeuronsTest {
 
         Session session = driver.session();
 
-        String updateJson = "{" +
-                "\"Deleted Neurons\": [831744,2589725]," +
-                "\"Updated Neurons\": [" +
+        String updateJson =
                 "{" +
-                "\"Id\": 8426959," +
-                "\"Size\": 12," +
-                "\"MutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
-                "\"MutationID\": 1000057479," +
-                "\"Status\": \"updated\"," +
-                "\"Soma\": {" +
-                "\"Location\": [14067, 10777, 15040]," +
-                "\"Radius\": 15040.0 }," +
-                "\"Name\": \"new name\", " +
-                "\"SynapseSources\": [831744,2589725]," +
-                "\"CurrentSynapses\": " +
-                "[" +
-                "{" +
-                "\"Location\": [4287, 2277, 1542]," +
-                "\"Type\": \"pre\"" +
-                "}," +
-                "{" +
-                "\"Location\": [4222, 2402, 1688]," +
-                "\"Type\": \"post\"" +
-                "}," +
-                "{" +
-                "\"Location\": [4287, 2277, 1502]," +
-                "\"Type\": \"pre\"" +
-                "}," +
-                "{" +
-                "\"Location\": [8000,7000,6000]," +
-                "\"Type\": \"post\"" +
-                "}," +
-                "{" +
-                "\"Location\": [4000,5000,6000]," +
-                "\"Type\": \"post\"" +
-                "}," +
-                "{" +
-                "\"Location\": [4298, 2294, 1542]," +
-                "\"Type\": \"post\"" +
-                "}," +
-                "{" +
-                "\"Location\": [4292, 2261, 1542]," +
-                "\"Type\": \"post\"" +
-                "}," +
-                "{" +
-                "\"Location\": [1000, 2000, 3000]," +
-                "\"Type\": \"pre\"" +
-                "}" +
-                "]" +
-                "}" +
-                "]" +
-                "}";
+                        "\"Id\": 8426959," +
+                        "\"Size\": 12," +
+                        "\"MutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
+                        "\"MutationID\": 1000057479," +
+                        "\"Status\": \"updated\"," +
+                        "\"Soma\": {" +
+                        "\"Location\": [14067, 10777, 15040]," +
+                        "\"Radius\": 15040.0 }," +
+                        "\"Name\": \"new name\", " +
+                        "\"SynapseSources\": [831744,2589725]," +
+                        "\"CurrentSynapses\": " +
+                        "[" +
+                        "{" +
+                        "\"Location\": [4287, 2277, 1542]," +
+                        "\"Type\": \"pre\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [4222, 2402, 1688]," +
+                        "\"Type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [4287, 2277, 1502]," +
+                        "\"Type\": \"pre\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [8000,7000,6000]," +
+                        "\"Type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [4000,5000,6000]," +
+                        "\"Type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [4298, 2294, 1542]," +
+                        "\"Type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [4292, 2261, 1542]," +
+                        "\"Type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [1000, 2000, 3000]," +
+                        "\"Type\": \"pre\"" +
+                        "}" +
+                        "]" +
+                        "}";
 
         boolean duplicateUpdate;
         try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuronsFromJson($updateJson,$dataset) YIELD node RETURN node", parameters("updateJson", updateJson, "dataset", "test")));
+            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
             duplicateUpdate = true;
         } catch (ClientException ce) {
             // passed test
@@ -391,32 +413,29 @@ public class UpdateNeuronsTest {
 
         Session session = driver.session();
 
-        String updateJson = "{" +
-                "\"Deleted Neurons\": []," +
-                "\"Updated Neurons\": [" +
+        String updateJson =
                 "{" +
-                "\"Id\": 1," +
-                "\"Size\": 12," +
-                "\"MutationUUID\": \"4\"," +
-                "\"MutationID\": 4," +
-                "\"Status\": \"updated\"," +
-                "\"Soma\": {" +
-                "\"Location\": [14067, 10777, 15040]," +
-                "\"Radius\": 15040.0 }," +
-                "\"Name\": \"new name\", " +
-                "\"SynapseSources\": []," +
-                "\"CurrentSynapses\": " +
-                "[" +
-                "]" +
-                "}" +
-                "]" +
-                "}";
+                        "\"Id\": 1," +
+                        "\"Size\": 12," +
+                        "\"MutationUUID\": \"4\"," +
+                        "\"MutationID\": 4," +
+                        "\"Status\": \"updated\"," +
+                        "\"Soma\": {" +
+                        "\"Location\": [14067, 10777, 15040]," +
+                        "\"Radius\": 15040.0 }," +
+                        "\"Name\": \"new name\", " +
+                        "\"SynapseSources\": []," +
+                        "\"CurrentSynapses\": " +
+                        "[" +
+                        "]" +
+                        "}";
 
         boolean attemptedUpdate;
         try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuronsFromJson($updateJson,$dataset) YIELD node RETURN node", parameters("updateJson", updateJson, "dataset", "test")));
+            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
             attemptedUpdate = true;
         } catch (ClientException ce) {
+            ce.printStackTrace();
             attemptedUpdate = false;
         }
 
@@ -434,34 +453,30 @@ public class UpdateNeuronsTest {
                 "MATCH (ss:SynapseStore{dataset:\"test\"}) WITH s,ss " +
                 "CREATE (s)<-[:Has]-(ss) ", parameters("location", Values.point(9157, 1, 2, 3).asPoint())));
 
-        String updateJson = "{" +
-                "\"Deleted Neurons\": []," +
-                "\"Updated Neurons\": [" +
+        String updateJson =
                 "{" +
-                "\"Id\": 2," +
-                "\"Size\": 12," +
-                "\"MutationUUID\": \"5\"," +
-                "\"MutationID\": 5," +
-                "\"Status\": \"updated\"," +
-                "\"Soma\": {" +
-                "\"Location\": [14067, 10777, 15040]," +
-                "\"Radius\": 15040.0 }," +
-                "\"Name\": \"new name\", " +
-                "\"SynapseSources\": []," +
-                "\"CurrentSynapses\": " +
-                "[" +
-                "{" +
-                "\"Location\": [1,2,3]," +
-                "\"Type\": \"pre\"" +
-                "}" +
-                "]" +
-                "}" +
-                "]" +
-                "}";
+                        "\"Id\": 2," +
+                        "\"Size\": 12," +
+                        "\"MutationUUID\": \"5\"," +
+                        "\"MutationID\": 5," +
+                        "\"Status\": \"updated\"," +
+                        "\"Soma\": {" +
+                        "\"Location\": [14067, 10777, 15040]," +
+                        "\"Radius\": 15040.0 }," +
+                        "\"Name\": \"new name\", " +
+                        "\"SynapseSources\": []," +
+                        "\"CurrentSynapses\": " +
+                        "[" +
+                        "{" +
+                        "\"Location\": [1,2,3]," +
+                        "\"Type\": \"pre\"" +
+                        "}" +
+                        "]" +
+                        "}";
 
         boolean ranSuccessfully;
         try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuronsFromJson($updateJson,$dataset) YIELD node RETURN node", parameters("updateJson", updateJson, "dataset", "test")));
+            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
             ranSuccessfully = true;
         } catch (ClientException ce) {
             ranSuccessfully = false;
@@ -506,7 +521,7 @@ public class UpdateNeuronsTest {
 
         boolean attemptedUpdate;
         try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuronsFromJson($updateJson,$dataset) YIELD node RETURN node", parameters("updateJson", updateJson, "dataset", "test")));
+            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
             attemptedUpdate = true;
         } catch (ClientException ce) {
             attemptedUpdate = false;
@@ -515,5 +530,15 @@ public class UpdateNeuronsTest {
         Assert.assertFalse(attemptedUpdate);
 
     }
+//
+//    @Test
+//    public void testMemory() {
+//
+//        Session session = driver.session();
+//
+//        session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuronsFromJson($updateJson,$dataset,true) YIELD node RETURN node", parameters("updateJson", "/Users/neubarthn/formatted_28841_Neuprint_Update.json", "dataset", "test")));
+//
+//
+//    }
 
 }

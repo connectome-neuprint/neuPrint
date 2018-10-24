@@ -1,5 +1,6 @@
 package org.janelia.flyem.neuprinter;
 
+import com.google.gson.Gson;
 import org.janelia.flyem.neuprinter.db.DbConfig;
 import org.janelia.flyem.neuprinter.db.DbTransactionBatch;
 import org.janelia.flyem.neuprinter.db.StdOutTransactionBatch;
@@ -7,9 +8,14 @@ import org.janelia.flyem.neuprinter.db.TransactionBatch;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+
+import static org.neo4j.driver.v1.Values.parameters;
 
 /**
  * A class for editing an existing neuprint neo4j database.
@@ -77,7 +83,53 @@ public class Neo4jEditor implements AutoCloseable {
         return batch;
     }
 
-//    public void updateSkelNodesRowNumber(final String dataset, final List<Skeleton> skeletonList) {
+    public void deleteAndUpdateNeurons(final String dataset, UpdateNeuronsAction updateNeuronsAction) {
+
+        LOG.info("deleteAndUpdateNeurons: entry");
+
+        final String deleteString = "CALL proofreader.deleteNeuron($bodyId, $dataset)";
+        final String updateString = "CALL proofreader.updateNeuron($updateJson, $dataset)";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (long deletedBodyId : updateNeuronsAction.getDeletedNeurons()) {
+                batch.addStatement(new Statement(deleteString, parameters(
+                        "bodyId", deletedBodyId,
+                        "dataset", dataset
+                )));
+
+            }
+
+            for (long updatedBodyId : updateNeuronsAction.getUpdatedNeuronsBodyIds()) {
+                batch.addStatement(new Statement(deleteString, parameters(
+                        "bodyId", updatedBodyId,
+                        "dataset", dataset
+                )));
+
+            }
+
+            batch.writeTransaction();
+
+            Gson gson = new Gson();
+            for (NeuronUpdate neuronUpdate : updateNeuronsAction.getUpdatedNeurons()) {
+
+                String neuronUpdateJson = gson.toJson(neuronUpdate);
+
+                batch.addStatement(new Statement(updateString, parameters(
+                        "updateJson", neuronUpdateJson,
+                        "dataset", dataset
+                )));
+            }
+
+            batch.writeTransaction();
+
+        }
+
+        LOG.info("deleteAndUpdateNeurons: exit");
+
+    }
+
+
+    //    public void updateSkelNodesRowNumber(final String dataset, final List<Skeleton> skeletonList) {
 //
 //        LOG.info("updateSkelNodes: entry");
 //
@@ -177,6 +229,6 @@ public class Neo4jEditor implements AutoCloseable {
 //
 //    }
 //
-//    private static final Logger LOG = LoggerFactory.getLogger(Neo4jEditor.class);
+    private static final Logger LOG = LoggerFactory.getLogger(Neo4jEditor.class);
 
 }
