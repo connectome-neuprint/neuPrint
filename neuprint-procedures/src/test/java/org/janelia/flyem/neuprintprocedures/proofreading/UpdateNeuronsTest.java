@@ -490,13 +490,11 @@ public class UpdateNeuronsTest {
     }
 
     @Test
-    public void shouldErrorIfSynapseNotFoundOnSynapseStore() {
+    public void shouldErrorIfSynapseNotFound() {
 
         Session session = driver.session();
 
-        String updateJson = "{" +
-                "\"Deleted Neurons\": []," +
-                "\"Updated Neurons\": [" +
+        String updateJson =
                 "{" +
                 "\"Id\": 2," +
                 "\"Size\": 12," +
@@ -515,8 +513,6 @@ public class UpdateNeuronsTest {
                 "\"Type\": \"pre\"" +
                 "}" +
                 "]" +
-                "}" +
-                "]" +
                 "}";
 
         boolean attemptedUpdate;
@@ -528,6 +524,36 @@ public class UpdateNeuronsTest {
         }
 
         Assert.assertFalse(attemptedUpdate);
+
+    }
+
+    @Test
+    public void shouldAddMutationIdAndUuidToMetaNode() {
+
+        Session session = driver.session();
+
+        String updateJson =
+                "{" +
+                        "\"Id\": 234," +
+                        "\"Size\": 12," +
+                        "\"MutationUUID\": \"20\"," +
+                        "\"MutationID\": 21," +
+                        "\"Status\": \"updated\"," +
+                        "\"SynapseSources\": []," +
+                        "\"CurrentSynapses\": " +
+                        "[" +
+                        "]" +
+                        "}";
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
+
+        List<Record> metaRecords = session.readTransaction(tx -> tx.run("MATCH (n:`Meta`{dataset:\"test\"}) RETURN n.latestMutationId, n.uuid")).list();
+
+        for (Record r : metaRecords) {
+            Assert.assertEquals(21L, r.asMap().get("n.latestMutationId"));
+            Assert.assertEquals("20",r.asMap().get("n.uuid"));
+        }
+
 
     }
 //
