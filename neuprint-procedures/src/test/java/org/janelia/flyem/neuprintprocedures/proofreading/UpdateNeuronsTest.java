@@ -2,7 +2,6 @@ package org.janelia.flyem.neuprintprocedures.proofreading;
 
 import apoc.convert.Json;
 import apoc.create.Create;
-import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
@@ -35,12 +34,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
-
-// TODO: add tests for dataset label, meta node update, time stamp
 
 public class UpdateNeuronsTest {
 
@@ -145,15 +141,15 @@ public class UpdateNeuronsTest {
 
         Session session = driver.session();
 
-        long[] bodyIdsToDelete = new long[]{831744L,2589725L,8426959L};
+        long[] bodyIdsToDelete = new long[]{831744L, 2589725L, 8426959L};
 
-        for (int i = 0; i < bodyIdsToDelete.length ; i++) {
+        for (int i = 0; i < bodyIdsToDelete.length; i++) {
             int finalI = i;
             session.writeTransaction(tx -> tx.run("CALL proofreader.deleteNeuron($bodyId, $dataset)", parameters("bodyId", bodyIdsToDelete[finalI], "dataset", "test")));
         }
 
         Gson gson = new Gson();
-        UpdateNeuronsAction updateNeuronsAction = gson.fromJson(updateJson,UpdateNeuronsAction.class);
+        UpdateNeuronsAction updateNeuronsAction = gson.fromJson(updateJson, UpdateNeuronsAction.class);
         for (NeuronUpdate neuronUpdate : updateNeuronsAction.getUpdatedNeurons()) {
             String neuronUpdateJson = gson.toJson(neuronUpdate);
             session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson, $dataset)", parameters("updateJson", neuronUpdateJson, "dataset", "test")));
@@ -444,76 +440,30 @@ public class UpdateNeuronsTest {
     }
 
     @Test
-    public void shouldLookForSynapseFromAllBodiesIfSynapseNotFoundInSynapseSources() {
-
-        Session session = driver.session();
-
-        session.writeTransaction(tx -> tx.run("CREATE (p:Synapse:`test-Synapse`:PreSyn:`test-PreSyn`{location:$location}) SET p.type=\"pre\" WITH p " +
-                "CREATE (p)<-[:Contains]-(s:SynapseSet{datasetBodyId:\"stored:test:123\"}) WITH s " +
-                "MATCH (ss:SynapseStore{dataset:\"test\"}) WITH s,ss " +
-                "CREATE (s)<-[:Has]-(ss) ", parameters("location", Values.point(9157, 1, 2, 3).asPoint())));
-
-        String updateJson =
-                "{" +
-                        "\"Id\": 2," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"5\"," +
-                        "\"MutationID\": 5," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
-                        "\"Location\": [14067, 10777, 15040]," +
-                        "\"Radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
-                        "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
-                        "[" +
-                        "{" +
-                        "\"Location\": [1,2,3]," +
-                        "\"Type\": \"pre\"" +
-                        "}" +
-                        "]" +
-                        "}";
-
-        boolean ranSuccessfully;
-        try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
-            ranSuccessfully = true;
-        } catch (ClientException ce) {
-            ranSuccessfully = false;
-        }
-
-        Assert.assertTrue(ranSuccessfully);
-
-        int synapseCount = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:2})-[:Contains]->(:SynapseSet)-[:Contains]->(s:Synapse) RETURN count(s)")).single().get(0).asInt();
-        Assert.assertEquals(synapseCount, 1);
-
-    }
-
-    @Test
     public void shouldErrorIfSynapseNotFound() {
 
         Session session = driver.session();
 
         String updateJson =
                 "{" +
-                "\"Id\": 2," +
-                "\"Size\": 12," +
-                "\"MutationUUID\": \"6\"," +
-                "\"MutationID\": 6," +
-                "\"Status\": \"updated\"," +
-                "\"Soma\": {" +
-                "\"Location\": [14067, 10777, 15040]," +
-                "\"Radius\": 15040.0 }," +
-                "\"Name\": \"new name\", " +
-                "\"SynapseSources\": [8426959]," +
-                "\"CurrentSynapses\": " +
-                "[" +
-                "{" +
-                "\"Location\": [4,5,6]," +
-                "\"Type\": \"pre\"" +
-                "}" +
-                "]" +
-                "}";
+                        "\"Id\": 2," +
+                        "\"Size\": 12," +
+                        "\"MutationUUID\": \"6\"," +
+                        "\"MutationID\": 6," +
+                        "\"Status\": \"updated\"," +
+                        "\"Soma\": {" +
+                        "\"Location\": [14067, 10777, 15040]," +
+                        "\"Radius\": 15040.0 }," +
+                        "\"Name\": \"new name\", " +
+                        "\"SynapseSources\": [8426959]," +
+                        "\"CurrentSynapses\": " +
+                        "[" +
+                        "{" +
+                        "\"Location\": [4,5,6]," +
+                        "\"Type\": \"pre\"" +
+                        "}" +
+                        "]" +
+                        "}";
 
         boolean attemptedUpdate;
         try {
@@ -551,9 +501,18 @@ public class UpdateNeuronsTest {
 
         for (Record r : metaRecords) {
             Assert.assertEquals(21L, r.asMap().get("n.latestMutationId"));
-            Assert.assertEquals("20",r.asMap().get("n.uuid"));
+            Assert.assertEquals("20", r.asMap().get("n.uuid"));
         }
 
+    }
+
+    @Test
+    public void allNodesShouldHaveDatasetLabel() {
+
+        Session session = driver.session();
+
+        int noDatasetLabelCount = session.readTransaction(tx -> tx.run("MATCH (n) WHERE NOT n:test AND NOT n:Meta AND NOT n:DataModel RETURN count(n)")).single().get(0).asInt();
+        Assert.assertEquals(0, noDatasetLabelCount);
 
     }
 //
