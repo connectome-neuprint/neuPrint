@@ -9,6 +9,7 @@ import java.io.BufferedReader;
 import java.lang.reflect.Type;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -32,8 +33,8 @@ public class BodyWithSynapses {
     private final Set<Synapse> synapseSet;
     // TODO: check for attempts to add duplicate synapses
 
-    private transient HashMap<Long, Integer> connectsTo; //Map of body IDs and weights
-    private transient HashMap<Long, Integer> connectsFrom; //Map of body IDs and weights
+    private transient HashMap<Long, SynapseCounter> connectsTo; //Map of body IDs and weights
+    private transient HashMap<Long, SynapseCounter> connectsFrom; //Map of body IDs and weights
     private transient Integer numberOfPreSynapses;
     private transient Integer numberOfPostSynapses;
 
@@ -91,14 +92,14 @@ public class BodyWithSynapses {
     /**
      * @return map of postsynaptic bodyIds to ConnectsTo weights for this body
      */
-    public HashMap<Long, Integer> getConnectsTo() {
+    public HashMap<Long, SynapseCounter> getConnectsTo() {
         return this.connectsTo;
     }
 
     /**
      * @return map of presynaptic bodyIds to weights for this body
      */
-    public HashMap<Long, Integer> getConnectsFrom() {
+    public HashMap<Long, SynapseCounter> getConnectsFrom() {
         return connectsFrom;
     }
 
@@ -202,13 +203,25 @@ public class BodyWithSynapses {
                 .filter(synapse -> synapse.getType().equals(PRE))
                 .collect(Collectors.toSet())
                 .forEach(preSynapse -> {
+
+                    // get list of body ids that connect to this presynaptic density for counting post per connection
                     List<Long> postSynapticBodyIdsForSynapse = getPostSynapticBodyIdsForSynapse(preSynapse, postToBody);
+                    // get set of body ids that connect to this presynaptic density for counting pre per connection
+                    Set<Long> postSynapticBodyIdsForSynapseSet = new HashSet<>(postSynapticBodyIdsForSynapse);
+
                     for (Long partnerId : postSynapticBodyIdsForSynapse) {
                         if (partnerId != null) {
-                            int count = this.connectsTo.getOrDefault(partnerId, 0);
-                            this.connectsTo.put(partnerId, count + 1);
+                            SynapseCounter synapseCounter = this.connectsTo.getOrDefault(partnerId, new SynapseCounter());
+                            synapseCounter.incrementPost();
+                            this.connectsTo.put(partnerId, synapseCounter);
                         } else {
                             LOG.warning(preSynapse.getLocationString() + " on " + this.bodyId + " has no bodyId for postsynaptic partner.");
+                        }
+                    }
+
+                    for (Long partnerId : postSynapticBodyIdsForSynapseSet) {
+                        if (partnerId != null) {
+                            this.connectsTo.get(partnerId).incrementPre();
                         }
                     }
                 });

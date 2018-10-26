@@ -223,7 +223,7 @@ public class Neo4jImporter implements AutoCloseable {
         final String connectsToText =
                 "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n:Segment, n:" + dataset + " \n" +
                         "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m:Segment, m:" + dataset + " \n" +
-                        "MERGE (n)-[:ConnectsTo{weight:$weight}]->(m)";
+                        "MERGE (n)-[r:ConnectsTo{weight:$weight}]->(m) ON CREATE SET r.pre=$preWeight";
         final String terminalCountText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp, n.roiInfo=$synapseCountPerRoi";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -238,7 +238,9 @@ public class Neo4jImporter implements AutoCloseable {
                                     parameters("bodyId1", body.getBodyId(),
                                             "bodyId2", postsynapticBodyId,
                                             "timeStamp", timeStamp,
-                                            "weight", body.getConnectsTo().get(postsynapticBodyId)))
+                                            "weight", body.getConnectsTo().get(postsynapticBodyId).getPost(),
+                                            "preWeight", body.getConnectsTo().get(postsynapticBodyId).getPre()
+                                    ))
                     );
                 }
 
@@ -256,6 +258,37 @@ public class Neo4jImporter implements AutoCloseable {
         }
 
         LOG.info("addConnectsTo: exit");
+    }
+
+    public void addPreCountToConnectsToRelationships(final String dataset, final List<BodyWithSynapses> bodyList) {
+        LOG.info("addPreCountToConnectsToRelationships: entry");
+
+        final String connectsToText =
+                "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n:Segment, n:" + dataset + " \n" +
+                        "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m:Segment, m:" + dataset + " \n" +
+                        "MERGE (n)-[r:ConnectsTo]->(m) ON MERGE SET r.pre=$preWeight";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (final BodyWithSynapses body : bodyList) {
+
+                //set synapse counts per roi before adding to database
+                body.setSynapseCountsPerRoi();
+
+                for (final Long postsynapticBodyId : body.getConnectsTo().keySet()) {
+                    batch.addStatement(
+                            new Statement(connectsToText,
+                                    parameters("bodyId1", body.getBodyId(),
+                                            "bodyId2", postsynapticBodyId,
+                                            "timeStamp", timeStamp,
+                                            "weight", body.getConnectsTo().get(postsynapticBodyId)))
+                    );
+                }
+
+            }
+            batch.writeTransaction();
+        }
+
+        LOG.info("addPreCountToConnectsToRelationships: exit");
     }
 
     /**

@@ -162,11 +162,13 @@ public class BodyWithSynapsesTest {
         BodyWithSynapses body1 = parsedBodyList.get(0);
         body1.setConnectsTo(postSynapseLocationToBodyIdMap);
 
-        HashMap<Long, Integer> body1ConnectsTo = body1.getConnectsTo();
+        HashMap<Long, SynapseCounter> body1ConnectsTo = body1.getConnectsTo();
 
 
-        Assert.assertEquals("Incorrect connections for " + body1, new Integer(2),  body1ConnectsTo.get(new Long(26311)));
-        Assert.assertEquals("Incorrect connections for " + body1, new Integer(1),  body1.getConnectsTo().get(new Long(831744)));
+        Assert.assertEquals("Incorrect connections for " + body1, 2,  body1ConnectsTo.get(26311L).getPost());
+        Assert.assertEquals("Incorrect connections for " + body1, 1,  body1.getConnectsTo().get(831744L).getPost());
+        Assert.assertEquals("Incorrect connections for " + body1, 1,  body1ConnectsTo.get(26311L).getPre());
+        Assert.assertEquals("Incorrect connections for " + body1, 1,  body1.getConnectsTo().get(831744L).getPre());
         Assert.assertEquals("Incorrect number of postsynaptic partners for " + body1, 2, body1.getConnectsTo().keySet().size());
 
     }

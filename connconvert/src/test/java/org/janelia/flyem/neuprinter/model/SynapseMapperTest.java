@@ -37,7 +37,7 @@ public class SynapseMapperTest {
 
         BodyWithSynapses body1 = parsedBodyList.get(0);
 
-        Assert.assertEquals("Incorrect connectsto weight for " + body1, new Integer(1), body1.getConnectsTo().get(new Long(26311)));
+        Assert.assertEquals("Incorrect connectsto weight for " + body1, 1, body1.getConnectsTo().get(26311L).getPost());
         Assert.assertEquals("Incorrect number of connections for " + body1, 3, body1.getConnectsTo().keySet().size());
 
         SynapseLocationToBodyIdMap postToBody = mapper.getSynapseLocationToBodyIdMap();
