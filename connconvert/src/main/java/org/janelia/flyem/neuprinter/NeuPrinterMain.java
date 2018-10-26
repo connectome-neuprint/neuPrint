@@ -58,6 +58,12 @@ public class NeuPrinterMain {
         boolean loadSynapses;
 
         @Parameter(
+                names = "--startFromSynapseLoad",
+                description = "Indicates that load should start from the synapses JSON.",
+                arity = 0)
+        boolean startFromSynapsesLoad;
+
+        @Parameter(
                 names = "--doAll",
                 description = "Indicates that both neurons and synapses JSONs should be loaded and all database features added",
                 arity = 0)
@@ -369,7 +375,7 @@ public class NeuPrinterMain {
                 }
             }
 
-            if (parameters.loadSynapses || parameters.doAll) {
+            if (parameters.loadSynapses || parameters.doAll || parameters.startFromSynapsesLoad) {
 
                 Stopwatch timer = Stopwatch.createStarted();
                 SynapseMapper mapper = new SynapseMapper();
@@ -383,11 +389,11 @@ public class NeuPrinterMain {
 
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-                    if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll)) {
+                    if (parameters.startFromSynapsesLoad || (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll))) {
                         neo4jImporter.prepDatabase(dataset);
                     }
 
-                    if (parameters.addConnectsTo || parameters.doAll) {
+                    if (parameters.startFromSynapsesLoad || parameters.addConnectsTo || parameters.doAll) {
 
                         timer.start();
                         neo4jImporter.addConnectsTo(dataset, bodyList);
@@ -396,28 +402,28 @@ public class NeuPrinterMain {
 
                     }
 
-                    if (parameters.addSynapses || parameters.doAll) {
+                    if (parameters.startFromSynapsesLoad || parameters.addSynapses || parameters.doAll) {
                         timer.start();
                         neo4jImporter.addSynapsesWithRois(dataset, bodyList);
                         LOG.info("Loading all Synapses took: " + timer.stop());
                         timer.reset();
                     }
 
-                    if (parameters.addSynapsesTo || parameters.doAll) {
+                    if (parameters.startFromSynapsesLoad || parameters.addSynapsesTo || parameters.doAll) {
                         timer.start();
                         neo4jImporter.addSynapsesTo(dataset, preToPost);
                         LOG.info("Loading all SynapsesTo took: " + timer.stop());
                         timer.reset();
                     }
 
-                    if (parameters.addNeuronRois || parameters.doAll) {
+                    if (parameters.startFromSynapsesLoad || parameters.addNeuronRois || parameters.doAll) {
                         timer.start();
                         neo4jImporter.addSegmentRois(dataset, bodyList);
                         LOG.info("Loading all Segment ROI labels took: " + timer.stop());
                         timer.reset();
                     }
 
-                    if (parameters.addConnectionSets || parameters.doAll) {
+                    if (parameters.startFromSynapsesLoad || parameters.addConnectionSets || parameters.doAll) {
                         timer.start();
                         neo4jImporter.addConnectionSets(dataset, bodyList, synapseLocationToBodyIdMap);
                         LOG.info("Loading ConnectionSets took: " + timer.stop());
