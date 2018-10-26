@@ -306,7 +306,7 @@ public class ProofreaderProcedures {
 //    }
 
     @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
-    @Description("proofreader.deleteNeuron")
+    @Description("proofreader.deleteNeuron(bodyId, datasetLabel) : Delete a neuron from the database.")
     public void deleteNeuron(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.deleteNeuron: entry");
@@ -318,7 +318,7 @@ public class ProofreaderProcedures {
     }
 
     @Procedure(value = "proofreader.updateNeuron", mode = Mode.WRITE)
-    @Description("proofreader.updateNeuron")
+    @Description("proofreader.updateNeuron(neuronUpdateJsonObject, datasetLabel): add a neuron with properties, synapses, and connections specified by an input JSON.")
     public void updateNeurons(@Name("neuronUpdateJson") String neuronUpdateJson, @Name("datasetLabel") String datasetLabel) {
 
         Gson gson = new Gson();
