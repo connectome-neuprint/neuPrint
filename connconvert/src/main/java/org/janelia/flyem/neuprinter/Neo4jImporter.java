@@ -137,6 +137,7 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE INDEX ON :`" + dataset + "-SkelNode`(location)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(pre)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(post)",
+                "CREATE INDEX ON :`" + dataset + "-Neuron(clusterName)",
                 "CREATE INDEX ON :Neuron(name)",
                 "CREATE INDEX ON :`" + dataset + "-Segment`(pre)",
                 "CREATE INDEX ON :`" + dataset + "-Segment`(post)",
