@@ -320,7 +320,7 @@ public class UpdateNeuronsTest {
         Assert.assertEquals(3L, newNeuron.asMap().get("pre"));
         Assert.assertEquals(5L, newNeuron.asMap().get("post"));
         Assert.assertEquals(12L, newNeuron.asMap().get("size"));
-        Assert.assertEquals("28841c8277e044a7b187dda03e18da13:1000057479", newNeuron.asMap().get("mutationUuidAndId"));
+        Assert.assertEquals("28841c8277e044a7b187dda03e18da13:1000057479:8426959", newNeuron.asMap().get("mutationUuidAndId"));
         Assert.assertEquals("updated", newNeuron.asMap().get("status"));
         Assert.assertEquals("new name", newNeuron.asMap().get("name"));
         Assert.assertEquals(15040.0, newNeuron.asMap().get("somaRadius"));

@@ -327,9 +327,8 @@ public class ProofreaderProcedures {
 
         log.info("proofreader.updateNeuron: entry");
 
-        // check that this mutation hasn't been done before
-        String mutationKey;
-        mutationKey = neuronUpdate.getMutationUuid() + ":" + neuronUpdate.getMutationId();
+        // check that this mutation hasn't been done before (in order to be unique, needs to include uuid+mutationid+bodyId)
+        String mutationKey = neuronUpdate.getMutationUuid() + ":" + neuronUpdate.getMutationId() + ":" + neuronUpdate.getBodyId();
         Node existingMutatedNode = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), MUTATION_UUID_ID, mutationKey);
         if (existingMutatedNode != null) {
             log.error("Mutation already found in the database: " + neuronUpdate.toString());
@@ -436,7 +435,7 @@ public class ProofreaderProcedures {
         newNeuron.setProperty(PRE, preCount);
         newNeuron.setProperty(POST, postCount);
         newNeuron.setProperty(SIZE, neuronUpdate.getSize());
-        newNeuron.setProperty(MUTATION_UUID_ID, neuronUpdate.getMutationUuid() + ":" + neuronUpdate.getMutationId());
+        newNeuron.setProperty(MUTATION_UUID_ID, mutationKey);
 
         // check for optional properties; update neuron if present; decide if there should be a neuron label (has name, has soma, has pre+post>10)
         boolean isNeuron = false;
@@ -477,7 +476,7 @@ public class ProofreaderProcedures {
 
 //            add skeleton?
 
-        log.info("Completed neuron update: " + neuronUpdate.toString());
+        log.info("Completed neuron update with uuid " + neuronUpdate.getMutationUuid() + ", mutation id " + neuronUpdate.getMutationId() +", body id " + neuronUpdate.getBodyId() + ".");
 
         log.info("proofreader.updateNeuron: exit");
 
