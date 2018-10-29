@@ -1,15 +1,15 @@
 package org.janelia.flyem.neuprintprocedures.functions;
 
 import apoc.convert.Json;
-import apoc.create.Create;
-import apoc.refactor.GraphRefactoring;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
-import org.janelia.flyem.neuprintprocedures.analysis.AnalysisProcedures;
+import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -23,6 +23,7 @@ import org.neo4j.harness.junit.Neo4jRule;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.neo4j.driver.v1.Values.parameters;
@@ -64,12 +65,7 @@ public class RoiInfoNameTest {
         neo4jImporter.addSynapseSets(dataset, bodyList);
         neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
         neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
-
-        Session session = driver.session();
-
-        session.writeTransaction(tx -> tx.run(" MATCH (m:Meta{dataset:\"test\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`test-Neuron`) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName"));
-
-
+        neo4jImporter.addClusterNames("test", .1F);
     }
 
     @Test
@@ -89,17 +85,31 @@ public class RoiInfoNameTest {
 
     }
 
+    @Test
+    public void shouldGetConnectionClusterNames() {
+        Session session = driver.session();
 
-//    @Test
-//    public void shouldGetTopXConnectionClusterNames() {
-//        Session session = driver.session();
-//
-//        String resultJson = session.readTransaction(tx -> tx.run("WITH neuprint.getClusterNamesOfTopXConnections(8426959, \"test\", 5) AS result RETURN result")).single().get(0).asString();
-//
-//        System.out.println(resultJson);
-//
-//    }
-//
+        String resultJson = session.readTransaction(tx -> tx.run("WITH neuprint.getClusterNamesOfConnections(8426959, \"test\") AS result RETURN result")).single().get(0).asString();
 
+        Gson gson = new Gson();
+
+        Map<String, SynapseCounter> resultObject = gson.fromJson(resultJson, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+
+        int sumPre = 0;
+        int sumPost = 0;
+
+        for (String category : resultObject.keySet()) {
+            sumPre += resultObject.get(category).getPre();
+            sumPost += resultObject.get(category).getPost();
+        }
+
+        Assert.assertEquals(2, sumPre);
+        Assert.assertEquals(3, sumPost);
+
+        Assert.assertEquals(1, resultObject.get("roiA-roiA:roiB-none").getPre());
+        Assert.assertEquals(2, resultObject.get("roiA-roiA").getPost());
+
+    }
 
 }

@@ -16,9 +16,11 @@ import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.UserFunction;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 
 public class NeuPrintUserFunctions {
 
@@ -83,73 +85,111 @@ public class NeuPrintUserFunctions {
 
     }
 
-    @UserFunction("neuprint.getClusterNamesOfTopXConnections")
-    @Description("neuprint.getClusterNamesOfTopXConnections")
-    public String getClusterNamesOfTopXConnections(@Name("bodyId") Long bodyId, @Name("dataset") String dataset, @Name("numberOfConnections") Long numberOfConnections) {
-        if (bodyId == null || dataset == null || numberOfConnections == null) {
+    @UserFunction("neuprint.getClusterNamesOfConnections")
+    @Description("neuprint.getClusterNamesOfConnections")
+    public String getClusterNamesOfConnections(@Name("bodyId") Long bodyId, @Name("dataset") String dataset) {
+        if (bodyId == null || dataset == null) {
             throw new Error("Must provide bodyId, dataset, and number of connections.");
         }
 
         Node neuron = dbService.findNode(Label.label(dataset + "-Segment"), "bodyId", bodyId);
 
-        List<Connection> connectionList = new ArrayList<>();
-
-        for (Relationship connectsToRel : neuron.getRelationships(RelationshipType.withName("ConnectsTo"))) {
-            Node connectedNeuron = connectsToRel.getOtherNode(neuron);
-            if (connectedNeuron.hasLabel(Label.label("Neuron"))) {
-                String clusterName = (String) connectedNeuron.getProperty("clusterName");
-                long connectedBodyId = (long) connectedNeuron.getProperty("bodyId");
-                long postWeight = (long) connectsToRel.getProperty("weight");
-                long preWeight = (long) connectsToRel.getProperty("pre");
-                String direction = connectsToRel.getStartNode().equals(neuron) ? "output" : "input";
-                Connection connection = new Connection(clusterName, connectedBodyId, postWeight, preWeight, direction);
-                connectionList.add(connection);
+        // get synapse set
+        Node synapseSet = null;
+        for (Relationship containsRelationship : neuron.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+            Node containedNode = containsRelationship.getEndNode();
+            if (containedNode.hasLabel(Label.label("SynapseSet"))) {
+                synapseSet = containedNode;
             }
         }
 
-        for (Relationship containsRel : neuron.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
-            Node containedNode = containsRel.getEndNode();
-            if (containedNode.hasLabel(Label.label("SynapseSet"))) {
-                for (Relationship synapseContainsRel : containedNode.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
-                    Node synapse = synapseContainsRel.getEndNode();
-                    if (synapse.hasLabel(Label.label("PreSyn"))) {
+        Map<String, SynapseCounter> categoryCounts = new TreeMap<>();
 
+        if (synapseSet != null) {
+            for (Relationship containsRelationship : synapseSet.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+                Node synapseNode = containsRelationship.getEndNode();
+                Set<String> connectedNeuronClusterNames = new TreeSet<>();
+                for (Relationship synapsesToRelationship : synapseNode.getRelationships(RelationshipType.withName("SynapsesTo"))) {
+                    Node otherSynapse = synapsesToRelationship.getOtherNode(synapseNode);
+                    for (Relationship otherSynapseContainsRel : otherSynapse.getRelationships(RelationshipType.withName("Contains"), Direction.INCOMING)) {
+                        Node containingNode = otherSynapseContainsRel.getStartNode();
+                        if (containingNode.hasLabel(Label.label("SynapseSet"))) {
+                            for (Relationship otherSynapseSetContainsRel : containingNode.getRelationships(RelationshipType.withName("Contains"), Direction.INCOMING)) {
+                                Node otherSegment = otherSynapseSetContainsRel.getStartNode();
+                                if (otherSegment.hasLabel(Label.label("Neuron"))) {
+                                    connectedNeuronClusterNames.add((String) otherSegment.getProperty("clusterName"));
+                                }
+                            }
+                        }
                     }
                 }
+
+                String categoryKey = "";
+                for (String clusterName : connectedNeuronClusterNames) {
+                    if (categoryKey.length() > 0) {
+                        categoryKey = categoryKey + ":" + clusterName;
+                    } else {
+                        categoryKey = clusterName;
+                    }
+                }
+
+                SynapseCounter synapseCounter = categoryCounts.getOrDefault(categoryKey, new SynapseCounter());
+                if (synapseNode.hasLabel(Label.label("PreSyn"))) {
+                    synapseCounter.incrementPre();
+                } else if (synapseNode.hasLabel(Label.label("PostSyn"))) {
+                    synapseCounter.incrementPost();
+                }
+                categoryCounts.put(categoryKey, synapseCounter);
+
             }
         }
+
+//        List<Connection> connectionList = new ArrayList<>();
+//
+//        for (Relationship connectsToRel : neuron.getRelationships(RelationshipType.withName("ConnectsTo"))) {
+//            Node connectedNeuron = connectsToRel.getOtherNode(neuron);
+//            if (connectedNeuron.hasLabel(Label.label("Neuron"))) {
+//                String clusterName = (String) connectedNeuron.getProperty("clusterName");
+//                long connectedBodyId = (long) connectedNeuron.getProperty("bodyId");
+//                long postWeight = (long) connectsToRel.getProperty("weight");
+//                long preWeight = (long) connectsToRel.getProperty("pre");
+//                String direction = connectsToRel.getStartNode().equals(neuron) ? "output" : "input";
+//                Connection connection = new Connection(clusterName, connectedBodyId, postWeight, preWeight, direction);
+//                connectionList.add(connection);
+//            }
+//        }
 
 //        connectionList.sort(new SortConnectionsByWeight());
 
         Gson gson = new Gson();
 
-        return gson.toJson(connectionList.subList(0, (int) (numberOfConnections - 1)));
+        return gson.toJson(categoryCounts);
 
     }
 
-    class Connection {
-
-        String clusterName;
-        long bodyId;
-        long postWeight;
-        long preWeight;
-        String direction;
-
-        Connection(String clusterName, long bodyId, long postWeight, long preWeight, String direction) {
-            this.clusterName = clusterName;
-            this.bodyId = bodyId;
-            this.direction = direction;
-            this.postWeight = postWeight;
-            this.preWeight = preWeight;
-        }
-
-    }
-
-//    class SortConnectionsByWeight implements Comparator<Connection> {
+//    class Connection {
 //
-//        public int compare(Connection a, Connection b) {
-//            return (int) (b.weight - a.weight);
+//        String clusterName;
+//        long bodyId;
+//        long postWeight;
+//        long preWeight;
+//        String direction;
+//
+//        Connection(String clusterName, long bodyId, long postWeight, long preWeight, String direction) {
+//            this.clusterName = clusterName;
+//            this.bodyId = bodyId;
+//            this.direction = direction;
+//            this.postWeight = postWeight;
+//            this.preWeight = preWeight;
 //        }
 //
 //    }
+//
+////    class SortConnectionsByWeight implements Comparator<Connection> {
+////
+////        public int compare(Connection a, Connection b) {
+////            return (int) (b.weight - a.weight);
+////        }
+////
+////    }
 }
