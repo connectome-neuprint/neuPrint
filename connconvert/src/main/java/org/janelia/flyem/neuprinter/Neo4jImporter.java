@@ -225,7 +225,7 @@ public class Neo4jImporter implements AutoCloseable {
         final String connectsToText =
                 "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId = $bodyId1, n:Segment, n:" + dataset + " \n" +
                         "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId = $bodyId2, m.timeStamp=$timeStamp, m:Segment, m:" + dataset + " \n" +
-                        "MERGE (n)-[r:ConnectsTo{weight:$weight}]->(m) ON CREATE SET r.pre=$preWeight";
+                        "MERGE (n)-[r:ConnectsTo{weight:$weight}]->(m)";
         final String terminalCountText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId} ) SET n.pre = $pre, n.post = $post, n.timeStamp=$timeStamp, n.roiInfo=$synapseCountPerRoi";
 
         try (final TransactionBatch batch = getBatch()) {
@@ -240,8 +240,7 @@ public class Neo4jImporter implements AutoCloseable {
                                     parameters("bodyId1", body.getBodyId(),
                                             "bodyId2", postsynapticBodyId,
                                             "timeStamp", timeStamp,
-                                            "weight", body.getConnectsTo().get(postsynapticBodyId).getPost(),
-                                            "preWeight", body.getConnectsTo().get(postsynapticBodyId).getPre()
+                                            "weight", body.getConnectsTo().get(postsynapticBodyId).getPost()
                                     ))
                     );
                 }
