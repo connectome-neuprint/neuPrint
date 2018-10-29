@@ -65,6 +65,11 @@ public class RoiInfoNameTest {
         neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
         neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
 
+        Session session = driver.session();
+
+        session.writeTransaction(tx -> tx.run(" MATCH (m:Meta{dataset:\"test\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`test-Neuron`) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName"));
+
+
     }
 
     @Test
@@ -76,7 +81,7 @@ public class RoiInfoNameTest {
 
         String name5percent = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`{bodyId:8426959}) WITH neuprint.roiInfoAsName(n.roiInfo,n.pre,n.post,.05,$superLevelRois) AS name RETURN name ", parameters("superLevelRois", superLevelRois))).single().get(0).asString();
 
-        Assert.assertEquals("none-roiA", name5percent);
+        Assert.assertEquals("roiA-roiA", name5percent);
 
         String name100percent = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`{bodyId:8426959}) WITH neuprint.roiInfoAsName(n.roiInfo,n.pre,n.post,1.0,$superLevelRois) AS name RETURN name ", parameters("superLevelRois", superLevelRois))).single().get(0).asString();
 
@@ -84,6 +89,17 @@ public class RoiInfoNameTest {
 
     }
 
+
+//    @Test
+//    public void shouldGetTopXConnectionClusterNames() {
+//        Session session = driver.session();
+//
+//        String resultJson = session.readTransaction(tx -> tx.run("WITH neuprint.getClusterNamesOfTopXConnections(8426959, \"test\", 5) AS result RETURN result")).single().get(0).asString();
+//
+//        System.out.println(resultJson);
+//
+//    }
+//
 
 
 }
