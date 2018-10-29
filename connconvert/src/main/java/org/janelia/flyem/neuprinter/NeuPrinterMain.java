@@ -183,9 +183,21 @@ public class NeuPrinterMain {
 
         @Parameter(
                 names = "--getSuperLevelRoisFromSynapses",
-                description = ""
-        )
+                description = "Indicates that super level rois should be computed from synapses JSON and added to the Meta node.",
+                arity = 0)
         public boolean getSuperLevelRoisFromSynapses;
+
+        @Parameter(
+                names = "--uuid",
+                description = "DVID UUID to be added to Meta node."
+        )
+        public String dvidUuid;
+
+        @Parameter(
+                names = "--server",
+                description = "DVID server to be added to Meta node."
+        )
+        public String dvidServer;
 
         @Parameter(
                 names = "--help",
@@ -464,6 +476,14 @@ public class NeuPrinterMain {
                     neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
                     LOG.info("Adding :Meta node took: " + timer.stop());
                     timer.reset();
+
+                    if (parameters.dvidUuid != null) {
+                        neo4jImporter.addDvidUuid(dataset, parameters.dvidUuid);
+                    }
+
+                    if (parameters.dvidServer != null) {
+                        neo4jImporter.addDvidServer(dataset, parameters.dvidServer);
+                    }
 
                 }
             }

@@ -137,7 +137,7 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE INDEX ON :`" + dataset + "-SkelNode`(location)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(pre)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(post)",
-                "CREATE INDEX ON :`" + dataset + "-Neuron(clusterName)",
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(clusterName)",
                 "CREATE INDEX ON :Neuron(name)",
                 "CREATE INDEX ON :`" + dataset + "-Segment`(pre)",
                 "CREATE INDEX ON :`" + dataset + "-Segment`(post)",
@@ -757,6 +757,8 @@ public class Neo4jImporter implements AutoCloseable {
                 "MERGE (d:DataModel{dataModelVersion:$dataModelVersion}) ON CREATE SET d.dataModelVersion=$dataModelVersion, d.timeStamp=$timeStamp \n" +
                 "MERGE (m)-[:Is]->(d)";
 
+        String metaNodeRoiString = "MATCH (m:Meta{dataset:$dataset}) SET m.roiInfo=$synapseCountPerRoi, m.superLevelRois=$superLevelRois ";
+
         long totalPre;
         long totalPost;
         Set<String> roiNameSet;
@@ -783,8 +785,6 @@ public class Neo4jImporter implements AutoCloseable {
                     "dataModelVersion", dataModelVersion
             )));
 
-            String metaNodeRoiString = "MATCH (m:Meta{dataset:$dataset}) SET m.roiInfo=$synapseCountPerRoi, m.superLevelRois=$superLevelRois ";
-
             batch.addStatement(new Statement(metaNodeRoiString,
                     parameters("dataset", dataset,
                             "synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString(),
@@ -796,6 +796,44 @@ public class Neo4jImporter implements AutoCloseable {
         }
 
         LOG.info("createMetaNodeWithDataModelNode: exit");
+
+    }
+
+    public void addDvidUuid(String dataset, String uuid) {
+
+        LOG.info("addDvidUuid: enter");
+
+        String metaNodeUuidString = "MATCH (m:Meta{dataset:$dataset}) SET m.uuid=$uuid ";
+
+        try (final TransactionBatch batch = getBatch()) {
+            batch.addStatement(new Statement(metaNodeUuidString, parameters("dataset", dataset,
+                    "uuid", uuid
+            )));
+
+            batch.writeTransaction();
+
+        }
+
+        LOG.info("addDvidUuid: exit");
+
+    }
+
+    public void addDvidServer(String dataset, String server) {
+
+        LOG.info("addDvidServer: enter");
+
+        String metaNodeServerString = "MATCH (m:Meta{dataset:$dataset}) SET m.server=$server ";
+
+        try (final TransactionBatch batch = getBatch()) {
+            batch.addStatement(new Statement(metaNodeServerString, parameters("dataset", dataset,
+                    "server", server
+            )));
+
+            batch.writeTransaction();
+
+        }
+
+        LOG.info("addDvidServer: exit");
 
     }
 
