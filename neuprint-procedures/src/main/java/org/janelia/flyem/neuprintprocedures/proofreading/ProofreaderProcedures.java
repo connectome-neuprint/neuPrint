@@ -2,6 +2,7 @@ package org.janelia.flyem.neuprintprocedures.proofreading;
 
 import apoc.result.NodeResult;
 import com.google.gson.Gson;
+import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
@@ -305,6 +306,57 @@ public class ProofreaderProcedures {
 //        return Stream.of(new NodeResult(null));
 //    }
 
+    @Procedure(value = "proofreader.updateProperties", mode = Mode.WRITE)
+    @Description("proofreader.updateProperties : Update properties on a Neuron/Segment node.")
+    public Stream<NodeResult> updateProperties(@Name("neuronJsonObject") String neuronJsonObject, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.updateProperties: entry");
+
+        Gson gson = new Gson();
+
+        Neuron neuron = gson.fromJson(neuronJsonObject, Neuron.class);
+
+        Node neuronNode = dbService.findNode(Label.label(SEGMENT), "bodyId", neuron.getId());
+
+        if (neuron.getStatus() != null) {
+            neuronNode.setProperty(STATUS, neuron.getStatus());
+            log.info("Updated status for neuron " + neuron.getId() + ".");
+        }
+
+        if (neuron.getName() != null) {
+            neuronNode.setProperty(NAME, neuron.getName());
+
+            // adding a name makes it a Neuron
+            neuronNode.addLabel(Label.label(NEURON));
+            neuronNode.addLabel(Label.label(datasetLabel + "-" + NEURON));
+
+            log.info("Updated name for neuron " + neuron.getId() + ".");
+        }
+
+        if (neuron.getSize() != null) {
+            neuronNode.setProperty(SIZE, neuron.getSize());
+            log.info("Updated size for neuron " + neuron.getId() + ".");
+        }
+
+        if (neuron.getSoma() != null) {
+            Map<String, Object> parametersMap = new HashMap<>();
+            List<Integer> somaLocationList = neuron.getSoma().getLocation();
+            parametersMap.put("x", somaLocationList.get(0));
+            parametersMap.put("y", somaLocationList.get(1));
+            parametersMap.put("z", somaLocationList.get(2));
+            Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
+            Point somaLocationPoint = (Point) locationResult.next().get("loc");
+            neuronNode.setProperty(SOMA_LOCATION, somaLocationPoint);
+            neuronNode.setProperty(SOMA_RADIUS, neuron.getSoma().getRadius());
+            log.info("Updated soma for neuron " + neuron.getId() + ".");
+        }
+
+        log.info("proofreader.updateProperties: exit");
+
+        return Stream.of(new NodeResult(neuronNode));
+
+    }
+
     @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
     @Description("proofreader.deleteNeuron(bodyId, datasetLabel) : Delete a neuron from the database.")
     public void deleteNeuron(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
@@ -476,7 +528,7 @@ public class ProofreaderProcedures {
 
 //            add skeleton?
 
-        log.info("Completed neuron update with uuid " + neuronUpdate.getMutationUuid() + ", mutation id " + neuronUpdate.getMutationId() +", body id " + neuronUpdate.getBodyId() + ".");
+        log.info("Completed neuron update with uuid " + neuronUpdate.getMutationUuid() + ", mutation id " + neuronUpdate.getMutationId() + ", body id " + neuronUpdate.getBodyId() + ".");
 
         log.info("proofreader.updateNeuron: exit");
 

@@ -515,6 +515,34 @@ public class UpdateNeuronsTest {
         Assert.assertEquals(0, noDatasetLabelCount);
 
     }
+
+    @Test
+    public void propertiesShouldBeUpdatedUponProcedureCall() {
+
+        Session session = driver.session();
+
+        String neuronObjectJson = "{ \"Id\":222, \"Status\":\"Partially Roughly traced\", \"Name\":\"KB(a)\", \"Size\": 346576}";
+
+        session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`:Segment:test) SET n.bodyId=222", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test")));
+
+        Node neuronNode = session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test"))).single().get(0).asNode();
+
+        Assert.assertEquals("Partially Roughly traced", neuronNode.asMap().get("status"));
+        Assert.assertEquals("KB(a)", neuronNode.asMap().get("name"));
+        Assert.assertEquals(346576L, neuronNode.asMap().get("size"));
+
+        Assert.assertTrue(neuronNode.hasLabel("Neuron"));
+        Assert.assertTrue(neuronNode.hasLabel("test-Neuron"));
+
+        //soma addition
+        String neuronObjectJson2 = "{ \"Id\":222, \"Soma\": { \"Location\":[1,2,3],\"Radius\":5.0}}";
+
+        Node neuronNode2 = session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson2, "dataset", "test"))).single().get(0).asNode();
+
+        Assert.assertEquals(5.0D, neuronNode2.asMap().get("somaRadius"));
+
+
+    }
 //
 //    @Test
 //    public void testMemory() {

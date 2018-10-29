@@ -144,7 +144,7 @@ public class Neuron {
     /**
      * @return the {@link Soma} for this neuron
      */
-    Soma getSoma() {
+    public Soma getSoma() {
         return soma;
     }
 
