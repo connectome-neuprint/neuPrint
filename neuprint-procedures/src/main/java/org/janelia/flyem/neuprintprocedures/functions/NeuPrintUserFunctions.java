@@ -3,8 +3,12 @@ package org.janelia.flyem.neuprintprocedures.functions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.Context;
@@ -12,6 +16,7 @@ import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.UserFunction;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -64,12 +69,12 @@ public class NeuPrintUserFunctions {
             }
         }
         if (outputs.length() > 0) {
-            outputs.deleteCharAt(outputs.length()-1);
+            outputs.deleteCharAt(outputs.length() - 1);
         } else {
             outputs.append("none");
         }
         if (inputs.length() > 0) {
-            inputs.deleteCharAt(inputs.length()-1);
+            inputs.deleteCharAt(inputs.length() - 1);
         } else {
             inputs.append("none");
         }
@@ -77,4 +82,74 @@ public class NeuPrintUserFunctions {
         return inputs + "-" + outputs;
 
     }
+
+    @UserFunction("neuprint.getClusterNamesOfTopXConnections")
+    @Description("neuprint.getClusterNamesOfTopXConnections")
+    public String getClusterNamesOfTopXConnections(@Name("bodyId") Long bodyId, @Name("dataset") String dataset, @Name("numberOfConnections") Long numberOfConnections) {
+        if (bodyId == null || dataset == null || numberOfConnections == null) {
+            throw new Error("Must provide bodyId, dataset, and number of connections.");
+        }
+
+        Node neuron = dbService.findNode(Label.label(dataset + "-Segment"), "bodyId", bodyId);
+
+        List<Connection> connectionList = new ArrayList<>();
+
+        for (Relationship connectsToRel : neuron.getRelationships(RelationshipType.withName("ConnectsTo"))) {
+            Node connectedNeuron = connectsToRel.getOtherNode(neuron);
+            if (connectedNeuron.hasLabel(Label.label("Neuron"))) {
+                String clusterName = (String) connectedNeuron.getProperty("clusterName");
+                long connectedBodyId = (long) connectedNeuron.getProperty("bodyId");
+                long postWeight = (long) connectsToRel.getProperty("weight");
+                long preWeight = (long) connectsToRel.getProperty("pre");
+                String direction = connectsToRel.getStartNode().equals(neuron) ? "output" : "input";
+                Connection connection = new Connection(clusterName, connectedBodyId, postWeight, preWeight, direction);
+                connectionList.add(connection);
+            }
+        }
+
+        for (Relationship containsRel : neuron.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+            Node containedNode = containsRel.getEndNode();
+            if (containedNode.hasLabel(Label.label("SynapseSet"))) {
+                for (Relationship synapseContainsRel : containedNode.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+                    Node synapse = synapseContainsRel.getEndNode();
+                    if (synapse.hasLabel(Label.label("PreSyn"))) {
+
+                    }
+                }
+            }
+        }
+
+//        connectionList.sort(new SortConnectionsByWeight());
+
+        Gson gson = new Gson();
+
+        return gson.toJson(connectionList.subList(0, (int) (numberOfConnections - 1)));
+
+    }
+
+    class Connection {
+
+        String clusterName;
+        long bodyId;
+        long postWeight;
+        long preWeight;
+        String direction;
+
+        Connection(String clusterName, long bodyId, long postWeight, long preWeight, String direction) {
+            this.clusterName = clusterName;
+            this.bodyId = bodyId;
+            this.direction = direction;
+            this.postWeight = postWeight;
+            this.preWeight = preWeight;
+        }
+
+    }
+
+//    class SortConnectionsByWeight implements Comparator<Connection> {
+//
+//        public int compare(Connection a, Connection b) {
+//            return (int) (b.weight - a.weight);
+//        }
+//
+//    }
 }
