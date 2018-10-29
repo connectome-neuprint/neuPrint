@@ -73,7 +73,7 @@ public class InputAndOutputCountsForRoisTest {
             Assert.assertEquals(2L, synapseCounterMap.get("total").getPre());
             Assert.assertEquals(1L, synapseCounterMap.get("roiB").getPost());
 
-            String featureVectorJson = session.readTransaction(tx -> tx.run("CALL analysis.getInputAndOutputFeatureVectorsForNeuronsInRoi(\"roiA\",\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asString());
+            String featureVectorJson = session.readTransaction(tx -> tx.run("CALL analysis.getInputAndOutputFeatureVectorsForNeuronsInRoi(\"roiA\",0,\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asString());
 
             ClusteringFeatureVector[] clusteringFeatureVectors = gson.fromJson(featureVectorJson, ClusteringFeatureVector[].class);
 

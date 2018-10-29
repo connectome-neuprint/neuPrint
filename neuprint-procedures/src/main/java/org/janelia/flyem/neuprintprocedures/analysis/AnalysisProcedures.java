@@ -226,22 +226,30 @@ public class AnalysisProcedures {
 
     }
 
-//    @Procedure(value = "analysis.getInputAndOutputCountsForRois", mode = Mode.READ)
-//    @Description("")
-//    public Stream<StringResult> getInputAndOutputCountsForRois(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
-//        if (datasetLabel == null || bodyId == null) return Stream.empty();
-//        // NOTE: assumes rois are mutually exclusive.
-//        Node neuron = acquireSegmentFromDatabase(bodyId, datasetLabel);
-//
-//        Map<String, SynapseCounter> synapseCounterMap = getSynapseCounterMapForNeuron(neuron);
-//
-//        Gson gson = new Gson();
-//        String roiCountJson = gson.toJson(synapseCounterMap, new TypeToken<Map<String, SynapseCounter>>() {
-//        }.getType());
-//
-//        return Stream.of(new StringResult(roiCountJson));
-//
-//    }
+    @Procedure(value = "analysis.getInputAndOutputCountsForRois", mode = Mode.READ)
+    @Description("")
+    public Stream<StringResult> getInputAndOutputCountsForRois(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+        if (datasetLabel == null || bodyId == null) return Stream.empty();
+        // NOTE: assumes rois are mutually exclusive.
+        Node neuron = acquireSegmentFromDatabase(bodyId, datasetLabel);
+
+        String roiInfo = (String) neuron.getProperty("roiInfo");
+        Gson gson = new Gson();
+        Map<String, SynapseCounter> roiInfoMap = gson.fromJson(roiInfo, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+        long pre = (long) neuron.getProperty("pre");
+        long post = (long) neuron.getProperty("post");
+
+        NeuronWithRoiInfoMap neuronWithRoiInfoMap = new NeuronWithRoiInfoMap(neuron, bodyId, roiInfoMap, pre, post);
+
+        Map<String, SynapseCounter> synapseCounterMap = getSynapseCounterMapForNeuron(neuronWithRoiInfoMap);
+
+        String roiCountJson = gson.toJson(synapseCounterMap, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+
+        return Stream.of(new StringResult(roiCountJson));
+
+    }
 
     @Procedure(value = "analysis.getInputAndOutputFeatureVectorsForNeuronsInRoiAndTopXFirstDegreeConnections", mode = Mode.READ)
     @Description("")
