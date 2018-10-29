@@ -24,6 +24,7 @@ import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Statement;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
+import org.neo4j.driver.v1.types.Node;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -822,7 +823,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addDvidServer: enter");
 
-        String metaNodeServerString = "MATCH (m:Meta{dataset:$dataset}) SET m.server=$server ";
+        String metaNodeServerString = "MATCH (m:Meta{dataset:$dataset}) SET m.dvidServer=$server ";
 
         try (final TransactionBatch batch = getBatch()) {
             batch.addStatement(new Statement(metaNodeServerString, parameters("dataset", dataset,
@@ -880,6 +881,65 @@ public class Neo4jImporter implements AutoCloseable {
             batch.writeTransaction();
 
         }
+    }
+
+    public void addClusterNames(String dataset, float threshold) {
+
+        List<Node> neuronNodeList;
+        List<String> roiList;
+        try (Session session = driver.session()) {
+            roiList = session.readTransaction(tx -> getRoisFromMetaNode(tx, dataset));
+            neuronNodeList = session.readTransaction(tx -> getAllNeuronNodes(tx, dataset));
+        }
+
+        Gson gson = new Gson();
+
+        String addClusterNameString = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) SET n.clusterName=$clusterName";
+
+        try (final TransactionBatch batch = getBatch()) {
+
+            for (Node neuron : neuronNodeList) {
+
+                Map<String, SynapseCounter> roiInfoMap = gson.fromJson((String) neuron.asMap().get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
+                }.getType());
+                Long totalPre = (Long) neuron.asMap().get("pre");
+                Long totalPost = (Long) neuron.asMap().get("post");
+
+                StringBuilder inputs = new StringBuilder();
+                StringBuilder outputs = new StringBuilder();
+
+                for (String roi : roiInfoMap.keySet()) {
+                    if (roiList.contains(roi)) {
+                        if ((roiInfoMap.get(roi).getPre() * 1.0) / totalPre > threshold) {
+                            outputs.append(roi).append(".");
+                        }
+                        if ((roiInfoMap.get(roi).getPost() * 1.0) / totalPost > threshold) {
+                            inputs.append(roi).append(".");
+                        }
+                    }
+                }
+
+                if (outputs.length() > 0) {
+                    outputs.deleteCharAt(outputs.length() - 1);
+                } else {
+                    outputs.append("none");
+                }
+                if (inputs.length() > 0) {
+                    inputs.deleteCharAt(inputs.length() - 1);
+                } else {
+                    inputs.append("none");
+                }
+
+                batch.addStatement(new Statement(addClusterNameString,
+                        parameters("bodyId", neuron.asMap().get("bodyId"),
+                                "clusterName", inputs + "-" + outputs
+                        )));
+
+            }
+
+            batch.writeTransaction();
+        }
+
     }
 
     private Set<String> getRoiSet(Session session, String dataset) {
@@ -987,6 +1047,20 @@ public class Neo4jImporter implements AutoCloseable {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
         }
         return bodyIdList;
+    }
+
+    private static List<Node> getAllNeuronNodes(final Transaction tx, final String dataset) {
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) RETURN n");
+        List<Node> neuronList = new ArrayList<>();
+        while (result.hasNext()) {
+            neuronList.add((Node) result.next().asMap().get("n"));
+        }
+        return neuronList;
+    }
+
+    private static List<String> getRoisFromMetaNode(final Transaction tx, final String dataset) {
+        StatementResult result = tx.run("MATCH (m:Meta{dataset:\"" + dataset + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois RETURN rois");
+        return (List<String>) result.next().asMap().get("rois");
     }
 
     private static SortedSet<Map.Entry<String, SynapseCounter>> entriesSortedByComparator(Map<String, SynapseCounter> map, Comparator<Map.Entry<String, SynapseCounter>> comparator) {

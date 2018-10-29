@@ -80,6 +80,9 @@ public class Neo4jImporterTest {
         neo4jImporter.addSkeletonNodes("test", skeletonList);
         neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F);
         neo4jImporter.addAutoNamesAndNeuronLabels("test", 1);
+        neo4jImporter.addDvidUuid("test", "1234");
+        neo4jImporter.addDvidServer("test", "test1:23");
+        neo4jImporter.addClusterNames("test",.1F);
 
     }
 
@@ -484,6 +487,33 @@ public class Neo4jImporterTest {
         int belowThresholdNeuronCount = session.run("MATCH (n:Segment) WHERE n.pre+n.post>1 AND NOT n:Neuron RETURN count(n)").single().get(0).asInt();
 
         Assert.assertEquals(0, belowThresholdNeuronCount);
+
+    }
+
+    @Test
+    public void shouldAddDvidUuidAndServerToMetaNode() {
+
+        Session session = driver.session();
+
+        Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta{dataset:\"test\"}) RETURN n")).single().get(0).asNode();
+
+        Assert.assertEquals("1234", metaNode.asMap().get("uuid"));
+        Assert.assertEquals("test1:23", metaNode.asMap().get("dvidServer"));
+
+    }
+
+    @Test
+    public void shouldAddClusterNamesToNeurons() {
+
+        Session session = driver.session();
+
+        int noClusterNameCount = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`) WHERE NOT exists(n.clusterName) RETURN count(n)")).single().get(0).asInt();
+
+        Assert.assertEquals(0, noClusterNameCount);
+
+        String clusterName = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`{bodyId:8426959}) RETURN n.clusterName")).single().get(0).asString();
+
+        Assert.assertEquals("roiA.roiB-roiA", clusterName);
 
     }
 }

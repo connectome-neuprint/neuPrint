@@ -200,6 +200,12 @@ public class NeuPrinterMain {
         public String dvidServer;
 
         @Parameter(
+                names = "--addClusterNames",
+                description = "Indicates that cluster names should be added to Neuron nodes.",
+                arity = 0)
+        public boolean addClusterNames;
+
+        @Parameter(
                 names = "--help",
                 help = true)
         boolean help;
@@ -483,6 +489,10 @@ public class NeuPrinterMain {
 
                     if (parameters.dvidServer != null) {
                         neo4jImporter.addDvidServer(dataset, parameters.dvidServer);
+                    }
+
+                    if (parameters.addClusterNames) {
+                        neo4jImporter.addClusterNames(dataset, .1F);
                     }
 
                 }
