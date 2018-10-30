@@ -329,6 +329,8 @@ public class ProofreaderProcedures {
             // adding a name makes it a Neuron
             neuronNode.addLabel(Label.label(NEURON));
             neuronNode.addLabel(Label.label(datasetLabel + "-" + NEURON));
+            dbService.execute("MATCH (m:Meta{dataset:\"" + datasetLabel + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`" + datasetLabel + "-" + NEURON + "`{bodyId:" + neuron.getId() + "}) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName");
+
 
             log.info("Updated name for neuron " + neuron.getId() + ".");
         }
@@ -421,9 +423,14 @@ public class ProofreaderProcedures {
             Point synapseLocationPoint = (Point) locationResult.next().get("loc");
             Node synapseNode = dbService.findNode(Label.label(datasetLabel + "-" + SYNAPSE), LOCATION, synapseLocationPoint);
 
+            if (synapseNode.hasRelationship(RelationshipType.withName(CONTAINS))) {
+                log.error("Synapse is already assigned to another body: " + synapse);
+                throw new RuntimeException("Synapse is already assigned to another body: " + synapse);
+            }
+
             if (synapseNode == null) {
                 log.error("Synapse not found in database: " + synapse);
-                throw new RuntimeException();
+                throw new RuntimeException("Synapse not found in database: " + synapse);
             }
             // add synapse to the new synapse set
             newSynapseSet.createRelationshipTo(synapseNode, RelationshipType.withName(CONTAINS));
@@ -518,6 +525,7 @@ public class ProofreaderProcedures {
         if (isNeuron) {
             newNeuron.addLabel(Label.label(NEURON));
             newNeuron.addLabel(Label.label(datasetLabel + "-" + NEURON));
+            dbService.execute("MATCH (m:Meta{dataset:\"" + datasetLabel + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`" + datasetLabel + "-" + NEURON + "`{bodyId:" + neuronUpdate.getBodyId() + "}) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName");
         }
 
         // update meta node

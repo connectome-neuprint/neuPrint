@@ -523,7 +523,7 @@ public class UpdateNeuronsTest {
 
         String neuronObjectJson = "{ \"Id\":222, \"Status\":\"Partially Roughly traced\", \"Name\":\"KB(a)\", \"Size\": 346576}";
 
-        session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`:Segment:test) SET n.bodyId=222", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test")));
+        session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`:Segment:test) SET n.bodyId=222, n.pre=2, n.post=5, n.roiInfo=\"{'roiA':{'pre':2,'post':0},'roiB':{'pre':0,'post':5}}\"", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test")));
 
         Node neuronNode = session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test"))).single().get(0).asNode();
 
@@ -533,6 +533,7 @@ public class UpdateNeuronsTest {
 
         Assert.assertTrue(neuronNode.hasLabel("Neuron"));
         Assert.assertTrue(neuronNode.hasLabel("test-Neuron"));
+        Assert.assertTrue(neuronNode.asMap().containsKey("clusterName"));
 
         //soma addition
         String neuronObjectJson2 = "{ \"Id\":222, \"Soma\": { \"Location\":[1,2,3],\"Radius\":5.0}}";
@@ -541,6 +542,41 @@ public class UpdateNeuronsTest {
 
         Assert.assertEquals(5.0D, neuronNode2.asMap().get("somaRadius"));
 
+
+    }
+
+    @Test
+    public void synapseShouldNotComeFromAnExistingBody() {
+
+        Session session = driver.session();
+
+        String updateJson =
+                "{" +
+                        "\"Id\": 678," +
+                        "\"Size\": 12," +
+                        "\"MutationUUID\": \"30\"," +
+                        "\"MutationID\": 31," +
+                        "\"Status\": \"updated\"," +
+                        "\"SynapseSources\": []," +
+                        "\"CurrentSynapses\": " +
+                        "[" +
+                        "{" +
+                        "\"Location\": [1000, 2000, 3000]," +
+                        "\"Type\": \"pre\"" +
+                        "}" +
+                        "]" +
+                        "}";
+
+        boolean ranSuccessfully;
+
+        try {
+            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
+            ranSuccessfully = true;
+        } catch (RuntimeException re) {
+            ranSuccessfully = false;
+        }
+
+        Assert.assertFalse(ranSuccessfully);
 
     }
 //
