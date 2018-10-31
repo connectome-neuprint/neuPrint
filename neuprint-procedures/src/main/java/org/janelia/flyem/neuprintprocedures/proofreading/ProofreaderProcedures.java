@@ -312,6 +312,11 @@ public class ProofreaderProcedures {
 
         log.info("proofreader.updateProperties: entry");
 
+        if (neuronJsonObject == null || datasetLabel == null) {
+            log.error("proofreader.updateProperties: Missing input arguments.");
+            throw new RuntimeException("proofreader.updateProperties: Missing input arguments.");
+        }
+
         Gson gson = new Gson();
 
         Neuron neuron = gson.fromJson(neuronJsonObject, Neuron.class);
@@ -365,7 +370,19 @@ public class ProofreaderProcedures {
 
         log.info("proofreader.deleteNeuron: entry");
 
-        deleteSegment(bodyId, datasetLabel);
+        try {
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteNeuron: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteNeuron: Missing input arguments.");
+            }
+
+            deleteSegment(bodyId, datasetLabel);
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteNeuron: " + e.getMessage());
+            throw new RuntimeException("Error running proofreader.deleteNeuron: " + e.getMessage());
+        }
 
         log.info("proofreader.deleteNeuron: exit");
 
@@ -373,13 +390,20 @@ public class ProofreaderProcedures {
 
     @Procedure(value = "proofreader.updateNeuron", mode = Mode.WRITE)
     @Description("proofreader.updateNeuron(neuronUpdateJsonObject, datasetLabel): add a neuron with properties, synapses, and connections specified by an input JSON.")
-    public void updateNeurons(@Name("neuronUpdateJson") String neuronUpdateJson, @Name("datasetLabel") String datasetLabel) {
+    public void updateNeuron(@Name("neuronUpdateJson") String neuronUpdateJson, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.updateNeuron: entry");
+
+        try {
 
         Gson gson = new Gson();
 //        UpdateNeuronsAction updateNeuronsAction = gson.fromJson(neuronUpdateJson, UpdateNeuronsAction.class);
         NeuronUpdate neuronUpdate = gson.fromJson(neuronUpdateJson, NeuronUpdate.class);
 
-        log.info("proofreader.updateNeuron: entry");
+        if (neuronUpdateJson == null || datasetLabel == null) {
+            log.error("proofreader.updateNeuron: Missing input arguments.");
+            throw new RuntimeException("proofreader.deleteNeuronupdateNeuron: Missing input arguments.");
+        }
 
         // check that this mutation hasn't been done before (in order to be unique, needs to include uuid+mutationid+bodyId)
         String mutationKey = neuronUpdate.getMutationUuid() + ":" + neuronUpdate.getMutationId() + ":" + neuronUpdate.getBodyId();
@@ -395,7 +419,14 @@ public class ProofreaderProcedures {
         final Node newNeuron = dbService.createNode(Label.label(SEGMENT),
                 Label.label(datasetLabel),
                 Label.label(datasetLabel + "-" + SEGMENT));
-        newNeuron.setProperty(BODY_ID, newNeuronBodyId);
+
+        try {
+            newNeuron.setProperty(BODY_ID, newNeuronBodyId);
+        } catch (org.neo4j.graphdb.ConstraintViolationException cve) {
+            log.error("Body id " + newNeuronBodyId + " already exists in database. Aborting update for mutation with id : " + mutationKey);
+            throw new RuntimeException("Body id " + newNeuronBodyId + " already exists in database. Aborting update for mutation with id : " + mutationKey);
+        }
+
         final Node newSynapseSet = createSynapseSetForSegment(newNeuron, datasetLabel);
 
         // add appropriate synapses via synapse sets; add each synapse to the new body's synapseset
@@ -538,6 +569,11 @@ public class ProofreaderProcedures {
 
         log.info("Completed neuron update with uuid " + neuronUpdate.getMutationUuid() + ", mutation id " + neuronUpdate.getMutationId() + ", body id " + neuronUpdate.getBodyId() + ".");
 
+        } catch (Exception e) {
+            log.error("Error running proofreader.updateNeuron: " + e.getMessage());
+            throw new RuntimeException("Error running proofreader.updateNeuron: " + e.getMessage());
+        }
+
         log.info("proofreader.updateNeuron: exit");
 
     }
@@ -594,32 +630,38 @@ public class ProofreaderProcedures {
         } else {
             acquireWriteLockForSegmentSubgraph(neuron);
 
-            for (Relationship neuronContainsRel : neuron.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
-                final Node containedNode = neuronContainsRel.getEndNode();
-                if (containedNode.hasLabel(Label.label(SYNAPSE_SET))) {
-                    // delete the connection to the current node
-                    neuronContainsRel.delete();
-                    // delete relationships to synapses
-                    for (Relationship synapseSetContainsRel : containedNode.getRelationships(RelationshipType.withName(CONTAINS))) {
-                        synapseSetContainsRel.delete();
+            if (neuron.hasRelationship(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+                for (Relationship neuronContainsRel : neuron.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+                    final Node containedNode = neuronContainsRel.getEndNode();
+                    if (containedNode.hasLabel(Label.label(SYNAPSE_SET))) {
+                        // delete the connection to the current node
+                        neuronContainsRel.delete();
+                        // delete relationships to synapses
+                        if (containedNode.hasRelationship(RelationshipType.withName(CONTAINS))) {
+                            for (Relationship synapseSetContainsRel : containedNode.getRelationships(RelationshipType.withName(CONTAINS))) {
+                                synapseSetContainsRel.delete();
+                            }
+                        }
+                        //delete synapse set
+                        containedNode.delete();
+                    } else if (containedNode.hasLabel(Label.label(CONNECTION_SET))) {
+                        // delete relationships of connection set
+                        containedNode.getRelationships().forEach(Relationship::delete);
+                        // delete connectionset
+                        containedNode.delete();
+                    } else if (containedNode.hasLabel(Label.label(SKELETON))) {
+                        // delete neuron relationship to skeleton
+                        neuronContainsRel.delete();
+                        // delete skeleton and skelnodes
+                        deleteSkeleton(containedNode);
                     }
-                    //delete synapse set
-                    containedNode.delete();
-                } else if (containedNode.hasLabel(Label.label(CONNECTION_SET))) {
-                    // delete relationships of connection set
-                    containedNode.getRelationships().forEach(Relationship::delete);
-                    // delete connectionset
-                    containedNode.delete();
-                } else if (containedNode.hasLabel(Label.label(SKELETON))) {
-                    // delete neuron relationship to skeleton
-                    neuronContainsRel.delete();
-                    // delete skeleton and skelnodes
-                    deleteSkeleton(containedNode);
                 }
             }
 
             // delete ConnectsTo relationships
-            neuron.getRelationships(RelationshipType.withName(CONNECTS_TO)).forEach(Relationship::delete);
+            if (neuron.hasRelationship(RelationshipType.withName(CONNECTS_TO))) {
+                neuron.getRelationships(RelationshipType.withName(CONNECTS_TO)).forEach(Relationship::delete);
+            }
 
             // delete Neuron/Segment node
             neuron.delete();

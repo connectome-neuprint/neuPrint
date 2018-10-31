@@ -478,6 +478,40 @@ public class UpdateNeuronsTest {
     }
 
     @Test
+    public void shouldErrorIfBodyIdAlreadyExists() {
+
+        Session session = driver.session();
+
+        String updateJson =
+                "{" +
+                        "\"Id\": 8426959," +
+                        "\"Size\": 12," +
+                        "\"MutationUUID\": \"67\"," +
+                        "\"MutationID\": 67," +
+                        "\"Status\": \"updated\"," +
+                        "\"Soma\": {" +
+                        "\"Location\": [14067, 10777, 15040]," +
+                        "\"Radius\": 15040.0 }," +
+                        "\"Name\": \"new name\", " +
+                        "\"SynapseSources\": [8426959]," +
+                        "\"CurrentSynapses\": " +
+                        "[" +
+                        "]" +
+                        "}";
+
+        boolean attemptedUpdate;
+        try {
+            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
+            attemptedUpdate = true;
+        } catch (ClientException ce) {
+            attemptedUpdate = false;
+        }
+
+        Assert.assertFalse(attemptedUpdate);
+
+    }
+
+    @Test
     public void shouldAddMutationIdAndUuidToMetaNode() {
 
         Session session = driver.session();
