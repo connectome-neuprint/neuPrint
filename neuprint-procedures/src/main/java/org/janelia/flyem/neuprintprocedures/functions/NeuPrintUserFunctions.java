@@ -106,6 +106,7 @@ public class NeuPrintUserFunctions {
         Map<String, SynapseCounter> categoryCounts = new TreeMap<>();
 
         if (synapseSet != null) {
+            // get cluster names of connected neurons
             for (Relationship containsRelationship : synapseSet.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
                 Node synapseNode = containsRelationship.getEndNode();
                 Set<String> connectedNeuronClusterNames = new TreeSet<>();
@@ -124,22 +125,22 @@ public class NeuPrintUserFunctions {
                     }
                 }
 
-                String categoryKey = "";
+                StringBuilder categoryKey = new StringBuilder();
                 for (String clusterName : connectedNeuronClusterNames) {
                     if (categoryKey.length() > 0) {
-                        categoryKey = categoryKey + ":" + clusterName;
+                        categoryKey.append(":").append(clusterName);
                     } else {
-                        categoryKey = clusterName;
+                        categoryKey = new StringBuilder(clusterName);
                     }
                 }
 
-                SynapseCounter synapseCounter = categoryCounts.getOrDefault(categoryKey, new SynapseCounter());
+                SynapseCounter synapseCounter = categoryCounts.getOrDefault(categoryKey.toString(), new SynapseCounter());
                 if (synapseNode.hasLabel(Label.label("PreSyn"))) {
                     synapseCounter.incrementPre();
                 } else if (synapseNode.hasLabel(Label.label("PostSyn"))) {
                     synapseCounter.incrementPost();
                 }
-                categoryCounts.put(categoryKey, synapseCounter);
+                categoryCounts.put(categoryKey.toString(), synapseCounter);
 
             }
         }
