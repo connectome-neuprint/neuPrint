@@ -531,6 +531,7 @@ public class ProofreaderProcedures {
         boolean isNeuron = false;
         if (neuronUpdate.getStatus() != null) {
             newNeuron.setProperty(STATUS, neuronUpdate.getStatus());
+            isNeuron = true;
         }
         if (neuronUpdate.getName() != null) {
             newNeuron.setProperty(NAME, neuronUpdate.getName());
