@@ -119,6 +119,8 @@ public class NeuPrintUserFunctions {
                                 Node otherSegment = otherSynapseSetContainsRel.getStartNode();
                                 if (otherSegment.hasLabel(Label.label("Neuron"))) {
                                     connectedNeuronClusterNames.add((String) otherSegment.getProperty("clusterName"));
+                                } else {
+                                    connectedNeuronClusterNames.add("_");
                                 }
                             }
                         }

@@ -454,15 +454,16 @@ public class ProofreaderProcedures {
             Point synapseLocationPoint = (Point) locationResult.next().get("loc");
             Node synapseNode = dbService.findNode(Label.label(datasetLabel + "-" + SYNAPSE), LOCATION, synapseLocationPoint);
 
+            if (synapseNode == null) {
+                log.error("Synapse not found in database: " + synapse);
+                throw new RuntimeException("Synapse not found in database: " + synapse);
+            }
+
             if (synapseNode.hasRelationship(RelationshipType.withName(CONTAINS))) {
                 log.error("Synapse is already assigned to another body: " + synapse);
                 throw new RuntimeException("Synapse is already assigned to another body: " + synapse);
             }
 
-            if (synapseNode == null) {
-                log.error("Synapse not found in database: " + synapse);
-                throw new RuntimeException("Synapse not found in database: " + synapse);
-            }
             // add synapse to the new synapse set
             newSynapseSet.createRelationshipTo(synapseNode, RelationshipType.withName(CONTAINS));
             // remove this synapse from the not found set
@@ -504,9 +505,8 @@ public class ProofreaderProcedures {
         }
 
         if (!notFoundSynapses.isEmpty()) {
-            String errorMessage = "Some synapses were not found on the synapse store for neuron update. Mutation UUID: " + neuronUpdate.getMutationUuid() + " Mutation ID: " + neuronUpdate.getMutationId() + " Synapse(s): " + notFoundSynapses;
-            log.error(errorMessage);
-            throw new RuntimeException(errorMessage);
+            log.error("Some synapses were not found for neuron update. Mutation UUID: " + neuronUpdate.getMutationUuid() + " Mutation ID: " + neuronUpdate.getMutationId() + " Synapse(s): " + notFoundSynapses);
+            throw new RuntimeException("Some synapses were not found for neuron update. Mutation UUID: " + neuronUpdate.getMutationUuid() + " Mutation ID: " + neuronUpdate.getMutationId() + " Synapse(s): " + notFoundSynapses);
         }
 
         log.info("Found and added all synapses to synapse set for body id " + newNeuronBodyId);
@@ -571,8 +571,8 @@ public class ProofreaderProcedures {
         log.info("Completed neuron update with uuid " + neuronUpdate.getMutationUuid() + ", mutation id " + neuronUpdate.getMutationId() + ", body id " + neuronUpdate.getBodyId() + ".");
 
         } catch (Exception e) {
-            log.error("Error running proofreader.updateNeuron: " + e.getMessage());
-            throw new RuntimeException("Error running proofreader.updateNeuron: " + e.getMessage());
+            log.error("Error running proofreader.updateNeuron: " + e);
+            throw new RuntimeException("Error running proofreader.updateNeuron: " + e);
         }
 
         log.info("proofreader.updateNeuron: exit");
