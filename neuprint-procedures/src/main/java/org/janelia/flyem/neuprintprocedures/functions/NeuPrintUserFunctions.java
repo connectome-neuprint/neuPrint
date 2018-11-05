@@ -50,8 +50,8 @@ public class NeuPrintUserFunctions {
     @UserFunction("neuprint.roiInfoAsName")
     @Description("neuprint.roiInfoAsName(roiInfo, totalPre, totalPost, threshold, includedRois) ")
     public String roiInfoAsName(@Name("roiInfo") String roiInfo, @Name("totalPre") Long totalPre, @Name("totalPost") Long totalPost, @Name("threshold") Double threshold, @Name("includedRois") List<String> includedRois) {
-        if (roiInfo == null || totalPre == null || totalPost == null || threshold == null) {
-            throw new Error("Must provide roiInfo, totalPre, totalPost, and threshold.");
+        if (roiInfo == null || totalPre == null || totalPost == null || threshold == null || includedRois == null) {
+            throw new Error("Must provide roiInfo, totalPre, totalPost, threshold, and includedRois.");
         }
 
         Gson gson = new Gson();
@@ -62,6 +62,44 @@ public class NeuPrintUserFunctions {
         StringBuilder outputs = new StringBuilder();
         for (String roi : roiInfoMap.keySet()) {
             if (includedRois.contains(roi)) {
+                if ((roiInfoMap.get(roi).getPre() * 1.0) / totalPre > threshold) {
+                    outputs.append(roi).append(".");
+                }
+                if ((roiInfoMap.get(roi).getPost() * 1.0) / totalPost > threshold) {
+                    inputs.append(roi).append(".");
+                }
+            }
+        }
+        if (outputs.length() > 0) {
+            outputs.deleteCharAt(outputs.length() - 1);
+        } else {
+            outputs.append("none");
+        }
+        if (inputs.length() > 0) {
+            inputs.deleteCharAt(inputs.length() - 1);
+        } else {
+            inputs.append("none");
+        }
+
+        return inputs + "-" + outputs;
+
+    }
+
+    @UserFunction("neuprint.roiInfoAsNameUsingSubRois")
+    @Description("neuprint.roiInfoAsNameUsingSubRois(roiInfo, totalPre, totalPost, threshold, superRois, allRois) ")
+    public String roiInfoAsNameUsingSubRois(@Name("roiInfo") String roiInfo, @Name("totalPre") Long totalPre, @Name("totalPost") Long totalPost, @Name("threshold") Double threshold, @Name("superRois") List<String> superRois, @Name("superRois") List<String> allRois) {
+        if (roiInfo == null || totalPre == null || totalPost == null || threshold == null || superRois == null || allRois == null) {
+            throw new Error("Must provide roiInfo, totalPre, totalPost, threshold, superRois, and subRois.");
+        }
+
+        Gson gson = new Gson();
+        Map<String, SynapseCounter> roiInfoMap = gson.fromJson(roiInfo, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+
+        StringBuilder inputs = new StringBuilder();
+        StringBuilder outputs = new StringBuilder();
+        for (String roi : roiInfoMap.keySet()) {
+            if (allRois.contains(roi) && !superRois.contains(roi)) {
                 if ((roiInfoMap.get(roi).getPre() * 1.0) / totalPre > threshold) {
                     outputs.append(roi).append(".");
                 }
