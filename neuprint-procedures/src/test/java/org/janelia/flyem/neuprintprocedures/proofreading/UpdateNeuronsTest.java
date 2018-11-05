@@ -580,6 +580,17 @@ public class UpdateNeuronsTest {
     }
 
     @Test
+    public void shouldDoNothingIfNeuronNotInDatabase() {
+
+        Session session = driver.session();
+
+        String neuronObjectJson = "{ \"Id\":15, \"Status\":\"Partially Roughly traced\", \"Name\":\"KB(a)\", \"Size\": 346576}";
+
+        Assert.assertFalse(session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test"))).hasNext());
+
+    }
+
+    @Test
     public void synapseShouldNotComeFromAnExistingBody() {
 
         Session session = driver.session();
