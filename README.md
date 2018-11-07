@@ -1,9 +1,9 @@
 [![Build Status](https://travis-ci.org/connectome-neuprint/neuPrint.svg?branch=master)](https://travis-ci.org/janelia-flyem/neuPrint)
 
-# Neuprint
-A blueprint of the brain. A set of tools for loading and analyzing connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [neuprintExplorer](https://github.com/janelia-flyem/neuPrintExplorer). 
+# neuPrint
+A blueprint of the brain. A set of tools for loading and analyzing connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [neuPrintExplorer](https://github.com/connectome-neuprint/neuPrintExplorer). 
 
-[Javadocs](https://janelia-flyem.github.io/neuPrint/)
+[Javadocs](https://connectome-neuprint.github.io/neuPrint/)
 
 ## Requirements
 * Neo4j version 3.4.5
