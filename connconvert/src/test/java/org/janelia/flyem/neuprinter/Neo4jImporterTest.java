@@ -79,7 +79,7 @@ public class Neo4jImporterTest {
         neo4jImporter.addSynapseSets("test", bodyList);
         neo4jImporter.addSkeletonNodes("test", skeletonList);
         neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F);
-        neo4jImporter.addAutoNamesAndNeuronLabels("test", 1);
+        neo4jImporter.addAutoNamesAndNeuronLabels("test", 5);
         neo4jImporter.addDvidUuid("test", "1234");
         neo4jImporter.addDvidServer("test", "test1:23");
         neo4jImporter.addClusterNames("test",.1F);
@@ -215,7 +215,8 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        //10 segments should have no name from json, but 1 qualifies as a neuron so will have an autoname for its name property
+        // number of neurons with no name : 2 from swcs, 5 from smallNeuronList, 2 from smallBodyListWithExtraRois
+
         int noNameCount = session.run("MATCH (n:Segment) WHERE NOT exists(n.name) RETURN count(n)").single().get(0).asInt();
         Assert.assertEquals(9, noNameCount);
 
@@ -473,7 +474,7 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        int belowThresholdAutoNameCount = session.run("MATCH (n:Segment) WHERE n.pre+n.post>1 AND NOT exists(n.autoName) RETURN count(n)").single().get(0).asInt();
+        int belowThresholdAutoNameCount = session.run("MATCH (n:Segment) WHERE (n.pre>=1 OR n.post>=5) AND NOT exists(n.autoName) RETURN count(n)").single().get(0).asInt();
 
         Assert.assertEquals(0, belowThresholdAutoNameCount);
 
@@ -484,7 +485,7 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        int belowThresholdNeuronCount = session.run("MATCH (n:Segment) WHERE n.pre+n.post>1 AND NOT n:Neuron RETURN count(n)").single().get(0).asInt();
+        int belowThresholdNeuronCount = session.run("MATCH (n:Segment) WHERE (n.pre>=1 OR n.post>=5) AND NOT n:Neuron RETURN count(n)").single().get(0).asInt();
 
         Assert.assertEquals(0, belowThresholdNeuronCount);
 

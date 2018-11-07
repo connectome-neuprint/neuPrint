@@ -176,7 +176,7 @@ public class NeuPrinterMain {
 
         @Parameter(
                 names = "--neuronThreshold",
-                description = "Integer indicating the number of (presynaptic densities + postsynaptic densities) a neuron should have to be given " +
+                description = "Integer indicating the number of synaptic densities (>=neuronThreshold/5 pre OR >=neuronThreshold post) a neuron should have to be given " +
                         "the label of :Neuron (all have the :Segment label by default) and an auto-name (default is 10). To add auto-names, must have" +
                         " --addAutoName OR --addAutoNamesOnly enabled.")
         Integer neuronThreshold;

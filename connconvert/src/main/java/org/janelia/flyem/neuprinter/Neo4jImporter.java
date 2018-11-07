@@ -454,11 +454,11 @@ public class Neo4jImporter implements AutoCloseable {
 
     /**
      * Adds automatically generated names (autoNames) and :Neuron labels to Segment nodes that have greater than
-     * neuronThreshold synaptic densities. If Neuron node does not have a name, the name property
-     * is also set to autoName* (the * marks it as automatically generated).
+     * neuronThreshold synaptic densities (>=neuronThreshold/5 pre or >=neuronThreshold post). If Neuron node does
+     * not have a name, the name property is also set to autoName* (the * marks it as automatically generated).
      *
      * @param dataset         dataset name
-     * @param neuronThreshold Neuron must have greater than neuronThreshold synapses to be given an autoName and :Neuron label
+     * @param neuronThreshold Neuron must have >=neuronThreshold/5 presynaptic densities or >=neuronThreshold postsynaptic densities to be given an autoName and :Neuron label
      * @see AutoName
      */
     public void addAutoNamesAndNeuronLabels(final String dataset, int neuronThreshold) {
@@ -505,10 +505,10 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     /**
-     * Adds :Neuron labels to Segment nodes that have greater than neuronThreshold synaptic densities.
+     * Adds :Neuron labels to Segment nodes that have greater than neuronThreshold synaptic densities (>=neuronThreshold/5 pre or >=neuronThreshold post).
      *
      * @param dataset         dataset name
-     * @param neuronThreshold Neuron must have greater than neuronThreshold synapses to be given :Neuron label
+     * @param neuronThreshold Neuron must have >=neuronThreshold/5 presynaptic densities or >=neuronThreshold postsynaptic densities to be given an autoName and :Neuron label
      */
     public void addNeuronLabels(final String dataset, int neuronThreshold) {
 
@@ -638,8 +638,7 @@ public class Neo4jImporter implements AutoCloseable {
                                         "location", Synapse.convertLocationStringToPoint(synapseLocationString),
                                         "datasetBodyIds", dataset + ":" + connectionSetKey)));
                     }
-//                //write transactions for each connection set to prevent read/write locks from interfering with load
-//                batch.writeTransaction();
+
                 }
             }
             batch.writeTransaction();
@@ -1031,7 +1030,8 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<Long> getAllSegmentBodyIdsWithGreaterThanThresholdSynapses(final Transaction tx, final String dataset, final int synapseThreshold) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE (n.pre+n.post)>" + synapseThreshold + " RETURN n.bodyId ");
+        int preSynapseThreshold = (int) (synapseThreshold/5.0F);
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE n.pre>=" + preSynapseThreshold + " OR n.post>=" + synapseThreshold + " RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
@@ -1040,7 +1040,8 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<Long> getAllSegmentBodyIdsWithGreaterThanThresholdSynapsesAndWithoutNames(final Transaction tx, final String dataset, final int synapseThreshold) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE (n.pre+n.post)>" + synapseThreshold + " AND (NOT exists(n.name) OR n.name=\"unknown\") RETURN n.bodyId ");
+        int preSynapseThreshold = (int) (synapseThreshold/5.0F);
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE (n.pre>=" + preSynapseThreshold + " OR n.post>=" + synapseThreshold + ") AND (NOT exists(n.name) OR n.name=\"unknown\") RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
