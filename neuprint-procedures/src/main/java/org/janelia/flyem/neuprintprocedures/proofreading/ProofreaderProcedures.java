@@ -469,8 +469,10 @@ public class ProofreaderProcedures {
             }
 
             if (synapseNode.hasRelationship(RelationshipType.withName(CONTAINS))) {
-                log.error("Synapse is already assigned to another body: " + synapse);
-                throw new RuntimeException("Synapse is already assigned to another body: " + synapse);
+                Node bodyWithSynapse = getSegmentThatContainsSynapse(synapseNode);
+                Long bodyWithSynapseId = (Long) bodyWithSynapse.getProperty(BODY_ID);
+                log.error("Synapse is already assigned to another body. body id: " + bodyWithSynapseId + ", synapse: " + synapse);
+                throw new RuntimeException("Synapse is already assigned to another body. body id: " + bodyWithSynapseId + ", synapse: " + synapse);
             }
 
             // add synapse to the new synapse set
