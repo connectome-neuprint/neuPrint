@@ -559,7 +559,9 @@ public class UpdateNeuronsTest {
 
         session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`:Segment:test) SET n.bodyId=222, n.pre=2, n.post=5, n.roiInfo=\"{'roiA':{'pre':2,'post':0},'roiB':{'pre':0,'post':5}}\"", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test")));
 
-        Node neuronNode = session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test"))).single().get(0).asNode();
+        session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test")));
+
+        Node neuronNode = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) RETURN n")).single().get(0).asNode();
 
         Assert.assertEquals("Partially Roughly traced", neuronNode.asMap().get("status"));
         Assert.assertEquals("KB(a)", neuronNode.asMap().get("name"));
@@ -572,10 +574,10 @@ public class UpdateNeuronsTest {
         //soma addition
         String neuronObjectJson2 = "{ \"Id\":222, \"Soma\": { \"Location\":[1,2,3],\"Radius\":5.0}}";
 
-        Node neuronNode2 = session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson2, "dataset", "test"))).single().get(0).asNode();
+        session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson2, "dataset", "test")));
+        Node neuronNode2 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) RETURN n")).single().get(0).asNode();
 
         Assert.assertEquals(5.0D, neuronNode2.asMap().get("somaRadius"));
-
 
     }
 

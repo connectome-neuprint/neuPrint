@@ -308,7 +308,7 @@ public class ProofreaderProcedures {
 
     @Procedure(value = "proofreader.updateProperties", mode = Mode.WRITE)
     @Description("proofreader.updateProperties : Update properties on a Neuron/Segment node.")
-    public Stream<NodeResult> updateProperties(@Name("neuronJsonObject") String neuronJsonObject, @Name("datasetLabel") String datasetLabel) {
+    public void updateProperties(@Name("neuronJsonObject") String neuronJsonObject, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.updateProperties: entry");
 
@@ -323,50 +323,48 @@ public class ProofreaderProcedures {
 
             Neuron neuron = gson.fromJson(neuronJsonObject, Neuron.class);
 
-            Node neuronNode = dbService.findNode(Label.label(SEGMENT), "bodyId", neuron.getId());
+            Node neuronNode = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), "bodyId", neuron.getId());
 
             if (neuronNode == null) {
                 log.warn("Neuron with id " + neuron.getId() + " not found in database. Aborting update.");
-                return Stream.empty();
-            }
+            } else {
 
-            if (neuron.getStatus() != null) {
-                neuronNode.setProperty(STATUS, neuron.getStatus());
-                log.info("Updated status for neuron " + neuron.getId() + ".");
-            }
+                if (neuron.getStatus() != null) {
+                    neuronNode.setProperty(STATUS, neuron.getStatus());
+                    log.info("Updated status for neuron " + neuron.getId() + ".");
+                }
 
-            if (neuron.getName() != null) {
-                neuronNode.setProperty(NAME, neuron.getName());
+                if (neuron.getName() != null) {
+                    neuronNode.setProperty(NAME, neuron.getName());
 
-                // adding a name makes it a Neuron
-                neuronNode.addLabel(Label.label(NEURON));
-                neuronNode.addLabel(Label.label(datasetLabel + "-" + NEURON));
-                dbService.execute("MATCH (m:Meta{dataset:\"" + datasetLabel + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`" + datasetLabel + "-" + NEURON + "`{bodyId:" + neuron.getId() + "}) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName");
+                    // adding a name makes it a Neuron
+                    neuronNode.addLabel(Label.label(NEURON));
+                    neuronNode.addLabel(Label.label(datasetLabel + "-" + NEURON));
+                    dbService.execute("MATCH (m:Meta{dataset:\"" + datasetLabel + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`" + datasetLabel + "-" + NEURON + "`{bodyId:" + neuron.getId() + "}) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName");
 
-                log.info("Updated name for neuron " + neuron.getId() + ".");
-            }
+                    log.info("Updated name for neuron " + neuron.getId() + ".");
+                }
 
-            if (neuron.getSize() != null) {
-                neuronNode.setProperty(SIZE, neuron.getSize());
-                log.info("Updated size for neuron " + neuron.getId() + ".");
-            }
+                if (neuron.getSize() != null) {
+                    neuronNode.setProperty(SIZE, neuron.getSize());
+                    log.info("Updated size for neuron " + neuron.getId() + ".");
+                }
 
-            if (neuron.getSoma() != null) {
-                Map<String, Object> parametersMap = new HashMap<>();
-                List<Integer> somaLocationList = neuron.getSoma().getLocation();
-                parametersMap.put("x", somaLocationList.get(0));
-                parametersMap.put("y", somaLocationList.get(1));
-                parametersMap.put("z", somaLocationList.get(2));
-                Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
-                Point somaLocationPoint = (Point) locationResult.next().get("loc");
-                neuronNode.setProperty(SOMA_LOCATION, somaLocationPoint);
-                neuronNode.setProperty(SOMA_RADIUS, neuron.getSoma().getRadius());
-                log.info("Updated soma for neuron " + neuron.getId() + ".");
+                if (neuron.getSoma() != null) {
+                    Map<String, Object> parametersMap = new HashMap<>();
+                    List<Integer> somaLocationList = neuron.getSoma().getLocation();
+                    parametersMap.put("x", somaLocationList.get(0));
+                    parametersMap.put("y", somaLocationList.get(1));
+                    parametersMap.put("z", somaLocationList.get(2));
+                    Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
+                    Point somaLocationPoint = (Point) locationResult.next().get("loc");
+                    neuronNode.setProperty(SOMA_LOCATION, somaLocationPoint);
+                    neuronNode.setProperty(SOMA_RADIUS, neuron.getSoma().getRadius());
+                    log.info("Updated soma for neuron " + neuron.getId() + ".");
+                }
             }
 
             log.info("proofreader.updateProperties: exit");
-
-            return Stream.of(new NodeResult(neuronNode));
 
         } catch (Exception e) {
             log.error("Error running proofreader.updateProperties: " + e);
