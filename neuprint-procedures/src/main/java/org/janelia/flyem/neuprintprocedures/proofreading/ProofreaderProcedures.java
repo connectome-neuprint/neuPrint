@@ -337,7 +337,7 @@ public class ProofreaderProcedures {
             isNeuron = true;
         }
 
-        if (preCount + postCount > 10) {
+        if (preCount>= 2 || postCount >= 10) {
             isNeuron = true;
         }
 
