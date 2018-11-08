@@ -66,9 +66,6 @@ public class AddSkeletonTest {
             Assert.assertEquals(28D, skelNodeProperties.get("s.radius"));
             Assert.assertEquals("test:101:5096:9281:1624", skelNodeProperties.get("s.skelNodeId"));
 
-            session.run("CREATE (n:`test-Segment`{bodyId:1001453586}) SET n:Segment, n:test");
-
-            Node skeleton2 = session.run("CALL proofreader.addSkeleton($fileUrl,$datasetLabel) YIELD node RETURN node", parameters("fileUrl", dvidFileCall, "datasetLabel", datasetLabel)).single().get(0).asNode();
 
         }
 
