@@ -105,6 +105,8 @@ public class ProofreaderProcedures {
                 log.warn("Neuron with id " + neuron.getId() + " not found in database. Aborting update.");
             } else {
 
+                boolean isNeuron = false;
+
                 if (neuron.getStatus() != null) {
                     neuronNode.setProperty(STATUS, neuron.getStatus());
                     log.info("Updated status for neuron " + neuron.getId() + ".");
@@ -114,9 +116,7 @@ public class ProofreaderProcedures {
                     neuronNode.setProperty(NAME, neuron.getName());
 
                     // adding a name makes it a Neuron
-                    neuronNode.addLabel(Label.label(NEURON));
-                    neuronNode.addLabel(Label.label(datasetLabel + "-" + NEURON));
-                    dbService.execute("MATCH (m:Meta{dataset:\"" + datasetLabel + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`" + datasetLabel + "-" + NEURON + "`{bodyId:" + neuron.getId() + "}) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName");
+                    isNeuron = true;
 
                     log.info("Updated name for neuron " + neuron.getId() + ".");
                 }
@@ -137,6 +137,15 @@ public class ProofreaderProcedures {
                     neuronNode.setProperty(SOMA_LOCATION, somaLocationPoint);
                     neuronNode.setProperty(SOMA_RADIUS, neuron.getSoma().getRadius());
                     log.info("Updated soma for neuron " + neuron.getId() + ".");
+
+                    //adding a soma makes it a Neuron
+                    isNeuron = true;
+                }
+
+                if (isNeuron) {
+                    neuronNode.addLabel(Label.label(NEURON));
+                    neuronNode.addLabel(Label.label(datasetLabel + "-" + NEURON));
+                    dbService.execute("MATCH (m:Meta{dataset:\"" + datasetLabel + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`" + datasetLabel + "-" + NEURON + "`{bodyId:" + neuron.getId() + "}) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName");
                 }
             }
 
