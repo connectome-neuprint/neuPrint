@@ -421,6 +421,14 @@ public class ProofreaderProcedures {
             // grab write locks upfront
             acquireWriteLockForSegmentSubgraph(segment);
 
+            //check if skeleton already exists
+            Node existingSkeleton = dbService.findNode(Label.label(datasetLabel + "-" + SKELETON), "skeletonId", datasetLabel +":" + bodyId);
+            if (existingSkeleton!=null){
+                log.error(String.format("proofreader.addSkeleton: Skelton for body ID %d already exists in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
+                throw new RuntimeException(String.format("proofreader.addSkeleton: Skelton for body ID %d already exists in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
+            }
+
+
             Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton);
 
             log.info("Successfully added Skeleton to body ID " + bodyId + ".");
