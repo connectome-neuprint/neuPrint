@@ -410,30 +410,31 @@ public class ProofreaderProcedures {
                 throw new RuntimeException(String.format("IOException: %s", e.getMessage()));
             }
 
-            Node segment;
+            Node segment = null;
             try {
                 segment = acquireSegmentFromDatabase(bodyId, datasetLabel);
             } catch (NoSuchElementException | NullPointerException nse) {
-                log.error(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
-                throw new RuntimeException(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
+                log.warn(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
             }
 
-            // grab write locks upfront
-            acquireWriteLockForSegmentSubgraph(segment);
+            if (segment != null) {
+                // grab write locks upfront
+                acquireWriteLockForSegmentSubgraph(segment);
 
-            //check if skeleton already exists
-            Node existingSkeleton = dbService.findNode(Label.label(datasetLabel + "-" + SKELETON), "skeletonId", datasetLabel +":" + bodyId);
-            if (existingSkeleton!=null){
-                log.error(String.format("proofreader.addSkeleton: Skelton for body ID %d already exists in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
-                throw new RuntimeException(String.format("proofreader.addSkeleton: Skelton for body ID %d already exists in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
+                //check if skeleton already exists
+                Node existingSkeleton = dbService.findNode(Label.label(datasetLabel + "-" + SKELETON), "skeletonId", datasetLabel + ":" + bodyId);
+                if (existingSkeleton != null) {
+                    log.warn(String.format("proofreader.addSkeleton: Skeleton for body ID %d already exists in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
+                } else {
+
+                    Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton);
+
+                    log.info("Successfully added Skeleton to body ID " + bodyId + ".");
+                }
+
+                log.info("proofreader.addSkeleton: exit");
+
             }
-
-
-            Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton);
-
-            log.info("Successfully added Skeleton to body ID " + bodyId + ".");
-
-            log.info("proofreader.addSkeleton: exit");
 
         } catch (Exception e) {
             log.error("Error running proofreader.addSkeleton: " + e);
