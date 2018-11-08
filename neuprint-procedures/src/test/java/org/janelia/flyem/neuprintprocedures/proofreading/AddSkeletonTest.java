@@ -34,44 +34,39 @@ public class AddSkeletonTest {
 
         String fileCall = "file:./../neuprint-procedures/src/test/resources/101.swc";
 
-        String dvidFileCall = "http://emdata3.int.janelia.org:8900/api/node/d59e3fefce7b443ab476be77b8e7d15a/segmentation_skeletons/key/1001453586_swc";
-
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
             Session session = driver.session();
 
-            session.run("CREATE (n:`test-Segment`{bodyId:101}) SET n:Segment, n:test");
+            session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`{bodyId:101}) SET n:Segment, n:test"));
 
-            Node skeleton = session.run("CALL proofreader.addSkeleton($fileUrl,$datasetLabel) YIELD node RETURN node", parameters("fileUrl", fileCall, "datasetLabel", datasetLabel)).single().get(0).asNode();
+            session.writeTransaction(tx -> tx.run("CALL proofreader.addSkeleton($fileUrl,$datasetLabel)", parameters("fileUrl", fileCall, "datasetLabel", datasetLabel)));
+
+            Node skeleton = session.readTransaction(tx->tx.run("MATCH (n:`test-Skeleton`{skeletonId:\"test:101\"}) RETURN n")).single().get(0).asNode();
 
             Assert.assertEquals("test:101", skeleton.asMap().get("skeletonId"));
             Assert.assertTrue(skeleton.hasLabel(datasetLabel));
             Assert.assertTrue(skeleton.hasLabel("Skeleton"));
             Assert.assertTrue(skeleton.hasLabel("test-Skeleton"));
 
-            Long skeleton101ContainedByBodyId = session.run("MATCH (n:`test-Skeleton`:test:Skeleton{skeletonId:\"test:101\"})<-[:Contains]-(s) RETURN s.bodyId").single().get(0).asLong();
+            Long skeleton101ContainedByBodyId = session.readTransaction(tx->tx.run("MATCH (n:`test-Skeleton`:test:Skeleton{skeletonId:\"test:101\"})<-[:Contains]-(s) RETURN s.bodyId")).single().get(0).asLong();
 
             Assert.assertEquals(new Long(101), skeleton101ContainedByBodyId);
 
-            Integer skeleton101Degree = session.run("MATCH (n:`test-Skeleton`:test:Skeleton{skeletonId:\"test:101\"}) WITH n, size((n)-[:Contains]->()) as degree RETURN degree ").single().get(0).asInt();
+            Integer skeleton101Degree = session.readTransaction(tx->tx.run("MATCH (n:`test-Skeleton`:test:Skeleton{skeletonId:\"test:101\"}) WITH n, size((n)-[:Contains]->()) as degree RETURN degree ")).single().get(0).asInt();
 
             Assert.assertEquals(new Integer(50), skeleton101Degree);
 
-            Integer skelNode101NumberOfRoots = session.run("MATCH (n:`test-Skeleton`:test:Skeleton{skeletonId:\"test:101\"})-[:Contains]->(s:`test-SkelNode`:test:SkelNode) WHERE NOT (s)<-[:LinksTo]-() RETURN count(s) ").single().get(0).asInt();
+            Integer skelNode101NumberOfRoots = session.readTransaction(tx->tx.run("MATCH (n:`test-Skeleton`:test:Skeleton{skeletonId:\"test:101\"})-[:Contains]->(s:`test-SkelNode`:test:SkelNode) WHERE NOT (s)<-[:LinksTo]-() RETURN count(s) ")).single().get(0).asInt();
 
             Assert.assertEquals(new Integer(4), skelNode101NumberOfRoots);
 
-            Map<String, Object> skelNodeProperties = session.run("MATCH (n:`test-Skeleton`:test:Skeleton{skeletonId:\"test:101\"})-[:Contains]->(s:`test-SkelNode`:test:SkelNode{rowNumber:13}) RETURN s.location, s.radius, s.skelNodeId").list().get(0).asMap();
+            Map<String, Object> skelNodeProperties = session.readTransaction(tx->tx.run("MATCH (n:`test-Skeleton`:test:Skeleton{skeletonId:\"test:101\"})-[:Contains]->(s:`test-SkelNode`:test:SkelNode{rowNumber:13}) RETURN s.location, s.radius, s.skelNodeId")).list().get(0).asMap();
             Assert.assertEquals(Values.point(9157, 5096, 9281, 1624).asPoint(), skelNodeProperties.get("s.location"));
             Assert.assertEquals(28D, skelNodeProperties.get("s.radius"));
             Assert.assertEquals("test:101:5096:9281:1624", skelNodeProperties.get("s.skelNodeId"));
 
-
         }
-
-
-
-
 
     }
 }

@@ -1,6 +1,5 @@
 package org.janelia.flyem.neuprintprocedures.proofreading;
 
-import apoc.result.NodeResult;
 import com.google.gson.Gson;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.SkelNode;
@@ -37,7 +36,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 public class ProofreaderProcedures {
 
@@ -67,6 +65,7 @@ public class ProofreaderProcedures {
     private static final String TIME_STAMP = "timeStamp";
     private static final String TYPE = "type";
     private static final String WEIGHT = "weight";
+    private static final String SKELETON_ID = "skeletonId";
     private static final String SOMA_LOCATION = "somaLocation";
     private static final String SOMA_RADIUS = "somaRadius";
     private static final String MUTATION_UUID_ID = "mutationUuidAndId";
@@ -190,181 +189,181 @@ public class ProofreaderProcedures {
 
         try {
 
-        Gson gson = new Gson();
+            Gson gson = new Gson();
 //        UpdateNeuronsAction updateNeuronsAction = gson.fromJson(neuronUpdateJson, UpdateNeuronsAction.class);
-        NeuronUpdate neuronUpdate = gson.fromJson(neuronUpdateJson, NeuronUpdate.class);
+            NeuronUpdate neuronUpdate = gson.fromJson(neuronUpdateJson, NeuronUpdate.class);
 
-        if (neuronUpdateJson == null || datasetLabel == null) {
-            log.error("proofreader.updateNeuron: Missing input arguments.");
-            throw new RuntimeException("proofreader.deleteNeuronupdateNeuron: Missing input arguments.");
-        }
-
-        // check that this mutation hasn't been done before (in order to be unique, needs to include uuid+mutationid+bodyId)
-        String mutationKey = neuronUpdate.getMutationUuid() + ":" + neuronUpdate.getMutationId() + ":" + neuronUpdate.getBodyId();
-        Node existingMutatedNode = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), MUTATION_UUID_ID, mutationKey);
-        if (existingMutatedNode != null) {
-            log.error("Mutation already found in the database: " + neuronUpdate.toString());
-            throw new RuntimeException("Mutation already found in the database: " + neuronUpdate.toString());
-        }
-
-        log.info("Beginning update: " + neuronUpdate);
-        // create a new node and synapse set for that node
-        final long newNeuronBodyId = neuronUpdate.getBodyId();
-        final Node newNeuron = dbService.createNode(Label.label(SEGMENT),
-                Label.label(datasetLabel),
-                Label.label(datasetLabel + "-" + SEGMENT));
-
-        try {
-            newNeuron.setProperty(BODY_ID, newNeuronBodyId);
-        } catch (org.neo4j.graphdb.ConstraintViolationException cve) {
-            log.error("Body id " + newNeuronBodyId + " already exists in database. Aborting update for mutation with id : " + mutationKey);
-            throw new RuntimeException("Body id " + newNeuronBodyId + " already exists in database. Aborting update for mutation with id : " + mutationKey);
-        }
-
-        final Node newSynapseSet = createSynapseSetForSegment(newNeuron, datasetLabel);
-
-        // add appropriate synapses via synapse sets; add each synapse to the new body's synapseset
-        // completely add everything here so that there's nothing left on the synapse store
-        // add the new body id to the synapse sources
-
-        Set<Synapse> currentSynapses = neuronUpdate.getCurrentSynapses();
-        Set<Synapse> notFoundSynapses = new HashSet<>(currentSynapses);
-
-        // from synapses, derive connectsto, connection sets, rois/roiInfo, pre/post counts
-        final ConnectsToRelationshipMap connectsToRelationshipMap = new ConnectsToRelationshipMap();
-        final SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
-        long preCount = 0L;
-        long postCount = 0L;
-
-        for (Synapse synapse : currentSynapses) {
-
-            // get the synapse
-            List<Integer> synapseLocation = synapse.getLocation();
-            Map<String, Object> parametersMap = new HashMap<>();
-            parametersMap.put("x", synapseLocation.get(0));
-            parametersMap.put("y", synapseLocation.get(1));
-            parametersMap.put("z", synapseLocation.get(2));
-            Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
-            Point synapseLocationPoint = (Point) locationResult.next().get("loc");
-            Node synapseNode = dbService.findNode(Label.label(datasetLabel + "-" + SYNAPSE), LOCATION, synapseLocationPoint);
-
-            if (synapseNode == null) {
-                log.error("Synapse not found in database: " + synapse);
-                throw new RuntimeException("Synapse not found in database: " + synapse);
+            if (neuronUpdateJson == null || datasetLabel == null) {
+                log.error("proofreader.updateNeuron: Missing input arguments.");
+                throw new RuntimeException("proofreader.updateNeuron: Missing input arguments.");
             }
 
-            if (synapseNode.hasRelationship(RelationshipType.withName(CONTAINS))) {
-                Node bodyWithSynapse = getSegmentThatContainsSynapse(synapseNode);
-                Long bodyWithSynapseId = (Long) bodyWithSynapse.getProperty(BODY_ID);
-                log.error("Synapse is already assigned to another body. body id: " + bodyWithSynapseId + ", synapse: " + synapse);
-                throw new RuntimeException("Synapse is already assigned to another body. body id: " + bodyWithSynapseId + ", synapse: " + synapse);
+            // check that this mutation hasn't been done before (in order to be unique, needs to include uuid+mutationid+bodyId)
+            String mutationKey = neuronUpdate.getMutationUuid() + ":" + neuronUpdate.getMutationId() + ":" + neuronUpdate.getBodyId();
+            Node existingMutatedNode = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), MUTATION_UUID_ID, mutationKey);
+            if (existingMutatedNode != null) {
+                log.error("Mutation already found in the database: " + neuronUpdate.toString());
+                throw new RuntimeException("Mutation already found in the database: " + neuronUpdate.toString());
             }
 
-            // add synapse to the new synapse set
-            newSynapseSet.createRelationshipTo(synapseNode, RelationshipType.withName(CONTAINS));
-            // remove this synapse from the not found set
-            notFoundSynapses.remove(synapse);
+            log.info("Beginning update: " + neuronUpdate);
+            // create a new node and synapse set for that node
+            final long newNeuronBodyId = neuronUpdate.getBodyId();
+            final Node newNeuron = dbService.createNode(Label.label(SEGMENT),
+                    Label.label(datasetLabel),
+                    Label.label(datasetLabel + "-" + SEGMENT));
 
-            // get the synapse type
-            final String synapseType = (String) synapseNode.getProperty(TYPE);
-            // get synapse rois for adding to the body and roiInfo
-            final List<String> synapseRois = getSynapseNodeRoiList(synapseNode);
+            try {
+                newNeuron.setProperty(BODY_ID, newNeuronBodyId);
+            } catch (org.neo4j.graphdb.ConstraintViolationException cve) {
+                log.error("Body id " + newNeuronBodyId + " already exists in database. Aborting update for mutation with id : " + mutationKey);
+                throw new RuntimeException("Body id " + newNeuronBodyId + " already exists in database. Aborting update for mutation with id : " + mutationKey);
+            }
 
-            if (synapseType.equals(PRE)) {
-                for (String roi : synapseRois) {
-                    synapseCountsPerRoi.incrementPreForRoi(roi);
+            final Node newSynapseSet = createSynapseSetForSegment(newNeuron, datasetLabel);
+
+            // add appropriate synapses via synapse sets; add each synapse to the new body's synapseset
+            // completely add everything here so that there's nothing left on the synapse store
+            // add the new body id to the synapse sources
+
+            Set<Synapse> currentSynapses = neuronUpdate.getCurrentSynapses();
+            Set<Synapse> notFoundSynapses = new HashSet<>(currentSynapses);
+
+            // from synapses, derive connectsto, connection sets, rois/roiInfo, pre/post counts
+            final ConnectsToRelationshipMap connectsToRelationshipMap = new ConnectsToRelationshipMap();
+            final SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
+            long preCount = 0L;
+            long postCount = 0L;
+
+            for (Synapse synapse : currentSynapses) {
+
+                // get the synapse
+                List<Integer> synapseLocation = synapse.getLocation();
+                Map<String, Object> parametersMap = new HashMap<>();
+                parametersMap.put("x", synapseLocation.get(0));
+                parametersMap.put("y", synapseLocation.get(1));
+                parametersMap.put("z", synapseLocation.get(2));
+                Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
+                Point synapseLocationPoint = (Point) locationResult.next().get("loc");
+                Node synapseNode = dbService.findNode(Label.label(datasetLabel + "-" + SYNAPSE), LOCATION, synapseLocationPoint);
+
+                if (synapseNode == null) {
+                    log.error("Synapse not found in database: " + synapse);
+                    throw new RuntimeException("Synapse not found in database: " + synapse);
                 }
-                preCount++;
-            } else if (synapseType.equals(POST)) {
-                for (String roi : synapseRois) {
-                    synapseCountsPerRoi.incrementPostForRoi(roi);
+
+                if (synapseNode.hasRelationship(RelationshipType.withName(CONTAINS))) {
+                    Node bodyWithSynapse = getSegmentThatContainsSynapse(synapseNode);
+                    Long bodyWithSynapseId = (Long) bodyWithSynapse.getProperty(BODY_ID);
+                    log.error("Synapse is already assigned to another body. body id: " + bodyWithSynapseId + ", synapse: " + synapse);
+                    throw new RuntimeException("Synapse is already assigned to another body. body id: " + bodyWithSynapseId + ", synapse: " + synapse);
                 }
-                postCount++;
-            }
 
-            if (synapseNode.hasRelationship(RelationshipType.withName(SYNAPSES_TO))) {
-                for (Relationship synapticRelationship : synapseNode.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
-                    Node synapticPartner = synapticRelationship.getOtherNode(synapseNode);
+                // add synapse to the new synapse set
+                newSynapseSet.createRelationshipTo(synapseNode, RelationshipType.withName(CONTAINS));
+                // remove this synapse from the not found set
+                notFoundSynapses.remove(synapse);
 
-                    Node connectedSegment = getSegmentThatContainsSynapse(synapticPartner);
+                // get the synapse type
+                final String synapseType = (String) synapseNode.getProperty(TYPE);
+                // get synapse rois for adding to the body and roiInfo
+                final List<String> synapseRois = getSynapseNodeRoiList(synapseNode);
 
-                    if (connectedSegment != null) {
-                        if (synapseType.equals(PRE)) {
-                            connectsToRelationshipMap.insertSynapsesIntoConnectsToRelationship(newNeuron, connectedSegment, synapseNode, synapticPartner);
-                        } else if (synapseType.equals(POST)) {
-                            connectsToRelationshipMap.insertSynapsesIntoConnectsToRelationship(connectedSegment, newNeuron, synapticPartner, synapseNode);
+                if (synapseType.equals(PRE)) {
+                    for (String roi : synapseRois) {
+                        synapseCountsPerRoi.incrementPreForRoi(roi);
+                    }
+                    preCount++;
+                } else if (synapseType.equals(POST)) {
+                    for (String roi : synapseRois) {
+                        synapseCountsPerRoi.incrementPostForRoi(roi);
+                    }
+                    postCount++;
+                }
+
+                if (synapseNode.hasRelationship(RelationshipType.withName(SYNAPSES_TO))) {
+                    for (Relationship synapticRelationship : synapseNode.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
+                        Node synapticPartner = synapticRelationship.getOtherNode(synapseNode);
+
+                        Node connectedSegment = getSegmentThatContainsSynapse(synapticPartner);
+
+                        if (connectedSegment != null) {
+                            if (synapseType.equals(PRE)) {
+                                connectsToRelationshipMap.insertSynapsesIntoConnectsToRelationship(newNeuron, connectedSegment, synapseNode, synapticPartner);
+                            } else if (synapseType.equals(POST)) {
+                                connectsToRelationshipMap.insertSynapsesIntoConnectsToRelationship(connectedSegment, newNeuron, synapticPartner, synapseNode);
+                            }
                         }
                     }
                 }
+
             }
 
-        }
+            if (!notFoundSynapses.isEmpty()) {
+                log.error("Some synapses were not found for neuron update. Mutation UUID: " + neuronUpdate.getMutationUuid() + " Mutation ID: " + neuronUpdate.getMutationId() + " Synapse(s): " + notFoundSynapses);
+                throw new RuntimeException("Some synapses were not found for neuron update. Mutation UUID: " + neuronUpdate.getMutationUuid() + " Mutation ID: " + neuronUpdate.getMutationId() + " Synapse(s): " + notFoundSynapses);
+            }
 
-        if (!notFoundSynapses.isEmpty()) {
-            log.error("Some synapses were not found for neuron update. Mutation UUID: " + neuronUpdate.getMutationUuid() + " Mutation ID: " + neuronUpdate.getMutationId() + " Synapse(s): " + notFoundSynapses);
-            throw new RuntimeException("Some synapses were not found for neuron update. Mutation UUID: " + neuronUpdate.getMutationUuid() + " Mutation ID: " + neuronUpdate.getMutationId() + " Synapse(s): " + notFoundSynapses);
-        }
+            log.info("Found and added all synapses to synapse set for body id " + newNeuronBodyId);
+            log.info("Completed making map of ConnectsTo relationships.");
 
-        log.info("Found and added all synapses to synapse set for body id " + newNeuronBodyId);
-        log.info("Completed making map of ConnectsTo relationships.");
+            // add synapse and synaptic partners to connection set; set connectsto relationships
+            createConnectionSetsAndConnectsToRelationships(connectsToRelationshipMap, datasetLabel);
+            log.info("Completed creating ConnectionSets and ConnectsTo relationships.");
 
-        // add synapse and synaptic partners to connection set; set connectsto relationships
-        createConnectionSetsAndConnectsToRelationships(connectsToRelationshipMap, datasetLabel);
-        log.info("Completed creating ConnectionSets and ConnectsTo relationships.");
+            // add roi boolean properties and roi info
+            addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(newNeuron, synapseCountsPerRoi);
+            newNeuron.setProperty(ROI_INFO, synapseCountsPerRoi.getAsJsonString());
+            log.info("Completed updating roi information.");
 
-        // add roi boolean properties and roi info
-        addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(newNeuron, synapseCountsPerRoi);
-        newNeuron.setProperty(ROI_INFO, synapseCountsPerRoi.getAsJsonString());
-        log.info("Completed updating roi information.");
+            // update pre and post on body; other properties
+            newNeuron.setProperty(PRE, preCount);
+            newNeuron.setProperty(POST, postCount);
+            newNeuron.setProperty(SIZE, neuronUpdate.getSize());
+            newNeuron.setProperty(MUTATION_UUID_ID, mutationKey);
 
-        // update pre and post on body; other properties
-        newNeuron.setProperty(PRE, preCount);
-        newNeuron.setProperty(POST, postCount);
-        newNeuron.setProperty(SIZE, neuronUpdate.getSize());
-        newNeuron.setProperty(MUTATION_UUID_ID, mutationKey);
+            // check for optional properties; update neuron if present; decide if there should be a neuron label (has name, has soma, has pre+post>10)
+            boolean isNeuron = false;
+            if (neuronUpdate.getStatus() != null) {
+                newNeuron.setProperty(STATUS, neuronUpdate.getStatus());
+                isNeuron = true;
+            }
+            if (neuronUpdate.getName() != null) {
+                newNeuron.setProperty(NAME, neuronUpdate.getName());
+                isNeuron = true;
+            }
+            if (neuronUpdate.getSoma() != null) {
+                newNeuron.setProperty(SOMA_RADIUS, neuronUpdate.getSoma().getRadius());
+                Map<String, Object> parametersMap = new HashMap<>();
+                List<Integer> somaLocation = neuronUpdate.getSoma().getLocation();
+                parametersMap.put("x", somaLocation.get(0));
+                parametersMap.put("y", somaLocation.get(1));
+                parametersMap.put("z", somaLocation.get(2));
+                Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
+                Point somaLocationPoint = (Point) locationResult.next().get("loc");
+                newNeuron.setProperty(SOMA_LOCATION, somaLocationPoint);
+                isNeuron = true;
+            }
 
-        // check for optional properties; update neuron if present; decide if there should be a neuron label (has name, has soma, has pre+post>10)
-        boolean isNeuron = false;
-        if (neuronUpdate.getStatus() != null) {
-            newNeuron.setProperty(STATUS, neuronUpdate.getStatus());
-            isNeuron = true;
-        }
-        if (neuronUpdate.getName() != null) {
-            newNeuron.setProperty(NAME, neuronUpdate.getName());
-            isNeuron = true;
-        }
-        if (neuronUpdate.getSoma() != null) {
-            newNeuron.setProperty(SOMA_RADIUS, neuronUpdate.getSoma().getRadius());
-            Map<String, Object> parametersMap = new HashMap<>();
-            List<Integer> somaLocation = neuronUpdate.getSoma().getLocation();
-            parametersMap.put("x", somaLocation.get(0));
-            parametersMap.put("y", somaLocation.get(1));
-            parametersMap.put("z", somaLocation.get(2));
-            Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
-            Point somaLocationPoint = (Point) locationResult.next().get("loc");
-            newNeuron.setProperty(SOMA_LOCATION, somaLocationPoint);
-            isNeuron = true;
-        }
+            if (preCount >= 2 || postCount >= 10) {
+                isNeuron = true;
+            }
 
-        if (preCount>= 2 || postCount >= 10) {
-            isNeuron = true;
-        }
+            if (isNeuron) {
+                newNeuron.addLabel(Label.label(NEURON));
+                newNeuron.addLabel(Label.label(datasetLabel + "-" + NEURON));
+                dbService.execute("MATCH (m:Meta{dataset:\"" + datasetLabel + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`" + datasetLabel + "-" + NEURON + "`{bodyId:" + neuronUpdate.getBodyId() + "}) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName");
+            }
 
-        if (isNeuron) {
-            newNeuron.addLabel(Label.label(NEURON));
-            newNeuron.addLabel(Label.label(datasetLabel + "-" + NEURON));
-            dbService.execute("MATCH (m:Meta{dataset:\"" + datasetLabel + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`" + datasetLabel + "-" + NEURON + "`{bodyId:" + neuronUpdate.getBodyId() + "}) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName");
-        }
+            // update meta node
 
-        // update meta node
-
-        Node metaNode = dbService.findNode(Label.label(META), "dataset", datasetLabel);
-        metaNode.setProperty("latestMutationId", neuronUpdate.getMutationId());
-        metaNode.setProperty("uuid", neuronUpdate.getMutationUuid());
+            Node metaNode = dbService.findNode(Label.label(META), "dataset", datasetLabel);
+            metaNode.setProperty("latestMutationId", neuronUpdate.getMutationId());
+            metaNode.setProperty("uuid", neuronUpdate.getMutationUuid());
 
 //            add skeleton?
 
-        log.info("Completed neuron update with uuid " + neuronUpdate.getMutationUuid() + ", mutation id " + neuronUpdate.getMutationId() + ", body id " + neuronUpdate.getBodyId() + ".");
+            log.info("Completed neuron update with uuid " + neuronUpdate.getMutationUuid() + ", mutation id " + neuronUpdate.getMutationId() + ", body id " + neuronUpdate.getBodyId() + ".");
 
         } catch (Exception e) {
             log.error("Error running proofreader.updateNeuron: " + e);
@@ -372,6 +371,66 @@ public class ProofreaderProcedures {
         }
 
         log.info("proofreader.updateNeuron: exit");
+
+    }
+
+    @Procedure(value = "proofreader.addSkeleton", mode = Mode.WRITE)
+    @Description("proofreader.addSkeleton(fileUrl,datasetLabel) : load skeleton from provided url and connect to its associated neuron/segment (note: file URL must contain body id of neuron/segment) ")
+    public void addSkeleton(@Name("fileUrl") String fileUrlString, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.addSkeleton: entry");
+
+        try {
+
+            if (fileUrlString == null || datasetLabel == null) {
+                log.error("proofreader.addSkeleton: Missing input arguments.");
+                throw new RuntimeException("proofreader.addSkeleton: Missing input arguments.");
+            }
+
+            String bodyIdPattern = ".*/(.*?)[._]swc";
+            Pattern rN = Pattern.compile(bodyIdPattern);
+            Matcher mN = rN.matcher(fileUrlString);
+            mN.matches();
+            Long bodyId = Long.parseLong(mN.group(1));
+
+            Skeleton skeleton = new Skeleton();
+            URL fileUrl;
+
+            try {
+                fileUrl = new URL(fileUrlString);
+            } catch (MalformedURLException e) {
+                log.error(String.format("proofreader.addSkeleton: Malformed URL: %s", e.getMessage()));
+                throw new RuntimeException(String.format("Malformed URL: %s", e.getMessage()));
+            }
+
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(fileUrl.openStream()))) {
+                skeleton.fromSwc(reader, bodyId);
+            } catch (IOException e) {
+                log.error(String.format("proofreader.addSkeleton: IOException: %s", e.getMessage()));
+                throw new RuntimeException(String.format("IOException: %s", e.getMessage()));
+            }
+
+            Node segment;
+            try {
+                segment = acquireSegmentFromDatabase(bodyId, datasetLabel);
+            } catch (NoSuchElementException | NullPointerException nse) {
+                log.error(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
+                throw new RuntimeException(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
+            }
+
+            // grab write locks upfront
+            acquireWriteLockForSegmentSubgraph(segment);
+
+            Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton);
+
+            log.info("Successfully added Skeleton to body ID " + bodyId + ".");
+
+            log.info("proofreader.addSkeleton: exit");
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.addSkeleton: " + e);
+            throw new RuntimeException("Error running proofreader.addSkeleton: " + e);
+        }
 
     }
 
@@ -548,58 +607,6 @@ public class ProofreaderProcedures {
         }
     }
 
-    @Procedure(value = "proofreader.addSkeleton", mode = Mode.WRITE)
-    @Description("proofreader.addSkeleton(fileUrl,datasetLabel) : load skeleton from provided url and connect to its associated neuron/segment (note: file URL must contain body id of neuron/segment) ")
-    public Stream<NodeResult> addSkeleton(@Name("fileUrl") String fileUrlString, @Name("datasetLabel") String datasetLabel) {
-
-        log.info("proofreader.addSkeleton: entry");
-
-        if (fileUrlString == null || datasetLabel == null) return Stream.empty();
-
-        String bodyIdPattern = ".*/(.*?)[._]swc";
-        Pattern rN = Pattern.compile(bodyIdPattern);
-        Matcher mN = rN.matcher(fileUrlString);
-        mN.matches();
-        Long bodyId = Long.parseLong(mN.group(1));
-
-        Skeleton skeleton = new Skeleton();
-        URL fileUrl;
-
-        try {
-            fileUrl = new URL(fileUrlString);
-        } catch (MalformedURLException e) {
-            log.error(String.format("proofreader.addSkeleton: Malformed URL: %s", e.getMessage()));
-            throw new RuntimeException(String.format("Malformed URL: %s", e.getMessage()));
-        }
-
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(fileUrl.openStream()))) {
-            skeleton.fromSwc(reader, bodyId);
-        } catch (IOException e) {
-            log.error(String.format("proofreader.addSkeleton: IOException: %s", e.getMessage()));
-            throw new RuntimeException(String.format("IOException: %s", e.getMessage()));
-        }
-
-        Node segment;
-        try {
-            segment = acquireSegmentFromDatabase(bodyId, datasetLabel);
-        } catch (NoSuchElementException | NullPointerException nse) {
-            log.error(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
-            throw new RuntimeException(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
-        }
-
-        // grab write locks upfront
-        acquireWriteLockForSegmentSubgraph(segment);
-
-        Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton);
-
-        log.info("Successfully added Skeleton to body ID " + bodyId + ".");
-
-        log.info("proofreader.addSkeleton: exit");
-
-        return Stream.of(new NodeResult(skeletonNode));
-
-    }
-
     private void addConnectsToRelationship(Node startNode, Node endNode, long weight) {
         // create a ConnectsTo relationship
         Relationship relationship = startNode.createRelationshipTo(endNode, RelationshipType.withName(CONNECTS_TO));
@@ -711,7 +718,7 @@ public class ProofreaderProcedures {
 
         Map<String, Object> segmentToSkeletonParametersMap = new HashMap<String, Object>() {{
             put(BODY_ID, associatedBodyId);
-            put("skeletonId", dataset + ":" + associatedBodyId);
+            put(SKELETON_ID, dataset + ":" + associatedBodyId);
         }};
 
         dbService.execute(segmentToSkeletonConnectionString, segmentToSkeletonParametersMap);
@@ -751,7 +758,7 @@ public class ProofreaderProcedures {
 
                 Map<String, Object> childNodeStringParametersMap = new HashMap<String, Object>() {{
                     put("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString());
-                    put("skeletonId", dataset + ":" + associatedBodyId);
+                    put(SKELETON_ID, dataset + ":" + associatedBodyId);
                     put("pX", (double) skelNode.getX());
                     put("pY", (double) skelNode.getY());
                     put("pZ", (double) skelNode.getZ());
@@ -773,7 +780,7 @@ public class ProofreaderProcedures {
 
         }
         Map<String, Object> getSkeletonParametersMap = new HashMap<String, Object>() {{
-            put("skeletonId", dataset + ":" + associatedBodyId);
+            put(SKELETON_ID, dataset + ":" + associatedBodyId);
         }};
 
         Map<String, Object> nodeQueryResult = dbService.execute("MATCH (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) RETURN r", getSkeletonParametersMap).next();
