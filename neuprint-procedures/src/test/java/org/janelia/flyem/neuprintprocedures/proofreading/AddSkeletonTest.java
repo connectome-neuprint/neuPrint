@@ -34,6 +34,8 @@ public class AddSkeletonTest {
 
         String fileCall = "file:./../neuprint-procedures/src/test/resources/101.swc";
 
+        String dvidFileCall = "http://emdata3.int.janelia.org:8900/api/node/d59e3fefce7b443ab476be77b8e7d15a/segmentation_skeletons/key/1001453586_swc";
+
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
             Session session = driver.session();
@@ -64,7 +66,15 @@ public class AddSkeletonTest {
             Assert.assertEquals(28D, skelNodeProperties.get("s.radius"));
             Assert.assertEquals("test:101:5096:9281:1624", skelNodeProperties.get("s.skelNodeId"));
 
+            session.run("CREATE (n:`test-Segment`{bodyId:1001453586}) SET n:Segment, n:test");
+
+            Node skeleton2 = session.run("CALL proofreader.addSkeleton($fileUrl,$datasetLabel) YIELD node RETURN node", parameters("fileUrl", dvidFileCall, "datasetLabel", datasetLabel)).single().get(0).asNode();
+
         }
+
+
+
+
 
     }
 }

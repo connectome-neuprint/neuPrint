@@ -543,6 +543,8 @@ public class ProofreaderProcedures {
     @Description("proofreader.addSkeleton(fileUrl,datasetLabel) : load skeleton from provided url and connect to its associated neuron/segment (note: file URL must contain body id of neuron/segment) ")
     public Stream<NodeResult> addSkeleton(@Name("fileUrl") String fileUrlString, @Name("datasetLabel") String datasetLabel) {
 
+        log.info("proofreader.addSkeleton: entry");
+
         if (fileUrlString == null || datasetLabel == null) return Stream.empty();
 
         String bodyIdPattern = ".*/(.*?)[._]swc";
@@ -580,6 +582,10 @@ public class ProofreaderProcedures {
         acquireWriteLockForSegmentSubgraph(segment);
 
         Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton);
+
+        log.info("Successfully added Skeleton to body ID " + bodyId + ".");
+
+        log.info("proofreader.addSkeleton: exit");
 
         return Stream.of(new NodeResult(skeletonNode));
 
