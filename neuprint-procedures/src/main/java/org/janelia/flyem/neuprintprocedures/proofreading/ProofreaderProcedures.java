@@ -44,6 +44,7 @@ public class ProofreaderProcedures {
     private static final String NEURON = "Neuron";
     private static final String SEGMENT = "Segment";
     private static final String SKELETON = "Skeleton";
+    private static final String SKEL_NODE = "SkelNode";
     private static final String SYNAPSE = "Synapse";
     private static final String CONNECTION_SET = "ConnectionSet";
     private static final String SYNAPSE_SET = "SynapseSet";
@@ -62,10 +63,13 @@ public class ProofreaderProcedures {
     private static final String NAME = "name";
     private static final String STATUS = "status";
     private static final String ROI_INFO = "roiInfo";
+    private static final String RADIUS = "radius";
+    private static final String ROW_NUMBER = "rowNumber";
     private static final String TIME_STAMP = "timeStamp";
     private static final String TYPE = "type";
     private static final String WEIGHT = "weight";
     private static final String SKELETON_ID = "skeletonId";
+    private static final String SKEL_NODE_ID = "skelNodeId";
     private static final String SOMA_LOCATION = "somaLocation";
     private static final String SOMA_RADIUS = "somaRadius";
     private static final String MUTATION_UUID_ID = "mutationUuidAndId";
@@ -427,7 +431,7 @@ public class ProofreaderProcedures {
                     log.warn(String.format("proofreader.addSkeleton: Skeleton for body ID %d already exists in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
                 } else {
 
-                    Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton);
+                    Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton, segment);
 
                     log.info("Successfully added Skeleton to body ID " + bodyId + ".");
                 }
@@ -704,96 +708,61 @@ public class ProofreaderProcedures {
         }
     }
 
-    private Node addSkeletonNodes(final String dataset, final Skeleton skeleton) {
+    private Node addSkeletonNodes(final String dataset, final Skeleton skeleton, final Node segmentNode) {
 
-        final String segmentToSkeletonConnectionString = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) ON CREATE SET n.bodyId=$bodyId, n:Segment, n:" + dataset + " \n" +
-                "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r:Skeleton, r:" + dataset + " \n" +
-                "MERGE (n)-[:Contains]->(r) \n";
+        // create a skeleton node and connect it to the body
+        Node skeletonNode = dbService.createNode(Label.label(SKELETON), Label.label(dataset + "-" + SKELETON), Label.label(dataset));
+        skeletonNode.setProperty(SKELETON_ID, dataset + ":" + skeleton.getAssociatedBodyId());
+        segmentNode.createRelationshipTo(skeletonNode, RelationshipType.withName(CONTAINS));
 
-        final String rootNodeString = "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r:Skeleton, r:" + dataset + " \n" +
-                "MERGE (s:`" + dataset + "-SkelNode`{skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=neuprint.locationAs3dCartPoint($x,$y,$z), s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type, s:SkelNode, s:" + dataset + " \n" +
-                "MERGE (r)-[:Contains]->(s) \n";
-
-        final String parentNodeString = "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r:Skeleton, r:" + dataset + " \n" +
-                "MERGE (p:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=neuprint.locationAs3dCartPoint($pX,$pY,$pZ), p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType, p:SkelNode, p:" + dataset + " \n" +
-                "MERGE (r)-[:Contains]->(p) ";
-
-        final String childNodeString = "MERGE (p:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=neuprint.locationAs3dCartPoint($pX,$pY,$pZ), p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType, p:SkelNode, p:" + dataset + " \n" +
-                "MERGE (c:`" + dataset + "-SkelNode`{skelNodeId:$childNodeId}) ON CREATE SET c.skelNodeId=$childNodeId, c.location=neuprint.locationAs3dCartPoint($childX,$childY,$childZ), c.radius=$childRadius, c.rowNumber=$childRowNumber, c.type=$childType, c:SkelNode, c:" + dataset + " \n" +
-                "MERGE (p)-[:LinksTo]-(c)";
-
-        Long associatedBodyId = skeleton.getAssociatedBodyId();
+        //add root nodes / other nodes to skeleton node
         List<SkelNode> skelNodeList = skeleton.getSkelNodeList();
-
-        Map<String, Object> segmentToSkeletonParametersMap = new HashMap<String, Object>() {{
-            put(BODY_ID, associatedBodyId);
-            put(SKELETON_ID, dataset + ":" + associatedBodyId);
-        }};
-
-        dbService.execute(segmentToSkeletonConnectionString, segmentToSkeletonParametersMap);
 
         for (SkelNode skelNode : skelNodeList) {
 
-            if (skelNode.getParent() == null) {
-                Map<String, Object> rootNodeStringParametersMap = new HashMap<String, Object>() {{
-                    put("x", (double) skelNode.getX());
-                    put("y", (double) skelNode.getY());
-                    put("z", (double) skelNode.getZ());
-                    put("radius", skelNode.getRadius());
-                    put("skelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString());
-                    put("skeletonId", dataset + ":" + associatedBodyId);
-                    put("rowNumber", skelNode.getRowNumber());
-                    put("type", skelNode.getType());
-                }};
-
-                dbService.execute(rootNodeString, rootNodeStringParametersMap);
+            // create skelnode with id
+            //try to get the node first, if it doesn't exist create it
+            Node skelNodeNode = dbService.findNode(Label.label(dataset + "-" + SKEL_NODE), SKEL_NODE_ID, dataset + ":" + skeleton.getAssociatedBodyId() + ":" + skelNode.getLocationString());
+            if (skelNodeNode == null) {
+                skelNodeNode = dbService.createNode(Label.label(SKEL_NODE), Label.label(dataset + "-" + SKEL_NODE), Label.label(dataset));
+                skelNodeNode.setProperty(SKEL_NODE_ID, dataset + ":" + skeleton.getAssociatedBodyId() + ":" + skelNode.getLocationString());
             }
 
-            Map<String, Object> parentNodeStringParametersMap = new HashMap<String, Object>() {{
-                put("pX", (double) skelNode.getX());
-                put("pY", (double) skelNode.getY());
-                put("pZ", (double) skelNode.getZ());
-                put("pRadius", skelNode.getRadius());
-                put("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString());
-                put("skeletonId", dataset + ":" + associatedBodyId);
-                put("pRowNumber", skelNode.getRowNumber());
-                put("pType", skelNode.getType());
-            }};
+            //set location
+            List<Integer> skelNodeLocation = skelNode.getLocation();
+            Map<String,Object> parametersMap = new HashMap<>();
+            parametersMap.put("x", skelNodeLocation.get(0));
+            parametersMap.put("y", skelNodeLocation.get(1));
+            parametersMap.put("z", skelNodeLocation.get(2));
+            Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
+            Point skelNodeLocationPoint = (Point) locationResult.next().get("loc");
+            skelNodeNode.setProperty(LOCATION, skelNodeLocationPoint);
 
-            dbService.execute(parentNodeString, parentNodeStringParametersMap);
+            //set radius, row number, type
+            skelNodeNode.setProperty(RADIUS, skelNode.getRadius());
+            skelNodeNode.setProperty(ROW_NUMBER, skelNode.getRowNumber());
+            skelNodeNode.setProperty(TYPE, skelNode.getType());
 
+            //connect the skelnode to the skeleton
+            skeletonNode.createRelationshipTo(skelNodeNode, RelationshipType.withName(CONTAINS));
+
+            // add the children
             for (SkelNode child : skelNode.getChildren()) {
-                String childNodeId = dataset + ":" + associatedBodyId + ":" + child.getLocationString();
 
-                Map<String, Object> childNodeStringParametersMap = new HashMap<String, Object>() {{
-                    put("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString());
-                    put(SKELETON_ID, dataset + ":" + associatedBodyId);
-                    put("pX", (double) skelNode.getX());
-                    put("pY", (double) skelNode.getY());
-                    put("pZ", (double) skelNode.getZ());
-                    put("pRadius", skelNode.getRadius());
-                    put("pRowNumber", skelNode.getRowNumber());
-                    put("pType", skelNode.getType());
-                    put("childNodeId", childNodeId);
-                    put("childX", (double) child.getX());
-                    put("childY", (double) child.getY());
-                    put("childZ", (double) child.getZ());
-                    put("childRadius", child.getRadius());
-                    put("childRowNumber", child.getRowNumber());
-                    put("childType", skelNode.getType());
-                }};
+                String childNodeId = dataset + ":" + skeleton.getAssociatedBodyId() + ":" + child.getLocationString();
+                Node childSkelNodeNode = dbService.findNode(Label.label(dataset + "-" + SKEL_NODE), SKEL_NODE_ID, childNodeId);
+                if (childSkelNodeNode == null) {
+                    childSkelNodeNode = dbService.createNode(Label.label(SKEL_NODE), Label.label(dataset + "-" + SKEL_NODE), Label.label(dataset));
+                    childSkelNodeNode.setProperty(SKEL_NODE_ID, childNodeId);
+                }
 
-                dbService.execute(childNodeString, childNodeStringParametersMap);
+                // add a link to the parent
+                skelNodeNode.createRelationshipTo(childSkelNodeNode,RelationshipType.withName(LINKS_TO));
 
             }
-
         }
-        Map<String, Object> getSkeletonParametersMap = new HashMap<String, Object>() {{
-            put(SKELETON_ID, dataset + ":" + associatedBodyId);
-        }};
 
-        Map<String, Object> nodeQueryResult = dbService.execute("MATCH (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) RETURN r", getSkeletonParametersMap).next();
-        return (Node) nodeQueryResult.get("r");
+        return skeletonNode;
     }
 
     private void acquireWriteLockForNode(Node node) {
