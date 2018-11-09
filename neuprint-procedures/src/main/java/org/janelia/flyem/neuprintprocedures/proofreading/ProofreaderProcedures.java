@@ -1,5 +1,6 @@
 package org.janelia.flyem.neuprintprocedures.proofreading;
 
+import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.SkelNode;
@@ -400,31 +401,36 @@ public class ProofreaderProcedures {
             Skeleton skeleton = new Skeleton();
             URL fileUrl;
 
+            Stopwatch timer = Stopwatch.createStarted();
             try {
                 fileUrl = new URL(fileUrlString);
             } catch (MalformedURLException e) {
                 log.error(String.format("proofreader.addSkeleton: Malformed URL: %s", e.getMessage()));
                 throw new RuntimeException(String.format("Malformed URL: %s", e.getMessage()));
             }
+            log.info("Time to create url:" + timer.stop());
+            timer.reset();
 
+            timer.start();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(fileUrl.openStream()))) {
                 skeleton.fromSwc(reader, bodyId);
             } catch (IOException e) {
                 log.error(String.format("proofreader.addSkeleton: IOException: %s", e.getMessage()));
                 throw new RuntimeException(String.format("IOException: %s", e.getMessage()));
             }
+            log.info("Time to read in swc file: " + timer.stop());
+            timer.reset();
 
-            Node segment = null;
-            try {
-                segment = acquireSegmentFromDatabase(bodyId, datasetLabel);
-            } catch (NoSuchElementException | NullPointerException nse) {
-                log.warn(String.format("proofreader.addSkeleton: Body %d does not exist in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
-            }
+            timer.start();
+            Node segment = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), "bodyId", bodyId);
+            log.info("Time to get segment:" + timer.stop());
+            timer.reset();
 
             if (segment != null) {
                 // grab write locks upfront
                 acquireWriteLockForSegmentSubgraph(segment);
 
+                timer.start();
                 //check if skeleton already exists
                 Node existingSkeleton = dbService.findNode(Label.label(datasetLabel + "-" + SKELETON), "skeletonId", datasetLabel + ":" + bodyId);
                 if (existingSkeleton != null) {
@@ -433,11 +439,15 @@ public class ProofreaderProcedures {
 
                     Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton, segment);
 
-                    log.info("Successfully added Skeleton to body ID " + bodyId + ".");
+                    log.info("Successfully added Skeleton to body Id " + bodyId + ".");
                 }
+                log.info("Time to add skeleton:" + timer.stop());
+                timer.reset();
 
                 log.info("proofreader.addSkeleton: exit");
 
+            } else {
+                log.warn("Body Id " + bodyId + " does not exist in the dataset.");
             }
 
         } catch (Exception e) {
@@ -726,22 +736,22 @@ public class ProofreaderProcedures {
             if (skelNodeNode == null) {
                 skelNodeNode = dbService.createNode(Label.label(SKEL_NODE), Label.label(dataset + "-" + SKEL_NODE), Label.label(dataset));
                 skelNodeNode.setProperty(SKEL_NODE_ID, dataset + ":" + skeleton.getAssociatedBodyId() + ":" + skelNode.getLocationString());
+
+                //set location
+                List<Integer> skelNodeLocation = skelNode.getLocation();
+                Map<String, Object> parametersMap = new HashMap<>();
+                parametersMap.put("x", skelNodeLocation.get(0));
+                parametersMap.put("y", skelNodeLocation.get(1));
+                parametersMap.put("z", skelNodeLocation.get(2));
+                Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
+                Point skelNodeLocationPoint = (Point) locationResult.next().get("loc");
+                skelNodeNode.setProperty(LOCATION, skelNodeLocationPoint);
+
+                //set radius, row number, type
+                skelNodeNode.setProperty(RADIUS, skelNode.getRadius());
+                skelNodeNode.setProperty(ROW_NUMBER, skelNode.getRowNumber());
+                skelNodeNode.setProperty(TYPE, skelNode.getType());
             }
-
-            //set location
-            List<Integer> skelNodeLocation = skelNode.getLocation();
-            Map<String,Object> parametersMap = new HashMap<>();
-            parametersMap.put("x", skelNodeLocation.get(0));
-            parametersMap.put("y", skelNodeLocation.get(1));
-            parametersMap.put("z", skelNodeLocation.get(2));
-            Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
-            Point skelNodeLocationPoint = (Point) locationResult.next().get("loc");
-            skelNodeNode.setProperty(LOCATION, skelNodeLocationPoint);
-
-            //set radius, row number, type
-            skelNodeNode.setProperty(RADIUS, skelNode.getRadius());
-            skelNodeNode.setProperty(ROW_NUMBER, skelNode.getRowNumber());
-            skelNodeNode.setProperty(TYPE, skelNode.getType());
 
             //connect the skelnode to the skeleton
             skeletonNode.createRelationshipTo(skelNodeNode, RelationshipType.withName(CONTAINS));
@@ -754,10 +764,25 @@ public class ProofreaderProcedures {
                 if (childSkelNodeNode == null) {
                     childSkelNodeNode = dbService.createNode(Label.label(SKEL_NODE), Label.label(dataset + "-" + SKEL_NODE), Label.label(dataset));
                     childSkelNodeNode.setProperty(SKEL_NODE_ID, childNodeId);
+
+                    //set location
+                    List<Integer> skelNodeLocation = skelNode.getLocation();
+                    Map<String, Object> parametersMap = new HashMap<>();
+                    parametersMap.put("x", skelNodeLocation.get(0));
+                    parametersMap.put("y", skelNodeLocation.get(1));
+                    parametersMap.put("z", skelNodeLocation.get(2));
+                    Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
+                    Point skelNodeLocationPoint = (Point) locationResult.next().get("loc");
+                    skelNodeNode.setProperty(LOCATION, skelNodeLocationPoint);
+
+                    //set radius, row number, type
+                    skelNodeNode.setProperty(RADIUS, skelNode.getRadius());
+                    skelNodeNode.setProperty(ROW_NUMBER, skelNode.getRowNumber());
+                    skelNodeNode.setProperty(TYPE, skelNode.getType());
                 }
 
                 // add a link to the parent
-                skelNodeNode.createRelationshipTo(childSkelNodeNode,RelationshipType.withName(LINKS_TO));
+                skelNodeNode.createRelationshipTo(childSkelNodeNode, RelationshipType.withName(LINKS_TO));
 
             }
         }
