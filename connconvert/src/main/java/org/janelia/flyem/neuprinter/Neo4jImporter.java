@@ -664,10 +664,6 @@ public class Neo4jImporter implements AutoCloseable {
                 "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp, r:Skeleton, r:" + dataset + " \n" +
                 "MERGE (n)-[:Contains]->(r) \n";
 
-        final String rootNodeString = "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.skeletonId=$skeletonId, r.timeStamp=$timeStamp, r:Skeleton, r:" + dataset + " \n" +
-                "MERGE (s:`" + dataset + "-SkelNode`{skelNodeId:$skelNodeId}) ON CREATE SET s.skelNodeId=$skelNodeId, s.location=$location, s.radius=$radius, s.rowNumber=$rowNumber, s.type=$type, s.timeStamp=$timeStamp, s:SkelNode, s:" + dataset + " \n" +
-                "MERGE (r)-[:Contains]->(s) \n";
-
         final String parentNodeString = "MERGE (r:`" + dataset + "-Skeleton`{skeletonId:$skeletonId}) ON CREATE SET r.timeStamp=$timeStamp, r:Skeleton, r:" + dataset + " \n" +
                 "MERGE (p:`" + dataset + "-SkelNode`{skelNodeId:$parentSkelNodeId}) ON CREATE SET p.skelNodeId=$parentSkelNodeId, p.location=$pLocation, p.radius=$pRadius, p.rowNumber=$pRowNumber, p.type=$pType, p.timeStamp=$timeStamp, p:SkelNode, p:" + dataset + " \n" +
                 "MERGE (r)-[:Contains]->(p) ";
@@ -688,18 +684,6 @@ public class Neo4jImporter implements AutoCloseable {
                 )));
 
                 for (SkelNode skelNode : skelNodeList) {
-
-                    if (skelNode.getParent() == null) {
-                        batch.addStatement(new Statement(rootNodeString, parameters(
-                                "location", skelNode.getLocationAsPoint(),
-                                "radius", skelNode.getRadius(),
-                                "skeletonId", dataset + ":" + associatedBodyId,
-                                "skelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString() + ":" + skelNode.getRowNumber(),
-                                "rowNumber", skelNode.getRowNumber(),
-                                "type", skelNode.getType(),
-                                "timeStamp", timeStamp
-                        )));
-                    }
 
                     batch.addStatement(new Statement(parentNodeString, parameters(
                             "pLocation", skelNode.getLocationAsPoint(),
