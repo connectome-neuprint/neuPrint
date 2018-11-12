@@ -25,10 +25,12 @@ import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -51,7 +53,9 @@ public class Neo4jImporterTest {
     public static void before() {
         File swcFile1 = new File("src/test/resources/101.swc");
         File swcFile2 = new File("src/test/resources/102.swc");
-        File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2};
+        File swcFile3 = new File("src/test/resources/831744.swc");
+
+        File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2, swcFile3};
 
         List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
@@ -82,7 +86,7 @@ public class Neo4jImporterTest {
         neo4jImporter.addAutoNamesAndNeuronLabels("test", 5);
         neo4jImporter.addDvidUuid("test", "1234");
         neo4jImporter.addDvidServer("test", "test1:23");
-        neo4jImporter.addClusterNames("test",.1F);
+        neo4jImporter.addClusterNames("test", .1F);
 
     }
 
@@ -133,11 +137,44 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        Map<String, Object> skelNodeProperties = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:101\"})-[:Contains]->(s:SkelNode:`test-SkelNode`{rowNumber:13}) RETURN s.location, s.radius, s.skelNodeId, s.type").list().get(0).asMap();
-        Assert.assertEquals(Values.point(9157, 5096, 9281, 1624).asPoint(), skelNodeProperties.get("s.location"));
-        Assert.assertEquals(28D, skelNodeProperties.get("s.radius"));
-        Assert.assertEquals(0L, skelNodeProperties.get("s.type"));
-        Assert.assertEquals("test:101:5096:9281:1624", skelNodeProperties.get("s.skelNodeId"));
+        Map<String, Object> skelNode101Properties = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:101\"})-[:Contains]->(s:SkelNode:`test-SkelNode`{rowNumber:13}) RETURN s.location, s.radius, s.skelNodeId, s.type").list().get(0).asMap();
+        Assert.assertEquals(Values.point(9157, 5096, 9281, 1624).asPoint(), skelNode101Properties.get("s.location"));
+        Assert.assertEquals(28D, skelNode101Properties.get("s.radius"));
+        Assert.assertEquals(0L, skelNode101Properties.get("s.type"));
+        Assert.assertEquals("test:101:5096:9281:1624:13", skelNode101Properties.get("s.skelNodeId"));
+
+        Map<String, Object> skelNode831744Properties = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:831744\"})-[:Contains]->(s:SkelNode:`test-SkelNode`{rowNumber:315}) RETURN s.location, s.radius, s.skelNodeId, s.type").list().get(0).asMap();
+        Assert.assertEquals(Values.point(9157, 12238, 16085, 26505).asPoint(), skelNode831744Properties.get("s.location"));
+        Assert.assertEquals(49.141D, (Double) skelNode831744Properties.get("s.radius"), 0.001D);
+        Assert.assertEquals(2L, skelNode831744Properties.get("s.type"));
+        Assert.assertEquals("test:831744:12238:16085:26505:315", skelNode831744Properties.get("s.skelNodeId"));
+    }
+
+    @Test
+    public void skelNodesShouldBeProperlyLinked() {
+
+        Session session = driver.session();
+
+        List<Record> skelNode831744Row315LinksTo = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:831744\"})-[:Contains]->(s:SkelNode:`test-SkelNode`{rowNumber:315})-[:LinksTo]->(l) RETURN l").list();
+
+        Set<Long> linkedToRowNumbers = skelNode831744Row315LinksTo.stream()
+                .map(r -> (Node) r.asMap().get("l"))
+                .map(node -> (long) node.asMap().get("rowNumber"))
+                .collect(Collectors.toSet());
+        Set<Long> expectedRowNumbers = new HashSet<>();
+        expectedRowNumbers.add(316L);
+        expectedRowNumbers.add(380L);
+
+        Assert.assertEquals(expectedRowNumbers, linkedToRowNumbers);
+
+        List<Record> skelNode831744Row315LinksFrom = session.run("MATCH (n:Skeleton:`test-Skeleton`{skeletonId:\"test:831744\"})-[:Contains]->(s:SkelNode:`test-SkelNode`{rowNumber:315})<-[:LinksTo]-(l) RETURN l").list();
+
+        Set<Long> linkedFromRowNumbers = skelNode831744Row315LinksFrom.stream()
+                .map(r -> (Node) r.asMap().get("l"))
+                .map(n -> (long) n.asMap().get("rowNumber"))
+                .collect(Collectors.toSet());
+
+        Assert.assertTrue(linkedFromRowNumbers.size() == 1 && linkedFromRowNumbers.contains(314L));
 
     }
 

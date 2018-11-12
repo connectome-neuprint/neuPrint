@@ -27,11 +27,11 @@ public class SkelNode {
      * Class constructor for initial loading into database.
      *
      * @param associatedBodyId bodyId of neuron
-     * @param location location of SkelNode center
-     * @param radius radius of SkelNode
-     * @param type type of SkelNode
-     * @param parent parent of SkelNode
-     * @param rowNumber row number of SkelNode within the swc file
+     * @param location         location of SkelNode center
+     * @param radius           radius of SkelNode
+     * @param type             type of SkelNode
+     * @param parent           parent of SkelNode
+     * @param rowNumber        row number of SkelNode within the swc file
      */
     public SkelNode(Long associatedBodyId, List<Integer> location, float radius, int type, SkelNode parent, int rowNumber) {
         this.associatedBodyId = associatedBodyId;
@@ -46,9 +46,9 @@ public class SkelNode {
      * Class constructor for reading SkelNode from the database within a stored procedure.
      *
      * @param associatedBodyId bodyId of neuron
-     * @param location location of SkelNode center
-     * @param radius radius of SkelNode
-     * @param rowNumber row number of SkelNode within the swc file
+     * @param location         location of SkelNode center
+     * @param radius           radius of SkelNode
+     * @param rowNumber        row number of SkelNode within the swc file
      */
     public SkelNode(Long associatedBodyId, List<Integer> location, float radius, int rowNumber) {
         this.associatedBodyId = associatedBodyId;
@@ -59,7 +59,6 @@ public class SkelNode {
 
     /**
      * Class constructor used for testing.
-     *
      */
     public SkelNode() {
     }
@@ -92,7 +91,7 @@ public class SkelNode {
             isEqual = true;
         } else if (o instanceof SkelNode) {
             final SkelNode that = (SkelNode) o;
-            isEqual = this.location.equals(that.location);
+            isEqual = this.location.equals(that.location) && this.rowNumber == that.rowNumber;
         }
         return isEqual;
     }
@@ -101,11 +100,11 @@ public class SkelNode {
     public int hashCode() {
         int result = 17;
         result = 31 * result + location.hashCode();
+        result = 31 * result + rowNumber;
         return result;
     }
 
     /**
-     *
      * @return list of this SkelNode's children
      */
     public List<SkelNode> getChildren() {
@@ -113,7 +112,6 @@ public class SkelNode {
     }
 
     /**
-     *
      * @return parent of this SkelNode (null if root)
      */
     public SkelNode getParent() {
@@ -121,7 +119,6 @@ public class SkelNode {
     }
 
     /**
-     *
      * @return list of integers representing SkelNode's 3D location
      */
     public List<Integer> getLocation() {
@@ -129,7 +126,6 @@ public class SkelNode {
     }
 
     /**
-     *
      * @return the x coordinate of this SkelNode's location
      */
     public Integer getX() {
@@ -137,7 +133,6 @@ public class SkelNode {
     }
 
     /**
-     *
      * @return the y coordinate of this SkelNode's location
      */
     public Integer getY() {
@@ -145,7 +140,6 @@ public class SkelNode {
     }
 
     /**
-     *
      * @return the z coordinate of this SkelNode's location
      */
     public Integer getZ() {
@@ -153,7 +147,6 @@ public class SkelNode {
     }
 
     /**
-     *
      * @return row number of this SkelNode
      */
     public int getRowNumber() {
@@ -184,7 +177,6 @@ public class SkelNode {
     }
 
     /**
-     *
      * @return radius of SkelNode
      */
     public float getRadius() {
@@ -192,7 +184,6 @@ public class SkelNode {
     }
 
     /**
-     *
      * @return type of SkelNode
      */
     public int getType() {
@@ -200,7 +191,6 @@ public class SkelNode {
     }
 
     /**
-     *
      * @return SkelNode's associated bodyId
      */
     public Long getAssociatedBodyId() {

@@ -694,7 +694,7 @@ public class Neo4jImporter implements AutoCloseable {
                                 "location", skelNode.getLocationAsPoint(),
                                 "radius", skelNode.getRadius(),
                                 "skeletonId", dataset + ":" + associatedBodyId,
-                                "skelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString(),
+                                "skelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString() + ":" + skelNode.getRowNumber(),
                                 "rowNumber", skelNode.getRowNumber(),
                                 "type", skelNode.getType(),
                                 "timeStamp", timeStamp
@@ -705,15 +705,15 @@ public class Neo4jImporter implements AutoCloseable {
                             "pLocation", skelNode.getLocationAsPoint(),
                             "pRadius", skelNode.getRadius(),
                             "skeletonId", dataset + ":" + associatedBodyId,
-                            "parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString(),
+                            "parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString() + ":" + skelNode.getRowNumber(),
                             "pRowNumber", skelNode.getRowNumber(),
                             "pType", skelNode.getType(),
                             "timeStamp", timeStamp
                     )));
 
                     for (SkelNode child : skelNode.getChildren()) {
-                        String childNodeId = dataset + ":" + associatedBodyId + ":" + child.getLocationString();
-                        batch.addStatement(new Statement(childNodeString, parameters("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString(),
+                        String childNodeId = dataset + ":" + associatedBodyId + ":" + child.getLocationString() + ":" + child.getRowNumber();
+                        batch.addStatement(new Statement(childNodeString, parameters("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString() + ":" + skelNode.getRowNumber(),
                                 "skeletonId", dataset + ":" + associatedBodyId,
                                 "pLocation", skelNode.getLocationAsPoint(),
                                 "pRadius", skelNode.getRadius(),

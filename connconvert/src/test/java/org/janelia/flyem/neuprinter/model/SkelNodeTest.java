@@ -23,8 +23,8 @@ public class SkelNodeTest {
         location2.add(0);
         location2.add(1);
         location2.add(5);
-        SkelNode skelNode2 = new SkelNode(13L, location2, 34.0f, 1, new SkelNode(), 2);
-        SkelNode skelNode3 = new SkelNode(13L, location2, 34.0f, 1, new SkelNode(), 3);
+        SkelNode skelNode2 = new SkelNode(13L, location2, 34.0f, 1, new SkelNode(), 1);
+        SkelNode skelNode3 = new SkelNode(13L, location2, 34.0f, 1, new SkelNode(), 1);
 
         //reflexive
         Assert.assertEquals(skelNode1, skelNode1);
