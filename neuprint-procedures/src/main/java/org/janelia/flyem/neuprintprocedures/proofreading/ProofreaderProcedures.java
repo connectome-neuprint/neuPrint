@@ -516,11 +516,7 @@ public class ProofreaderProcedures {
                         // delete the connection to the current node
                         neuronContainsRel.delete();
                         // delete relationships to synapses
-                        if (containedNode.hasRelationship(RelationshipType.withName(CONTAINS))) {
-                            for (Relationship synapseSetContainsRel : containedNode.getRelationships(RelationshipType.withName(CONTAINS))) {
-                                synapseSetContainsRel.delete();
-                            }
-                        }
+                        containedNode.getRelationships().forEach(Relationship::delete);
                         //delete synapse set
                         containedNode.delete();
                     } else if (containedNode.hasLabel(Label.label(CONNECTION_SET))) {
@@ -554,18 +550,15 @@ public class ProofreaderProcedures {
 
         for (Relationship skeletonRelationship : skeletonNode.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
             Node skelNode = skeletonRelationship.getEndNode();
-            //delete LinksTo relationships
-            for (Relationship skelNodeLinksToRelationship : skelNode.getRelationships(RelationshipType.withName(LINKS_TO))) {
-                skelNodeLinksToRelationship.delete();
-            }
+            //delete LinksTo relationships and
             //delete SkelNode Contains relationship to Skeleton
-            skeletonRelationship.delete();
+            skelNode.getRelationships().forEach(Relationship::delete);
             //delete SkelNode
             skelNode.delete();
         }
+
         //delete Skeleton
         skeletonNode.delete();
-
     }
 
     private Node createSynapseSetForSegment(final Node segment, final String datasetLabel) {
@@ -732,10 +725,11 @@ public class ProofreaderProcedures {
 
             // create skelnode with id
             //try to get the node first, if it doesn't exist create it
-            Node skelNodeNode = dbService.findNode(Label.label(dataset + "-" + SKEL_NODE), SKEL_NODE_ID, dataset + ":" + skeleton.getAssociatedBodyId() + ":" + skelNode.getLocationString());
+            String skelNodeId = dataset + ":" + skeleton.getAssociatedBodyId() + ":" + skelNode.getLocationString() + ":" + skelNode.getRowNumber();
+            Node skelNodeNode = dbService.findNode(Label.label(dataset + "-" + SKEL_NODE), SKEL_NODE_ID, skelNodeId);
             if (skelNodeNode == null) {
                 skelNodeNode = dbService.createNode(Label.label(SKEL_NODE), Label.label(dataset + "-" + SKEL_NODE), Label.label(dataset));
-                skelNodeNode.setProperty(SKEL_NODE_ID, dataset + ":" + skeleton.getAssociatedBodyId() + ":" + skelNode.getLocationString());
+                skelNodeNode.setProperty(SKEL_NODE_ID, dataset + ":" + skeleton.getAssociatedBodyId() + ":" + skelNode.getLocationString() + ":" + skelNode.getRowNumber());
 
                 //set location
                 List<Integer> skelNodeLocation = skelNode.getLocation();
@@ -759,7 +753,7 @@ public class ProofreaderProcedures {
             // add the children
             for (SkelNode child : skelNode.getChildren()) {
 
-                String childNodeId = dataset + ":" + skeleton.getAssociatedBodyId() + ":" + child.getLocationString();
+                String childNodeId = dataset + ":" + skeleton.getAssociatedBodyId() + ":" + child.getLocationString() + ":" + child.getRowNumber();
                 Node childSkelNodeNode = dbService.findNode(Label.label(dataset + "-" + SKEL_NODE), SKEL_NODE_ID, childNodeId);
                 if (childSkelNodeNode == null) {
                     childSkelNodeNode = dbService.createNode(Label.label(SKEL_NODE), Label.label(dataset + "-" + SKEL_NODE), Label.label(dataset));

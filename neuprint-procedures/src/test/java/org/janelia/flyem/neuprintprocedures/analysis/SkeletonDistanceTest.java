@@ -41,13 +41,13 @@ public class SkeletonDistanceTest {
 
             neo4jImporter.addSkeletonNodes("test", skeletonList);
 
-            Long distance = session.readTransaction(tx -> tx.run("MATCH (n:SkelNode{skelNodeId:\"test:101:5464:9385:1248\"}), (m:SkelNode{skelNodeId:\"test:101:5328:9385:1368\"}) WITH n,m CALL analysis.calculateSkeletonDistance(\"test\",n,m) YIELD value RETURN value").single().get(0).asLong());
+            Long distance = session.readTransaction(tx -> tx.run("MATCH (n:SkelNode{skelNodeId:\"test:101:5464:9385:1248:1\"}), (m:SkelNode{skelNodeId:\"test:101:5328:9385:1368:5\"}) WITH n,m CALL analysis.calculateSkeletonDistance(\"test\",n,m) YIELD value RETURN value").single().get(0).asLong());
 
             Assert.assertEquals(new Long(207), distance);
 
             Node skelNode = session.readTransaction(tx -> tx.run("CALL analysis.getNearestSkelNodeOnBodyToPoint(101,\"test\",4864,8817,1936) YIELD node RETURN node").single().get(0).asNode());
 
-            Assert.assertEquals("test:101:4864:8817:1936", skelNode.asMap().get("skelNodeId"));
+            Assert.assertEquals("test:101:4864:8817:1936:26", skelNode.asMap().get("skelNodeId"));
 
             Long distanceFromNearestCalculation = session.readTransaction(tx -> tx.run("CALL analysis.getNearestSkelNodeOnBodyToPoint(101,\"test\",5464,9385,1248) YIELD node AS node1 WITH node1" +
                     " CALL analysis.getNearestSkelNodeOnBodyToPoint(101,\"test\",5328,9385,1368) YIELD node AS node2 WITH node1,node2" +

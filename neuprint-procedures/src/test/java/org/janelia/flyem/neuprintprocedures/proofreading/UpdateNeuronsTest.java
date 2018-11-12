@@ -34,6 +34,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
@@ -53,7 +54,7 @@ public class UpdateNeuronsTest {
     }
 
     @BeforeClass
-    public static void before() {
+    public static void before() throws InterruptedException {
 
         File swcFile1 = new File("src/test/resources/8426959.swc");
         File swcFile2 = new File("src/test/resources/831744.swc");
@@ -148,6 +149,9 @@ public class UpdateNeuronsTest {
             session.writeTransaction(tx -> tx.run("CALL proofreader.deleteNeuron($bodyId, $dataset)", parameters("bodyId", bodyIdsToDelete[finalI], "dataset", "test")));
         }
 
+        TimeUnit.SECONDS.sleep(5);
+
+
         Gson gson = new Gson();
         UpdateNeuronsAction updateNeuronsAction = gson.fromJson(updateJson, UpdateNeuronsAction.class);
         for (NeuronUpdate neuronUpdate : updateNeuronsAction.getUpdatedNeurons()) {
@@ -155,7 +159,6 @@ public class UpdateNeuronsTest {
             session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson, $dataset)", parameters("updateJson", neuronUpdateJson, "dataset", "test")));
         }
 
-//        TimeUnit.SECONDS.sleep(5);
 //
 //        Stopwatch timer = Stopwatch.createStarted();
 //
@@ -187,8 +190,11 @@ public class UpdateNeuronsTest {
         int connectionSetsCount = session.readTransaction(tx -> tx.run("MATCH (n:ConnectionSet) WHERE n.datasetBodyIds=\"test:8426959:2589725\" OR n.datasetBodyIds=\"test:8426959:831744\" RETURN count(n)").single().get(0).asInt());
         Assert.assertEquals(0, connectionSetsCount);
         // skeletons are deleted
-        int skeletonCount = session.readTransaction(tx -> tx.run("MATCH (n:Skeleton) WHERE n.datasetBodyId=\"test:831744\" RETURN count(n)").single().get(0).asInt());
+        int skeletonCount = session.readTransaction(tx -> tx.run("MATCH (n:Skeleton) RETURN count(n)").single().get(0).asInt());
         Assert.assertEquals(0, skeletonCount);
+        // skelnodes are deleted
+        int skelNodeCount = session.readTransaction(tx -> tx.run("MATCH (n:SkelNode) RETURN count(n)").single().get(0).asInt());
+        Assert.assertEquals(0, skelNodeCount);
     }
 
     @Test
