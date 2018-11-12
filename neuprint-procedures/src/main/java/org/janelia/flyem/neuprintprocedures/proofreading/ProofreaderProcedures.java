@@ -590,14 +590,18 @@ public class ProofreaderProcedures {
 
     private void deleteSkeleton(final Node skeletonNode) {
 
+        Set<Node> skelNodesToDelete = new HashSet<>();
         for (Relationship skeletonRelationship : skeletonNode.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
             Node skelNode = skeletonRelationship.getEndNode();
             //delete LinksTo relationships and
+            skelNode.getRelationships(RelationshipType.withName(LINKS_TO)).forEach(Relationship::delete);
             //delete SkelNode Contains relationship to Skeleton
-            skelNode.getRelationships().forEach(Relationship::delete);
-            //delete SkelNode
-            skelNode.delete();
+            skeletonRelationship.delete();
+            skelNodesToDelete.add(skelNode);
         }
+
+        //delete SkelNodes at end to avoid missing node errors
+        skelNodesToDelete.forEach(Node::delete);
 
         //delete Skeleton
         skeletonNode.delete();
