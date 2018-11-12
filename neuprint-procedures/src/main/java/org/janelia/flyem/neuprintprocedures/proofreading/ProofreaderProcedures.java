@@ -457,6 +457,48 @@ public class ProofreaderProcedures {
 
     }
 
+    @Procedure(value = "proofreader.deleteSkeleton", mode = Mode.WRITE)
+    @Description("proofreader.deletekeleton(bodyId,datasetLabel) : delete skeleton for provided body id ")
+    public void deleteSkeleton(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.deleteSkeleton: entry");
+
+        try {
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteSkeleton: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteSkeleton: Missing input arguments.");
+            }
+
+            Node neuron = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), BODY_ID, bodyId);
+
+            if (neuron != null) {
+
+                acquireWriteLockForSegmentSubgraph(neuron);
+
+                if (neuron.hasRelationship(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+                    for (Relationship neuronContainsRel : neuron.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+                        final Node containedNode = neuronContainsRel.getEndNode();
+                        if (containedNode.hasLabel(Label.label(SKELETON))) {
+                            log.info("proofreader.deleteSkeleton: skeleton deleted for body id " + bodyId + ".");
+                            // delete neuron relationship to skeleton
+                            neuronContainsRel.delete();
+                            // delete skeleton and skelnodes
+                            deleteSkeleton(containedNode);
+                        }
+                    }
+                }
+
+            } else {
+                log.warn("proofreader.deleteSkeleton: body id " + bodyId + " not found.");
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteSkeleton: " + e);
+            throw new RuntimeException("Error running proofreader.deleteSkeleton: " + e);
+        }
+    }
+
 //    private void mergeSynapseSets(Node synapseSet1, Node synapseSet2) {
 //
 //        //add both synapse sets to the new node, collect them for adding to apoc merge procedure
@@ -559,6 +601,7 @@ public class ProofreaderProcedures {
 
         //delete Skeleton
         skeletonNode.delete();
+        log.info("Successfully deleted skeleton.");
     }
 
     private Node createSynapseSetForSegment(final Node segment, final String datasetLabel) {
