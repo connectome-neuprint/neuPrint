@@ -868,9 +868,9 @@ public class Neo4jImporter implements AutoCloseable {
     public void addClusterNames(String dataset, float threshold) {
 
         List<Node> neuronNodeList;
-        List<String> roiList;
+        Set<String> roiSet;
         try (Session session = driver.session()) {
-            roiList = session.readTransaction(tx -> getRoisFromMetaNode(tx, dataset));
+            roiSet = session.readTransaction(tx -> getRoisFromMetaNode(tx, dataset)).stream().collect(Collectors.toSet());
             neuronNodeList = session.readTransaction(tx -> getAllNeuronNodes(tx, dataset));
         }
 
@@ -887,7 +887,7 @@ public class Neo4jImporter implements AutoCloseable {
                 long totalPre = (long) neuron.asMap().get("pre");
                 long totalPost = (long) neuron.asMap().get("post");
 
-                String clusterName = generateClusterName(roiInfoMap, totalPre, totalPost, threshold, roiList);
+                String clusterName = generateClusterName(roiInfoMap, totalPre, totalPost, threshold, roiSet);
 
                 batch.addStatement(new Statement(addClusterNameString,
                         parameters("bodyId", neuron.asMap().get("bodyId"),
@@ -1067,7 +1067,7 @@ public class Neo4jImporter implements AutoCloseable {
         return superLevelRois;
     }
 
-    public static String generateClusterName(Map<String, SynapseCounter> roiInfoMap, long totalPre, long totalPost, double threshold, List<String> includedRois) {
+    public static String generateClusterName(Map<String, SynapseCounter> roiInfoMap, long totalPre, long totalPost, double threshold, Set<String> includedRois) {
 
         StringBuilder inputs = new StringBuilder();
         StringBuilder outputs = new StringBuilder();
