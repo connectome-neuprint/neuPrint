@@ -8,7 +8,6 @@ import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
-import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -47,7 +46,6 @@ public class RoiInfoNameTest {
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
         HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
-        bodyList.sort(new SortBodyByNumberOfSynapses());
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
