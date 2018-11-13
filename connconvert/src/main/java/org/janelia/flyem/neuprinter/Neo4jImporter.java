@@ -689,15 +689,16 @@ public class Neo4jImporter implements AutoCloseable {
                             "pLocation", skelNode.getLocationAsPoint(),
                             "pRadius", skelNode.getRadius(),
                             "skeletonId", dataset + ":" + associatedBodyId,
-                            "parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString() + ":" + skelNode.getRowNumber(),
+                            "parentSkelNodeId", skelNode.getSkelNodeId(dataset),
                             "pRowNumber", skelNode.getRowNumber(),
                             "pType", skelNode.getType(),
                             "timeStamp", timeStamp
                     )));
 
-                    for (SkelNode child : skelNode.getChildren()) {
-                        String childNodeId = dataset + ":" + associatedBodyId + ":" + child.getLocationString() + ":" + child.getRowNumber();
-                        batch.addStatement(new Statement(childNodeString, parameters("parentSkelNodeId", dataset + ":" + associatedBodyId + ":" + skelNode.getLocationString() + ":" + skelNode.getRowNumber(),
+                    for (SkelNode childSkelNode : skelNode.getChildren()) {
+                        String childNodeId = childSkelNode.getSkelNodeId(dataset);
+                        batch.addStatement(new Statement(childNodeString, parameters(
+                                "parentSkelNodeId", skelNode.getSkelNodeId(dataset),
                                 "skeletonId", dataset + ":" + associatedBodyId,
                                 "pLocation", skelNode.getLocationAsPoint(),
                                 "pRadius", skelNode.getRadius(),
@@ -705,10 +706,10 @@ public class Neo4jImporter implements AutoCloseable {
                                 "pType", skelNode.getType(),
                                 "timeStamp", timeStamp,
                                 "childNodeId", childNodeId,
-                                "childLocation", child.getLocationAsPoint(),
-                                "childRadius", child.getRadius(),
-                                "childRowNumber", child.getRowNumber(),
-                                "childType", child.getType()
+                                "childLocation", childSkelNode.getLocationAsPoint(),
+                                "childRadius", childSkelNode.getRadius(),
+                                "childRowNumber", childSkelNode.getRowNumber(),
+                                "childType", childSkelNode.getType()
                         )));
                     }
                 }
