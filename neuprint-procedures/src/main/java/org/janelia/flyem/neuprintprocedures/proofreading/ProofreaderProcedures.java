@@ -2,11 +2,14 @@ package org.janelia.flyem.neuprintprocedures.proofreading;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
+import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
+import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.janelia.flyem.neuprinter.model.SynapseCountsPerRoi;
+import org.janelia.flyem.neuprintprocedures.GraphTraversalTools;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -38,7 +41,36 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.*;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.BODY_ID;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONNECTION_SET;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONNECTS_TO;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONTAINS;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.DATASET_BODY_ID;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.DATASET_BODY_IDs;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.LINKS_TO;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.LOCATION;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.MUTATION_UUID_ID;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.NAME;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.NEURON;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.POST;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.PRE;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.RADIUS;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.ROI_INFO;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.ROW_NUMBER;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SEGMENT;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SIZE;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKELETON;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKELETON_ID;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKEL_NODE;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKEL_NODE_ID;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SOMA_LOCATION;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SOMA_RADIUS;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.STATUS;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSES_TO;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_SET;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.TYPE;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.WEIGHT;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getLocationAs3dCartesianPoint;
 
 public class ProofreaderProcedures {
 
@@ -65,7 +97,7 @@ public class ProofreaderProcedures {
 
             Neuron neuron = gson.fromJson(neuronJsonObject, Neuron.class);
 
-            Node neuronNode = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), "bodyId", neuron.getId());
+            Node neuronNode = GraphTraversalTools.getSegment(dbService, neuron.getId(), datasetLabel);
 
             if (neuronNode == null) {
                 log.warn("Neuron with id " + neuron.getId() + " not found in database. Aborting update.");
@@ -93,13 +125,8 @@ public class ProofreaderProcedures {
                 }
 
                 if (neuron.getSoma() != null) {
-                    Map<String, Object> parametersMap = new HashMap<>();
                     List<Integer> somaLocationList = neuron.getSoma().getLocation();
-                    parametersMap.put("x", somaLocationList.get(0));
-                    parametersMap.put("y", somaLocationList.get(1));
-                    parametersMap.put("z", somaLocationList.get(2));
-                    Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
-                    Point somaLocationPoint = (Point) locationResult.next().get("loc");
+                    Point somaLocationPoint = getLocationAs3dCartesianPoint(dbService, (double) somaLocationList.get(0), (double) somaLocationList.get(1), (double) somaLocationList.get(2));
                     neuronNode.setProperty(SOMA_LOCATION, somaLocationPoint);
                     neuronNode.setProperty(SOMA_RADIUS, neuron.getSoma().getRadius());
                     log.info("Updated soma for neuron " + neuron.getId() + ".");
@@ -109,9 +136,7 @@ public class ProofreaderProcedures {
                 }
 
                 if (isNeuron) {
-                    neuronNode.addLabel(Label.label(NEURON));
-                    neuronNode.addLabel(Label.label(datasetLabel + "-" + NEURON));
-                    dbService.execute("MATCH (m:Meta{dataset:\"" + datasetLabel + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`" + datasetLabel + "-" + NEURON + "`{bodyId:" + neuron.getId() + "}) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName");
+                    convertSegmentToNeuron(neuronNode, datasetLabel, neuron.getId());
                 }
             }
 
@@ -157,7 +182,6 @@ public class ProofreaderProcedures {
         try {
 
             Gson gson = new Gson();
-//        UpdateNeuronsAction updateNeuronsAction = gson.fromJson(neuronUpdateJson, UpdateNeuronsAction.class);
             NeuronUpdate neuronUpdate = gson.fromJson(neuronUpdateJson, NeuronUpdate.class);
 
             if (neuronUpdateJson == null || datasetLabel == null) {
@@ -204,15 +228,10 @@ public class ProofreaderProcedures {
 
             for (Synapse synapse : currentSynapses) {
 
-                // get the synapse
+                // get the synapse by location
                 List<Integer> synapseLocation = synapse.getLocation();
-                Map<String, Object> parametersMap = new HashMap<>();
-                parametersMap.put("x", synapseLocation.get(0));
-                parametersMap.put("y", synapseLocation.get(1));
-                parametersMap.put("z", synapseLocation.get(2));
-                Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
-                Point synapseLocationPoint = (Point) locationResult.next().get("loc");
-                Node synapseNode = dbService.findNode(Label.label(datasetLabel + "-" + SYNAPSE), LOCATION, synapseLocationPoint);
+                Point synapseLocationPoint = GraphTraversalTools.getLocationAs3dCartesianPoint(dbService, (double) synapseLocation.get(0), (double) synapseLocation.get(1), (double) synapseLocation.get(2));
+                Node synapseNode = GraphTraversalTools.getSynapse(dbService, synapseLocationPoint, datasetLabel);
 
                 if (synapseNode == null) {
                     log.error("Synapse not found in database: " + synapse);
@@ -234,7 +253,7 @@ public class ProofreaderProcedures {
                 // get the synapse type
                 final String synapseType = (String) synapseNode.getProperty(TYPE);
                 // get synapse rois for adding to the body and roiInfo
-                final List<String> synapseRois = getSynapseNodeRoiList(synapseNode);
+                final Set<String> synapseRois = getSynapseNodeRoiSet(synapseNode);
 
                 if (synapseType.equals(PRE)) {
                     for (String roi : synapseRois) {
@@ -293,12 +312,13 @@ public class ProofreaderProcedures {
             boolean isNeuron = false;
             if (neuronUpdate.getStatus() != null) {
                 newNeuron.setProperty(STATUS, neuronUpdate.getStatus());
-                isNeuron = true;
             }
+
             if (neuronUpdate.getName() != null) {
                 newNeuron.setProperty(NAME, neuronUpdate.getName());
                 isNeuron = true;
             }
+
             if (neuronUpdate.getSoma() != null) {
                 newNeuron.setProperty(SOMA_RADIUS, neuronUpdate.getSoma().getRadius());
                 Map<String, Object> parametersMap = new HashMap<>();
@@ -317,14 +337,11 @@ public class ProofreaderProcedures {
             }
 
             if (isNeuron) {
-                newNeuron.addLabel(Label.label(NEURON));
-                newNeuron.addLabel(Label.label(datasetLabel + "-" + NEURON));
-                dbService.execute("MATCH (m:Meta{dataset:\"" + datasetLabel + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois MATCH (n:`" + datasetLabel + "-" + NEURON + "`{bodyId:" + neuronUpdate.getBodyId() + "}) SET n.clusterName=neuprint.roiInfoAsName(n.roiInfo, n.pre, n.post, 0.10, rois) RETURN n.bodyId, n.clusterName");
+                convertSegmentToNeuron(newNeuron, datasetLabel, newNeuronBodyId);
             }
 
             // update meta node
-
-            Node metaNode = dbService.findNode(Label.label(META), "dataset", datasetLabel);
+            Node metaNode = GraphTraversalTools.getMetaNode(dbService, datasetLabel);
             metaNode.setProperty("latestMutationId", neuronUpdate.getMutationId());
             metaNode.setProperty("uuid", neuronUpdate.getMutationUuid());
 
@@ -384,7 +401,7 @@ public class ProofreaderProcedures {
             timer.reset();
 
             timer.start();
-            Node segment = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), "bodyId", bodyId);
+            Node segment = GraphTraversalTools.getSegment(dbService, bodyId, datasetLabel);
             log.info("Time to get segment:" + timer.stop());
             timer.reset();
 
@@ -394,12 +411,12 @@ public class ProofreaderProcedures {
 
                 timer.start();
                 //check if skeleton already exists
-                Node existingSkeleton = dbService.findNode(Label.label(datasetLabel + "-" + SKELETON), "skeletonId", datasetLabel + ":" + bodyId);
+                Node existingSkeleton = GraphTraversalTools.getSkeleton(dbService, bodyId, datasetLabel);
                 if (existingSkeleton != null) {
                     log.warn(String.format("proofreader.addSkeleton: Skeleton for body ID %d already exists in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
                 } else {
 
-                    Node skeletonNode = addSkeletonNodes(datasetLabel, skeleton, segment);
+                    addSkeletonNodes(datasetLabel, skeleton, segment);
 
                     log.info("Successfully added Skeleton to body Id " + bodyId + ".");
                 }
@@ -432,27 +449,25 @@ public class ProofreaderProcedures {
                 throw new RuntimeException("proofreader.deleteSkeleton: Missing input arguments.");
             }
 
-            Node neuron = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), BODY_ID, bodyId);
+            Node neuron = GraphTraversalTools.getSegment(dbService, bodyId, datasetLabel);
 
             if (neuron != null) {
 
                 acquireWriteLockForSegmentSubgraph(neuron);
 
-                if (neuron.hasRelationship(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
-                    for (Relationship neuronContainsRel : neuron.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
-                        final Node containedNode = neuronContainsRel.getEndNode();
-                        if (containedNode.hasLabel(Label.label(SKELETON))) {
-                            log.info("proofreader.deleteSkeleton: skeleton deleted for body id " + bodyId + ".");
-                            // delete neuron relationship to skeleton
-                            neuronContainsRel.delete();
-                            // delete skeleton and skelnodes
-                            deleteSkeleton(containedNode);
-                        }
-                    }
+                Node skeleton = GraphTraversalTools.getSkeletonNodeForNeuron(neuron);
+
+                if (skeleton != null) {
+                    log.info("proofreader.deleteSkeleton: skeleton found for body id " + bodyId + ".");
+                    // delete neuron relationship to skeleton
+                    skeleton.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING).delete();
+                    deleteSkeleton(skeleton);
+                } else {
+                    log.warn("proofreader.deleteSkeleton: no skeleton found for body id " + bodyId + ". Aborting deletion...");
                 }
 
             } else {
-                log.warn("proofreader.deleteSkeleton: body id " + bodyId + " not found.");
+                log.warn("proofreader.deleteSkeleton: body id " + bodyId + " not found. Aborting deletion...");
             }
 
         } catch (Exception e) {
@@ -506,7 +521,7 @@ public class ProofreaderProcedures {
 
     private void deleteSegment(long bodyId, String datasetLabel) {
 
-        final Node neuron = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), BODY_ID, bodyId);
+        final Node neuron = GraphTraversalTools.getSegment(dbService, bodyId, datasetLabel);
 
         if (neuron == null) {
             log.info("Segment with body ID " + bodyId + " not found in database. Continuing update...");
@@ -579,20 +594,10 @@ public class ProofreaderProcedures {
     }
 
     private Node getSegmentThatContainsSynapse(Node synapseNode) {
-        Node connectedSegment;
-
-        final Node[] connectedSynapseSet = new Node[1];
-        if (synapseNode.hasRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
-            synapseNode.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING).forEach(r -> {
-                if (r.getStartNode().hasLabel(Label.label(SYNAPSE_SET)))
-                    connectedSynapseSet[0] = r.getStartNode();
-            });
-            connectedSegment = connectedSynapseSet[0].getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING).getStartNode();
-        } else {
+        Node connectedSegment = GraphTraversalTools.getSegmentThatContainsSynapse(synapseNode);
+        if (connectedSegment == null) {
             log.info("Synapse does not belong to a body: " + synapseNode.getAllProperties());
-            connectedSegment = null;
         }
-
         return connectedSegment;
     }
 
@@ -671,16 +676,8 @@ public class ProofreaderProcedures {
 //        synapse.addRoiList(new ArrayList<>(roiList));
 //    }
 
-    private List<String> getSynapseNodeRoiList(Node synapseNode) {
-        Map<String, Object> synapseNodeProperties = synapseNode.getAllProperties();
-        return synapseNodeProperties.keySet().stream()
-                .filter(p -> (
-                        !p.equals(TIME_STAMP) &&
-                                !p.equals(LOCATION) &&
-                                !p.equals(TYPE) &&
-                                !p.equals(CONFIDENCE))
-                )
-                .collect(Collectors.toList());
+    private Set<String> getSynapseNodeRoiSet(Node synapseNode) {
+        return GraphTraversalTools.getSynapseRois(synapseNode);
     }
 
     private Node acquireSegmentFromDatabase(Long nodeBodyId, String datasetLabel) throws NoSuchElementException, NullPointerException {
@@ -734,54 +731,23 @@ public class ProofreaderProcedures {
 
             // create skelnode with id
             //try to get the node first, if it doesn't exist create it
-            String skelNodeId = dataset + ":" + skeleton.getAssociatedBodyId() + ":" + skelNode.getLocationString() + ":" + skelNode.getRowNumber();
-            Node skelNodeNode = dbService.findNode(Label.label(dataset + "-" + SKEL_NODE), SKEL_NODE_ID, skelNodeId);
+            String skelNodeId = skelNode.getSkelNodeId(dataset);
+            Node skelNodeNode = GraphTraversalTools.getSkelNode(dbService, skelNodeId, dataset);
+
             if (skelNodeNode == null) {
-                skelNodeNode = dbService.createNode(Label.label(SKEL_NODE), Label.label(dataset + "-" + SKEL_NODE), Label.label(dataset));
-                skelNodeNode.setProperty(SKEL_NODE_ID, dataset + ":" + skeleton.getAssociatedBodyId() + ":" + skelNode.getLocationString() + ":" + skelNode.getRowNumber());
-
-                //set location
-                List<Integer> skelNodeLocation = skelNode.getLocation();
-                Map<String, Object> parametersMap = new HashMap<>();
-                parametersMap.put("x", skelNodeLocation.get(0));
-                parametersMap.put("y", skelNodeLocation.get(1));
-                parametersMap.put("z", skelNodeLocation.get(2));
-                Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
-                Point skelNodeLocationPoint = (Point) locationResult.next().get("loc");
-                skelNodeNode.setProperty(LOCATION, skelNodeLocationPoint);
-
-                //set radius, row number, type
-                skelNodeNode.setProperty(RADIUS, skelNode.getRadius());
-                skelNodeNode.setProperty(ROW_NUMBER, skelNode.getRowNumber());
-                skelNodeNode.setProperty(TYPE, skelNode.getType());
+                skelNodeNode = createSkelNode(skelNodeId, dataset, skelNode);
             }
 
             //connect the skelnode to the skeleton
             skeletonNode.createRelationshipTo(skelNodeNode, RelationshipType.withName(CONTAINS));
 
             // add the children
-            for (SkelNode child : skelNode.getChildren()) {
+            for (SkelNode childSkelNode : skelNode.getChildren()) {
 
-                String childNodeId = dataset + ":" + skeleton.getAssociatedBodyId() + ":" + child.getLocationString() + ":" + child.getRowNumber();
+                String childNodeId = childSkelNode.getSkelNodeId(dataset);
                 Node childSkelNodeNode = dbService.findNode(Label.label(dataset + "-" + SKEL_NODE), SKEL_NODE_ID, childNodeId);
                 if (childSkelNodeNode == null) {
-                    childSkelNodeNode = dbService.createNode(Label.label(SKEL_NODE), Label.label(dataset + "-" + SKEL_NODE), Label.label(dataset));
-                    childSkelNodeNode.setProperty(SKEL_NODE_ID, childNodeId);
-
-                    //set location
-                    List<Integer> skelNodeLocation = skelNode.getLocation();
-                    Map<String, Object> parametersMap = new HashMap<>();
-                    parametersMap.put("x", skelNodeLocation.get(0));
-                    parametersMap.put("y", skelNodeLocation.get(1));
-                    parametersMap.put("z", skelNodeLocation.get(2));
-                    Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
-                    Point skelNodeLocationPoint = (Point) locationResult.next().get("loc");
-                    skelNodeNode.setProperty(LOCATION, skelNodeLocationPoint);
-
-                    //set radius, row number, type
-                    skelNodeNode.setProperty(RADIUS, skelNode.getRadius());
-                    skelNodeNode.setProperty(ROW_NUMBER, skelNode.getRowNumber());
-                    skelNodeNode.setProperty(TYPE, skelNode.getType());
+                    childSkelNodeNode = createSkelNode(childNodeId, dataset, childSkelNode);
                 }
 
                 // add a link to the parent
@@ -791,6 +757,71 @@ public class ProofreaderProcedures {
         }
 
         return skeletonNode;
+    }
+
+    private Node createSkelNode(String skelNodeId, String dataset, SkelNode skelNode) {
+        Node skelNodeNode = dbService.createNode(Label.label(SKEL_NODE), Label.label(dataset + "-" + SKEL_NODE), Label.label(dataset));
+        skelNodeNode.setProperty(SKEL_NODE_ID, skelNodeId);
+
+        //set location
+        List<Integer> skelNodeLocation = skelNode.getLocation();
+        Point skelNodeLocationPoint = GraphTraversalTools.getLocationAs3dCartesianPoint(dbService, (double) skelNodeLocation.get(0), (double) skelNodeLocation.get(1), (double) skelNodeLocation.get(2));
+        skelNodeNode.setProperty(LOCATION, skelNodeLocationPoint);
+
+        //set radius, row number, type
+        skelNodeNode.setProperty(RADIUS, skelNode.getRadius());
+        skelNodeNode.setProperty(ROW_NUMBER, skelNode.getRowNumber());
+        skelNodeNode.setProperty(TYPE, skelNode.getType());
+
+        return skelNodeNode;
+    }
+
+    private void convertSegmentToNeuron(final Node segment, final String datasetLabel, final Long bodyId) {
+
+        segment.addLabel(Label.label(NEURON));
+        segment.addLabel(Label.label(datasetLabel + "-" + NEURON));
+
+        //generate cluster name
+        Map<String, SynapseCounter> roiInfoObject;
+        long totalPre;
+        long totalPost;
+        try {
+            roiInfoObject = GraphTraversalTools.getRoiInfoAsMap((String) segment.getProperty(ROI_INFO));
+        } catch (Exception e) {
+            log.error("Error retrieving roiInfo from body id " + bodyId + " in " + datasetLabel + ":" + e);
+            throw new RuntimeException("Error retrieving roiInfo from body id " + bodyId + " in " + datasetLabel + ":" + e);
+        }
+
+        try {
+            totalPre = (long) segment.getProperty(PRE);
+        } catch (Exception e) {
+            log.error("Error retrieving pre from body id " + bodyId + " in " + datasetLabel + ":" + e);
+            throw new RuntimeException("Error retrieving pre from body id " + bodyId + " in " + datasetLabel + ":" + e);
+        }
+
+        try {
+            totalPost = (long) segment.getProperty(POST);
+        } catch (Exception e) {
+            log.error("Error retrieving post from body id " + bodyId + " in " + datasetLabel + ":" + e);
+            throw new RuntimeException("Error retrieving post from body id " + bodyId + " in " + datasetLabel + ":" + e);
+        }
+
+        Node metaNode = GraphTraversalTools.getMetaNode(dbService, datasetLabel);
+        if (metaNode != null) {
+            String metaNodeRoiInfo;
+            try {
+                metaNodeRoiInfo = (String) metaNode.getProperty(ROI_INFO);
+            } catch (Exception e) {
+                log.error("Error retrieving roiInfo from Meta node for " + datasetLabel + ":" + e);
+                throw new RuntimeException("Error retrieving roiInfo from Meta node for " + datasetLabel + ":" + e);
+            }
+            final Set<String> roiSet = GraphTraversalTools.getRoiInfoAsMap(metaNodeRoiInfo).keySet();
+            segment.setProperty("clusterName", Neo4jImporter.generateClusterName(roiInfoObject, totalPre, totalPost, 0.10, roiSet));
+        } else {
+            log.error("Meta node not found for dataset " + datasetLabel);
+            throw new RuntimeException("Meta node not found for dataset " + datasetLabel);
+        }
+
     }
 
     private void acquireWriteLockForNode(Node node) {

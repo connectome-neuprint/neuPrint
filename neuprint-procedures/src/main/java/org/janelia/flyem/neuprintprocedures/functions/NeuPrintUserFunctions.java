@@ -17,6 +17,7 @@ import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.UserFunction;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -95,7 +96,7 @@ public class NeuPrintUserFunctions {
 
         Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfo);
 
-        return Neo4jImporter.generateClusterName(roiInfoMap, totalPre, totalPost, threshold, includedRois);
+        return Neo4jImporter.generateClusterName(roiInfoMap, totalPre, totalPost, threshold, new HashSet<>(includedRois));
 
     }
 

@@ -151,7 +151,6 @@ public class UpdateNeuronsTest {
 
         TimeUnit.SECONDS.sleep(5);
 
-
         Gson gson = new Gson();
         UpdateNeuronsAction updateNeuronsAction = gson.fromJson(updateJson, UpdateNeuronsAction.class);
         for (NeuronUpdate neuronUpdate : updateNeuronsAction.getUpdatedNeurons()) {
@@ -584,6 +583,7 @@ public class UpdateNeuronsTest {
         Node neuronNode2 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) RETURN n")).single().get(0).asNode();
 
         Assert.assertEquals(5.0D, neuronNode2.asMap().get("somaRadius"));
+        Assert.assertEquals(Values.point(9157, 1, 2, 3).asPoint(), neuronNode2.asMap().get("somaLocation"));
 
     }
 

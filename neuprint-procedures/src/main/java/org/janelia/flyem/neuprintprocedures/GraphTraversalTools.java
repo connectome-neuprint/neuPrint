@@ -14,6 +14,7 @@ import org.neo4j.graphdb.spatial.Point;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class GraphTraversalTools {
@@ -59,19 +60,46 @@ public class GraphTraversalTools {
     public static final String LINKS_TO = "LinksTo";
     public static final String SYNAPSES_TO = "SynapsesTo";
 
-    public static Node getSegment(final GraphDatabaseService dbService, final Long bodyId, final String dataset) {
+    public static Node getSegment(final GraphDatabaseService dbService, final long bodyId, final String dataset) {
         return dbService.findNode(Label.label(dataset + "-" + SEGMENT), BODY_ID, bodyId);
     }
 
+    public static Node getSynapse(final GraphDatabaseService dbService, final Point location, final String dataset) {
+        return dbService.findNode(Label.label(dataset + "-" + SYNAPSE), LOCATION, location);
+    }
+
+    public static Node getMetaNode(final GraphDatabaseService dbService, final String dataset) {
+        return dbService.findNode(Label.label(META), DATASET, dataset);
+    }
+
+    public static Node getSkeleton(final GraphDatabaseService dbService, final long bodyId, final String dataset) {
+        return dbService.findNode(Label.label(dataset + "-" + SKELETON), "skeletonId", dataset + ":" + bodyId);
+    }
+
+    public static Node getSkelNode(final GraphDatabaseService dbService, final String skelNodeId, final String dataset) {
+        return dbService.findNode(Label.label(dataset + "-" + SKEL_NODE), SKEL_NODE_ID, skelNodeId);
+    }
+
     public static Node getSynapseSetForNeuron(final Node neuron) {
-        Node synapseSet = null;
         for (final Relationship containsRel : neuron.getRelationships(RelationshipType.withName(CONTAINS))) {
             final Node containedNode = containsRel.getEndNode();
             if (containedNode.hasLabel(Label.label(SYNAPSE_SET))) {
-                synapseSet = containedNode;
+                return containedNode;
             }
         }
-        return synapseSet;
+        return null;
+    }
+
+    public static Node getSkeletonNodeForNeuron(final Node neuron) {
+        if (neuron.hasRelationship(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+            for (Relationship neuronContainsRel : neuron.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+                final Node containedNode = neuronContainsRel.getEndNode();
+                if (containedNode.hasLabel(Label.label(SKELETON))) {
+                    return containedNode;
+                }
+            }
+        }
+        return null;
     }
 
     public static List<Location> getSynapseLocations(final Node synapseSet) {
@@ -92,6 +120,35 @@ public class GraphTraversalTools {
         });
 
         return locationList;
+    }
+
+    public static Node getSegmentThatContainsSynapse(final Node synapse) {
+        Node connectedSegment;
+
+        final Node[] connectedSynapseSet = new Node[1];
+        if (synapse.hasRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
+            synapse.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING).forEach(r -> {
+                if (r.getStartNode().hasLabel(Label.label(SYNAPSE_SET)))
+                    connectedSynapseSet[0] = r.getStartNode();
+            });
+            connectedSegment = connectedSynapseSet[0].getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING).getStartNode();
+        } else {
+            connectedSegment = null;
+        }
+
+        return connectedSegment;
+    }
+
+    public static Set<String> getSynapseRois(final Node synapse) {
+        Map<String, Object> synapseNodeProperties = synapse.getAllProperties();
+        return synapseNodeProperties.keySet().stream()
+                .filter(p -> (
+                        !p.equals(TIME_STAMP) &&
+                                !p.equals(LOCATION) &&
+                                !p.equals(TYPE) &&
+                                !p.equals(CONFIDENCE))
+                )
+                .collect(Collectors.toSet());
     }
 
     public static Point getLocationAs3dCartesianPoint(final GraphDatabaseService dbService, Double x, Double y, Double z) {
