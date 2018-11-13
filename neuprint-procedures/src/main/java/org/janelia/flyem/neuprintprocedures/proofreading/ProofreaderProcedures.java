@@ -38,47 +38,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class ProofreaderProcedures {
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.*;
 
-    //Node names
-    private static final String META = "Meta";
-    private static final String NEURON = "Neuron";
-    private static final String SEGMENT = "Segment";
-    private static final String SKELETON = "Skeleton";
-    private static final String SKEL_NODE = "SkelNode";
-    private static final String SYNAPSE = "Synapse";
-    private static final String CONNECTION_SET = "ConnectionSet";
-    private static final String SYNAPSE_SET = "SynapseSet";
-    private static final String POST_SYN = "PostSyn";
-    private static final String PRE_SYN = "PreSyn";
-    //Property names
-    private static final String BODY_ID = "bodyId";
-    private static final String CONFIDENCE = "confidence";
-    private static final String DATASET = "dataset";
-    private static final String DATASET_BODY_ID = "datasetBodyId";
-    private static final String DATASET_BODY_IDs = "datasetBodyIds";
-    private static final String LOCATION = "location";
-    private static final String POST = "post";
-    private static final String PRE = "pre";
-    private static final String SIZE = "size";
-    private static final String NAME = "name";
-    private static final String STATUS = "status";
-    private static final String ROI_INFO = "roiInfo";
-    private static final String RADIUS = "radius";
-    private static final String ROW_NUMBER = "rowNumber";
-    private static final String TIME_STAMP = "timeStamp";
-    private static final String TYPE = "type";
-    private static final String WEIGHT = "weight";
-    private static final String SKELETON_ID = "skeletonId";
-    private static final String SKEL_NODE_ID = "skelNodeId";
-    private static final String SOMA_LOCATION = "somaLocation";
-    private static final String SOMA_RADIUS = "somaRadius";
-    private static final String MUTATION_UUID_ID = "mutationUuidAndId";
-    //Relationship names
-    private static final String CONNECTS_TO = "ConnectsTo";
-    private static final String CONTAINS = "Contains";
-    private static final String LINKS_TO = "LinksTo";
-    private static final String SYNAPSES_TO = "SynapsesTo";
+public class ProofreaderProcedures {
 
     @Context
     public GraphDatabaseService dbService;

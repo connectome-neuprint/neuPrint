@@ -8,6 +8,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprintprocedures.Location;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -32,43 +33,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-public class AnalysisProcedures {
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.*;
 
-    //Node names
-    private static final String HISTORY = "History";
-    private static final String NEURON = "Neuron";
-    private static final String SEGMENT = "Segment";
-    private static final String SKELETON = "Skeleton";
-    private static final String SKEL_NODE = "SkelNode";
-    private static final String SYNAPSE = "Synapse";
-    private static final String SYNAPSE_SET = "SynapseSet";
-    private static final String POST_SYN = "PostSyn";
-    private static final String PRE_SYN = "PreSyn";
-    //Property names
-    private static final String BODY_ID = "bodyId";
-    private static final String DATASET_BODY_ID = "datasetBodyId";
-    private static final String LOCATION = "location";
-    private static final String MERGED_BODY_ID = "mergedBodyId";
-    private static final String POST = "post";
-    private static final String PRE = "pre";
-    private static final String SKEL_NODE_ID = "skelNodeId";
-    private static final String SIZE = "size";
-    private static final String ROI_INFO = "roiInfo";
-    private static final String TYPE = "type";
-    private static final String WEIGHT = "weight";
-    //Relationship names
-    private static final String CLEAVED_TO = "CleavedTo";
-    private static final String CONNECTS_TO = "ConnectsTo";
-    private static final String CONTAINS = "Contains";
-    private static final String FROM = "From";
-    private static final String LINKS_TO = "LinksTo";
-    private static final String MERGED_TO = "MergedTo";
-    private static final String SPLIT_TO = "SplitTo";
-    private static final String SYNAPSES_TO = "SynapsesTo";
-    //prefixes on History Node properties
-    private static final String CLEAVED = "cleaved";
-    private static final String MERGED = "merged";
-    private static final String SPLIT = "split";
+public class AnalysisProcedures {
 
     @Context
     public GraphDatabaseService dbService;
