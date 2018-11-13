@@ -179,6 +179,17 @@ public class Neo4jImporterTest {
     }
 
     @Test
+    public void skelNodeRowNumbersShouldBeDistinctPerSkeleton() {
+        Session session = driver.session();
+        //check that all row numbers are unique per skeleton
+        int rowCount101 = session.readTransaction(tx -> tx.run("MATCH (n:SkelNode) WHERE n.skelNodeId STARTS WITH \"test:101\" WITH DISTINCT n.rowNumber AS rows RETURN count(rows)")).single().get(0).asInt();
+        Assert.assertEquals(50, rowCount101);
+
+        int rowCount831744 = session.readTransaction(tx -> tx.run("MATCH (n:SkelNode) WHERE n.skelNodeId STARTS WITH \"test:831744\" WITH DISTINCT n.rowNumber AS rows RETURN count(rows)")).single().get(0).asInt();
+        Assert.assertEquals(1679, rowCount831744);
+    }
+
+    @Test
     public void allBodiesShouldBeLabeledAsSegment() {
 
         Session session = driver.session();
