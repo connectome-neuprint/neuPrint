@@ -177,6 +177,15 @@ public class SkelNode {
     }
 
     /**
+     * Returns this SkelNode's skelNodeId for use in neo4j.
+     *
+     * @return {@link String} skelNodeId
+     */
+    public String getSkelNodeId(String dataset) {
+        return dataset + ":" + this.associatedBodyId + ":" + this.getLocationString() + ":" + this.getRowNumber();
+    }
+
+    /**
      * @return radius of SkelNode
      */
     public float getRadius() {
