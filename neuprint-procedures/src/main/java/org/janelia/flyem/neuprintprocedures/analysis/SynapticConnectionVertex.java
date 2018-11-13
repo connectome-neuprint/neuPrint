@@ -1,6 +1,7 @@
 package org.janelia.flyem.neuprintprocedures.analysis;
 
 import com.google.gson.annotations.SerializedName;
+import org.janelia.flyem.neuprintprocedures.Location;
 import org.neo4j.graphdb.Node;
 
 import java.util.HashSet;

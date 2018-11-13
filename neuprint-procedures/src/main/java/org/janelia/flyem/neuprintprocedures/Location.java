@@ -1,5 +1,8 @@
-package org.janelia.flyem.neuprintprocedures.analysis;
+package org.janelia.flyem.neuprintprocedures;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class Location {
 
@@ -18,6 +21,13 @@ public class Location {
         this.location[2] = z;
     }
 
+    public Location(Long[] locationArray) {
+        this.x = locationArray[0];
+        this.y = locationArray[1];
+        this.z = locationArray[2];
+        this.location = locationArray;
+    }
+
     public Long getX() {
         return x;
     }
@@ -34,6 +44,10 @@ public class Location {
         return location;
     }
 
+    public List<Long> getLocationAsList() {
+        return new ArrayList<>(Arrays.asList(this.location));
+    }
+
     public static Location getSummedLocations(Location a, Location b) {
         return new Location(a.x + b.x, a.y + b.y, a.z + b.z);
     }
@@ -44,6 +58,16 @@ public class Location {
         Long dz = (a.z - b.z);
 
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    }
+
+    public static Location getCentroid(List<Location> locationList) {
+        Long[] centroidArray = new Long[3];
+        double numberOfLocations = (double) locationList.size();
+        Long[] summedLocation = locationList.stream().reduce(new Location(0L, 0L, 0L), Location::getSummedLocations).getLocation();
+        for (int i = 0; i < 3; i++) {
+            centroidArray[i] = Math.round(summedLocation[i] / numberOfLocations);
+        }
+        return new Location(centroidArray);
     }
 
     @Override

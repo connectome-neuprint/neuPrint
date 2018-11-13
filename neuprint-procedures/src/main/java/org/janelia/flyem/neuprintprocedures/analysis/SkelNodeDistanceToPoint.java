@@ -1,5 +1,6 @@
 package org.janelia.flyem.neuprintprocedures.analysis;
 
+import org.janelia.flyem.neuprintprocedures.Location;
 import org.neo4j.graphdb.Node;
 
 public class SkelNodeDistanceToPoint {
