@@ -1,6 +1,5 @@
 package org.janelia.flyem.neuprintprocedures.functions;
 
-import apoc.convert.Json;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
@@ -26,7 +25,6 @@ public class GetNeuronCentroidTest {
 
     static {
         neo4j = new Neo4jRule()
-                .withFunction(Json.class)
                 .withFunction(NeuPrintUserFunctions.class);
     }
 

@@ -884,37 +884,14 @@ public class Neo4jImporter implements AutoCloseable {
 
                 Map<String, SynapseCounter> roiInfoMap = gson.fromJson((String) neuron.asMap().get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
                 }.getType());
-                Long totalPre = (Long) neuron.asMap().get("pre");
-                Long totalPost = (Long) neuron.asMap().get("post");
+                long totalPre = (long) neuron.asMap().get("pre");
+                long totalPost = (long) neuron.asMap().get("post");
 
-                StringBuilder inputs = new StringBuilder();
-                StringBuilder outputs = new StringBuilder();
-
-                for (String roi : roiInfoMap.keySet()) {
-                    if (roiList.contains(roi)) {
-                        if ((roiInfoMap.get(roi).getPre() * 1.0) / totalPre > threshold) {
-                            outputs.append(roi).append(".");
-                        }
-                        if ((roiInfoMap.get(roi).getPost() * 1.0) / totalPost > threshold) {
-                            inputs.append(roi).append(".");
-                        }
-                    }
-                }
-
-                if (outputs.length() > 0) {
-                    outputs.deleteCharAt(outputs.length() - 1);
-                } else {
-                    outputs.append("none");
-                }
-                if (inputs.length() > 0) {
-                    inputs.deleteCharAt(inputs.length() - 1);
-                } else {
-                    inputs.append("none");
-                }
+                String clusterName = generateClusterName(roiInfoMap, totalPre, totalPost, threshold, roiList);
 
                 batch.addStatement(new Statement(addClusterNameString,
                         parameters("bodyId", neuron.asMap().get("bodyId"),
-                                "clusterName", inputs + "-" + outputs
+                                "clusterName", clusterName
                         )));
 
             }
@@ -1014,7 +991,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<Long> getAllSegmentBodyIdsWithGreaterThanThresholdSynapses(final Transaction tx, final String dataset, final int synapseThreshold) {
-        int preSynapseThreshold = (int) (synapseThreshold/5.0F);
+        int preSynapseThreshold = (int) (synapseThreshold / 5.0F);
         StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE n.pre>=" + preSynapseThreshold + " OR n.post>=" + synapseThreshold + " RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
@@ -1024,7 +1001,7 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static List<Long> getAllSegmentBodyIdsWithGreaterThanThresholdSynapsesAndWithoutNames(final Transaction tx, final String dataset, final int synapseThreshold) {
-        int preSynapseThreshold = (int) (synapseThreshold/5.0F);
+        int preSynapseThreshold = (int) (synapseThreshold / 5.0F);
         StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE (n.pre>=" + preSynapseThreshold + " OR n.post>=" + synapseThreshold + ") AND (NOT exists(n.name) OR n.name=\"unknown\") RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
@@ -1088,6 +1065,34 @@ public class Neo4jImporter implements AutoCloseable {
         }
 
         return superLevelRois;
+    }
+
+    public static String generateClusterName(Map<String, SynapseCounter> roiInfoMap, long totalPre, long totalPost, double threshold, List<String> includedRois) {
+
+        StringBuilder inputs = new StringBuilder();
+        StringBuilder outputs = new StringBuilder();
+        for (String roi : roiInfoMap.keySet()) {
+            if (includedRois.contains(roi)) {
+                if ((roiInfoMap.get(roi).getPre() * 1.0) / totalPre > threshold) {
+                    outputs.append(roi).append(".");
+                }
+                if ((roiInfoMap.get(roi).getPost() * 1.0) / totalPost > threshold) {
+                    inputs.append(roi).append(".");
+                }
+            }
+        }
+        if (outputs.length() > 0) {
+            outputs.deleteCharAt(outputs.length() - 1);
+        } else {
+            outputs.append("none");
+        }
+        if (inputs.length() > 0) {
+            inputs.deleteCharAt(inputs.length() - 1);
+        } else {
+            inputs.append("none");
+        }
+
+        return inputs + "-" + outputs;
     }
 
     private static final Logger LOG = LoggerFactory.getLogger(Neo4jImporter.class);

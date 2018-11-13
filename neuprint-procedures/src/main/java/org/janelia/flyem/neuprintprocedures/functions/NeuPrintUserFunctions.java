@@ -1,7 +1,7 @@
 package org.janelia.flyem.neuprintprocedures.functions;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
+import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.janelia.flyem.neuprintprocedures.Location;
 import org.neo4j.graphdb.Direction;
@@ -23,7 +23,16 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SEGMENT;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CLUSTER_NAME;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONTAINS;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.NEURON;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.POST_SYN;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.PRE_SYN;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSES_TO;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_SET;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getLocationAs3dCartesianPoint;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getRoiInfoAsMap;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSegment;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSynapseLocations;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSynapseSetForNeuron;
 
@@ -43,8 +52,7 @@ public class NeuPrintUserFunctions {
         }
         Point point = null;
         try {
-            Map<String, Object> pointQueryResult = dbService.execute("RETURN point({ x:" + x + ", y:" + y + ", z:" + z + ", crs:'cartesian-3D'}) AS point").next();
-            point = (Point) pointQueryResult.get("point");
+            point = getLocationAs3dCartesianPoint(dbService, x, y, z);
         } catch (Exception e) {
             log.error("Error using neuprint.locationAs3dCartPoint(x,y,z): ");
             e.printStackTrace();
@@ -60,7 +68,7 @@ public class NeuPrintUserFunctions {
         }
 
         Location centroid;
-        final Node neuron = dbService.findNode(Label.label(dataset + "-" + SEGMENT), "bodyId", bodyId);
+        final Node neuron = getSegment(dbService, bodyId, dataset);
         if (neuron != null) {
             // get all synapse locations
             final Node synapseSet = getSynapseSetForNeuron(neuron);
@@ -69,7 +77,7 @@ public class NeuPrintUserFunctions {
                 //compute centroid
                 centroid = Location.getCentroid(synapseLocations);
             } else {
-                centroid = new Location(0L,0L,0L);
+                centroid = new Location(0L, 0L, 0L);
             }
         } else {
             throw new RuntimeException("Body id " + bodyId + " does not exist in dataset " + dataset + ".");
@@ -85,34 +93,9 @@ public class NeuPrintUserFunctions {
             throw new RuntimeException("Must provide roiInfo, totalPre, totalPost, threshold, and includedRois.");
         }
 
-        Gson gson = new Gson();
-        Map<String, SynapseCounter> roiInfoMap = gson.fromJson(roiInfo, new TypeToken<Map<String, SynapseCounter>>() {
-        }.getType());
+        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfo);
 
-        StringBuilder inputs = new StringBuilder();
-        StringBuilder outputs = new StringBuilder();
-        for (String roi : roiInfoMap.keySet()) {
-            if (includedRois.contains(roi)) {
-                if ((roiInfoMap.get(roi).getPre() * 1.0) / totalPre > threshold) {
-                    outputs.append(roi).append(".");
-                }
-                if ((roiInfoMap.get(roi).getPost() * 1.0) / totalPost > threshold) {
-                    inputs.append(roi).append(".");
-                }
-            }
-        }
-        if (outputs.length() > 0) {
-            outputs.deleteCharAt(outputs.length() - 1);
-        } else {
-            outputs.append("none");
-        }
-        if (inputs.length() > 0) {
-            inputs.deleteCharAt(inputs.length() - 1);
-        } else {
-            inputs.append("none");
-        }
-
-        return inputs + "-" + outputs;
+        return Neo4jImporter.generateClusterName(roiInfoMap, totalPre, totalPost, threshold, includedRois);
 
     }
 
@@ -123,9 +106,7 @@ public class NeuPrintUserFunctions {
             throw new RuntimeException("Must provide roiInfo, totalPre, totalPost, threshold, superRois, and subRois.");
         }
 
-        Gson gson = new Gson();
-        Map<String, SynapseCounter> roiInfoMap = gson.fromJson(roiInfo, new TypeToken<Map<String, SynapseCounter>>() {
-        }.getType());
+        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfo);
 
         StringBuilder inputs = new StringBuilder();
         StringBuilder outputs = new StringBuilder();
@@ -161,33 +142,27 @@ public class NeuPrintUserFunctions {
             throw new RuntimeException("Must provide bodyId, dataset, and number of connections.");
         }
 
-        Node neuron = dbService.findNode(Label.label(dataset + "-Segment"), "bodyId", bodyId);
+        Node neuron = getSegment(dbService, bodyId, dataset);
 
         // get synapse set
-        Node synapseSet = null;
-        for (Relationship containsRelationship : neuron.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
-            Node containedNode = containsRelationship.getEndNode();
-            if (containedNode.hasLabel(Label.label("SynapseSet"))) {
-                synapseSet = containedNode;
-            }
-        }
+        Node synapseSet = getSynapseSetForNeuron(neuron);
 
         Map<String, SynapseCounter> categoryCounts = new TreeMap<>();
 
         if (synapseSet != null) {
             // get cluster names of connected neurons
-            for (Relationship containsRelationship : synapseSet.getRelationships(RelationshipType.withName("Contains"), Direction.OUTGOING)) {
+            for (Relationship containsRelationship : synapseSet.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
                 Node synapseNode = containsRelationship.getEndNode();
                 Set<String> connectedNeuronClusterNames = new TreeSet<>();
-                for (Relationship synapsesToRelationship : synapseNode.getRelationships(RelationshipType.withName("SynapsesTo"))) {
+                for (Relationship synapsesToRelationship : synapseNode.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
                     Node otherSynapse = synapsesToRelationship.getOtherNode(synapseNode);
-                    for (Relationship otherSynapseContainsRel : otherSynapse.getRelationships(RelationshipType.withName("Contains"), Direction.INCOMING)) {
+                    for (Relationship otherSynapseContainsRel : otherSynapse.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
                         Node containingNode = otherSynapseContainsRel.getStartNode();
-                        if (containingNode.hasLabel(Label.label("SynapseSet"))) {
-                            for (Relationship otherSynapseSetContainsRel : containingNode.getRelationships(RelationshipType.withName("Contains"), Direction.INCOMING)) {
+                        if (containingNode.hasLabel(Label.label(SYNAPSE_SET))) {
+                            for (Relationship otherSynapseSetContainsRel : containingNode.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
                                 Node otherSegment = otherSynapseSetContainsRel.getStartNode();
-                                if (otherSegment.hasLabel(Label.label("Neuron"))) {
-                                    connectedNeuronClusterNames.add((String) otherSegment.getProperty("clusterName"));
+                                if (otherSegment.hasLabel(Label.label(NEURON))) {
+                                    connectedNeuronClusterNames.add((String) otherSegment.getProperty(CLUSTER_NAME));
                                 } else {
                                     connectedNeuronClusterNames.add("_");
                                 }
@@ -206,9 +181,9 @@ public class NeuPrintUserFunctions {
                 }
 
                 SynapseCounter synapseCounter = categoryCounts.getOrDefault(categoryKey.toString(), new SynapseCounter());
-                if (synapseNode.hasLabel(Label.label("PreSyn"))) {
+                if (synapseNode.hasLabel(Label.label(PRE_SYN))) {
                     synapseCounter.incrementPre();
-                } else if (synapseNode.hasLabel(Label.label("PostSyn"))) {
+                } else if (synapseNode.hasLabel(Label.label(POST_SYN))) {
                     synapseCounter.incrementPost();
                 }
                 categoryCounts.put(categoryKey.toString(), synapseCounter);
