@@ -3,6 +3,7 @@ package org.janelia.flyem.neuprintprocedures.functions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprintprocedures.Location;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -22,6 +23,10 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SEGMENT;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSynapseLocations;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSynapseSetForNeuron;
+
 public class NeuPrintUserFunctions {
 
     @Context
@@ -34,7 +39,7 @@ public class NeuPrintUserFunctions {
     @Description("neuprint.locationAs3dCartPoint(x,y,z) : returns a 3D Cartesian org.neo4j.graphdb.spatial.Point type with the provided coordinates. ")
     public Point locationAs3dCartPoint(@Name("x") Double x, @Name("y") Double y, @Name("z") Double z) {
         if (x == null || y == null || z == null) {
-            throw new Error("Must provide x, y, and z coordinate.");
+            throw new RuntimeException("Must provide x, y, and z coordinate.");
         }
         Point point = null;
         try {
@@ -47,11 +52,37 @@ public class NeuPrintUserFunctions {
         return point;
     }
 
+    @UserFunction("neuprint.getNeuronCentroid")
+    @Description("neuprint.getNeuronCentroid(bodyId, dataset) : returns centroid of queried neuron as a list of longs. Returns [0,0,0] if there are no synapses on the body.")
+    public List<Long> getNeuronCentroid(@Name("bodyId") Long bodyId, @Name("dataset") String dataset) {
+        if (bodyId == null || dataset == null) {
+            throw new RuntimeException("Must provide bodyId and dataset.");
+        }
+
+        Location centroid;
+        final Node neuron = dbService.findNode(Label.label(dataset + "-" + SEGMENT), "bodyId", bodyId);
+        if (neuron != null) {
+            // get all synapse locations
+            final Node synapseSet = getSynapseSetForNeuron(neuron);
+            if (synapseSet != null) {
+                final List<Location> synapseLocations = getSynapseLocations(synapseSet);
+                //compute centroid
+                centroid = Location.getCentroid(synapseLocations);
+            } else {
+                centroid = new Location(0L,0L,0L);
+            }
+        } else {
+            throw new RuntimeException("Body id " + bodyId + " does not exist in dataset " + dataset + ".");
+        }
+
+        return centroid.getLocationAsList();
+    }
+
     @UserFunction("neuprint.roiInfoAsName")
     @Description("neuprint.roiInfoAsName(roiInfo, totalPre, totalPost, threshold, includedRois) ")
     public String roiInfoAsName(@Name("roiInfo") String roiInfo, @Name("totalPre") Long totalPre, @Name("totalPost") Long totalPost, @Name("threshold") Double threshold, @Name("includedRois") List<String> includedRois) {
         if (roiInfo == null || totalPre == null || totalPost == null || threshold == null || includedRois == null) {
-            throw new Error("Must provide roiInfo, totalPre, totalPost, threshold, and includedRois.");
+            throw new RuntimeException("Must provide roiInfo, totalPre, totalPost, threshold, and includedRois.");
         }
 
         Gson gson = new Gson();
@@ -89,7 +120,7 @@ public class NeuPrintUserFunctions {
     @Description("neuprint.roiInfoAsNameUsingSubRois(roiInfo, totalPre, totalPost, threshold, superRois, allRois) ")
     public String roiInfoAsNameUsingSubRois(@Name("roiInfo") String roiInfo, @Name("totalPre") Long totalPre, @Name("totalPost") Long totalPost, @Name("threshold") Double threshold, @Name("superRois") List<String> superRois, @Name("superRois") List<String> allRois) {
         if (roiInfo == null || totalPre == null || totalPost == null || threshold == null || superRois == null || allRois == null) {
-            throw new Error("Must provide roiInfo, totalPre, totalPost, threshold, superRois, and subRois.");
+            throw new RuntimeException("Must provide roiInfo, totalPre, totalPost, threshold, superRois, and subRois.");
         }
 
         Gson gson = new Gson();
@@ -127,7 +158,7 @@ public class NeuPrintUserFunctions {
     @Description("neuprint.getClusterNamesOfConnections")
     public String getClusterNamesOfConnections(@Name("bodyId") Long bodyId, @Name("dataset") String dataset) {
         if (bodyId == null || dataset == null) {
-            throw new Error("Must provide bodyId, dataset, and number of connections.");
+            throw new RuntimeException("Must provide bodyId, dataset, and number of connections.");
         }
 
         Node neuron = dbService.findNode(Label.label(dataset + "-Segment"), "bodyId", bodyId);
