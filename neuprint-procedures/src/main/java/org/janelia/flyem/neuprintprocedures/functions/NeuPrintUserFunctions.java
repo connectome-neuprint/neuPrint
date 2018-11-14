@@ -17,12 +17,16 @@ import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.UserFunction;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CLUSTER_NAME;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONTAINS;
@@ -34,7 +38,7 @@ import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_S
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getLocationAs3dCartesianPoint;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getRoiInfoAsMap;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSegment;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSynapseLocations;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSynapseLocationSet;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSynapseSetForNeuron;
 
 public class NeuPrintUserFunctions {
@@ -62,29 +66,36 @@ public class NeuPrintUserFunctions {
     }
 
     @UserFunction("neuprint.getNeuronCentroid")
-    @Description("neuprint.getNeuronCentroid(bodyId, dataset) : returns centroid of queried neuron as a list of longs. Returns [0,0,0] if there are no synapses on the body.")
+    @Description("neuprint.getNeuronCentroid(bodyId, dataset) : returns location of synapse closest to centroid of queried neuron as a list of longs. Returns [0,0,0] if there are no synapses on the body.")
     public List<Long> getNeuronCentroid(@Name("bodyId") Long bodyId, @Name("dataset") String dataset) {
         if (bodyId == null || dataset == null) {
             throw new RuntimeException("Must provide bodyId and dataset.");
         }
 
-        Location centroid;
+        final Location centralSynapseLocation;
         final Node neuron = getSegment(dbService, bodyId, dataset);
         if (neuron != null) {
             // get all synapse locations
             final Node synapseSet = getSynapseSetForNeuron(neuron);
             if (synapseSet != null) {
-                final List<Location> synapseLocations = getSynapseLocations(synapseSet);
+
+                final Set<Location> synapseLocationSet = getSynapseLocationSet(synapseSet);
+
                 //compute centroid
-                centroid = Location.getCentroid(synapseLocations);
+                Location centroid = Location.getCentroid(new ArrayList<>(synapseLocationSet));
+
+                // find synapse location closest to centroid
+                final TreeSet<Location> sortedLocationSet = new TreeSet<>(Comparator.comparingDouble(a -> Location.getDistanceBetweenLocations(centroid, a)));
+                sortedLocationSet.addAll(synapseLocationSet);
+                centralSynapseLocation = sortedLocationSet.first();
             } else {
-                centroid = new Location(0L, 0L, 0L);
+                centralSynapseLocation = new Location(0L,0L,0L);
             }
         } else {
             throw new RuntimeException("Body id " + bodyId + " does not exist in dataset " + dataset + ".");
         }
 
-        return centroid.getLocationAsList();
+        return centralSynapseLocation.getLocationAsList();
     }
 
     @UserFunction("neuprint.roiInfoAsName")

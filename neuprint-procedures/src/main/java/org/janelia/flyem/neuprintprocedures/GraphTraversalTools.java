@@ -11,8 +11,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.spatial.Point;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -102,9 +101,9 @@ public class GraphTraversalTools {
         return null;
     }
 
-    public static List<Location> getSynapseLocations(final Node synapseSet) {
+    public static Set<Location> getSynapseLocationSet(final Node synapseSet) {
 
-        List<Location> locationList = new ArrayList<>();
+        Set<Location> synapseLocationSet = new HashSet<>();
         synapseSet.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING).forEach(relationship -> {
             final Node synapse = relationship.getEndNode();
             final Point locationPoint = (Point) synapse.getProperty(LOCATION);
@@ -116,10 +115,10 @@ public class GraphTraversalTools {
                     .collect(Collectors.toList())
                     .toArray(new Long[3]);
             final Location location = new Location(locationArray);
-            locationList.add(location);
+            synapseLocationSet.add(location);
         });
 
-        return locationList;
+        return synapseLocationSet;
     }
 
     public static Node getSegmentThatContainsSynapse(final Node synapse) {

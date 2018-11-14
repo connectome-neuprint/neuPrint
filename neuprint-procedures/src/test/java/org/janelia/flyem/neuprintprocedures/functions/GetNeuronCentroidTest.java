@@ -57,9 +57,9 @@ public class GetNeuronCentroidTest {
 
         List<Object> centroid = session.readTransaction(tx -> tx.run("WITH neuprint.getNeuronCentroid(8426959,'test') AS centroid RETURN centroid")).single().get(0).asList();
 
-        Assert.assertEquals(4959L, centroid.get(0));
-        Assert.assertEquals(3791L, centroid.get(1));
-        Assert.assertEquals(3346L, centroid.get(2));
+        Assert.assertEquals(4222L, centroid.get(0));
+        Assert.assertEquals(2402L, centroid.get(1));
+        Assert.assertEquals(1688L, centroid.get(2));
 
     }
 }
