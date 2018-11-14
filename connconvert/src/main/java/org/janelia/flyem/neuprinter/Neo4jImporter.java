@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
-//TODO: remove unknown as a name and not examined as a status
 
 /**
  * A class for importing neuron and synapse information into a neuprint neo4j database.
@@ -1003,7 +1002,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     private static List<Long> getAllSegmentBodyIdsWithGreaterThanThresholdSynapsesAndWithoutNames(final Transaction tx, final String dataset, final int synapseThreshold) {
         int preSynapseThreshold = (int) (synapseThreshold / 5.0F);
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE (n.pre>=" + preSynapseThreshold + " OR n.post>=" + synapseThreshold + ") AND (NOT exists(n.name) OR n.name=\"unknown\") RETURN n.bodyId ");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WHERE (n.pre>=" + preSynapseThreshold + " OR n.post>=" + synapseThreshold + ") AND NOT exists(n.name) RETURN n.bodyId ");
         List<Long> bodyIdList = new ArrayList<>();
         while (result.hasNext()) {
             bodyIdList.add((Long) result.next().asMap().get("n.bodyId"));
