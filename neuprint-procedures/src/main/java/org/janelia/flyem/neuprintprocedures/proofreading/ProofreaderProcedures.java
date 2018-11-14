@@ -10,13 +10,13 @@ import org.janelia.flyem.neuprinter.model.Synapse;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.janelia.flyem.neuprinter.model.SynapseCountsPerRoi;
 import org.janelia.flyem.neuprintprocedures.GraphTraversalTools;
+import org.janelia.flyem.neuprintprocedures.Location;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.logging.Log;
@@ -70,7 +70,6 @@ import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSES_
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_SET;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.TYPE;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.WEIGHT;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getLocationAs3dCartesianPoint;
 
 public class ProofreaderProcedures {
 
@@ -126,7 +125,7 @@ public class ProofreaderProcedures {
 
                 if (neuron.getSoma() != null) {
                     List<Integer> somaLocationList = neuron.getSoma().getLocation();
-                    Point somaLocationPoint = getLocationAs3dCartesianPoint(dbService, (double) somaLocationList.get(0), (double) somaLocationList.get(1), (double) somaLocationList.get(2));
+                    Point somaLocationPoint = new Location((long) somaLocationList.get(0), (long) somaLocationList.get(1), (long) somaLocationList.get(2));
                     neuronNode.setProperty(SOMA_LOCATION, somaLocationPoint);
                     neuronNode.setProperty(SOMA_RADIUS, neuron.getSoma().getRadius());
                     log.info("Updated soma for neuron " + neuron.getId() + ".");
@@ -230,7 +229,7 @@ public class ProofreaderProcedures {
 
                 // get the synapse by location
                 List<Integer> synapseLocation = synapse.getLocation();
-                Point synapseLocationPoint = GraphTraversalTools.getLocationAs3dCartesianPoint(dbService, (double) synapseLocation.get(0), (double) synapseLocation.get(1), (double) synapseLocation.get(2));
+                Point synapseLocationPoint = new Location((long) synapseLocation.get(0), (long) synapseLocation.get(1), (long) synapseLocation.get(2));
                 Node synapseNode = GraphTraversalTools.getSynapse(dbService, synapseLocationPoint, datasetLabel);
 
                 if (synapseNode == null) {
@@ -321,13 +320,8 @@ public class ProofreaderProcedures {
 
             if (neuronUpdate.getSoma() != null) {
                 newNeuron.setProperty(SOMA_RADIUS, neuronUpdate.getSoma().getRadius());
-                Map<String, Object> parametersMap = new HashMap<>();
                 List<Integer> somaLocation = neuronUpdate.getSoma().getLocation();
-                parametersMap.put("x", somaLocation.get(0));
-                parametersMap.put("y", somaLocation.get(1));
-                parametersMap.put("z", somaLocation.get(2));
-                Result locationResult = dbService.execute("WITH neuprint.locationAs3dCartPoint($x,$y,$z) AS loc RETURN loc", parametersMap);
-                Point somaLocationPoint = (Point) locationResult.next().get("loc");
+                Point somaLocationPoint = new Location((long) somaLocation.get(0), (long) somaLocation.get(1), (long) somaLocation.get(2));
                 newNeuron.setProperty(SOMA_LOCATION, somaLocationPoint);
                 isNeuron = true;
             }
@@ -742,7 +736,7 @@ public class ProofreaderProcedures {
 
         //set location
         List<Integer> skelNodeLocation = skelNode.getLocation();
-        Point skelNodeLocationPoint = GraphTraversalTools.getLocationAs3dCartesianPoint(dbService, (double) skelNodeLocation.get(0), (double) skelNodeLocation.get(1), (double) skelNodeLocation.get(2));
+        Point skelNodeLocationPoint = new Location((long) skelNodeLocation.get(0), (long) skelNodeLocation.get(1), (long) skelNodeLocation.get(2));
         skelNodeNode.setProperty(LOCATION, skelNodeLocationPoint);
 
         //set radius, row number, type

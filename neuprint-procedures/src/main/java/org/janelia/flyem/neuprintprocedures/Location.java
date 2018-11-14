@@ -1,20 +1,21 @@
 package org.janelia.flyem.neuprintprocedures;
 
+import org.neo4j.graphdb.spatial.CRS;
+import org.neo4j.graphdb.spatial.Coordinate;
+import org.neo4j.graphdb.spatial.Point;
+import org.neo4j.values.storable.CoordinateReferenceSystem;
+
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
-public class Location {
+public class Location implements Point {
 
     private Long[] location;
-    private transient Long x;
-    private transient Long y;
-    private transient Long z;
+    private CoordinateReferenceSystem crs = CoordinateReferenceSystem.Cartesian_3D;
 
     public Location(Long x, Long y, Long z) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
         this.location = new Long[3];
         this.location[0] = x;
         this.location[1] = y;
@@ -22,26 +23,32 @@ public class Location {
     }
 
     public Location(Long[] locationArray) {
-        this.x = locationArray[0];
-        this.y = locationArray[1];
-        this.z = locationArray[2];
         this.location = locationArray;
     }
 
     public Long getX() {
-        return x;
+        return location[0];
     }
 
     public Long getY() {
-        return y;
+        return location[1];
     }
 
     public Long getZ() {
-        return z;
+        return location[2];
     }
 
     public Long[] getLocation() {
         return location;
+    }
+
+    @Override
+    public CRS getCRS() {
+        return this.crs;
+    }
+
+    public List<Coordinate> getCoordinates() {
+        return Collections.singletonList(new Coordinate((double) this.getX(), (double) this.getY(), (double) this.getZ()));
     }
 
     public List<Long> getLocationAsList() {
@@ -49,13 +56,13 @@ public class Location {
     }
 
     public static Location getSummedLocations(Location a, Location b) {
-        return new Location(a.x + b.x, a.y + b.y, a.z + b.z);
+        return new Location(a.getX() + b.getX(), a.getY() + b.getY(), a.getZ() + b.getZ());
     }
 
     public static Double getDistanceBetweenLocations(Location a, Location b) {
-        Long dx = (a.x - b.x);
-        Long dy = (a.y - b.y);
-        Long dz = (a.z - b.z);
+        Long dx = (a.getX() - b.getX());
+        Long dy = (a.getY() - b.getY());
+        Long dz = (a.getZ() - b.getZ());
 
         return Math.sqrt(dx * dx + dy * dy + dz * dz);
     }
@@ -72,7 +79,7 @@ public class Location {
 
     @Override
     public String toString() {
-        return this.x + ":" + this.y + ":" + this.z;
+        return this.getX() + ":" + this.getY() + ":" + this.getZ();
     }
 
     @Override
