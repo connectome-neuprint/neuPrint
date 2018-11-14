@@ -871,7 +871,7 @@ public class Neo4jImporter implements AutoCloseable {
         List<Node> neuronNodeList;
         Set<String> roiSet;
         try (Session session = driver.session()) {
-            roiSet = session.readTransaction(tx -> getRoisFromMetaNode(tx, dataset)).stream().collect(Collectors.toSet());
+            roiSet = new HashSet<>(session.readTransaction(tx -> getRoisFromMetaNode(tx, dataset)));
             neuronNodeList = session.readTransaction(tx -> getAllNeuronNodes(tx, dataset));
         }
 

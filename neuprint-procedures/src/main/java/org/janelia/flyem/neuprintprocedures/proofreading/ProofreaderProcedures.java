@@ -643,29 +643,6 @@ public class ProofreaderProcedures {
         relationship.setProperty(WEIGHT, weight);
     }
 
-//    private List<String> getRoisForSynapse(Synapse synapse, String datasetLabel) {
-//
-//        Map<String, Object> roiQueryResult;
-//        Map<String, Object> parametersMap = new HashMap<>();
-//        parametersMap.put("x", (double) synapse.getX());
-//        parametersMap.put("y", (double) synapse.getY());
-//        parametersMap.put("z", (double) synapse.getZ());
-//
-//        try {
-//            roiQueryResult = dbService.execute("MATCH (s:`" + datasetLabel + "-Synapse`) WHERE s.location=neuprint.locationAs3dCartPoint($x,$y,$z) WITH keys(s) AS props " +
-//                    "RETURN filter(prop IN props WHERE " +
-//                    "NOT prop=\"type\" AND " +
-//                    "NOT prop=\"confidence\" AND " +
-//                    "NOT prop=\"location\" AND " +
-//                    "NOT prop=\"timeStamp\") AS l", parametersMap).next();
-//        } catch (java.util.NoSuchElementException nse) {
-//            nse.printStackTrace();
-//            log.error(String.format("ProofreaderProcedures getRoisForSynapse: Error using proofreader procedures: %s not found in the dataset.", SYNAPSE));
-//            throw new RuntimeException(String.format("Error using proofreader procedures: %s not found in the dataset.", SYNAPSE));
-//        }
-//
-//        return (ArrayList<String>) roiQueryResult.get("l");
-//    }
 //
 //    private void setSynapseRoisFromDatabase(Synapse synapse, String datasetLabel) {
 //        List<String> roiList = getRoisForSynapse(synapse, datasetLabel);
