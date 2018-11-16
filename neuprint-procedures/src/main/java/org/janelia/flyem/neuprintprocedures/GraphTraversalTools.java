@@ -52,6 +52,7 @@ public class GraphTraversalTools {
     public static final String SKEL_NODE_ID = "skelNodeId";
     public static final String SOMA_LOCATION = "somaLocation";
     public static final String SOMA_RADIUS = "somaRadius";
+    public static final String SUPER_LEVEL_ROIS = "superLevelRois";
     public static final String MUTATION_UUID_ID = "mutationUuidAndId";
     //Relationship names
     public static final String CONNECTS_TO = "ConnectsTo";

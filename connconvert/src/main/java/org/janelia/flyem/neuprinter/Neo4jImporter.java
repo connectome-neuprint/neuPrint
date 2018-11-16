@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
-
 /**
  * A class for importing neuron and synapse information into a neuprint neo4j database.
  */
@@ -870,7 +869,7 @@ public class Neo4jImporter implements AutoCloseable {
         List<Node> neuronNodeList;
         Set<String> roiSet;
         try (Session session = driver.session()) {
-            roiSet = new HashSet<>(session.readTransaction(tx -> getRoisFromMetaNode(tx, dataset)));
+            roiSet = new HashSet<>(session.readTransaction(tx -> getSuperLevelRoisFromMetaNode(tx, dataset)));
             neuronNodeList = session.readTransaction(tx -> getAllNeuronNodes(tx, dataset));
         }
 
@@ -1021,6 +1020,11 @@ public class Neo4jImporter implements AutoCloseable {
 
     private static List<String> getRoisFromMetaNode(final Transaction tx, final String dataset) {
         StatementResult result = tx.run("MATCH (m:Meta{dataset:\"" + dataset + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois RETURN rois");
+        return (List<String>) result.next().asMap().get("rois");
+    }
+
+    private static List<String> getSuperLevelRoisFromMetaNode(final Transaction tx, final String dataset) {
+        StatementResult result = tx.run("MATCH (m:Meta{dataset:\"" + dataset + "\"}) WITH m.superLevelRois AS rois RETURN rois");
         return (List<String>) result.next().asMap().get("rois");
     }
 

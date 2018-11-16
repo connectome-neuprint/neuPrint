@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -66,6 +67,7 @@ import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKEL_NODE
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SOMA_LOCATION;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SOMA_RADIUS;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.STATUS;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SUPER_LEVEL_ROIS;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSES_TO;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_SET;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.TYPE;
@@ -779,14 +781,14 @@ public class ProofreaderProcedures {
 
         Node metaNode = GraphTraversalTools.getMetaNode(dbService, datasetLabel);
         if (metaNode != null) {
-            String metaNodeRoiInfo;
+            String[] metaNodeSuperLevelRois;
             try {
-                metaNodeRoiInfo = (String) metaNode.getProperty(ROI_INFO);
+                metaNodeSuperLevelRois = (String[]) metaNode.getProperty(SUPER_LEVEL_ROIS);
             } catch (Exception e) {
-                log.error("Error retrieving roiInfo from Meta node for " + datasetLabel + ":" + e);
-                throw new RuntimeException("Error retrieving roiInfo from Meta node for " + datasetLabel + ":" + e);
+                log.error("Error retrieving " + SUPER_LEVEL_ROIS + " from Meta node for " + datasetLabel + ":" + e);
+                throw new RuntimeException("Error retrieving " + SUPER_LEVEL_ROIS + " from Meta node for " + datasetLabel + ":" + e);
             }
-            final Set<String> roiSet = GraphTraversalTools.getRoiInfoAsMap(metaNodeRoiInfo).keySet();
+            final Set<String> roiSet = new HashSet<>(Arrays.asList(metaNodeSuperLevelRois));
             segment.setProperty("clusterName", Neo4jImporter.generateClusterName(roiInfoObject, totalPre, totalPost, 0.10, roiSet));
         } else {
             log.error("Meta node not found for dataset " + datasetLabel);
