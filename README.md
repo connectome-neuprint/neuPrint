@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/connectome-neuprint/neuPrint.svg?branch=master)](https://travis-ci.org/connectome-neuprint/neuPrint)
-
+[![Build Status](https://travis-ci.org/connectome-neuprint/neuPrint.svg?branch=master)](https://travis-ci.org/connectome-neuprint/neuPrint) 
 [![Waffle.io - Columns and their card count](https://badge.waffle.io/connectome-neuprint/neuPrint.svg?columns=all)](https://waffle.io/connectome-neuprint/neuPrint)
 
 
