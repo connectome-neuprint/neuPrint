@@ -6,6 +6,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.event.TransactionData;
+import org.neo4j.logging.Log;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -16,10 +17,12 @@ public class TriggersRunnable implements Runnable {
 
     private static TransactionData transactionData;
     private static GraphDatabaseService dbService;
+    private static Log log;
 
-    TriggersRunnable(TransactionData transactionData, GraphDatabaseService graphDatabaseService) {
+    TriggersRunnable(TransactionData transactionData, GraphDatabaseService graphDatabaseService, Log log) {
         TriggersRunnable.transactionData = transactionData;
-        dbService = graphDatabaseService;
+        TriggersRunnable.dbService = graphDatabaseService;
+        TriggersRunnable.log = log;
     }
 
     @Override
@@ -42,16 +45,16 @@ public class TriggersRunnable implements Runnable {
 
             if (transactionDataHandler.shouldTimeStampAndUpdateMetaNodeTimeStamp()) {
                 //System.out.println("the following nodes will be time-stamped: " + nodesForTimeStamping);
-                TimeStampProcedure.timeStampEmbedded(nodesForTimeStamping, dbService);
+                TimeStampProcedure.timeStampEmbedded(nodesForTimeStamping, dbService, log);
 
                 for (String dataset : transactionDataHandler.getDatasetsChanged()) {
                     Node metaNode = datasetToMetaNodeMap.get(dataset);
                     Long metaNodeId = metaNode.getId();
-                    MetaNodeUpdater.updateMetaNode(metaNodeId, dbService, dataset, transactionDataHandler.getShouldMetaNodeSynapseCountsBeUpdated());
+                    MetaNodeUpdater.updateMetaNode(metaNodeId, dbService, dataset, transactionDataHandler.getShouldMetaNodeSynapseCountsBeUpdated(),log);
                 }
 
                 tx.success();
-                System.out.println(LocalDateTime.now() + " Completed time stamping and updating Meta node.");
+                log.info("Completed time stamping and updating Meta node.");
             }
 
         }

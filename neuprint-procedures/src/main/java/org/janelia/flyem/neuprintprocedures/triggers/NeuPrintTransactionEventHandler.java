@@ -3,6 +3,7 @@ package org.janelia.flyem.neuprintprocedures.triggers;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.graphdb.event.TransactionEventHandler;
+import org.neo4j.logging.Log;
 
 import java.util.concurrent.ExecutorService;
 
@@ -10,10 +11,12 @@ public class NeuPrintTransactionEventHandler implements TransactionEventHandler 
 
     private static GraphDatabaseService dbService;
     private static ExecutorService executorService;
+    private static Log log;
 
-    NeuPrintTransactionEventHandler(GraphDatabaseService graphDatabaseService, ExecutorService executorService) {
+    NeuPrintTransactionEventHandler(GraphDatabaseService graphDatabaseService, ExecutorService executorService, Log log) {
         dbService = graphDatabaseService;
         NeuPrintTransactionEventHandler.executorService = executorService;
+        NeuPrintTransactionEventHandler.log = log;
     }
 
     @Override
@@ -23,7 +26,7 @@ public class NeuPrintTransactionEventHandler implements TransactionEventHandler 
 
     @Override
     public void afterCommit(TransactionData transactionData, Object o) {
-        TriggersRunnable triggersRunnable = new TriggersRunnable(transactionData, dbService);
+        TriggersRunnable triggersRunnable = new TriggersRunnable(transactionData, dbService, log);
         executorService.submit(triggersRunnable);
     }
 

@@ -5,6 +5,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.logging.Log;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
@@ -14,7 +15,7 @@ import java.util.stream.Collectors;
 
 class MetaNodeUpdater {
 
-    static void updateMetaNode(Long metaNodeId, GraphDatabaseService dbService, String dataset, boolean shouldMetaNodeSynapseCountsBeUpdated) {
+    static void updateMetaNode(Long metaNodeId, GraphDatabaseService dbService, String dataset, boolean shouldMetaNodeSynapseCountsBeUpdated, Log log) {
 
         try {
             Node metaNode = dbService.getNodeById(metaNodeId);
@@ -52,7 +53,7 @@ class MetaNodeUpdater {
                 metaNode.setProperty("totalPreCount", preCount);
                 metaNode.setProperty("totalPostCount", postCount);
                 metaNode.setProperty("roiInfo", synapseCountsPerRoi.getAsJsonString());
-                System.out.println(LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS) + " Setting roiInfo on Meta node: " + synapseCountsPerRoi.getAsJsonString());
+                log.info("Setting roiInfo on Meta node: " + synapseCountsPerRoi.getAsJsonString());
             }
 
         } catch (Exception e) {

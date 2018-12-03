@@ -2,9 +2,11 @@ package org.janelia.flyem.neuprintprocedures.triggers;
 
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.extension.KernelExtensionFactory;
+import org.neo4j.kernel.impl.logging.LogService;
 import org.neo4j.kernel.impl.spi.KernelContext;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
+import org.neo4j.logging.Log;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,11 +19,13 @@ public class NeuPrintTransactionEventHandlerExtensionFactory extends KernelExten
 
             private NeuPrintTransactionEventHandler handler;
             private ExecutorService executor;
+            private Log userLog;
 
             @Override
             public void start() {
                 executor = Executors.newFixedThreadPool(1);
-                handler = new NeuPrintTransactionEventHandler(dependencies.getGraphDatabaseService(), executor);
+                Log userLog = dependencies.log().getUserLog(NeuPrintTransactionEventHandlerExtensionFactory.class);
+                handler = new NeuPrintTransactionEventHandler(dependencies.getGraphDatabaseService(), executor, userLog);
                 dependencies.getGraphDatabaseService().registerTransactionEventHandler(handler);
             }
 
@@ -33,8 +37,11 @@ public class NeuPrintTransactionEventHandlerExtensionFactory extends KernelExten
         };
     }
 
+
+
     interface Dependencies {
         GraphDatabaseService getGraphDatabaseService();
+        LogService log();
     }
 
     public NeuPrintTransactionEventHandlerExtensionFactory() {
