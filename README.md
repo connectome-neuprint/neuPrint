@@ -1,4 +1,6 @@
-[![Build Status](https://travis-ci.org/connectome-neuprint/neuPrint.svg?branch=master)](https://travis-ci.org/connectome-neuprint/neuPrint)
+[![Build Status](https://travis-ci.org/connectome-neuprint/neuPrint.svg?branch=master)](https://travis-ci.org/connectome-neuprint/neuPrint) 
+[![Waffle.io - Columns and their card count](https://badge.waffle.io/connectome-neuprint/neuPrint.svg?columns=all)](https://waffle.io/connectome-neuprint/neuPrint)
+
 
 # neuPrint
 A blueprint of the brain. A set of tools for loading and analyzing connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [neuPrintExplorer](https://github.com/connectome-neuprint/neuPrintExplorer). 
