@@ -9,19 +9,19 @@ import org.neo4j.kernel.lifecycle.LifecycleAdapter;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class RegisterTransactionEventHandlerExtensionFactory extends KernelExtensionFactory<RegisterTransactionEventHandlerExtensionFactory.Dependencies> {
+public class NeuPrintTransactionEventHandlerExtensionFactory extends KernelExtensionFactory<NeuPrintTransactionEventHandlerExtensionFactory.Dependencies> {
 
     @Override
     public Lifecycle newInstance(KernelContext kernelContext, final Dependencies dependencies) {
         return new LifecycleAdapter() {
 
-            private MyTransactionEventHandler handler;
+            private NeuPrintTransactionEventHandler handler;
             private ExecutorService executor;
 
             @Override
             public void start() {
                 executor = Executors.newFixedThreadPool(1);
-                handler = new MyTransactionEventHandler(dependencies.getGraphDatabaseService(), executor);
+                handler = new NeuPrintTransactionEventHandler(dependencies.getGraphDatabaseService(), executor);
                 dependencies.getGraphDatabaseService().registerTransactionEventHandler(handler);
             }
 
@@ -37,7 +37,7 @@ public class RegisterTransactionEventHandlerExtensionFactory extends KernelExten
         GraphDatabaseService getGraphDatabaseService();
     }
 
-    public RegisterTransactionEventHandlerExtensionFactory() {
+    public NeuPrintTransactionEventHandlerExtensionFactory() {
         super("registerTransactionEventHandler");
     }
 

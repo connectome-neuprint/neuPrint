@@ -6,14 +6,14 @@ import org.neo4j.graphdb.event.TransactionEventHandler;
 
 import java.util.concurrent.ExecutorService;
 
-public class MyTransactionEventHandler implements TransactionEventHandler {
+public class NeuPrintTransactionEventHandler implements TransactionEventHandler {
 
     private static GraphDatabaseService dbService;
     private static ExecutorService executorService;
 
-    MyTransactionEventHandler(GraphDatabaseService graphDatabaseService, ExecutorService executorService) {
+    NeuPrintTransactionEventHandler(GraphDatabaseService graphDatabaseService, ExecutorService executorService) {
         dbService = graphDatabaseService;
-        MyTransactionEventHandler.executorService = executorService;
+        NeuPrintTransactionEventHandler.executorService = executorService;
     }
 
     @Override
