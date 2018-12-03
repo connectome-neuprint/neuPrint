@@ -24,7 +24,7 @@ public class NeuPrintTransactionEventHandlerExtensionFactory extends KernelExten
             @Override
             public void start() {
                 executor = Executors.newFixedThreadPool(1);
-                Log userLog = dependencies.log().getUserLog(NeuPrintTransactionEventHandlerExtensionFactory.class);
+                userLog = dependencies.log().getUserLog(NeuPrintTransactionEventHandlerExtensionFactory.class);
                 handler = new NeuPrintTransactionEventHandler(dependencies.getGraphDatabaseService(), executor, userLog);
                 dependencies.getGraphDatabaseService().registerTransactionEventHandler(handler);
             }
