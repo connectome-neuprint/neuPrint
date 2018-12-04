@@ -48,6 +48,7 @@ import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONNECTS_
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONTAINS;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.DATASET_BODY_ID;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.DATASET_BODY_IDs;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.FROM;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.LINKS_TO;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.LOCATION;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.MUTATION_UUID_ID;
@@ -70,6 +71,7 @@ import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.STATUS;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SUPER_LEVEL_ROIS;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSES_TO;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_SET;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.TO;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.TYPE;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.WEIGHT;
 
@@ -534,11 +536,6 @@ public class ProofreaderProcedures {
                         containedNode.getRelationships().forEach(Relationship::delete);
                         //delete synapse set
                         containedNode.delete();
-                    } else if (containedNode.hasLabel(Label.label(CONNECTION_SET))) {
-                        // delete relationships of connection set
-                        containedNode.getRelationships().forEach(Relationship::delete);
-                        // delete connectionset
-                        containedNode.delete();
                     } else if (containedNode.hasLabel(Label.label(SKELETON))) {
                         // delete neuron relationship to skeleton
                         neuronContainsRel.delete();
@@ -547,6 +544,10 @@ public class ProofreaderProcedures {
                     }
                 }
             }
+
+            //delete connection sets
+            deleteConnectionSetsAndRelationships(neuron, FROM);
+            deleteConnectionSetsAndRelationships(neuron, TO);
 
             // delete ConnectsTo relationships
             if (neuron.hasRelationship(RelationshipType.withName(CONNECTS_TO))) {
@@ -559,6 +560,18 @@ public class ProofreaderProcedures {
 
         }
 
+    }
+
+    private void deleteConnectionSetsAndRelationships(final Node neuron, String type) {
+        if (neuron.hasRelationship(RelationshipType.withName(type),Direction.INCOMING)) {
+            for (Relationship fromRelationship : neuron.getRelationships(RelationshipType.withName(type))) {
+                final Node connectionSet = fromRelationship.getStartNode();
+                // delete relationships of connection set
+                connectionSet.getRelationships().forEach(Relationship::delete);
+                // delete connection set
+                connectionSet.delete();
+            }
+        }
     }
 
     private void deleteSkeleton(final Node skeletonNode) {
@@ -614,8 +627,8 @@ public class ProofreaderProcedures {
             connectionSet.setProperty(DATASET_BODY_IDs, datasetLabel + ":" + startNodeBodyId + ":" + endNodeBodyId);
 
             // connect it to start and end bodies
-            startNode.createRelationshipTo(connectionSet, RelationshipType.withName(CONTAINS));
-            endNode.createRelationshipTo(connectionSet, RelationshipType.withName(CONTAINS));
+            connectionSet.createRelationshipTo(startNode, RelationshipType.withName(FROM));
+            connectionSet.createRelationshipTo(endNode, RelationshipType.withName(TO));
 
             // add synapses to ConnectionSet
             for (final Node synapse : connectsToRelationship.getSynapsesInConnectionSet()) {
@@ -819,13 +832,13 @@ public class ProofreaderProcedures {
             acquireWriteLockForRelationship(connectsToRelationship);
             acquireWriteLockForNode(connectsToRelationship.getOtherNode(segment));
         }
-        // skeleton and synapse set and connection sets
+        // skeleton and synapse set
         for (Relationship containsRelationship : segment.getRelationships(RelationshipType.withName(CONTAINS))) {
             acquireWriteLockForRelationship(containsRelationship);
-            Node skeletonOrSynapseSetOrConnectionSetNode = containsRelationship.getEndNode();
-            acquireWriteLockForNode(skeletonOrSynapseSetOrConnectionSetNode);
+            Node skeletonOrSynapseSetNode = containsRelationship.getEndNode();
+            acquireWriteLockForNode(skeletonOrSynapseSetNode);
             // skel nodes and synapses
-            for (Relationship skelNodeOrSynapseRelationship : skeletonOrSynapseSetOrConnectionSetNode.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+            for (Relationship skelNodeOrSynapseRelationship : skeletonOrSynapseSetNode.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
                 acquireWriteLockForRelationship(skelNodeOrSynapseRelationship);
                 Node skelNodeOrSynapseNode = skelNodeOrSynapseRelationship.getEndNode();
                 acquireWriteLockForNode(skelNodeOrSynapseNode);
@@ -839,6 +852,20 @@ public class ProofreaderProcedures {
                     acquireWriteLockForRelationship(linksToRelationship);
                 }
             }
+        }
+        // connection sets
+        for (Relationship toRelationship : segment.getRelationships(RelationshipType.withName(TO))) {
+            acquireWriteLockForRelationship(toRelationship);
+            Node connectionSetNode = toRelationship.getStartNode();
+            acquireWriteLockForNode(connectionSetNode);
+            Relationship fromRelationship = connectionSetNode.getSingleRelationship(RelationshipType.withName(FROM), Direction.OUTGOING);
+            acquireWriteLockForRelationship(fromRelationship);
+        }
+        for (Relationship fromRelationship : segment.getRelationships(RelationshipType.withName(FROM))) {
+            acquireWriteLockForRelationship(fromRelationship);
+            Node connectionSetNode = fromRelationship.getStartNode();
+            Relationship toRelationship = connectionSetNode.getSingleRelationship(RelationshipType.withName(TO), Direction.OUTGOING);
+            acquireWriteLockForRelationship(toRelationship);
         }
     }
 }

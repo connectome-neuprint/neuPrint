@@ -283,9 +283,13 @@ public class UpdateNeuronsTest {
 
         Assert.assertEquals(locationSet, expectedLocationSet);
 
-        int connectionSetCount = session.readTransaction(tx -> tx.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959})-[:Contains]->(c:ConnectionSet) WITH DISTINCT c AS cs RETURN count(cs)")).single().get(0).asInt();
+        int connectionSetFromCount = session.readTransaction(tx -> tx.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959})<-[:From]-(c:ConnectionSet) WITH DISTINCT c AS cs RETURN count(cs)")).single().get(0).asInt();
 
-        Assert.assertEquals(3, connectionSetCount);
+        Assert.assertEquals(2, connectionSetFromCount);
+
+        int connectionSetToCount = session.readTransaction(tx -> tx.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959})<-[:To]-(c:ConnectionSet) WITH DISTINCT c AS cs RETURN count(cs)")).single().get(0).asInt();
+
+        Assert.assertEquals(2, connectionSetToCount);
 
     }
 

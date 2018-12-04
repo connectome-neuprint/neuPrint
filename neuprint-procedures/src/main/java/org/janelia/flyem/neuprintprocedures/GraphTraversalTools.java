@@ -59,6 +59,8 @@ public class GraphTraversalTools {
     public static final String CONTAINS = "Contains";
     public static final String LINKS_TO = "LinksTo";
     public static final String SYNAPSES_TO = "SynapsesTo";
+    public static final String TO = "To";
+    public static final String FROM = "From";
 
     public static Node getSegment(final GraphDatabaseService dbService, final long bodyId, final String dataset) {
         return dbService.findNode(Label.label(dataset + "-" + SEGMENT), BODY_ID, bodyId);
