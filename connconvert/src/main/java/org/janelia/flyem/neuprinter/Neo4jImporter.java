@@ -646,6 +646,74 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
+    public void addConnectionSetsOld(final String dataset, final List<BodyWithSynapses> bodyList, final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap) {
+
+        LOG.info("addConnectionSets: entry");
+
+        final String presynapticCSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId=$bodyId1, n:Segment, n:" + dataset + " \n" +
+                "MERGE (s:`" + dataset + "-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) ON CREATE SET s.datasetBodyIds=$datasetBodyIds, s.timeStamp=$timeStamp, s:ConnectionSet, s:" + dataset + " \n" +
+                "MERGE (n)-[:Contains]->(s)";
+
+        final String postsynapticCSText = "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId=$bodyId2, m:Segment, m:" + dataset + " \n" +
+                "MERGE (s:`" + dataset + "-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) ON CREATE SET s.datasetBodyIds=$datasetBodyIds, s.timeStamp=$timeStamp, s:ConnectionSet, s:" + dataset + " \n" +
+                "MERGE (m)-[:Contains]->(s) ";
+
+        final String csContainsSynapseText = "MERGE (s:`" + dataset + "-Synapse`{location:$location}) ON CREATE SET s.location=$location, s:Synapse, s:" + dataset + " \n" +
+                "MERGE (t:`" + dataset + "-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) ON CREATE SET t.datasetBodyIds=$datasetBodyIds, t:ConnectionSet, t:" + dataset + " \n" +
+                "MERGE (t)-[:Contains]->(s) \n";
+
+        try (final TransactionBatch batch = getBatch()) {
+
+            for (final BodyWithSynapses body : bodyList) {
+                ConnectionSetMap connectionSetMap = new ConnectionSetMap();
+
+                long presynapticBodyId = body.getBodyId();
+                for (final Synapse synapse : body.getSynapseSet()) {
+                    if (synapse.getType().equals("pre")) {
+                        final String presynapticLocationString = synapse.getLocationString();
+                        final Set<String> connectionLocationStrings = synapse.getConnectionLocationStrings();
+                        for (final String postsynapticLocationString : connectionLocationStrings) {
+                            //deal with problematic synapses from mb6 dataset
+                            if (!(isMb6ProblematicSynapse(postsynapticLocationString)) || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
+                                long postsynapticBodyId = synapseLocationToBodyIdMap.getBodyId(postsynapticLocationString);
+                                connectionSetMap.addConnection(presynapticBodyId, postsynapticBodyId, presynapticLocationString, postsynapticLocationString);
+                            }
+                        }
+                    }
+                }
+
+                for (String connectionSetKey : connectionSetMap.getConnectionSetKeys()) {
+                    ConnectionSet connectionSet = connectionSetMap.getConnectionSetForKey(connectionSetKey);
+
+                    batch.addStatement(new Statement(presynapticCSText,
+                            parameters(
+                                    "bodyId1", connectionSet.getPresynapticBodyId(),
+                                    "datasetBodyIds", dataset + ":" + connectionSetKey,
+                                    "timeStamp", timeStamp)));
+
+                    batch.addStatement(new Statement(postsynapticCSText,
+                            parameters(
+                                    "bodyId2", connectionSet.getPostsynapticBodyId(),
+                                    "datasetBodyIds", dataset + ":" + connectionSetKey,
+                                    "timeStamp", timeStamp)));
+
+                    for (String synapseLocationString : connectionSet.getConnectingSynapseLocationStrings()) {
+
+                        batch.addStatement(new Statement(csContainsSynapseText,
+                                parameters(
+                                        "location", Synapse.convertLocationStringToPoint(synapseLocationString),
+                                        "datasetBodyIds", dataset + ":" + connectionSetKey)));
+                    }
+
+                }
+            }
+            batch.writeTransaction();
+        }
+
+        LOG.info("addConnectionSets: exit");
+
+    }
+
     /**
      * Adds Skeleton and SkelNode nodes to database. Segments are connected to Skeletons via Contains relationships.
      * Skeletons are connected to SkelNodes via Contains relationships. SkelNodes point to their children with LinksTo
