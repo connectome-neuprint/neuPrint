@@ -1,6 +1,7 @@
 package org.janelia.flyem.neuprintprocedures.triggers;
 
 import apoc.convert.Json;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -32,6 +33,11 @@ public class TimeStampTest {
     @BeforeClass
     public static void before() {
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
+    }
+
+    @AfterClass
+    public static void after() {
+        driver.close();
     }
 
     @Test

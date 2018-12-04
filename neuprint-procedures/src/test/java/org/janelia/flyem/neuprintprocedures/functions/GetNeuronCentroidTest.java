@@ -3,6 +3,7 @@ package org.janelia.flyem.neuprintprocedures.functions;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -48,6 +49,11 @@ public class GetNeuronCentroidTest {
         neo4jImporter.addSegmentRois(dataset, bodyList);
         neo4jImporter.addSynapseSets(dataset, bodyList);
 
+    }
+
+    @AfterClass
+    public static void after() {
+        driver.close();
     }
 
     @Test
