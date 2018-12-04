@@ -406,9 +406,14 @@ public class Neo4jImporterTest {
         Assert.assertTrue(synapseLocation1.equals(location1) || synapseLocation2.equals(location1));
         Assert.assertTrue(synapseLocation1.equals(location2) || synapseLocation2.equals(location2));
 
-        int connectionSetCount = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})-[:Contains]->(c:ConnectionSet) RETURN count(c)").single().get(0).asInt();
+        int connectionSetPreCount = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})<-[:From]-(c:ConnectionSet) RETURN count(c)").single().get(0).asInt();
 
-        Assert.assertEquals(5, connectionSetCount);
+        Assert.assertEquals(4, connectionSetPreCount);
+
+        int connectionSetPostCount = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})<-[:To]-(c:ConnectionSet) RETURN count(c)").single().get(0).asInt();
+
+        Assert.assertEquals(2, connectionSetPostCount);
+
 
         // weight should be equal to the number of psds per connection (assuming no many pre to one post connections)
         List<Record> connections = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PostSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.weight, cs.datasetBodyIds, count(s)").list();

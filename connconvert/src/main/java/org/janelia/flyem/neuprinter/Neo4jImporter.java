@@ -582,13 +582,13 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addConnectionSets: entry");
 
-        final String segment1ContainsCSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId=$bodyId1, n:Segment, n:" + dataset + " \n" +
+        final String presynapticCSText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId1}) ON CREATE SET n.bodyId=$bodyId1, n:Segment, n:" + dataset + " \n" +
                 "MERGE (s:`" + dataset + "-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) ON CREATE SET s.datasetBodyIds=$datasetBodyIds, s.timeStamp=$timeStamp, s:ConnectionSet, s:" + dataset + " \n" +
-                "MERGE (n)-[:Contains]->(s)";
+                "MERGE (n)<-[:From]-(s)";
 
-        final String segment2ContainsCSText = "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId=$bodyId2, m:Segment, m:" + dataset + " \n" +
+        final String postsynapticCSText = "MERGE (m:`" + dataset + "-Segment`{bodyId:$bodyId2}) ON CREATE SET m.bodyId=$bodyId2, m:Segment, m:" + dataset + " \n" +
                 "MERGE (s:`" + dataset + "-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) ON CREATE SET s.datasetBodyIds=$datasetBodyIds, s.timeStamp=$timeStamp, s:ConnectionSet, s:" + dataset + " \n" +
-                "MERGE (m)-[:Contains]->(s) ";
+                "MERGE (m)<-[:To]-(s) ";
 
         final String csContainsSynapseText = "MERGE (s:`" + dataset + "-Synapse`{location:$location}) ON CREATE SET s.location=$location, s:Synapse, s:" + dataset + " \n" +
                 "MERGE (t:`" + dataset + "-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) ON CREATE SET t.datasetBodyIds=$datasetBodyIds, t:ConnectionSet, t:" + dataset + " \n" +
@@ -617,13 +617,13 @@ public class Neo4jImporter implements AutoCloseable {
                 for (String connectionSetKey : connectionSetMap.getConnectionSetKeys()) {
                     ConnectionSet connectionSet = connectionSetMap.getConnectionSetForKey(connectionSetKey);
 
-                    batch.addStatement(new Statement(segment1ContainsCSText,
+                    batch.addStatement(new Statement(presynapticCSText,
                             parameters(
                                     "bodyId1", connectionSet.getPresynapticBodyId(),
                                     "datasetBodyIds", dataset + ":" + connectionSetKey,
                                     "timeStamp", timeStamp)));
 
-                    batch.addStatement(new Statement(segment2ContainsCSText,
+                    batch.addStatement(new Statement(postsynapticCSText,
                             parameters(
                                     "bodyId2", connectionSet.getPostsynapticBodyId(),
                                     "datasetBodyIds", dataset + ":" + connectionSetKey,
