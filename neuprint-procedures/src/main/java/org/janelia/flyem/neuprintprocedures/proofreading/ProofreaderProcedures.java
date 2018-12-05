@@ -474,27 +474,6 @@ public class ProofreaderProcedures {
         }
     }
 
-    @Procedure(value = "proofreader.updateConnectionSetRels", mode = Mode.WRITE)
-    @Description("proofreader.updateConnectionSetRels(connectionSet, dataset) : update to new format ")
-    public void updateConnectionSetRels(@Name("datasetBodyIds") Node connectionSet, @Name("dataset") String dataset) {
-
-        for (Relationship incomingContainsRel : connectionSet.getRelationships(RelationshipType.withName(CONTAINS),Direction.INCOMING)) {
-            incomingContainsRel.delete();
-        }
-
-        String datasetBodyId = (String) connectionSet.getProperty(DATASET_BODY_IDs);
-        String[] splitDatasetBodyId = datasetBodyId.split(":");
-        Long preBodyId = Long.parseLong(splitDatasetBodyId[1]);
-        Long postBodyId = Long.parseLong(splitDatasetBodyId[2]);
-
-        Node preNeuron = GraphTraversalTools.getSegment(dbService,preBodyId,dataset);
-        Node postNeuron = GraphTraversalTools.getSegment(dbService,postBodyId,dataset);
-
-        connectionSet.createRelationshipTo(preNeuron,RelationshipType.withName(FROM));
-        connectionSet.createRelationshipTo(postNeuron,RelationshipType.withName(TO));
-
-    }
-
 //    private void mergeSynapseSets(Node synapseSet1, Node synapseSet2) {
 //
 //        //add both synapse sets to the new node, collect them for adding to apoc merge procedure
