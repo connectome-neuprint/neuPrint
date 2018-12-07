@@ -589,6 +589,36 @@ public class UpdateNeuronsTest {
         Assert.assertEquals(5.0D, neuronNode2.asMap().get("somaRadius"));
         Assert.assertEquals(Values.point(9157, 1, 2, 3).asPoint(), neuronNode2.asMap().get("somaLocation"));
 
+        //if pass empty string then delete property for name/status
+
+        String neuronObjectJson_deleteStatus = "{ \"Id\":222, \"Status\":\"\"}";
+        session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson_deleteStatus, "dataset", "test")));
+
+        Node neuronNode3 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) RETURN n")).single().get(0).asNode();
+        Assert.assertFalse(neuronNode3.asMap().containsKey("status"));
+        // should still be a neuron due to pre and name and soma
+        Assert.assertTrue(neuronNode3.hasLabel("Neuron"));
+        Assert.assertTrue(neuronNode3.hasLabel("test-Neuron"));
+
+        String neuronObjectJson_deleteName = "{ \"Id\":222, \"Name\":\"\"}";
+        session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson_deleteName, "dataset", "test")));
+
+        Node neuronNode4 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) RETURN n")).single().get(0).asNode();
+        Assert.assertFalse(neuronNode4.asMap().containsKey("name"));
+        // should still be a neuron due to pre and soma
+        Assert.assertTrue(neuronNode4.hasLabel("Neuron"));
+        Assert.assertTrue(neuronNode4.hasLabel("test-Neuron"));
+
+        // should convert to not a neuron if doesn't meet criteria
+        session.writeTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) SET n.pre=0 RETURN n"));
+        session.writeTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) REMOVE n.somaRadius,n.somaLocation RETURN n"));
+        session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson_deleteName, "dataset", "test")));
+        Node neuronNode5 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) RETURN n")).single().get(0).asNode();
+        // should no longer be a neuron
+        Assert.assertFalse(neuronNode5.hasLabel("Neuron"));
+        Assert.assertFalse(neuronNode5.hasLabel("test-Neuron"));
+        Assert.assertFalse(neuronNode5.asMap().containsKey("clusterName"));
+
     }
 
     @Test

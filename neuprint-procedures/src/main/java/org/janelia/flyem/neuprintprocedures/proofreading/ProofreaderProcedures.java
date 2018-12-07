@@ -43,6 +43,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.BODY_ID;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CLUSTER_NAME;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONNECTION_SET;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONNECTS_TO;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONTAINS;
@@ -107,17 +108,31 @@ public class ProofreaderProcedures {
             } else {
 
                 boolean isNeuron = false;
+                boolean checkIfStillNeuron = false;
 
                 if (neuron.getStatus() != null) {
-                    neuronNode.setProperty(STATUS, neuron.getStatus());
+                    if (!neuron.getStatus().equals("")) {
+                        neuronNode.setProperty(STATUS, neuron.getStatus());
+                        // adding a status makes it a Neuron
+                        isNeuron = true;
+                    } else {
+                        // delete status when passed empty string
+                        neuronNode.removeProperty(STATUS);
+                        checkIfStillNeuron = true;
+                    }
                     log.info("Updated status for neuron " + neuron.getId() + ".");
                 }
 
                 if (neuron.getName() != null) {
-                    neuronNode.setProperty(NAME, neuron.getName());
-
-                    // adding a name makes it a Neuron
-                    isNeuron = true;
+                    if (!neuron.getName().equals("")) {
+                        neuronNode.setProperty(NAME, neuron.getName());
+                        // adding a name makes it a Neuron
+                        isNeuron = true;
+                    } else {
+                        // delete name when passed empty string
+                        neuronNode.removeProperty(NAME);
+                        checkIfStillNeuron = true;
+                    }
 
                     log.info("Updated name for neuron " + neuron.getId() + ".");
                 }
@@ -140,6 +155,24 @@ public class ProofreaderProcedures {
 
                 if (isNeuron) {
                     convertSegmentToNeuron(neuronNode, datasetLabel, neuron.getId());
+                } else if (checkIfStillNeuron) {
+                    long preCount = 0;
+                    long postCount = 0;
+                    if (neuronNode.hasProperty(PRE)) {
+                        preCount = (long) neuronNode.getProperty(PRE);
+                    }
+                    if (neuronNode.hasProperty(POST)) {
+                        postCount = (long) neuronNode.getProperty(POST);
+                    }
+
+                    // check if neuron
+                    if (!(preCount >= 2 || postCount >= 10 || neuronNode.hasProperty(NAME) || neuronNode.hasProperty(SOMA_RADIUS) || neuronNode.hasProperty(STATUS))) {
+                        // remove neuron labels
+                        neuronNode.removeLabel(Label.label(NEURON));
+                        neuronNode.removeLabel(Label.label(datasetLabel + "-" + NEURON));
+                        // remove cluster name
+                        neuronNode.removeProperty(CLUSTER_NAME);
+                    }
                 }
             }
 
@@ -563,7 +596,7 @@ public class ProofreaderProcedures {
     }
 
     private void deleteConnectionSetsAndRelationships(final Node neuron, String type) {
-        if (neuron.hasRelationship(RelationshipType.withName(type),Direction.INCOMING)) {
+        if (neuron.hasRelationship(RelationshipType.withName(type), Direction.INCOMING)) {
             for (Relationship fromRelationship : neuron.getRelationships(RelationshipType.withName(type))) {
                 final Node connectionSet = fromRelationship.getStartNode();
                 // delete relationships of connection set
