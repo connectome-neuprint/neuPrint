@@ -130,8 +130,10 @@ Usage: java -cp neuprinter.jar org.janelia.flyem.neuprinter.NeuPrinterMain
 
 ![Property Graph Model](pgmv1.png)
 
-All nodes have a time stamp indicating last update in the format YYYY-MM-DDTHH:MM:SS. Segments with greater than a specified number of synaptic densities are labeled Neuron. Note: ConnectsTo weights are equal to the number
-of SynapsesTo relationships for a particular connection. Assuming that the ratio of pre to post for each synaptic connection can be 1:1 or 1:many but never many:1, this is equal to number of postsynaptic densities for a connection.
+Notes:
+* All nodes have a time stamp (property name: *timeStamp*) indicating last update in the format YYYY-MM-DDTHH:MM:SS. 
+* **Segment** nodes with greater than a specified number of synaptic densities are also labeled **Neuron**. 
+* **ConnectsTo** weights are equal to the number of **SynapsesTo** relationships for a particular connection. Assuming that the ratio of pre to post for each synaptic connection can be 1:1 or 1:many (but never many:1) this is equal to number of postsynaptic densities for a connection.
 
 ### :Neuron/:Segment properties
 * pre: number of presynaptic densities
