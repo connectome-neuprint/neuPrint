@@ -151,10 +151,14 @@ public class NeuPrintUserFunctions {
     @Description("neuprint.getClusterNamesOfConnections")
     public String getClusterNamesOfConnections(@Name("bodyId") Long bodyId, @Name("dataset") String dataset) {
         if (bodyId == null || dataset == null) {
-            throw new RuntimeException("Must provide bodyId, dataset, and number of connections.");
+            throw new RuntimeException("Must provide body id and dataset");
         }
 
         Node neuron = getSegment(dbService, bodyId, dataset);
+        if (neuron==null) {
+            log.error("Body id does not exist in the dataset");
+            throw new RuntimeException("Body id does not exist in the dataset.");
+        }
 
         // get synapse set
         Node synapseSet = getSynapseSetForNeuron(neuron);

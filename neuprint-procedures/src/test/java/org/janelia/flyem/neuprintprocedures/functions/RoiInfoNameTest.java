@@ -108,6 +108,17 @@ public class RoiInfoNameTest {
         Assert.assertEquals(1, resultObject.get("roiA-roiA:roiB-none").getPre());
         Assert.assertEquals(2, resultObject.get("roiA-roiA").getPost());
 
+        // should error if body id doesn't exist
+
+        boolean throwsException=false;
+        try {
+            session.readTransaction(tx -> tx.run("WITH neuprint.getClusterNamesOfConnections(8123, \"test\") AS result RETURN result")).single().get(0).asString();
+        } catch (Exception e){
+            throwsException=true;
+        }
+        Assert.assertTrue(throwsException);
+
+
     }
 
 }
