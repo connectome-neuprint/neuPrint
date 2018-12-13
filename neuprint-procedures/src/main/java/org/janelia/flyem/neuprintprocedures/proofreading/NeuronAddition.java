@@ -7,10 +7,10 @@ import org.janelia.flyem.neuprinter.model.Synapse;
 
 import java.util.Set;
 
-public class NeuronUpdate {
+public class NeuronAddition {
 
     @SerializedName("Id")
-    private long bodyId;
+    private Long bodyId;
 
     @SerializedName("Size")
     private long size;
@@ -36,7 +36,7 @@ public class NeuronUpdate {
     @SerializedName("CurrentSynapses")
     private Set<Synapse> currentSynapses;
 
-    public long getBodyId() {
+    public Long getBodyId() {
         return bodyId;
     }
 
@@ -48,7 +48,7 @@ public class NeuronUpdate {
         return mutationUuid;
     }
 
-    public long getMutationId() {
+    public Long getMutationId() {
         return mutationId;
     }
 
@@ -72,10 +72,12 @@ public class NeuronUpdate {
         return currentSynapses;
     }
 
+    public void setToInitialMutationId() { this.mutationId = 0L; }
+
     @Override
     public String toString() {
         Gson gson = new Gson();
-        return gson.toJson(this, NeuronUpdate.class);
+        return gson.toJson(this, NeuronAddition.class);
     }
 
     @Override
@@ -83,8 +85,8 @@ public class NeuronUpdate {
         boolean isEqual = false;
         if (this == o) {
             isEqual = true;
-        } else if (o instanceof NeuronUpdate) {
-            final NeuronUpdate that = (NeuronUpdate) o;
+        } else if (o instanceof NeuronAddition) {
+            final NeuronAddition that = (NeuronAddition) o;
             isEqual = this.mutationUuid.equals(that.mutationUuid)
                     && this.mutationId.equals(that.mutationId);
         }

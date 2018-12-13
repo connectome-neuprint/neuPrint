@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
-public class UpdateNeuronsTest {
+public class AddAndUpdateNeuronsTest {
 
     @ClassRule
     public static Neo4jRule neo4j;
@@ -87,9 +87,7 @@ public class UpdateNeuronsTest {
         neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
         neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 1);
 
-        String updateJson = "{" +
-                "\"Deleted Neurons\": [831744,2589725]," +
-                "\"Updated Neurons\": [" +
+        String updateJson =
                 "{" +
                 "\"Id\": 8426959," +
                 "\"Size\": 12," +
@@ -136,9 +134,7 @@ public class UpdateNeuronsTest {
                 "\"Type\": \"pre\"" +
                 "}" +
                 "]" +
-                "}" +
-                "]" +
-                "}";
+                "}" ;
 
         Session session = driver.session();
 
@@ -152,21 +148,9 @@ public class UpdateNeuronsTest {
         TimeUnit.SECONDS.sleep(5);
 
         Gson gson = new Gson();
-        UpdateNeuronsAction updateNeuronsAction = gson.fromJson(updateJson, UpdateNeuronsAction.class);
-        for (NeuronUpdate neuronUpdate : updateNeuronsAction.getUpdatedNeurons()) {
-            String neuronUpdateJson = gson.toJson(neuronUpdate);
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson, $dataset)", parameters("updateJson", neuronUpdateJson, "dataset", "test")));
-        }
-
-//
-//        Stopwatch timer = Stopwatch.createStarted();
-//
-//        session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuronsFromJson($updateJson,$dataset) YIELD node RETURN node", parameters("updateJson", updateJson, "dataset", "test")));
-//
-//        System.out.println(timer.stop());
-//
-//        //delay to allow for update
-//        TimeUnit.SECONDS.sleep(5);
+        NeuronAddition neuronAddition = gson.fromJson(updateJson, NeuronAddition.class);
+        String neuronUpdateJson = gson.toJson(neuronAddition);
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson, $dataset)", parameters("updateJson", neuronUpdateJson, "dataset", "test")));
 
     }
 
@@ -402,7 +386,7 @@ public class UpdateNeuronsTest {
 
         boolean duplicateUpdate;
         try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
+            session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
             duplicateUpdate = true;
         } catch (ClientException ce) {
             // passed test
@@ -437,7 +421,7 @@ public class UpdateNeuronsTest {
 
         boolean attemptedUpdate;
         try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
+            session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
             attemptedUpdate = true;
         } catch (ClientException ce) {
             ce.printStackTrace();
@@ -476,7 +460,7 @@ public class UpdateNeuronsTest {
 
         boolean attemptedUpdate;
         try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
+            session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
             attemptedUpdate = true;
         } catch (ClientException ce) {
             attemptedUpdate = false;
@@ -510,7 +494,7 @@ public class UpdateNeuronsTest {
 
         boolean attemptedUpdate;
         try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
+            session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
             attemptedUpdate = true;
         } catch (ClientException ce) {
             attemptedUpdate = false;
@@ -538,7 +522,7 @@ public class UpdateNeuronsTest {
                         "]" +
                         "}";
 
-        session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
 
         List<Record> metaRecords = session.readTransaction(tx -> tx.run("MATCH (n:`Meta`{dataset:\"test\"}) RETURN n.latestMutationId, n.uuid")).list();
 
@@ -633,6 +617,62 @@ public class UpdateNeuronsTest {
     }
 
     @Test
+    public void shouldBeAbleToAddSegmentNodesWithoutSynapsesOrMutationId() {
+
+        Session session = driver.session();
+
+        String updateJson =
+                "{" +
+                        "\"Id\": 999," +
+                        "\"Size\": 120," +
+                        "\"MutationUUID\": \"auniqueid\"," +
+                        "\"Status\": \"updated\"," +
+                        "\"Soma\": {" +
+                        "\"Location\": [14067, 10777, 15040]," +
+                        "\"Radius\": 15040.0 }," +
+                        "\"Name\": \"new name\" " +
+                        "}" ;
+
+        Gson gson = new Gson();
+        NeuronAddition neuronAddition = gson.fromJson(updateJson, NeuronAddition.class);
+        String neuronUpdateJson = gson.toJson(neuronAddition);
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson, $dataset)", parameters("updateJson", neuronUpdateJson, "dataset", "test")));
+
+        Node synapselessSegment = session.readTransaction(tx->tx.run("MATCH (n:`test-Segment`{bodyId:999}) RETURN n")).single().get(0).asNode();
+
+        // should have neuron label because has soma, name, and status
+        Assert.assertTrue(synapselessSegment.hasLabel("Neuron"));
+        Assert.assertTrue(synapselessSegment.hasLabel("test-Neuron"));
+
+        Assert.assertEquals(120L, (long) synapselessSegment.asMap().get("size"));
+        Assert.assertEquals(15040.0, (double) synapselessSegment.asMap().get("somaRadius"),.00001 );
+        Assert.assertEquals("new name", synapselessSegment.asMap().get("name"));
+        Assert.assertEquals("auniqueid:0:999", synapselessSegment.asMap().get("mutationUuidAndId"));
+
+        int synapselessSegmentRelCount = session.readTransaction(tx->tx.run("MATCH (n:`test-Segment`{bodyId:999})-->(k) RETURN count(k)")).single().get(0).asInt();
+
+        Assert.assertEquals(1, synapselessSegmentRelCount);
+
+        // all nodes contain a synapse set
+        int synapselessSegmentSynapseSetCount = session.readTransaction(tx->tx.run("MATCH (n:`test-Segment`{bodyId:999})-[:Contains]->(s:SynapseSet) RETURN count(s)")).single().get(0).asInt();
+
+        Assert.assertEquals(1, synapselessSegmentSynapseSetCount);
+
+        //but no synapses on synapse set
+        int synapselessSegmentSynapseCount = session.readTransaction(tx->tx.run("MATCH (n:`test-Segment`{bodyId:999})-[:Contains]->(s:SynapseSet)-[:Contains]->(syn) RETURN count(syn)")).single().get(0).asInt();
+
+        Assert.assertEquals(0, synapselessSegmentSynapseCount);
+
+        //should be able to delete this neuron
+        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteNeuron($bodyId, $dataset)", parameters("bodyId", 999, "dataset", "test")));
+
+        int synapselessSegmentCount = session.readTransaction(tx->tx.run("MATCH (n:`test-Segment`{bodyId:999}) RETURN count(n)")).single().get(0).asInt();
+
+        Assert.assertEquals(0,synapselessSegmentCount);
+
+    }
+
+    @Test
     public void synapseShouldNotComeFromAnExistingBody() {
 
         Session session = driver.session();
@@ -657,7 +697,7 @@ public class UpdateNeuronsTest {
         boolean ranSuccessfully;
 
         try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
+            session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
             ranSuccessfully = true;
         } catch (RuntimeException re) {
             ranSuccessfully = false;
@@ -666,15 +706,5 @@ public class UpdateNeuronsTest {
         Assert.assertFalse(ranSuccessfully);
 
     }
-//
-//    @Test
-//    public void testMemory() {
-//
-//        Session session = driver.session();
-//
-//        session.writeTransaction(tx -> tx.run("CALL proofreader.updateNeuronsFromJson($updateJson,$dataset,true) YIELD node RETURN node", parameters("updateJson", "/Users/neubarthn/formatted_28841_Neuprint_Update.json", "dataset", "test")));
-//
-//
-//    }
 
 }

@@ -209,33 +209,42 @@ public class ProofreaderProcedures {
 
     }
 
-    @Procedure(value = "proofreader.updateNeuron", mode = Mode.WRITE)
-    @Description("proofreader.updateNeuron(neuronUpdateJsonObject, datasetLabel): add a neuron with properties, synapses, and connections specified by an input JSON.")
-    public void updateNeuron(@Name("neuronUpdateJson") String neuronUpdateJson, @Name("datasetLabel") String datasetLabel) {
+    @Procedure(value = "proofreader.addNeuron", mode = Mode.WRITE)
+    @Description("proofreader.addNeuron(neuronAdditionJsonObject, datasetLabel): add a neuron with properties, synapses, and connections specified by an input JSON.")
+    public void addNeuron(@Name("neuronAdditionJson") String neuronAdditionJson, @Name("datasetLabel") String datasetLabel) {
 
-        log.info("proofreader.updateNeuron: entry");
+        log.info("proofreader.addNeuron: entry");
 
         try {
 
-            Gson gson = new Gson();
-            NeuronUpdate neuronUpdate = gson.fromJson(neuronUpdateJson, NeuronUpdate.class);
+            if (neuronAdditionJson == null || datasetLabel == null) {
+                log.error("proofreader.addNeuron: Missing input arguments.");
+                throw new RuntimeException("proofreader.addNeuron: Missing input arguments.");
+            }
 
-            if (neuronUpdateJson == null || datasetLabel == null) {
-                log.error("proofreader.updateNeuron: Missing input arguments.");
-                throw new RuntimeException("proofreader.updateNeuron: Missing input arguments.");
+            Gson gson = new Gson();
+            NeuronAddition neuronAddition = gson.fromJson(neuronAdditionJson, NeuronAddition.class);
+
+            if (neuronAddition.getMutationUuid()==null || neuronAddition.getBodyId()==null) {
+                log.error("proofreader.addNeuron: body id and uuid are required fields in the neuron addition json.");
+                throw new RuntimeException("proofreader.addNeuron: body id and uuid are required fields in the neuron addition json.");
+            }
+
+            if (neuronAddition.getMutationId()==null){
+                neuronAddition.setToInitialMutationId();
             }
 
             // check that this mutation hasn't been done before (in order to be unique, needs to include uuid+mutationid+bodyId)
-            String mutationKey = neuronUpdate.getMutationUuid() + ":" + neuronUpdate.getMutationId() + ":" + neuronUpdate.getBodyId();
+            String mutationKey = neuronAddition.getMutationUuid() + ":" + neuronAddition.getMutationId() + ":" + neuronAddition.getBodyId();
             Node existingMutatedNode = dbService.findNode(Label.label(datasetLabel + "-" + SEGMENT), MUTATION_UUID_ID, mutationKey);
             if (existingMutatedNode != null) {
-                log.error("Mutation already found in the database: " + neuronUpdate.toString());
-                throw new RuntimeException("Mutation already found in the database: " + neuronUpdate.toString());
+                log.error("Mutation already found in the database: " + neuronAddition.toString());
+                throw new RuntimeException("Mutation already found in the database: " + neuronAddition.toString());
             }
 
-            log.info("Beginning update: " + neuronUpdate);
+            log.info("Beginning addition: " + neuronAddition);
             // create a new node and synapse set for that node
-            final long newNeuronBodyId = neuronUpdate.getBodyId();
+            final long newNeuronBodyId = neuronAddition.getBodyId();
             final Node newNeuron = dbService.createNode(Label.label(SEGMENT),
                     Label.label(datasetLabel),
                     Label.label(datasetLabel + "-" + SEGMENT));
@@ -243,8 +252,8 @@ public class ProofreaderProcedures {
             try {
                 newNeuron.setProperty(BODY_ID, newNeuronBodyId);
             } catch (org.neo4j.graphdb.ConstraintViolationException cve) {
-                log.error("Body id " + newNeuronBodyId + " already exists in database. Aborting update for mutation with id : " + mutationKey);
-                throw new RuntimeException("Body id " + newNeuronBodyId + " already exists in database. Aborting update for mutation with id : " + mutationKey);
+                log.error("Body id " + newNeuronBodyId + " already exists in database. Aborting addition for mutation with id : " + mutationKey);
+                throw new RuntimeException("Body id " + newNeuronBodyId + " already exists in database. Aborting addition for mutation with id : " + mutationKey);
             }
 
             final Node newSynapseSet = createSynapseSetForSegment(newNeuron, datasetLabel);
@@ -253,111 +262,114 @@ public class ProofreaderProcedures {
             // completely add everything here so that there's nothing left on the synapse store
             // add the new body id to the synapse sources
 
-            Set<Synapse> currentSynapses = neuronUpdate.getCurrentSynapses();
-            Set<Synapse> notFoundSynapses = new HashSet<>(currentSynapses);
-
-            // from synapses, derive connectsto, connection sets, rois/roiInfo, pre/post counts
-            final ConnectsToRelationshipMap connectsToRelationshipMap = new ConnectsToRelationshipMap();
-            final SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
+            Set<Synapse> currentSynapses = neuronAddition.getCurrentSynapses();
             long preCount = 0L;
             long postCount = 0L;
 
-            for (Synapse synapse : currentSynapses) {
+            if (currentSynapses!=null) {
+                Set<Synapse> notFoundSynapses = new HashSet<>(currentSynapses);
 
-                // get the synapse by location
-                List<Integer> synapseLocation = synapse.getLocation();
-                Point synapseLocationPoint = new Location((long) synapseLocation.get(0), (long) synapseLocation.get(1), (long) synapseLocation.get(2));
-                Node synapseNode = GraphTraversalTools.getSynapse(dbService, synapseLocationPoint, datasetLabel);
+                // from synapses, derive connectsto, connection sets, rois/roiInfo, pre/post counts
+                final ConnectsToRelationshipMap connectsToRelationshipMap = new ConnectsToRelationshipMap();
+                final SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
 
-                if (synapseNode == null) {
-                    log.error("Synapse not found in database: " + synapse);
-                    throw new RuntimeException("Synapse not found in database: " + synapse);
-                }
+                for (Synapse synapse : currentSynapses) {
 
-                if (synapseNode.hasRelationship(RelationshipType.withName(CONTAINS))) {
-                    Node bodyWithSynapse = getSegmentThatContainsSynapse(synapseNode);
-                    Long bodyWithSynapseId = (Long) bodyWithSynapse.getProperty(BODY_ID);
-                    log.error("Synapse is already assigned to another body. body id: " + bodyWithSynapseId + ", synapse: " + synapse);
-                    throw new RuntimeException("Synapse is already assigned to another body. body id: " + bodyWithSynapseId + ", synapse: " + synapse);
-                }
+                    // get the synapse by location
+                    List<Integer> synapseLocation = synapse.getLocation();
+                    Point synapseLocationPoint = new Location((long) synapseLocation.get(0), (long) synapseLocation.get(1), (long) synapseLocation.get(2));
+                    Node synapseNode = GraphTraversalTools.getSynapse(dbService, synapseLocationPoint, datasetLabel);
 
-                // add synapse to the new synapse set
-                newSynapseSet.createRelationshipTo(synapseNode, RelationshipType.withName(CONTAINS));
-                // remove this synapse from the not found set
-                notFoundSynapses.remove(synapse);
-
-                // get the synapse type
-                final String synapseType = (String) synapseNode.getProperty(TYPE);
-                // get synapse rois for adding to the body and roiInfo
-                final Set<String> synapseRois = getSynapseNodeRoiSet(synapseNode);
-
-                if (synapseType.equals(PRE)) {
-                    for (String roi : synapseRois) {
-                        synapseCountsPerRoi.incrementPreForRoi(roi);
+                    if (synapseNode == null) {
+                        log.error("Synapse not found in database: " + synapse);
+                        throw new RuntimeException("Synapse not found in database: " + synapse);
                     }
-                    preCount++;
-                } else if (synapseType.equals(POST)) {
-                    for (String roi : synapseRois) {
-                        synapseCountsPerRoi.incrementPostForRoi(roi);
+
+                    if (synapseNode.hasRelationship(RelationshipType.withName(CONTAINS))) {
+                        Node bodyWithSynapse = getSegmentThatContainsSynapse(synapseNode);
+                        Long bodyWithSynapseId = (Long) bodyWithSynapse.getProperty(BODY_ID);
+                        log.error("Synapse is already assigned to another body. body id: " + bodyWithSynapseId + ", synapse: " + synapse);
+                        throw new RuntimeException("Synapse is already assigned to another body. body id: " + bodyWithSynapseId + ", synapse: " + synapse);
                     }
-                    postCount++;
-                }
 
-                if (synapseNode.hasRelationship(RelationshipType.withName(SYNAPSES_TO))) {
-                    for (Relationship synapticRelationship : synapseNode.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
-                        Node synapticPartner = synapticRelationship.getOtherNode(synapseNode);
+                    // add synapse to the new synapse set
+                    newSynapseSet.createRelationshipTo(synapseNode, RelationshipType.withName(CONTAINS));
+                    // remove this synapse from the not found set
+                    notFoundSynapses.remove(synapse);
 
-                        Node connectedSegment = getSegmentThatContainsSynapse(synapticPartner);
+                    // get the synapse type
+                    final String synapseType = (String) synapseNode.getProperty(TYPE);
+                    // get synapse rois for adding to the body and roiInfo
+                    final Set<String> synapseRois = getSynapseNodeRoiSet(synapseNode);
 
-                        if (connectedSegment != null) {
-                            if (synapseType.equals(PRE)) {
-                                connectsToRelationshipMap.insertSynapsesIntoConnectsToRelationship(newNeuron, connectedSegment, synapseNode, synapticPartner);
-                            } else if (synapseType.equals(POST)) {
-                                connectsToRelationshipMap.insertSynapsesIntoConnectsToRelationship(connectedSegment, newNeuron, synapticPartner, synapseNode);
+                    if (synapseType.equals(PRE)) {
+                        for (String roi : synapseRois) {
+                            synapseCountsPerRoi.incrementPreForRoi(roi);
+                        }
+                        preCount++;
+                    } else if (synapseType.equals(POST)) {
+                        for (String roi : synapseRois) {
+                            synapseCountsPerRoi.incrementPostForRoi(roi);
+                        }
+                        postCount++;
+                    }
+
+                    if (synapseNode.hasRelationship(RelationshipType.withName(SYNAPSES_TO))) {
+                        for (Relationship synapticRelationship : synapseNode.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
+                            Node synapticPartner = synapticRelationship.getOtherNode(synapseNode);
+
+                            Node connectedSegment = getSegmentThatContainsSynapse(synapticPartner);
+
+                            if (connectedSegment != null) {
+                                if (synapseType.equals(PRE)) {
+                                    connectsToRelationshipMap.insertSynapsesIntoConnectsToRelationship(newNeuron, connectedSegment, synapseNode, synapticPartner);
+                                } else if (synapseType.equals(POST)) {
+                                    connectsToRelationshipMap.insertSynapsesIntoConnectsToRelationship(connectedSegment, newNeuron, synapticPartner, synapseNode);
+                                }
                             }
                         }
                     }
+
                 }
 
+                if (!notFoundSynapses.isEmpty()) {
+                    log.error("Some synapses were not found for neuron addition. Mutation UUID: " + neuronAddition.getMutationUuid() + " Mutation ID: " + neuronAddition.getMutationId() + " Synapse(s): " + notFoundSynapses);
+                    throw new RuntimeException("Some synapses were not found for neuron addition. Mutation UUID: " + neuronAddition.getMutationUuid() + " Mutation ID: " + neuronAddition.getMutationId() + " Synapse(s): " + notFoundSynapses);
+                }
+
+                log.info("Found and added all synapses to synapse set for body id " + newNeuronBodyId);
+                log.info("Completed making map of ConnectsTo relationships.");
+
+                // add synapse and synaptic partners to connection set; set connectsto relationships
+                createConnectionSetsAndConnectsToRelationships(connectsToRelationshipMap, datasetLabel);
+                log.info("Completed creating ConnectionSets and ConnectsTo relationships.");
+
+                // add roi boolean properties and roi info
+                addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(newNeuron, synapseCountsPerRoi);
+                newNeuron.setProperty(ROI_INFO, synapseCountsPerRoi.getAsJsonString());
+                log.info("Completed updating roi information.");
+
             }
-
-            if (!notFoundSynapses.isEmpty()) {
-                log.error("Some synapses were not found for neuron update. Mutation UUID: " + neuronUpdate.getMutationUuid() + " Mutation ID: " + neuronUpdate.getMutationId() + " Synapse(s): " + notFoundSynapses);
-                throw new RuntimeException("Some synapses were not found for neuron update. Mutation UUID: " + neuronUpdate.getMutationUuid() + " Mutation ID: " + neuronUpdate.getMutationId() + " Synapse(s): " + notFoundSynapses);
-            }
-
-            log.info("Found and added all synapses to synapse set for body id " + newNeuronBodyId);
-            log.info("Completed making map of ConnectsTo relationships.");
-
-            // add synapse and synaptic partners to connection set; set connectsto relationships
-            createConnectionSetsAndConnectsToRelationships(connectsToRelationshipMap, datasetLabel);
-            log.info("Completed creating ConnectionSets and ConnectsTo relationships.");
-
-            // add roi boolean properties and roi info
-            addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(newNeuron, synapseCountsPerRoi);
-            newNeuron.setProperty(ROI_INFO, synapseCountsPerRoi.getAsJsonString());
-            log.info("Completed updating roi information.");
-
-            // update pre and post on body; other properties
+            // set pre and post on body; other properties
             newNeuron.setProperty(PRE, preCount);
             newNeuron.setProperty(POST, postCount);
-            newNeuron.setProperty(SIZE, neuronUpdate.getSize());
+            newNeuron.setProperty(SIZE, neuronAddition.getSize());
             newNeuron.setProperty(MUTATION_UUID_ID, mutationKey);
 
-            // check for optional properties; update neuron if present; decide if there should be a neuron label (has name, has soma, has pre+post>10)
+            // check for optional properties; add to neuron if present; decide if there should be a neuron label (has name, has soma, has pre+post>10)
             boolean isNeuron = false;
-            if (neuronUpdate.getStatus() != null) {
-                newNeuron.setProperty(STATUS, neuronUpdate.getStatus());
+            if (neuronAddition.getStatus() != null) {
+                newNeuron.setProperty(STATUS, neuronAddition.getStatus());
             }
 
-            if (neuronUpdate.getName() != null) {
-                newNeuron.setProperty(NAME, neuronUpdate.getName());
+            if (neuronAddition.getName() != null) {
+                newNeuron.setProperty(NAME, neuronAddition.getName());
                 isNeuron = true;
             }
 
-            if (neuronUpdate.getSoma() != null) {
-                newNeuron.setProperty(SOMA_RADIUS, neuronUpdate.getSoma().getRadius());
-                List<Integer> somaLocation = neuronUpdate.getSoma().getLocation();
+            if (neuronAddition.getSoma() != null) {
+                newNeuron.setProperty(SOMA_RADIUS, neuronAddition.getSoma().getRadius());
+                List<Integer> somaLocation = neuronAddition.getSoma().getLocation();
                 Point somaLocationPoint = new Location((long) somaLocation.get(0), (long) somaLocation.get(1), (long) somaLocation.get(2));
                 newNeuron.setProperty(SOMA_LOCATION, somaLocationPoint);
                 isNeuron = true;
@@ -373,19 +385,19 @@ public class ProofreaderProcedures {
 
             // update meta node
             Node metaNode = GraphTraversalTools.getMetaNode(dbService, datasetLabel);
-            metaNode.setProperty("latestMutationId", neuronUpdate.getMutationId());
-            metaNode.setProperty("uuid", neuronUpdate.getMutationUuid());
+            metaNode.setProperty("latestMutationId", neuronAddition.getMutationId());
+            metaNode.setProperty("uuid", neuronAddition.getMutationUuid());
 
 //            add skeleton?
 
-            log.info("Completed neuron update with uuid " + neuronUpdate.getMutationUuid() + ", mutation id " + neuronUpdate.getMutationId() + ", body id " + neuronUpdate.getBodyId() + ".");
+            log.info("Completed neuron addition with uuid " + neuronAddition.getMutationUuid() + ", mutation id " + neuronAddition.getMutationId() + ", body id " + neuronAddition.getBodyId() + ".");
 
         } catch (Exception e) {
-            log.error("Error running proofreader.updateNeuron: " + e);
-            throw new RuntimeException("Error running proofreader.updateNeuron: " + e);
+            log.error("Error running proofreader.addNeuron: " + e);
+            throw new RuntimeException("Error running proofreader.addNeuron: " + e);
         }
 
-        log.info("proofreader.updateNeuron: exit");
+        log.info("proofreader.addNeuron: exit");
 
     }
 
@@ -555,7 +567,7 @@ public class ProofreaderProcedures {
         final Node neuron = GraphTraversalTools.getSegment(dbService, bodyId, datasetLabel);
 
         if (neuron == null) {
-            log.info("Segment with body ID " + bodyId + " not found in database. Continuing update...");
+            log.info("Segment with body ID " + bodyId + " not found in database. Aborting deletion...");
         } else {
             acquireWriteLockForSegmentSubgraph(neuron);
 
@@ -801,44 +813,50 @@ public class ProofreaderProcedures {
         segment.addLabel(Label.label(datasetLabel + "-" + NEURON));
 
         //generate cluster name
-        Map<String, SynapseCounter> roiInfoObject;
-        long totalPre;
-        long totalPost;
+        Map<String, SynapseCounter> roiInfoObject = new HashMap<>();
+        long totalPre = 0;
+        long totalPost = 0;
+        boolean setClusterName = true;
         try {
             roiInfoObject = GraphTraversalTools.getRoiInfoAsMap((String) segment.getProperty(ROI_INFO));
         } catch (Exception e) {
-            log.error("Error retrieving roiInfo from body id " + bodyId + " in " + datasetLabel + ":" + e);
-            throw new RuntimeException("Error retrieving roiInfo from body id " + bodyId + " in " + datasetLabel + ":" + e);
+            log.warn("Error retrieving roiInfo from body id " + bodyId + " in " + datasetLabel + ". No cluster name added.");
+            setClusterName = false;
+//            throw new RuntimeException("Error retrieving roiInfo from body id " + bodyId + " in " + datasetLabel + ":" + e);
         }
 
         try {
             totalPre = (long) segment.getProperty(PRE);
         } catch (Exception e) {
-            log.error("Error retrieving pre from body id " + bodyId + " in " + datasetLabel + ":" + e);
-            throw new RuntimeException("Error retrieving pre from body id " + bodyId + " in " + datasetLabel + ":" + e);
+            log.warn("Error retrieving pre from body id " + bodyId + " in " + datasetLabel + ". No cluster name added.");
+            setClusterName = false;
+//            throw new RuntimeException("Error retrieving pre from body id " + bodyId + " in " + datasetLabel + ":" + e);
         }
 
         try {
             totalPost = (long) segment.getProperty(POST);
         } catch (Exception e) {
-            log.error("Error retrieving post from body id " + bodyId + " in " + datasetLabel + ":" + e);
-            throw new RuntimeException("Error retrieving post from body id " + bodyId + " in " + datasetLabel + ":" + e);
+            log.warn("Error retrieving post from body id " + bodyId + " in " + datasetLabel + ". No cluster name added.");
+            setClusterName = false;
+//            throw new RuntimeException("Error retrieving post from body id " + bodyId + " in " + datasetLabel + ":" + e);
         }
 
-        Node metaNode = GraphTraversalTools.getMetaNode(dbService, datasetLabel);
-        if (metaNode != null) {
-            String[] metaNodeSuperLevelRois;
-            try {
-                metaNodeSuperLevelRois = (String[]) metaNode.getProperty(SUPER_LEVEL_ROIS);
-            } catch (Exception e) {
-                log.error("Error retrieving " + SUPER_LEVEL_ROIS + " from Meta node for " + datasetLabel + ":" + e);
-                throw new RuntimeException("Error retrieving " + SUPER_LEVEL_ROIS + " from Meta node for " + datasetLabel + ":" + e);
+        if (setClusterName) {
+            Node metaNode = GraphTraversalTools.getMetaNode(dbService, datasetLabel);
+            if (metaNode != null) {
+                String[] metaNodeSuperLevelRois;
+                try {
+                    metaNodeSuperLevelRois = (String[]) metaNode.getProperty(SUPER_LEVEL_ROIS);
+                } catch (Exception e) {
+                    log.error("Error retrieving " + SUPER_LEVEL_ROIS + " from Meta node for " + datasetLabel + ":" + e);
+                    throw new RuntimeException("Error retrieving " + SUPER_LEVEL_ROIS + " from Meta node for " + datasetLabel + ":" + e);
+                }
+                final Set<String> roiSet = new HashSet<>(Arrays.asList(metaNodeSuperLevelRois));
+                segment.setProperty("clusterName", Neo4jImporter.generateClusterName(roiInfoObject, totalPre, totalPost, 0.10, roiSet));
+            } else {
+                log.error("Meta node not found for dataset " + datasetLabel);
+                throw new RuntimeException("Meta node not found for dataset " + datasetLabel);
             }
-            final Set<String> roiSet = new HashSet<>(Arrays.asList(metaNodeSuperLevelRois));
-            segment.setProperty("clusterName", Neo4jImporter.generateClusterName(roiInfoObject, totalPre, totalPost, 0.10, roiSet));
-        } else {
-            log.error("Meta node not found for dataset " + datasetLabel);
-            throw new RuntimeException("Meta node not found for dataset " + datasetLabel);
         }
 
     }

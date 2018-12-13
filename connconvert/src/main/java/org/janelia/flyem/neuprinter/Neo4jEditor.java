@@ -83,50 +83,50 @@ public class Neo4jEditor implements AutoCloseable {
         return batch;
     }
 
-    public void deleteAndUpdateNeurons(final String dataset, UpdateNeuronsAction updateNeuronsAction) {
-
-        LOG.info("deleteAndUpdateNeurons: entry");
-
-        final String deleteString = "CALL proofreader.deleteNeuron($bodyId, $dataset)";
-        final String updateString = "CALL proofreader.updateNeuron($updateJson, $dataset)";
-
-        try (final TransactionBatch batch = getBatch()) {
-            for (long deletedBodyId : updateNeuronsAction.getDeletedNeurons()) {
-                batch.addStatement(new Statement(deleteString, parameters(
-                        "bodyId", deletedBodyId,
-                        "dataset", dataset
-                )));
-
-            }
-
-            for (long updatedBodyId : updateNeuronsAction.getUpdatedNeuronsBodyIds()) {
-                batch.addStatement(new Statement(deleteString, parameters(
-                        "bodyId", updatedBodyId,
-                        "dataset", dataset
-                )));
-
-            }
-
-            batch.writeTransaction();
-
-            Gson gson = new Gson();
-            for (NeuronUpdate neuronUpdate : updateNeuronsAction.getUpdatedNeurons()) {
-
-                String neuronUpdateJson = gson.toJson(neuronUpdate);
-
-                batch.addStatement(new Statement(updateString, parameters(
-                        "updateJson", neuronUpdateJson,
-                        "dataset", dataset
-                )));
-            }
-
-            batch.writeTransaction();
-
-        }
-
-        LOG.info("deleteAndUpdateNeurons: exit");
-
-    }
+//    public void deleteAndUpdateNeurons(final String dataset, UpdateNeuronsAction updateNeuronsAction) {
+//
+//        LOG.info("deleteAndUpdateNeurons: entry");
+//
+//        final String deleteString = "CALL proofreader.deleteNeuron($bodyId, $dataset)";
+//        final String updateString = "CALL proofreader.updateNeuron($updateJson, $dataset)";
+//
+//        try (final TransactionBatch batch = getBatch()) {
+//            for (long deletedBodyId : updateNeuronsAction.getDeletedNeurons()) {
+//                batch.addStatement(new Statement(deleteString, parameters(
+//                        "bodyId", deletedBodyId,
+//                        "dataset", dataset
+//                )));
+//
+//            }
+//
+//            for (long updatedBodyId : updateNeuronsAction.getUpdatedNeuronsBodyIds()) {
+//                batch.addStatement(new Statement(deleteString, parameters(
+//                        "bodyId", updatedBodyId,
+//                        "dataset", dataset
+//                )));
+//
+//            }
+//
+//            batch.writeTransaction();
+//
+//            Gson gson = new Gson();
+//            for (NeuronUpdate neuronUpdate : updateNeuronsAction.getUpdatedNeurons()) {
+//
+//                String neuronUpdateJson = gson.toJson(neuronUpdate);
+//
+//                batch.addStatement(new Statement(updateString, parameters(
+//                        "updateJson", neuronUpdateJson,
+//                        "dataset", dataset
+//                )));
+//            }
+//
+//            batch.writeTransaction();
+//
+//        }
+//
+//        LOG.info("deleteAndUpdateNeurons: exit");
+//
+//    }
 
 
     //    public void updateSkelNodesRowNumber(final String dataset, final List<Skeleton> skeletonList) {
