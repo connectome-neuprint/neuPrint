@@ -6,7 +6,8 @@ Notes:
 * All nodes have a time stamp (property name: *timeStamp*) indicating last update in the format YYYY-MM-DDTHH:MM:SS. 
 * **Segment** nodes with greater than a specified number of synaptic densities are also labeled **Neuron**. 
 * **ConnectsTo** weights are equal to the number of **SynapsesTo** relationships for a particular connection. Assuming that the ratio of pre to post for each synaptic connection can be 1:1 or 1:many (but never many:1) this is equal to number of postsynaptic densities for a connection.
-* Each neuron/segment has one **SynapseSet** node, which **Contain**s all the **Synapse** nodes for that body. Each **ConnectsTo** relationship has a corresponding **ConnectionSet** node, which **Contain**s all the **Synapse** nodes involved in that particular connection. These can be accessed via **From** and **To** relationships with the presynaptic and postsynaptic neuron, respectively.
+* Each neuron/segment has one **SynapseSet** node, which **Contain**s all the **Synapse** nodes for that body. Each **ConnectsTo** relationship has a corresponding **ConnectionSet** node, which **Contain**s all the **Synapse** nodes involved in that particular connection. These can be accessed via **From** and **To** relationships with the presynaptic and postsynaptic neuron, respectively
+* A neuron/segment is considered to be in an ROI if it has >= 1 presynaptic or postsynaptic density in that ROI.
 
 Features specific to the hemibrain dataset:
 * All **Segment** nodes with >=2 t-bars, >=10 psds, a name, a status, or a soma are labeled **Neuron**.
