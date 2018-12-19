@@ -456,17 +456,13 @@ public class ProofreaderProcedures {
                 //check if skeleton already exists
                 Node existingSkeleton = GraphTraversalTools.getSkeleton(dbService, bodyId, datasetLabel);
                 if (existingSkeleton != null) {
-                    log.warn(String.format("proofreader.addSkeleton: Skeleton for body ID %d already exists in dataset %s. Deleting skeleton before adding.", bodyId, datasetLabel));
-                    // delete neuron relationship to skeleton
-                    existingSkeleton.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING).delete();
-                    // delete skeleton
-                    deleteSkeleton(existingSkeleton);
+                    log.warn(String.format("proofreader.addSkeleton: Skeleton for body ID %d already exists in dataset %s. Aborting addSkeleton.", bodyId, datasetLabel));
+                } else {
+
+                    addSkeletonNodes(datasetLabel, skeleton, segment);
+
+                    log.info("Successfully added Skeleton to body Id " + bodyId + ".");
                 }
-
-                addSkeletonNodes(datasetLabel, skeleton, segment);
-
-                log.info("Successfully added Skeleton to body Id " + bodyId + ".");
-
                 log.info("Time to add skeleton:" + timer.stop());
                 timer.reset();
 
