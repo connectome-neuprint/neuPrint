@@ -73,6 +73,10 @@ public class AddSkeletonTest {
             Assert.assertEquals(28D, skelNodeProperties.get("s.radius"));
             Assert.assertEquals("test:101:5096:9281:1624:13", skelNodeProperties.get("s.skelNodeId"));
 
+            // should have predictable mutation uuid/id prop
+            String mutationUUIDID_101 = session.readTransaction(tx -> tx.run("MATCH (n:Skeleton) WHERE n.skeletonId=\"test:101\" RETURN n.mutationUuidAndId")).single().get(0).asString();
+            Assert.assertEquals("none:0", mutationUUIDID_101);
+
             // skeleton with locations that round to the same point
             session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`{bodyId:831744}) SET n:Segment, n:test"));
 
@@ -126,6 +130,10 @@ public class AddSkeletonTest {
 
             int rowCount831744 = session.readTransaction(tx -> tx.run("MATCH (n:SkelNode) WHERE n.skelNodeId STARTS WITH \"test:831744\" WITH DISTINCT n.rowNumber AS rows RETURN count(rows)")).single().get(0).asInt();
             Assert.assertEquals(1679, rowCount831744);
+
+            // should have mutation id
+            String mutationUUIDID_831744 = session.readTransaction(tx -> tx.run("MATCH (n:Skeleton) WHERE n.skeletonId=\"test:831744\" RETURN n.mutationUuidAndId")).single().get(0).asString();
+            Assert.assertEquals("none:1002248266", mutationUUIDID_831744);
 
         }
 

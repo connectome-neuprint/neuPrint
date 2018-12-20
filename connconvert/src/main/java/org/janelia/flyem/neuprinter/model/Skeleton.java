@@ -1,9 +1,12 @@
 package org.janelia.flyem.neuprinter.model;
 
+import com.google.common.base.CharMatcher;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * A class representing a skeleton read from an swc file. A skeleton contains
@@ -14,6 +17,8 @@ public class Skeleton {
 
     private List<SkelNode> skelNodeList;
     private Long associatedBodyId;
+    private Optional<Long> mutationId = Optional.empty();
+    private Optional<String> mutationUuid = Optional.empty();
 
     /**
      * Class constructor.
@@ -35,6 +40,14 @@ public class Skeleton {
      */
     public Long getAssociatedBodyId() {
         return this.associatedBodyId;
+    }
+
+    public Optional<Long> getMutationId() {
+        return mutationId;
+    }
+
+    public Optional<String> getMutationUuid() {
+        return mutationUuid;
     }
 
     @Override
@@ -73,6 +86,19 @@ public class Skeleton {
      * @throws IOException when swc file is not readable
      */
     public void fromSwc(final BufferedReader reader, final Long associatedBodyId) throws IOException {
+        fromSwc(reader, associatedBodyId, null);
+    }
+
+    /**
+     * Acquires a list of SkelNodes from a {@link BufferedReader} reading from an swc file.
+     * The SkelNodes and bodyId of the neuron are added to the Skeleton object.
+     *
+     * @param reader {@link BufferedReader}
+     * @param associatedBodyId bodyId of neuron
+     * @param uuid dvid uuid associated with skeleton
+     * @throws IOException when swc file is not readable
+     */
+    public void fromSwc(final BufferedReader reader, final Long associatedBodyId, final String uuid) throws IOException {
         String swcLine;
         List<SkelNode> skelNodeList = new ArrayList<>();
         List<Integer> location;
@@ -117,12 +143,15 @@ public class Skeleton {
 
                 skelNodeList.add(skelNode);
 
+            } else if (swcLine.startsWith("#${\"mutation id\"")) {
+                this.mutationId = Optional.of(Long.parseLong(swcLine.replaceAll("[^0-9]", "")));
             }
 
         }
 
         this.skelNodeList = skelNodeList;
         this.associatedBodyId = associatedBodyId;
+        this.mutationUuid = Optional.ofNullable(uuid);
 
     }
 

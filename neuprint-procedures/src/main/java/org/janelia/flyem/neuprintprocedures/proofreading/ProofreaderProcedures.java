@@ -37,6 +37,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -225,12 +226,12 @@ public class ProofreaderProcedures {
             Gson gson = new Gson();
             NeuronAddition neuronAddition = gson.fromJson(neuronAdditionJson, NeuronAddition.class);
 
-            if (neuronAddition.getMutationUuid()==null || neuronAddition.getBodyId()==null) {
+            if (neuronAddition.getMutationUuid() == null || neuronAddition.getBodyId() == null) {
                 log.error("proofreader.addNeuron: body id and uuid are required fields in the neuron addition json.");
                 throw new RuntimeException("proofreader.addNeuron: body id and uuid are required fields in the neuron addition json.");
             }
 
-            if (neuronAddition.getMutationId()==null){
+            if (neuronAddition.getMutationId() == null) {
                 neuronAddition.setToInitialMutationId();
             }
 
@@ -266,7 +267,7 @@ public class ProofreaderProcedures {
             long preCount = 0L;
             long postCount = 0L;
 
-            if (currentSynapses!=null) {
+            if (currentSynapses != null) {
                 Set<Synapse> notFoundSynapses = new HashSet<>(currentSynapses);
 
                 // from synapses, derive connectsto, connection sets, rois/roiInfo, pre/post counts
@@ -415,10 +416,23 @@ public class ProofreaderProcedures {
             }
 
             String bodyIdPattern = ".*/(.*?)[._]swc";
-            Pattern rN = Pattern.compile(bodyIdPattern);
-            Matcher mN = rN.matcher(fileUrlString);
-            mN.matches();
-            Long bodyId = Long.parseLong(mN.group(1));
+            Matcher bodyIdMatcher = Pattern.compile(bodyIdPattern).matcher(fileUrlString);
+            Long bodyId;
+            boolean bodyIdMatches = bodyIdMatcher.matches();
+            if (bodyIdMatches) {
+                bodyId = Long.parseLong(bodyIdMatcher.group(1));
+            } else {
+                log.error("proofreader.addSkeleton: Cannot parse body id from swc file path.");
+                throw new RuntimeException("proofreader.addSkeleton: Cannot parse body id from swc file path.");
+            }
+
+            String uuidPattern = ".*/api/node/(.*?)/segmentation.*";
+            Matcher uuidMatcher = Pattern.compile(uuidPattern).matcher(fileUrlString);
+            Optional<String> uuid = Optional.empty();
+            boolean uuidMatches = uuidMatcher.matches();
+            if (uuidMatches) {
+                uuid = Optional.ofNullable(uuidMatcher.group(1));
+            }
 
             Skeleton skeleton = new Skeleton();
             URL fileUrl;
@@ -435,7 +449,7 @@ public class ProofreaderProcedures {
 
             timer.start();
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(fileUrl.openStream()))) {
-                skeleton.fromSwc(reader, bodyId);
+                skeleton.fromSwc(reader, bodyId, uuid.orElse("none"));
             } catch (IOException e) {
                 log.error(String.format("proofreader.addSkeleton: IOException: %s", e.getMessage()));
                 throw new RuntimeException(String.format("IOException: %s", e.getMessage()));
@@ -753,6 +767,7 @@ public class ProofreaderProcedures {
         // create a skeleton node and connect it to the body
         Node skeletonNode = dbService.createNode(Label.label(SKELETON), Label.label(dataset + "-" + SKELETON), Label.label(dataset));
         skeletonNode.setProperty(SKELETON_ID, dataset + ":" + skeleton.getAssociatedBodyId());
+        skeletonNode.setProperty(MUTATION_UUID_ID, skeleton.getMutationUuid().orElse("none") + ":" + skeleton.getMutationId().orElse(0L));
         segmentNode.createRelationshipTo(skeletonNode, RelationshipType.withName(CONTAINS));
 
         //add root nodes / other nodes to skeleton node
