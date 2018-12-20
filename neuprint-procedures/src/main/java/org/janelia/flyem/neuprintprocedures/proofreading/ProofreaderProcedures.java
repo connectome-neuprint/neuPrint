@@ -480,7 +480,7 @@ public class ProofreaderProcedures {
     }
 
     @Procedure(value = "proofreader.deleteSkeleton", mode = Mode.WRITE)
-    @Description("proofreader.deletekeleton(bodyId,datasetLabel) : delete skeleton for provided body id ")
+    @Description("proofreader.deleteSkeleton(bodyId,datasetLabel) : delete skeleton for provided body id ")
     public void deleteSkeleton(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.deleteSkeleton: entry");
