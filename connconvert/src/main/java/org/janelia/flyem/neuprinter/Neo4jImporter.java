@@ -1034,13 +1034,13 @@ public class Neo4jImporter implements AutoCloseable {
         return sortedEntries;
     }
 
-    private static SortedSet<Map.Entry<String, SynapseCounter>> sortRoisByPostCount(Map<String, SynapseCounter> roiSynapseCountMap) {
+    public static SortedSet<Map.Entry<String, SynapseCounter>> sortRoisByPostCount(Map<String, SynapseCounter> roiSynapseCountMap) {
         Comparator<Map.Entry<String, SynapseCounter>> comparator = (e1, e2) ->
                 e1.getValue().getPost() == e2.getValue().getPost() ? e1.getKey().compareTo(e2.getKey()) : e2.getValue().getPost() - e1.getValue().getPost();
         return entriesSortedByComparator(roiSynapseCountMap, comparator);
     }
 
-    private static SortedSet<Map.Entry<String, SynapseCounter>> sortRoisByPreCount(Map<String, SynapseCounter> roiSynapseCountMap) {
+    public static SortedSet<Map.Entry<String, SynapseCounter>> sortRoisByPreCount(Map<String, SynapseCounter> roiSynapseCountMap) {
         Comparator<Map.Entry<String, SynapseCounter>> comparator = (e1, e2) ->
                 e1.getValue().getPre() == e2.getValue().getPre() ? e1.getKey().compareTo(e2.getKey()) : e2.getValue().getPre() - e1.getValue().getPre();
         return entriesSortedByComparator(roiSynapseCountMap, comparator);

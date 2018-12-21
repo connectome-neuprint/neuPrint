@@ -84,10 +84,10 @@ public class RoiInfoNameTest {
     }
 
     @Test
-    public void shouldGetConnectionClusterNames() {
+    public void shouldGetConnectionCategoryCounts() {
         Session session = driver.session();
 
-        String resultJson = session.readTransaction(tx -> tx.run("WITH neuprint.getClusterNamesOfConnections(8426959, \"test\") AS result RETURN result")).single().get(0).asString();
+        String resultJson = session.readTransaction(tx -> tx.run("WITH neuprint.getCategoriesOfConnections(8426959, \"test\") AS result RETURN result")).single().get(0).asString();
 
         Gson gson = new Gson();
 
@@ -102,17 +102,20 @@ public class RoiInfoNameTest {
             sumPost += resultObject.get(category).getPost();
         }
 
-        Assert.assertEquals(2, sumPre);
-        Assert.assertEquals(3, sumPost);
+        Assert.assertEquals(3, sumPre);
+        Assert.assertEquals(4, sumPost);
 
-        Assert.assertEquals(1, resultObject.get("roiA-roiA:roiB-none").getPre());
-        Assert.assertEquals(2, resultObject.get("roiA-roiA").getPost());
+        Assert.assertEquals(3, resultObject.get("roiA").getPost());
+        Assert.assertEquals(1, resultObject.get("roiB").getPost());
+
+        Assert.assertEquals(3, resultObject.get("roiA").getPre());
+        Assert.assertEquals(0, resultObject.get("roiB").getPre());
 
         // should error if body id doesn't exist
 
         boolean throwsException=false;
         try {
-            session.readTransaction(tx -> tx.run("WITH neuprint.getClusterNamesOfConnections(8123, \"test\") AS result RETURN result")).single().get(0).asString();
+            session.readTransaction(tx -> tx.run("WITH neuprint.getCategoriesOfConnections(8123, \"test\") AS result RETURN result")).single().get(0).asString();
         } catch (Exception e){
             throwsException=true;
         }
