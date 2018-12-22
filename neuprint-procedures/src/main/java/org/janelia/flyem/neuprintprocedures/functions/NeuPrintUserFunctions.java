@@ -23,8 +23,8 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
@@ -190,7 +190,13 @@ public class NeuPrintUserFunctions {
 
                                     if (synapseNode.hasLabel(Label.label(PRE_SYN))) {
                                         // if a synapse is pre, get top output ROI for connected neuron
-                                        String topOutputRoi = Optional.ofNullable(Neo4jImporter.sortRoisByPreCount(roiInfoObject).first().getKey()).orElse("None");
+                                        SortedSet<Map.Entry<String, SynapseCounter>> sortedRois = Neo4jImporter.sortRoisByPreCount(roiInfoObject);
+                                        String topOutputRoi;
+                                        if (!sortedRois.isEmpty()) {
+                                            topOutputRoi = sortedRois.first().getKey();
+                                        } else {
+                                            topOutputRoi = "None";
+                                        }
                                         if (!categoryCounts.containsKey(topOutputRoi)) {
                                             categoryCounts.put(topOutputRoi, new SynapseCounter());
                                         }
@@ -198,7 +204,13 @@ public class NeuPrintUserFunctions {
 
                                     } else if (synapseNode.hasLabel(Label.label(POST_SYN))) {
                                         // if a synapse is post get top input ROI for connected neuron
-                                        String topInputRoi = Optional.ofNullable(Neo4jImporter.sortRoisByPostCount(roiInfoObject).first().getKey()).orElse("None");
+                                        SortedSet<Map.Entry<String, SynapseCounter>> sortedRois = Neo4jImporter.sortRoisByPostCount(roiInfoObject);
+                                        String topInputRoi;
+                                        if (!sortedRois.isEmpty()) {
+                                            topInputRoi = sortedRois.first().getKey();
+                                        } else {
+                                            topInputRoi = "None";
+                                        }
                                         if (!categoryCounts.containsKey(topInputRoi)) {
                                             categoryCounts.put(topInputRoi, new SynapseCounter());
                                         }

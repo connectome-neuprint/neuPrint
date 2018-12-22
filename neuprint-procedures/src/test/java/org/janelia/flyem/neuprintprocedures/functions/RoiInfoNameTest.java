@@ -113,14 +113,13 @@ public class RoiInfoNameTest {
 
         // should error if body id doesn't exist
 
-        boolean throwsException=false;
+        boolean throwsException = false;
         try {
             session.readTransaction(tx -> tx.run("WITH neuprint.getCategoriesOfConnections(8123, \"test\") AS result RETURN result")).single().get(0).asString();
-        } catch (Exception e){
-            throwsException=true;
+        } catch (Exception e) {
+            throwsException = true;
         }
         Assert.assertTrue(throwsException);
-
 
     }
 
