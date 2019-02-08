@@ -17,7 +17,7 @@
     </modules>
 
     <properties>
-        <neo4j.version>3.4.5</neo4j.version>
+        <neo4j.version>3.5.2</neo4j.version>
         <project.java.version>1.8</project.java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -49,7 +49,7 @@
             <dependency>
                 <groupId>org.neo4j.driver</groupId>
                 <artifactId>neo4j-java-driver</artifactId>
-                <version>1.6.1</version>
+                <version>1.7.2</version>
             </dependency>
 
         </dependencies>

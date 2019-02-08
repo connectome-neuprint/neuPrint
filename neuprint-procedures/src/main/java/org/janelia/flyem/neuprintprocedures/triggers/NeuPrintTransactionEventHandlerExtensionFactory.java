@@ -1,8 +1,9 @@
 package org.janelia.flyem.neuprintprocedures.triggers;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.kernel.extension.ExtensionType;
 import org.neo4j.kernel.extension.KernelExtensionFactory;
-import org.neo4j.kernel.impl.logging.LogService;
+import org.neo4j.logging.internal.LogService;
 import org.neo4j.kernel.impl.spi.KernelContext;
 import org.neo4j.kernel.lifecycle.Lifecycle;
 import org.neo4j.kernel.lifecycle.LifecycleAdapter;
@@ -45,7 +46,7 @@ public class NeuPrintTransactionEventHandlerExtensionFactory extends KernelExten
     }
 
     public NeuPrintTransactionEventHandlerExtensionFactory() {
-        super("registerTransactionEventHandler");
+        super(ExtensionType.DATABASE, "registerTransactionEventHandler");
     }
 
 }

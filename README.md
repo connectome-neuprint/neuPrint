@@ -8,8 +8,8 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 [Javadocs](https://connectome-neuprint.github.io/neuPrint/)
 
 ## Requirements
-* Neo4j version 3.4.5
-* [apoc version 3.4.0.2](https://neo4j-contrib.github.io/neo4j-apoc-procedures/)
+* Neo4j version 3.5.2
+* [apoc version 3.5.0.1](https://neo4j-contrib.github.io/neo4j-apoc-procedures/)
 
 ## Example data
 
