@@ -23,7 +23,7 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 
 2. Run the following on the command line:
 ```console
-$ java -jar neuprinter.jar --dbProperties=example.properties --doAll --datasetLabel=mb6 --dataModelVersion=1.0 --neuronJson=mb6_neo4j_inputs/mb6_Neurons_with_nt.json --synapseJson=mb6_neo4j_inputs/mb6_Synapses.json
+$ java -jar neuprint.jar --dbProperties=example.properties --doAll --datasetLabel=mb6 --dataModelVersion=1.0 --neuronJson=mb6_neo4j_inputs/mb6_Neurons_with_nt.json --synapseJson=mb6_neo4j_inputs/mb6_Synapses.json
 ```
 
 ## Load mb6 skeleton data into Neo4j
@@ -32,16 +32,16 @@ $ java -jar neuprinter.jar --dbProperties=example.properties --doAll --datasetLa
 
 2. Run the following on the command line:
 ```console
-$ java -jar neuprinter.jar --dbProperties=example.properties --prepDatabase --addSkeletons --datasetLabel=mb6 --dataModelVersion=1.0 --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons
+$ java -jar neuprint.jar --dbProperties=example.properties --prepDatabase --addSkeletons --datasetLabel=mb6 --dataModelVersion=1.0 --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons
 ```
 ## Load your own connectome data into Neo4j using neuPrint
 
 Follow these [input specifications](jsonspecs.md) to create your own neurons.json, synapses.json, and skeleton files. To create a database on your computer, use [Neo4j Desktop](https://neo4j.com/download/?ref=product).
 
 ```console
-$ java -jar neuprinter.jar --help
+$ java -jar neuprint.jar --help
 
-Usage: java -cp neuprinter.jar org.janelia.flyem.neuprinter.NeuPrinterMain 
+Usage: java -cp neuprint.jar org.janelia.flyem.neuprinter.NeuPrinterMain 
       [options] 
   Options:
     --addAutoNames
@@ -95,7 +95,7 @@ Usage: java -cp neuprinter.jar org.janelia.flyem.neuprinter.NeuPrinterMain
       database features added
       Default: false
     --editMode
-      Indicates that neuprinter is being used in edit mode to alter data in an 
+      Indicates that neuprint is being used in edit mode to alter data in an 
       existing database (omit to skip).
       Default: false
     --help

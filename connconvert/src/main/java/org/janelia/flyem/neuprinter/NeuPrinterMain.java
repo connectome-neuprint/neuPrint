@@ -140,7 +140,7 @@ public class NeuPrinterMain {
 
         @Parameter(
                 names = "--editMode",
-                description = "Indicates that neuprinter is being used in edit mode to alter data in an existing database (omit to skip).",
+                description = "Indicates that neuprint is being used in edit mode to alter data in an existing database (omit to skip).",
                 arity = 0)
         public boolean editMode;
 
