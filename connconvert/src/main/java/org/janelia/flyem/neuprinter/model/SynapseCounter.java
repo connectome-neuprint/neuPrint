@@ -20,7 +20,7 @@ public class SynapseCounter {
      * Class constructor. Counter starts at specified values for
      * pre and post.
      *
-     * @param pre presynaptic density count
+     * @param pre  presynaptic density count
      * @param post postsynaptic density count
      */
     public SynapseCounter(int pre, int post) {
@@ -29,7 +29,6 @@ public class SynapseCounter {
     }
 
     /**
-     *
      * @return presynaptic density count
      */
     public int getPre() {
@@ -37,7 +36,6 @@ public class SynapseCounter {
     }
 
     /**
-     *
      * @return postsynaptic density count
      */
     public int getPost() {
@@ -60,7 +58,7 @@ public class SynapseCounter {
 
     @Override
     public String toString() {
-        return "pre: " + this.pre + " post: " + this.post ;
+        return "{pre: " + this.pre + ", post: " + this.post + "}";
     }
 
 }
