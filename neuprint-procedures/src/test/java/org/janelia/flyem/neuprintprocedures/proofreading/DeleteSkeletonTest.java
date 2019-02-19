@@ -60,7 +60,7 @@ public class DeleteSkeletonTest {
 
             neo4jImporter.addSynapsesTo(dataset, preToPost);
             neo4jImporter.addSkeletonNodes(dataset, skeletonList);
-            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
+            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F);
             neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 1);
 
             Session session = driver.session();
