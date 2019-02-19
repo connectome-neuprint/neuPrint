@@ -12,6 +12,7 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.spatial.Point;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -80,6 +81,18 @@ public class GraphTraversalTools {
 
     public static Node getSkelNode(final GraphDatabaseService dbService, final String skelNodeId, final String dataset) {
         return dbService.findNode(Label.label(dataset + "-" + SKEL_NODE), SKEL_NODE_ID, skelNodeId);
+    }
+
+    public static Node getConnectionSetNode(final GraphDatabaseService dbService, final long preBodyId, final long postBodyId, final String dataset) {
+        return dbService.findNode(Label.label(dataset + "-" + CONNECTION_SET), DATASET_BODY_IDs, dataset + ":" + preBodyId + ":" + postBodyId);
+    }
+
+    public static Set<Node> getSynapsesForConnectionSet(final Node connectionSet) {
+        final Set<Node> synapseSet = new HashSet<>();
+        for (final Relationship containsRel: connectionSet.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+            synapseSet.add(containsRel.getEndNode());
+        }
+        return synapseSet;
     }
 
     public static Node getSynapseSetForNeuron(final Node neuron) {
