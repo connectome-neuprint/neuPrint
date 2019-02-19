@@ -38,7 +38,7 @@ public class BodyWithSynapses {
     private transient Integer numberOfPreSynapses;
     private transient Integer numberOfPostSynapses;
 
-    private transient SynapseCountsPerRoi synapseCountsPerRoi;
+    private transient RoiInfo roiInfo;
 
     private static transient String PRE = "pre";
     private static transient String POST = "post";
@@ -76,10 +76,10 @@ public class BodyWithSynapses {
     }
 
     /**
-     * @return number of synaptic densities (pre and post) for each ROI associated with this body as SynapseCountsPerRoi object
+     * @return number of synaptic densities (pre and post) for each ROI associated with this body as RoiInfo object
      */
-    public SynapseCountsPerRoi getSynapseCountsPerRoi() {
-        return this.synapseCountsPerRoi;
+    public RoiInfo getRoiInfo() {
+        return this.roiInfo;
     }
 
     /**
@@ -256,22 +256,22 @@ public class BodyWithSynapses {
     }
 
     /**
-     * Sets the {@link #synapseCountsPerRoi} attribute using this body's synapse set.
+     * Sets the {@link #roiInfo} attribute using this body's synapse set.
      */
     public void setSynapseCountsPerRoi() {
-        this.synapseCountsPerRoi = getSynapseCountersPerRoiFromSynapseSet(this.synapseSet);
+        this.roiInfo = getSynapseCountersPerRoiFromSynapseSet(this.synapseSet);
     }
 
-    public static SynapseCountsPerRoi getSynapseCountersPerRoiFromSynapseSet(Set<Synapse> synapseSet) {
-        SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
+    public static RoiInfo getSynapseCountersPerRoiFromSynapseSet(Set<Synapse> synapseSet) {
+        RoiInfo roiInfo = new RoiInfo();
         synapseSet.forEach(synapse -> {
             if (synapse.getType().equals(PRE)) {
-                synapse.getRois().forEach(synapseCountsPerRoi::incrementPreForRoi);
+                synapse.getRois().forEach(roiInfo::incrementPreForRoi);
             } else if (synapse.getType().equals(POST)) {
-                synapse.getRois().forEach(synapseCountsPerRoi::incrementPostForRoi);
+                synapse.getRois().forEach(roiInfo::incrementPostForRoi);
             }
         });
-        return synapseCountsPerRoi;
+        return roiInfo;
     }
 
     @Override

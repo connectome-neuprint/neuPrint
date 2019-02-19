@@ -7,49 +7,48 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * A class for counting the the number of synaptic densities per roi. Used to produce
- * the synapseCountsPerRoi property on Neuron nodes in neo4j.
+ * A class for counting the the number of synaptic densities per ROI. Used to produce
+ * the roiInfo property on Neuron nodes in neo4j.
  */
-public class SynapseCountsPerRoi {
+public class RoiInfo {
 
-    private Map<String, SynapseCounter> synapseCountsPerRoi;
+    private Map<String, SynapseCounter> synapseCountsPerRoi = new TreeMap<>();
 
     /**
      * Class constructor.
      */
-    public SynapseCountsPerRoi() {
-        this.synapseCountsPerRoi = new TreeMap<>();
+    public RoiInfo() {
     }
 
     /**
-     * @return a map of rois to {@link SynapseCounter} instances
+     * @return a map of ROIs to {@link SynapseCounter} instances
      */
     Map<String, SynapseCounter> getSynapseCountsPerRoi() {
         return this.synapseCountsPerRoi;
     }
 
     /**
-     * @return the set of all rois in this SynapseCountsPerRoi
+     * @return the set of all ROIs in this RoiInfo
      */
     public Set<String> getSetOfRois() {
         return this.synapseCountsPerRoi.keySet();
     }
 
     /**
-     * Adds provided roi to the SynapseCountsPerRoi mapped to a new {@link SynapseCounter} instance
+     * Adds provided ROI to the RoiInfo mapped to a new {@link SynapseCounter} instance
      * initialized with pre and post equal to 0.
      *
-     * @param roi roi name
+     * @param roi ROI name
      */
     private void addSynapseCountsForRoi(String roi) {
         this.synapseCountsPerRoi.put(roi, new SynapseCounter());
     }
 
     /**
-     * Adds provided roi to the SynapseCountsPerRoi mapped to a new {@link SynapseCounter} instance
+     * Adds provided ROI to the RoiInfo mapped to a new {@link SynapseCounter} instance
      * initialized with pre and post equal to provided values.
      *
-     * @param roi  roi name
+     * @param roi  ROI name
      * @param pre  presynaptic density count
      * @param post postsynaptic density count
      */
@@ -58,17 +57,17 @@ public class SynapseCountsPerRoi {
     }
 
     /**
-     * @param roi roi name
-     * @return {@link SynapseCounter} for provided roi
+     * @param roi ROI name
+     * @return {@link SynapseCounter} for provided ROI
      */
     SynapseCounter getSynapseCountsForRoi(String roi) {
         return this.synapseCountsPerRoi.get(roi);
     }
 
     /**
-     * Increments the presynaptic density count for the provided roi by 1.
+     * Increments the presynaptic density count for the provided ROI by 1.
      *
-     * @param roi roi name
+     * @param roi ROI name
      */
     public void incrementPreForRoi(String roi) {
         if (!this.synapseCountsPerRoi.containsKey(roi)) {
@@ -78,9 +77,9 @@ public class SynapseCountsPerRoi {
     }
 
     /**
-     * Increments the postsynaptic density count for the provided roi by 1.
+     * Increments the postsynaptic density count for the provided ROI by 1.
      *
-     * @param roi roi name
+     * @param roi ROI name
      */
     public void incrementPostForRoi(String roi) {
         if (!this.synapseCountsPerRoi.containsKey(roi)) {
@@ -90,7 +89,7 @@ public class SynapseCountsPerRoi {
     }
 
     /**
-     * @return JSON of SynapseCountsPerRoi to be added as a synapseCountPerRoi property
+     * @return JSON of RoiInfo to be added as an roiInfo property
      * on a node
      */
     public String getAsJsonString() {

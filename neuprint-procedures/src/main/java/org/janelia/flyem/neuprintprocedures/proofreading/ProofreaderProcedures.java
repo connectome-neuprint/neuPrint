@@ -4,11 +4,11 @@ import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.model.Neuron;
+import org.janelia.flyem.neuprinter.model.RoiInfo;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
-import org.janelia.flyem.neuprinter.model.SynapseCountsPerRoi;
 import org.janelia.flyem.neuprintprocedures.GraphTraversalTools;
 import org.janelia.flyem.neuprintprocedures.Location;
 import org.neo4j.graphdb.Direction;
@@ -272,7 +272,7 @@ public class ProofreaderProcedures {
 
                 // from synapses, derive connectsto, connection sets, rois/roiInfo, pre/post counts
                 final ConnectsToRelationshipMap connectsToRelationshipMap = new ConnectsToRelationshipMap();
-                final SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
+                final RoiInfo roiInfo = new RoiInfo();
 
                 for (Synapse synapse : currentSynapses) {
 
@@ -305,12 +305,12 @@ public class ProofreaderProcedures {
 
                     if (synapseType.equals(PRE)) {
                         for (String roi : synapseRois) {
-                            synapseCountsPerRoi.incrementPreForRoi(roi);
+                            roiInfo.incrementPreForRoi(roi);
                         }
                         preCount++;
                     } else if (synapseType.equals(POST)) {
                         for (String roi : synapseRois) {
-                            synapseCountsPerRoi.incrementPostForRoi(roi);
+                            roiInfo.incrementPostForRoi(roi);
                         }
                         postCount++;
                     }
@@ -346,8 +346,8 @@ public class ProofreaderProcedures {
                 log.info("Completed creating ConnectionSets and ConnectsTo relationships.");
 
                 // add roi boolean properties and roi info
-                addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(newNeuron, synapseCountsPerRoi);
-                newNeuron.setProperty(ROI_INFO, synapseCountsPerRoi.getAsJsonString());
+                addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(newNeuron, roiInfo);
+                newNeuron.setProperty(ROI_INFO, roiInfo.getAsJsonString());
                 log.info("Completed updating roi information.");
 
             }
@@ -699,8 +699,8 @@ public class ProofreaderProcedures {
 
     }
 
-    private void addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(Node segment, SynapseCountsPerRoi synapseCountsPerRoi) {
-        for (String roi : synapseCountsPerRoi.getSetOfRois()) {
+    private void addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(Node segment, RoiInfo roiInfo) {
+        for (String roi : roiInfo.getSetOfRois()) {
             segment.setProperty(roi, true);
         }
     }

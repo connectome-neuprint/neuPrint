@@ -11,11 +11,11 @@ import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.ConnectionSet;
 import org.janelia.flyem.neuprinter.model.ConnectionSetMap;
 import org.janelia.flyem.neuprinter.model.Neuron;
+import org.janelia.flyem.neuprinter.model.RoiInfo;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
-import org.janelia.flyem.neuprinter.model.SynapseCountsPerRoi;
 import org.janelia.flyem.neuprinter.model.SynapseLocationToBodyIdMap;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Driver;
@@ -249,7 +249,7 @@ public class Neo4jImporter implements AutoCloseable {
                                         "post", body.getNumberOfPostSynapses(),
                                         "bodyId", body.getBodyId(),
                                         "timeStamp", timeStamp,
-                                        "synapseCountPerRoi", body.getSynapseCountsPerRoi().getAsJsonString()
+                                        "synapseCountPerRoi", body.getRoiInfo().getAsJsonString()
                                 ))
                 );
             }
@@ -748,7 +748,7 @@ public class Neo4jImporter implements AutoCloseable {
         long totalPre;
         long totalPost;
         Set<String> roiNameSet;
-        SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
+        RoiInfo roiInfo = new RoiInfo();
 
         try (Session session = driver.session()) {
             totalPre = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
@@ -757,13 +757,13 @@ public class Neo4jImporter implements AutoCloseable {
             for (String roi : roiNameSet) {
                 int roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
                 int roiPostCount = session.readTransaction(tx -> getRoiPostCount(tx, dataset, roi));
-                synapseCountsPerRoi.addSynapseCountsForRoi(roi, roiPreCount, roiPostCount);
+                roiInfo.addSynapseCountsForRoi(roi, roiPreCount, roiPostCount);
             }
         }
 
         try (final TransactionBatch batch = getBatch()) {
             batch.addStatement(new Statement(metaNodeString, parameters("dataset", dataset,
-                    "synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString(),
+                    "synapseCountPerRoi", roiInfo.getAsJsonString(),
                     "superLevelRois", rootRois,
                     "preHPThreshold", preHPThreshold,
                     "postHPThreshold", postHPThreshold,

@@ -1,6 +1,6 @@
 package org.janelia.flyem.neuprintprocedures.triggers;
 
-import org.janelia.flyem.neuprinter.model.SynapseCountsPerRoi;
+import org.janelia.flyem.neuprinter.model.RoiInfo;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
@@ -42,18 +42,18 @@ class MetaNodeUpdater {
                                 !p.equals("somaLocation") &&
                                 !p.equals("somaRadius"))
                         .collect(Collectors.toSet());
-                SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
+                RoiInfo roiInfo = new RoiInfo();
 
                 for (String roi : roiNameSet) {
                     long roiPreCount = getRoiPreCount(dbService, dataset, roi);
                     long roiPostCount = getRoiPostCount(dbService, dataset, roi);
-                    synapseCountsPerRoi.addSynapseCountsForRoi(roi, Math.toIntExact(roiPreCount), Math.toIntExact(roiPostCount));
+                    roiInfo.addSynapseCountsForRoi(roi, Math.toIntExact(roiPreCount), Math.toIntExact(roiPostCount));
                 }
 
                 metaNode.setProperty("totalPreCount", preCount);
                 metaNode.setProperty("totalPostCount", postCount);
-                metaNode.setProperty("roiInfo", synapseCountsPerRoi.getAsJsonString());
-                log.info("Setting roiInfo on Meta node: " + synapseCountsPerRoi.getAsJsonString());
+                metaNode.setProperty("roiInfo", roiInfo.getAsJsonString());
+                log.info("Setting roiInfo on Meta node: " + roiInfo.getAsJsonString());
             }
 
         } catch (Exception e) {
