@@ -725,8 +725,10 @@ public class Neo4jImporter implements AutoCloseable {
      *
      * @param dataset          dataset name
      * @param dataModelVersion version of data model
+     * @param preHPThreshold high-precision threshold for presynaptic densities
+     * @param postHPThreshold high-precision threshold for postsynaptic densities
      */
-    public void createMetaNodeWithDataModelNode(final String dataset, final float dataModelVersion) {
+    public void createMetaNodeWithDataModelNode(final String dataset, final float dataModelVersion, final float preHPThreshold, final float postHPThreshold) {
 
         LOG.info("createMetaNodeWithDataModelNode: enter");
 
@@ -734,12 +736,14 @@ public class Neo4jImporter implements AutoCloseable {
                 "m:" + dataset + "," +
                 "m.lastDatabaseEdit=$timeStamp," +
                 "m.dataset=$dataset, " +
+                "m.roiInfo=$synapseCountPerRoi, " +
+                "m.superLevelRois=$superLevelRois, " +
+                "m.preHPThreshold=$preHPThreshold, " +
+                "m.postHPThreshold=$postHPThreshold, " +
                 "m.totalPreCount=$totalPre, " +
                 "m.totalPostCount=$totalPost \n" +
                 "MERGE (d:DataModel{dataModelVersion:$dataModelVersion}) ON CREATE SET d.dataModelVersion=$dataModelVersion, d.timeStamp=$timeStamp \n" +
                 "MERGE (m)-[:Is]->(d)";
-
-        String metaNodeRoiString = "MATCH (m:Meta{dataset:$dataset}) SET m.roiInfo=$synapseCountPerRoi, m.superLevelRois=$superLevelRois ";
 
         long totalPre;
         long totalPost;
@@ -747,8 +751,6 @@ public class Neo4jImporter implements AutoCloseable {
         SynapseCountsPerRoi synapseCountsPerRoi = new SynapseCountsPerRoi();
 
         try (Session session = driver.session()) {
-            //set temporary indices
-
             totalPre = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
             totalPost = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
             roiNameSet = getRoiSet(session, dataset);
@@ -761,17 +763,15 @@ public class Neo4jImporter implements AutoCloseable {
 
         try (final TransactionBatch batch = getBatch()) {
             batch.addStatement(new Statement(metaNodeString, parameters("dataset", dataset,
+                    "synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString(),
+                    "superLevelRois", rootRois,
+                    "preHPThreshold", preHPThreshold,
+                    "postHPThreshold", postHPThreshold,
                     "totalPre", totalPre,
                     "totalPost", totalPost,
                     "timeStamp", timeStamp,
                     "dataModelVersion", dataModelVersion
             )));
-
-            batch.addStatement(new Statement(metaNodeRoiString,
-                    parameters("dataset", dataset,
-                            "synapseCountPerRoi", synapseCountsPerRoi.getAsJsonString(),
-                            "superLevelRois", rootRois
-                    )));
 
             batch.writeTransaction();
 
@@ -819,7 +819,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    public void indexBooleanRoiProperties(String dataset) {
+    void indexBooleanRoiProperties(String dataset) {
 
         LOG.info("indexBooleanRoiProperties: entry");
 
@@ -846,7 +846,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
-    public void setSuperLevelRois(String dataset, List<BodyWithSynapses> bodyList) {
+    void setSuperLevelRois(String dataset, List<BodyWithSynapses> bodyList) {
 
         Set<String> superLevelRoisFromSynapses = getSuperLevelRoisFromSynapses(dataset, bodyList);
 
@@ -1020,12 +1020,22 @@ public class Neo4jImporter implements AutoCloseable {
 
     private static List<String> getRoisFromMetaNode(final Transaction tx, final String dataset) {
         StatementResult result = tx.run("MATCH (m:Meta{dataset:\"" + dataset + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois RETURN rois");
-        return (List<String>) result.next().asMap().get("rois");
+        List<?> resultList = (List<?>) result.next().asMap().get("rois");
+        List<String> roiList = new ArrayList<>();
+        for (Object aResult: resultList) {
+            roiList.add((String) aResult);
+        }
+        return roiList;
     }
 
     private static List<String> getSuperLevelRoisFromMetaNode(final Transaction tx, final String dataset) {
         StatementResult result = tx.run("MATCH (m:Meta{dataset:\"" + dataset + "\"}) WITH m.superLevelRois AS rois RETURN rois");
-        return (List<String>) result.next().asMap().get("rois");
+        List<?> resultList = (List<?>) result.next().asMap().get("rois");
+        List<String> roiList = new ArrayList<>();
+        for (Object aResult : resultList) {
+            roiList.add((String) aResult);
+        }
+        return roiList;
     }
 
     private static SortedSet<Map.Entry<String, SynapseCounter>> entriesSortedByComparator(Map<String, SynapseCounter> map, Comparator<Map.Entry<String, SynapseCounter>> comparator) {

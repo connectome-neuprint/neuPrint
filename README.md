@@ -41,8 +41,7 @@ Follow these [input specifications](jsonspecs.md) to create your own neurons.jso
 ```console
 $ java -jar neuprint.jar --help
 
-Usage: java -cp neuprint.jar org.janelia.flyem.neuprinter.NeuPrinterMain 
-      [options] 
+Usage: java -cp neuprint.jar [options]
   Options:
     --addAutoNames
       Indicates that automatically generated names should be added for this 
@@ -60,6 +59,12 @@ Usage: java -cp neuprint.jar org.janelia.flyem.neuprinter.NeuPrinterMain
       are only generated for neurons that have greater than the number of 
       synapsesindicated by neuronThreshold (omit to skip)
       Default: false
+    --addClusterNames
+      Indicates that cluster names should be added to Neuron nodes.
+      Default: false
+    --addConnectionSets
+      Indicates that connection set nodes should be added (omit to skip)
+      Default: false
     --addConnectsTo
       Indicates that ConnectsTo relations should be added (omit to skip)
       Default: false
@@ -73,9 +78,6 @@ Usage: java -cp neuprint.jar org.janelia.flyem.neuprinter.NeuPrinterMain
       Default: false
     --addSkeletons
       Indicates that skeleton nodes should be added (omit to skip)
-      Default: false
-    --addSynapseSets
-      Indicates that synapse set nodes should be added (omit to skip)
       Default: false
     --addSynapses
       Indicates that synapse nodes should be added (omit to skip)
@@ -98,8 +100,16 @@ Usage: java -cp neuprint.jar org.janelia.flyem.neuprinter.NeuPrinterMain
       Indicates that neuprint is being used in edit mode to alter data in an 
       existing database (omit to skip).
       Default: false
+    --getSuperLevelRoisFromSynapses
+      Indicates that super level rois should be computed from synapses JSON 
+      and added to the Meta node.
+      Default: false
     --help
 
+    --indexBooleanRoiPropertiesOnly
+      Indicates that only boolean roi properties should be indexed. Requires 
+      the existing dataset to be completely loaded into neo4j. (omit to skip)
+      Default: false
     --loadNeurons
       Indicates that data from neurons JSON should be loaded to database (omit 
       to skip)
@@ -111,19 +121,35 @@ Usage: java -cp neuprint.jar org.janelia.flyem.neuprinter.NeuPrinterMain
     --neuronJson
       JSON file containing neuron data to import
     --neuronThreshold
-      Integer indicating the number of synaptic densities (>=neuronThreshold/5
-      pre OR >=neuronThreshold post) a neuron should have to be given the
-      label of :Neuron (all have the :Segment label by default) and an
-      auto-name (default is 10). To add auto-names, must have --addAutoName OR
+      Integer indicating the number of synaptic densities (>=neuronThreshold/5 
+      pre OR >=neuronThreshold post) a neuron should have to be given the 
+      label of :Neuron (all have the :Segment label by default) and an 
+      auto-name (default is 10). To add auto-names, must have --addAutoName OR 
       --addAutoNamesOnly enabled.
+  * --postHPThreshold
+      Confidence threshold to distinguish high-precision postsynaptic 
+      densities (required)
+      Default: 0.0
+  * --preHPThreshold
+      Confidence threshold to distinguish high-precision presynaptic densities 
+      (required) 
+      Default: 0.0
     --prepDatabase
       Indicates that database constraints and indexes should be setup (omit to 
       skip) 
       Default: false
+    --server
+      DVID server to be added to Meta node.
     --skeletonDirectory
       Path to directory containing skeleton files for this dataset
+    --startFromSynapseLoad
+      Indicates that load should start from the synapses JSON.
+      Default: false
     --synapseJson
       JSON file containing body synapse data to import
+    --uuid
+      DVID UUID to be added to Meta node.
+
 ```
 ## neuPrint Property Graph Model
 

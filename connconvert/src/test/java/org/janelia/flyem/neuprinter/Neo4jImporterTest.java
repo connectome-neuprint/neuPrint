@@ -82,7 +82,7 @@ public class Neo4jImporterTest {
         neo4jImporter.addConnectionSets("test", bodyList, mapper.getSynapseLocationToBodyIdMap());
         neo4jImporter.addSynapseSets("test", bodyList);
         neo4jImporter.addSkeletonNodes("test", skeletonList);
-        neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F);
+        neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F, .20F, .80F);
         neo4jImporter.addAutoNamesAndNeuronLabels("test", 5);
         neo4jImporter.addDvidUuid("test", "1234");
         neo4jImporter.addDvidServer("test", "test1:23");
@@ -464,7 +464,6 @@ public class Neo4jImporterTest {
         Assert.assertEquals(1L, metaSynapseCountPerRoiMap.get("roi'C").getPost());
         // test that all rois are listed in meta
         Assert.assertEquals(5, metaSynapseCountPerRoiMap.keySet().size());
-
     }
 
     @Test
@@ -472,9 +471,23 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        Float dataModelVersion = session.run("MATCH (n:Meta)-[:Is]->(d:DataModel) RETURN d.dataModelVersion").single().get(0).asFloat();
+        float dataModelVersion = session.run("MATCH (n:Meta)-[:Is]->(d:DataModel) RETURN d.dataModelVersion").single().get(0).asFloat();
 
-        Assert.assertEquals(new Float(1.0F), dataModelVersion);
+        Assert.assertEquals(1.0F, dataModelVersion, .00001);
+
+    }
+
+    @Test
+    public void metaNodeShouldHavePreAndPostHPThresholds() {
+
+        Session session = driver.session();
+
+        float preHPThreshold = session.run("MATCH (n:Meta) RETURN n.preHPThreshold").single().get(0).asFloat();
+        float postHPThreshold = session.run("MATCH (n:Meta) RETURN n.postHPThreshold").single().get(0).asFloat();
+
+        // test that pre and post HP thresholds are on Meta node
+        Assert.assertEquals(.2F, preHPThreshold, .0001);
+        Assert.assertEquals(.8F, postHPThreshold, .0001);
 
     }
 

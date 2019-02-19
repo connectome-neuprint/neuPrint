@@ -129,6 +129,18 @@ public class NeuPrinterMain {
         float dataModelVersion;
 
         @Parameter(
+                names = "--preHPThreshold",
+                description = "Confidence threshold to distinguish high-precision presynaptic densities (required)",
+                required = true)
+        float preHPThreshold;
+
+        @Parameter(
+                names = "--postHPThreshold",
+                description = "Confidence threshold to distinguish high-precision postsynaptic densities (required)",
+                required = true)
+        float postHPThreshold;
+
+        @Parameter(
                 names = "--synapseJson",
                 description = "JSON file containing body synapse data to import")
         String synapseJson;
@@ -345,7 +357,7 @@ public class NeuPrinterMain {
 
         final NeuPrinterParameters parameters = new NeuPrinterParameters();
         final JCommander jCommander = new JCommander(parameters);
-        jCommander.setProgramName("java -cp neuprinter.jar " + NeuPrinterMain.class.getName());
+        jCommander.setProgramName("java -cp neuprint.jar");
 
         boolean parseFailed = true;
         try {
@@ -365,8 +377,10 @@ public class NeuPrinterMain {
 
         LOG.info("running with parameters: " + parameters);
 
-        String dataset = parameters.datasetLabel;
-        float dataModelVersion = parameters.dataModelVersion;
+        final String dataset = parameters.datasetLabel;
+        final float dataModelVersion = parameters.dataModelVersion;
+        final float preHPThreshold = parameters.preHPThreshold;
+        final float postHPThreshold = parameters.postHPThreshold;
 
         LOG.info("Dataset is: " + dataset);
 
@@ -402,8 +416,8 @@ public class NeuPrinterMain {
                 LOG.info("Reading in synapse JSON took: " + timer.stop());
                 timer.reset();
 
-                HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
-                SynapseLocationToBodyIdMap synapseLocationToBodyIdMap = mapper.getSynapseLocationToBodyIdMap();
+                final HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
+                final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap = mapper.getSynapseLocationToBodyIdMap();
 
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
@@ -479,7 +493,7 @@ public class NeuPrinterMain {
                     timer.reset();
 
                     timer.start();
-                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
+                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold);
                     LOG.info("Adding :Meta node took: " + timer.stop());
                     timer.reset();
 
@@ -500,13 +514,13 @@ public class NeuPrinterMain {
 
             if (parameters.addSkeletons) {
 
-                File folder = new File(parameters.skeletonDirectory);
-                File[] arrayOfSwcFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".swc"));
+                final File folder = new File(parameters.skeletonDirectory);
+                final File[] arrayOfSwcFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".swc"));
 
                 assert arrayOfSwcFiles != null : "No swc files found.";
                 LOG.info("Reading in " + arrayOfSwcFiles.length + " swc files.");
 
-                List<Skeleton> skeletonList = createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
+                final List<Skeleton> skeletonList = createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
@@ -532,14 +546,14 @@ public class NeuPrinterMain {
             if (parameters.addMetaNodeOnly) {
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
                     neo4jImporter.prepDatabase(dataset);
-                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion);
+                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold);
                 }
             }
 
             if (parameters.getSuperLevelRoisFromSynapses) {
 
                 Stopwatch timer = Stopwatch.createStarted();
-                SynapseMapper mapper = new SynapseMapper();
+                final SynapseMapper mapper = new SynapseMapper();
                 bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
                 LOG.info("Number of bodies with synapses: " + bodyList.size());
                 LOG.info("Reading in synapse JSON took: " + timer.stop());
