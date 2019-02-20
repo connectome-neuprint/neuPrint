@@ -227,38 +227,58 @@ public class LoadingProcedures {
 
         log.info("loader.addSegment: entry");
 
-        if (bodyId == null) {
-            log.error("loader.addSegment: No body ID provided.");
-            throw new RuntimeException("loader.addSegments: No body ID provided.");
-        } else if (datasetLabel == null) {
-            log.error("loader.addSegment: No dataset name provided.");
-            throw new RuntimeException("loader.addSegments: No dataset name provided.");
-        } else if (timeStamp == null) {
-            log.error("loader.addSegment: No time stamp provided.");
-            throw new RuntimeException("loader.addSegments: No time stamp provided.");
-        }
-
-        // check that neuron doesn't already exist
-        Node existingNeuron = getSegment(dbService, bodyId, datasetLabel);
-        if (existingNeuron != null) {
-            log.warn("loader.addSegment: Body ID already exists for this dataset. Will not overwrite.");
-        } else {
-            Node newSegment = createSegment(dbService, bodyId, datasetLabel);
-            newSegment.setProperty(NAME, name);
-            newSegment.setProperty(TYPE, type);
-            newSegment.setProperty(STATUS, status);
-            newSegment.setProperty(SIZE, size);
-
-            Point somaLocationPoint = new Location(somaLocation.get(0), somaLocation.get(1), somaLocation.get(2));
-            newSegment.setProperty(SOMA_LOCATION, somaLocationPoint);
-            newSegment.setProperty(SOMA_RADIUS, somaRadius);
-
-            for (String roi : rois) {
-                newSegment.setProperty(roi, true);
+            if (bodyId == null) {
+                log.error("loader.addSegment: No body ID provided.");
+                throw new RuntimeException("loader.addSegments: No body ID provided.");
+            } else if (datasetLabel == null) {
+                log.error("loader.addSegment: No dataset name provided.");
+                throw new RuntimeException("loader.addSegments: No dataset name provided.");
+            } else if (timeStamp == null) {
+                log.error("loader.addSegment: No time stamp provided.");
+                throw new RuntimeException("loader.addSegments: No time stamp provided.");
             }
 
-            newSegment.setProperty(TIME_STAMP, timeStamp);
-        }
+            // check that neuron doesn't already exist
+            Node existingNeuron = getSegment(dbService, bodyId, datasetLabel);
+            if (existingNeuron != null) {
+                log.warn("loader.addSegment: Body ID already exists for this dataset. Will not overwrite.");
+            } else {
+                Node newSegment;
+                try {
+                    newSegment = createSegment(dbService, bodyId, datasetLabel);
+                } catch (Exception e) {
+                    log.error("loader.addSegment: Failed to create new segment: " + e);
+                    throw new RuntimeException();
+                }
+                if (name != null) {
+                    newSegment.setProperty(NAME, name);
+                }
+                if (type != null) {
+                    newSegment.setProperty(TYPE, type);
+                }
+                if (status != null) {
+                    newSegment.setProperty(STATUS, status);
+                }
+                if (size != null) {
+                    newSegment.setProperty(SIZE, size);
+                }
+
+                if (somaLocation != null) {
+                    Point somaLocationPoint = new Location(somaLocation.get(0), somaLocation.get(1), somaLocation.get(2));
+                    newSegment.setProperty(SOMA_LOCATION, somaLocationPoint);
+                }
+                if (somaRadius != null) {
+                    newSegment.setProperty(SOMA_RADIUS, somaRadius);
+                }
+
+                if (rois != null) {
+                    for (String roi : rois) {
+                        newSegment.setProperty(roi, true);
+                    }
+                }
+
+                newSegment.setProperty(TIME_STAMP, timeStamp);
+            }
 
         log.info("loader.addSegment: exit");
 

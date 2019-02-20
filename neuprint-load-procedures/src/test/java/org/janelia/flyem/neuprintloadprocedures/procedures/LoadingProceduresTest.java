@@ -73,7 +73,7 @@ public class LoadingProceduresTest {
                 "bodyId", 1,
                 "dataset", "test",
                 "name", "name1",
-                "type", "type1",
+                "type", null,
                 "status", "status1",
                 "size", 10000,
                 "somaLocation", somaLocation,
