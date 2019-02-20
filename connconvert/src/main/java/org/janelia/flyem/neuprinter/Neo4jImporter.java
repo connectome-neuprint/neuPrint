@@ -165,42 +165,38 @@ public class Neo4jImporter implements AutoCloseable {
         //TODO: arbitrary properties
         LOG.info("addSegments: entry");
 
-        String roiPropertyBaseString = " n.`%s` = TRUE,";
-
-        final String segmentText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) " +
-                "ON CREATE SET n.bodyId = $bodyId," +
-                " n:Segment," +
-                " n:" + dataset + "," +
-                " n.name = $name," +
-                " n.type = $type," +
-                " n.status = $status," +
-                " n.size = $size," +
-                " n.somaLocation = $somaLocation," +
-                " n.somaRadius = $somaRadius, " +
-                "%s" + //placeholder for roi properties
-                " n.timeStamp = $timeStamp";
+        final String addSegmentCall = "CALL loader.addSegment(" +
+                "$bodyId, " +
+                "$dataset, " +
+                "$name, " +
+                "$type, " +
+                "$status, " +
+                "$size, " +
+                "$somaLocation, " +
+                "$somaRadius, " +
+                "$rois, " +
+                "$timeStamp" +
+                ")";
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
 
-                StringBuilder roiProperties = new StringBuilder();
                 List<String> roiList = neuron.getRois();
                 if (roiList != null && roiList.size() > 0) {
                     rootRois.add(roiList.get(0));
-                    for (String roi : roiList) roiProperties.append(String.format(roiPropertyBaseString, roi));
                 }
 
-                String segmentTextWithRois = String.format(segmentText, roiProperties.toString());
-
                 batch.addStatement(
-                        new Statement(segmentTextWithRois,
+                        new Statement(addSegmentCall,
                                 parameters("bodyId", neuron.getId(),
+                                        "dataset", dataset,
                                         "name", neuron.getName(),
                                         "type", neuron.getNeuronType(),
                                         "status", neuron.getStatus(),
                                         "size", neuron.getSize(),
-                                        "somaLocation", neuron.getSomaLocation(),
+                                        "somaLocation", neuron.getSoma()!=null ? neuron.getSoma().getLocation() : null,
                                         "somaRadius", neuron.getSomaRadius(),
+                                        "rois", roiList,
                                         "timeStamp", timeStamp))
                 );
             }
