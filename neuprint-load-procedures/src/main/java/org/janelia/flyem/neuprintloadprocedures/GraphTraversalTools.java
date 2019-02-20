@@ -13,7 +13,6 @@ import org.neo4j.graphdb.spatial.Point;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -69,6 +68,14 @@ public class GraphTraversalTools {
 
     public static Node getSegment(final GraphDatabaseService dbService, final long bodyId, final String dataset) {
         return dbService.findNode(Label.label(dataset + "-" + SEGMENT), BODY_ID, bodyId);
+    }
+
+    public static Node createSegment(final GraphDatabaseService dbService, final long bodyId, final String dataset) {
+        final Node newSegment = dbService.createNode(Label.label(SEGMENT),
+                Label.label(dataset),
+                Label.label(dataset + "-" + SEGMENT));
+        newSegment.setProperty(BODY_ID, bodyId);
+        return newSegment;
     }
 
     public static Node getSynapse(final GraphDatabaseService dbService, final Point location, final String dataset) {

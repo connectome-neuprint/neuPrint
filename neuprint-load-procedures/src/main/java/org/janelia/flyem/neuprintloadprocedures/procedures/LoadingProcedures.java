@@ -3,11 +3,13 @@ package org.janelia.flyem.neuprintloadprocedures.procedures;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools;
+import org.janelia.flyem.neuprintloadprocedures.Location;
 import org.janelia.flyem.neuprintloadprocedures.model.RoiInfoWithHighPrecisionCounts;
 import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.logging.Log;
@@ -19,16 +21,26 @@ import org.neo4j.procedure.Procedure;
 
 import java.lang.reflect.Type;
 import java.util.Map;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONFIDENCE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.NAME;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONNECTS_TO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.FROM;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SIZE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_LOCATION;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_RADIUS;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.STATUS;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TIME_STAMP;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROI_INFO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TYPE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.createSegment;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegment;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
 
@@ -198,5 +210,59 @@ public class LoadingProcedures {
         return roiInfo.getAsJsonString();
 
     }
+
+
+    @Procedure(value = "loader.addSegment", mode = Mode.WRITE)
+    @Description("loader.addSegment : Add Segment nodes to database.")
+    public void addSegment(@Name("bodyId") final Long bodyId,
+                           @Name("datasetLabel") final String datasetLabel,
+                           @Name("name") final String name,
+                           @Name("type") final String type,
+                           @Name("status") final String status,
+                           @Name("size") final Long size,
+                           @Name("somaLocation") final List<Integer> somaLocation,
+                           @Name("somaRadius") final Double somaRadius,
+                           @Name("rois") final List<String> rois,
+                           @Name("timeStamp") final LocalDateTime timeStamp) {
+
+        log.info("loader.addSegment: entry");
+
+        if (bodyId == null) {
+            log.error("loader.addSegment: No body ID provided.");
+            throw new RuntimeException("loader.addSegments: No body ID provided.");
+        } else if (datasetLabel == null) {
+            log.error("loader.addSegment: No dataset name provided.");
+            throw new RuntimeException("loader.addSegments: No dataset name provided.");
+        } else if (timeStamp == null) {
+            log.error("loader.addSegment: No time stamp provided.");
+            throw new RuntimeException("loader.addSegments: No time stamp provided.");
+        }
+
+        // check that neuron doesn't already exist
+        Node existingNeuron = getSegment(dbService, bodyId, datasetLabel);
+        if (existingNeuron != null) {
+            log.warn("loader.addSegment: Body ID already exists for this dataset. Will not overwrite.");
+        } else {
+            Node newSegment = createSegment(dbService, bodyId, datasetLabel);
+            newSegment.setProperty(NAME, name);
+            newSegment.setProperty(TYPE, type);
+            newSegment.setProperty(STATUS, status);
+            newSegment.setProperty(SIZE, size);
+
+            Point somaLocationPoint = new Location((long) somaLocation.get(0), (long) somaLocation.get(1), (long) somaLocation.get(2));
+            newSegment.setProperty(SOMA_LOCATION, somaLocationPoint);
+            newSegment.setProperty(SOMA_RADIUS, somaRadius);
+
+            for (String roi : rois) {
+                newSegment.setProperty(roi, true);
+            }
+
+            newSegment.setProperty(TIME_STAMP, timeStamp);
+        }
+
+        log.info("loader.addSegment: exit");
+
+    }
+
 
 }
