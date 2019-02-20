@@ -12,6 +12,7 @@ import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.SortBodyByNumberOfSynapses;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +33,7 @@ public class InputAndOutputCountsForRoisTest {
     public Neo4jRule neo4j = new Neo4jRule()
             .withProcedure(AnalysisProcedures.class)
             .withProcedure(GraphRefactoring.class)
+            .withProcedure(LoadingProcedures.class)
             .withFunction(Json.class)
             .withProcedure(Create.class);
 

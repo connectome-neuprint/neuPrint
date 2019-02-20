@@ -8,6 +8,7 @@ import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
+import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.janelia.flyem.neuprintprocedures.functions.NeuPrintUserFunctions;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -28,6 +29,7 @@ public class DeleteSkeletonTest {
     @Rule
     public Neo4jRule neo4j = new Neo4jRule()
             .withProcedure(ProofreaderProcedures.class)
+            .withProcedure(LoadingProcedures.class)
             .withFunction(NeuPrintUserFunctions.class)
             .withProcedure(GraphRefactoring.class)
             .withProcedure(Create.class);

@@ -10,6 +10,7 @@ import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -38,7 +39,8 @@ public class MetaNodeUpdaterTest {
     static {
         neo4j = new Neo4jRule()
                 .withFunction(Json.class)
-                .withProcedure(Create.class);
+                .withProcedure(Create.class)
+                .withProcedure(LoadingProcedures.class);
     }
 
     @BeforeClass
