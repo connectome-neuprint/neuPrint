@@ -328,48 +328,46 @@ public class Neo4jImporter implements AutoCloseable {
 
         try (final TransactionBatch batch = getBatch()) {
             for (final BodyWithSynapses bws : bodyList) {
-                // issue with this body id in mb6
-                if (bws.getBodyId() != 304654117 || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
 
-                    for (final Synapse synapse : bws.getSynapseSet()) {
+                for (final Synapse synapse : bws.getSynapseSet()) {
 
-                        StringBuilder roiProperties = new StringBuilder();
-                        List<String> roiList = synapse.getRois();
-                        if (roiList != null && roiList.size() > 0) {
-                            rootRois.add(roiList.get(0));
-                            for (String roi : roiList) roiProperties.append(String.format(roiPropertyBaseString, roi));
-                        } else {
-                            LOG.warn("No ROI found on synapse " + synapse);
-                        }
+                    StringBuilder roiProperties = new StringBuilder();
+                    List<String> roiList = synapse.getRois();
+                    if (roiList != null && roiList.size() > 0) {
+                        rootRois.add(roiList.get(0));
+                        for (String roi : roiList) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                    } else {
+                        LOG.warn("No ROI found on synapse " + synapse);
+                    }
 
-                        if (synapse.getType().equals("pre")) {
+                    if (synapse.getType().equals("pre")) {
 
-                            String preSynapseTextWithRois = String.format(preSynapseText, roiProperties.toString());
+                        String preSynapseTextWithRois = String.format(preSynapseText, roiProperties.toString());
 
-                            batch.addStatement(new Statement(
-                                    preSynapseTextWithRois,
-                                    parameters("location", synapse.getLocationAsPoint(),
-                                            "datasetLocation", dataset + ":" + synapse.getLocationString(),
-                                            "confidence", synapse.getConfidence(),
-                                            "type", synapse.getType(),
-                                            "timeStamp", timeStamp))
-                            );
-                        } else if (synapse.getType().equals("post")) {
+                        batch.addStatement(new Statement(
+                                preSynapseTextWithRois,
+                                parameters("location", synapse.getLocationAsPoint(),
+                                        "datasetLocation", dataset + ":" + synapse.getLocationString(),
+                                        "confidence", synapse.getConfidence(),
+                                        "type", synapse.getType(),
+                                        "timeStamp", timeStamp))
+                        );
+                    } else if (synapse.getType().equals("post")) {
 
-                            String postSynapseTextWithRois = String.format(postSynapseText, roiProperties.toString());
+                        String postSynapseTextWithRois = String.format(postSynapseText, roiProperties.toString());
 
-                            batch.addStatement(new Statement(
-                                    postSynapseTextWithRois,
-                                    parameters("location", synapse.getLocationAsPoint(),
-                                            "datasetLocation", dataset + ":" + synapse.getLocationString(),
-                                            "confidence", synapse.getConfidence(),
-                                            "type", synapse.getType(),
-                                            "timeStamp", timeStamp))
-                            );
+                        batch.addStatement(new Statement(
+                                postSynapseTextWithRois,
+                                parameters("location", synapse.getLocationAsPoint(),
+                                        "datasetLocation", dataset + ":" + synapse.getLocationString(),
+                                        "confidence", synapse.getConfidence(),
+                                        "type", synapse.getType(),
+                                        "timeStamp", timeStamp))
+                        );
 
-                        }
                     }
                 }
+
             }
             batch.writeTransaction();
         }
@@ -605,11 +603,11 @@ public class Neo4jImporter implements AutoCloseable {
                         final String presynapticLocationString = synapse.getLocationString();
                         final Set<String> connectionLocationStrings = synapse.getConnectionLocationStrings();
                         for (final String postsynapticLocationString : connectionLocationStrings) {
-                            //deal with problematic synapses from mb6 dataset
-                            if (!(isMb6ProblematicSynapse(postsynapticLocationString)) || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
-                                long postsynapticBodyId = synapseLocationToBodyIdMap.getBodyId(postsynapticLocationString);
+                            Long postsynapticBodyId = synapseLocationToBodyIdMap.getBodyId(postsynapticLocationString);
+                            if (postsynapticBodyId != null) {
                                 connectionSetMap.addConnection(presynapticBodyId, postsynapticBodyId, presynapticLocationString, postsynapticLocationString);
                             }
+
                         }
                     }
                 }
@@ -732,8 +730,8 @@ public class Neo4jImporter implements AutoCloseable {
      *
      * @param dataset          dataset name
      * @param dataModelVersion version of data model
-     * @param preHPThreshold high-precision threshold for presynaptic densities
-     * @param postHPThreshold high-precision threshold for postsynaptic densities
+     * @param preHPThreshold   high-precision threshold for presynaptic densities
+     * @param postHPThreshold  high-precision threshold for postsynaptic densities
      */
     public void createMetaNodeWithDataModelNode(final String dataset, final float dataModelVersion, final float preHPThreshold, final float postHPThreshold) {
 
@@ -855,7 +853,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     void setSuperLevelRois(String dataset, List<BodyWithSynapses> bodyList) {
 
-        Set<String> superLevelRoisFromSynapses = getSuperLevelRoisFromSynapses(dataset, bodyList);
+        Set<String> superLevelRoisFromSynapses = getSuperLevelRoisFromSynapses(bodyList);
 
         try (final TransactionBatch batch = getBatch()) {
 
@@ -1063,24 +1061,17 @@ public class Neo4jImporter implements AutoCloseable {
         return entriesSortedByComparator(roiSynapseCountMap, comparator);
     }
 
-    private boolean isMb6ProblematicSynapse(String locationString) {
-        return locationString.equals("3936:4764:9333") || locationString.equals("4042:5135:9887");
-    }
-
-    private Set<String> getSuperLevelRoisFromSynapses(String dataset, List<BodyWithSynapses> bodyList) {
+    private Set<String> getSuperLevelRoisFromSynapses(List<BodyWithSynapses> bodyList) {
 
         Set<String> superLevelRois = new HashSet<>();
 
         for (final BodyWithSynapses bws : bodyList) {
-            // issue with this body id in mb6
-            if (bws.getBodyId() != 304654117 || !(dataset.equals("mb6v2") || dataset.equals("mb6"))) {
 
-                for (final Synapse synapse : bws.getSynapseSet()) {
+            for (final Synapse synapse : bws.getSynapseSet()) {
 
-                    List<String> roiList = synapse.getRois();
-                    if (roiList != null && roiList.size() > 0) {
-                        superLevelRois.add(roiList.get(0));
-                    }
+                List<String> roiList = synapse.getRois();
+                if (roiList != null && roiList.size() > 0) {
+                    superLevelRois.add(roiList.get(0));
                 }
             }
         }
