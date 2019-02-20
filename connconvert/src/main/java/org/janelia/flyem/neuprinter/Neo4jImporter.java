@@ -84,7 +84,7 @@ public class Neo4jImporter implements AutoCloseable {
      */
     public Neo4jImporter(final Driver driver) {
         this.driver = driver;
-        this.statementsPerTransaction = 20;
+        this.statementsPerTransaction = 200;
     }
 
     /**
@@ -205,6 +205,63 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSegments: exit");
     }
+
+    /**
+     * Adds Segment nodes with properties specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.
+     *
+     * @param dataset    dataset name
+     * @param neuronList list of {@link Neuron} objects
+     */
+    public void addSegmentsOld(final String dataset,
+                            final List<Neuron> neuronList) {
+        //TODO: arbitrary properties
+        LOG.info("addSegments: entry");
+
+        String roiPropertyBaseString = " n.`%s` = TRUE,";
+
+        final String segmentText = "MERGE (n:`" + dataset + "-Segment`{bodyId:$bodyId}) " +
+                "ON CREATE SET n.bodyId = $bodyId," +
+                " n:Segment," +
+                " n:" + dataset + "," +
+                " n.name = $name," +
+                " n.type = $type," +
+                " n.status = $status," +
+                " n.size = $size," +
+                " n.somaLocation = $somaLocation," +
+                " n.somaRadius = $somaRadius, " +
+                "%s" + //placeholder for roi properties
+                " n.timeStamp = $timeStamp";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (final Neuron neuron : neuronList) {
+
+                StringBuilder roiProperties = new StringBuilder();
+                List<String> roiList = neuron.getRois();
+                if (roiList != null && roiList.size() > 0) {
+                    rootRois.add(roiList.get(0));
+                    for (String roi : roiList) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                }
+
+                String segmentTextWithRois = String.format(segmentText, roiProperties.toString());
+
+                batch.addStatement(
+                        new Statement(segmentTextWithRois,
+                                parameters("bodyId", neuron.getId(),
+                                        "name", neuron.getName(),
+                                        "type", neuron.getNeuronType(),
+                                        "status", neuron.getStatus(),
+                                        "size", neuron.getSize(),
+                                        "somaLocation", neuron.getSomaLocation(),
+                                        "somaRadius", neuron.getSomaRadius(),
+                                        "timeStamp", timeStamp))
+                );
+            }
+            batch.writeTransaction();
+        }
+
+        LOG.info("addSegments: exit");
+    }
+
 
     /**
      * Adds ConnectsTo relationships between Segment nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
