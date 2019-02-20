@@ -5,7 +5,6 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 import com.google.common.base.Stopwatch;
-import com.google.gson.Gson;
 import org.janelia.flyem.neuprinter.db.DbConfig;
 import org.janelia.flyem.neuprinter.json.JsonUtils;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
@@ -64,10 +63,10 @@ public class NeuPrinterMain {
         boolean startFromSynapsesLoad;
 
         @Parameter(
-                names = "--doAll",
+                names = "--addNeuronsAndSynapses",
                 description = "Indicates that both neurons and synapses JSONs should be loaded and all database features added",
                 arity = 0)
-        boolean doAll;
+        boolean addNeuronsAndSynapses;
 
         @Parameter(
                 names = "--prepDatabase",
@@ -124,20 +123,17 @@ public class NeuPrinterMain {
 
         @Parameter(
                 names = "--dataModelVersion",
-                description = "Data model version (required)",
-                required = true)
-        float dataModelVersion;
+                description = "Data model version (required)")
+        float dataModelVersion = 1.0F;
 
         @Parameter(
                 names = "--preHPThreshold",
-                description = "Confidence threshold to distinguish high-precision presynaptic densities (required)",
-                required = true)
+                description = "Confidence threshold to distinguish high-precision presynaptic densities (required)")
         float preHPThreshold;
 
         @Parameter(
                 names = "--postHPThreshold",
-                description = "Confidence threshold to distinguish high-precision postsynaptic densities (required)",
-                required = true)
+                description = "Confidence threshold to distinguish high-precision postsynaptic densities (required)")
         float postHPThreshold;
 
         @Parameter(
@@ -191,7 +187,7 @@ public class NeuPrinterMain {
                 description = "Integer indicating the number of synaptic densities (>=neuronThreshold/5 pre OR >=neuronThreshold post) a neuron should have to be given " +
                         "the label of :Neuron (all have the :Segment label by default) and an auto-name (default is 10). To add auto-names, must have" +
                         " --addAutoName OR --addAutoNamesOnly enabled.")
-        Integer neuronThreshold;
+        Integer neuronThreshold = 0;
 
         @Parameter(
                 names = "--getSuperLevelRoisFromSynapses",
@@ -386,7 +382,7 @@ public class NeuPrinterMain {
 
         try {
 
-            if (parameters.loadNeurons || parameters.doAll) {
+            if (parameters.loadNeurons || parameters.addNeuronsAndSynapses) {
 
                 // read in the neurons data
                 Stopwatch timer2 = Stopwatch.createStarted();
@@ -396,7 +392,7 @@ public class NeuPrinterMain {
                 //write it to the database
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-                    if (parameters.prepDatabase || parameters.doAll) {
+                    if (parameters.prepDatabase || parameters.addNeuronsAndSynapses) {
                         neo4jImporter.prepDatabase(dataset);
                     }
 
@@ -407,7 +403,7 @@ public class NeuPrinterMain {
                 }
             }
 
-            if (parameters.loadSynapses || parameters.doAll || parameters.startFromSynapsesLoad) {
+            if (parameters.loadSynapses || parameters.addNeuronsAndSynapses || parameters.startFromSynapsesLoad) {
 
                 Stopwatch timer = Stopwatch.createStarted();
                 SynapseMapper mapper = new SynapseMapper();
@@ -421,11 +417,11 @@ public class NeuPrinterMain {
 
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-                    if (parameters.startFromSynapsesLoad || (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll))) {
+                    if (parameters.startFromSynapsesLoad || (parameters.prepDatabase && !(parameters.loadNeurons || parameters.addNeuronsAndSynapses))) {
                         neo4jImporter.prepDatabase(dataset);
                     }
 
-                    if (parameters.startFromSynapsesLoad || parameters.addConnectsTo || parameters.doAll) {
+                    if (parameters.startFromSynapsesLoad || parameters.addConnectsTo || parameters.addNeuronsAndSynapses) {
 
                         timer.start();
                         neo4jImporter.addConnectsTo(dataset, bodyList);
@@ -434,28 +430,28 @@ public class NeuPrinterMain {
 
                     }
 
-                    if (parameters.startFromSynapsesLoad || parameters.addSynapses || parameters.doAll) {
+                    if (parameters.startFromSynapsesLoad || parameters.addSynapses || parameters.addNeuronsAndSynapses) {
                         timer.start();
                         neo4jImporter.addSynapsesWithRois(dataset, bodyList);
                         LOG.info("Loading all Synapses took: " + timer.stop());
                         timer.reset();
                     }
 
-                    if (parameters.startFromSynapsesLoad || parameters.addSynapsesTo || parameters.doAll) {
+                    if (parameters.startFromSynapsesLoad || parameters.addSynapsesTo || parameters.addNeuronsAndSynapses) {
                         timer.start();
                         neo4jImporter.addSynapsesTo(dataset, preToPost);
                         LOG.info("Loading all SynapsesTo took: " + timer.stop());
                         timer.reset();
                     }
 
-                    if (parameters.startFromSynapsesLoad || parameters.addNeuronRois || parameters.doAll) {
+                    if (parameters.startFromSynapsesLoad || parameters.addNeuronRois || parameters.addNeuronsAndSynapses) {
                         timer.start();
                         neo4jImporter.addSegmentRois(dataset, bodyList);
                         LOG.info("Loading all Segment ROI labels took: " + timer.stop());
                         timer.reset();
                     }
 
-                    if (parameters.startFromSynapsesLoad || parameters.addConnectionSets || parameters.doAll) {
+                    if (parameters.startFromSynapsesLoad || parameters.addConnectionSets || parameters.addNeuronsAndSynapses) {
                         timer.start();
                         neo4jImporter.addConnectionSets(dataset, bodyList, synapseLocationToBodyIdMap, preHPThreshold, postHPThreshold);
                         LOG.info("Loading ConnectionSets took: " + timer.stop());
@@ -524,7 +520,7 @@ public class NeuPrinterMain {
 
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-                    if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.doAll || parameters.loadSynapses)) {
+                    if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.addNeuronsAndSynapses || parameters.loadSynapses)) {
                         neo4jImporter.prepDatabase(dataset);
                     }
 
