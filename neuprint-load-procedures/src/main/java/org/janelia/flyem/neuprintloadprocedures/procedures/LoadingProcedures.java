@@ -36,63 +36,69 @@ public class LoadingProcedures {
 
         log.info("loader.setConnectionSetRoiInfo: entry");
 
-        if (preBodyId == null || postBodyId == null || datasetLabel == null || preHPThreshold == null || postHPThreshold == null) {
-            log.error("loader.setConnectionSetRoiInfo: Missing input arguments.");
-            throw new RuntimeException("loader.setConnectionSetRoiInfo: Missing input arguments.");
-        }
+        try {
 
-        // get a connection set
-        Node connectionSet = GraphTraversalTools.getConnectionSetNode(dbService, preBodyId, postBodyId, datasetLabel);
-
-        if (connectionSet == null) {
-            log.error(String.format("loader.setConnectionSetRoiInfo: ConnectionSet does not exist: %d to %d in dataset %s. ", preBodyId, postBodyId, datasetLabel));
-            throw new RuntimeException(String.format("loader.setConnectionSetRoiInfo: ConnectionSet does not exist: %d to %d in dataset %s. ", preBodyId, postBodyId, datasetLabel));
-        }
-
-        // get all synapses on that connection set
-        Set<Node> synapsesForConnectionSet = GraphTraversalTools.getSynapsesForConnectionSet(connectionSet);
-
-        // for each pre/post add to count and check confidence to add to hp count
-        RoiInfoWithHighPrecisionCounts roiInfo = new RoiInfoWithHighPrecisionCounts();
-        for (Node synapse : synapsesForConnectionSet) {
-            String type;
-            Double confidence;
-            if (synapse.hasProperty(TYPE)) {
-                type = (String) synapse.getProperty(TYPE);
-            } else {
-                type = null;
-                log.error("loader.setConnectionSetRoiInfo: Synapse has no type property. Not added to roiInfo.");
+            if (preBodyId == null || postBodyId == null || datasetLabel == null || preHPThreshold == null || postHPThreshold == null) {
+                log.error("loader.setConnectionSetRoiInfo: Missing input arguments.");
+                throw new RuntimeException("loader.setConnectionSetRoiInfo: Missing input arguments.");
             }
-            if (synapse.hasProperty(CONFIDENCE)) {
-                confidence = (Double) synapse.getProperty(CONFIDENCE);
-            } else {
-                confidence = null;
-                log.error("loader.setConnectionSetRoiInfo: Synapse has no confidence property.");
-            }
-            Set<String> synapseRois = getSynapseRois(synapse);
-            if (type.equals(PRE) && confidence != null && confidence > preHPThreshold) {
-                for (String roi : synapseRois) {
-                    roiInfo.incrementPreForRoi(roi);
-                    roiInfo.incrementPreHPForRoi(roi);
-                }
-            } else if (type.equals(PRE)) {
-                for (String roi : synapseRois) {
-                    roiInfo.incrementPreForRoi(roi);
-                }
-            } else if (type.equals(POST) && confidence != null && confidence > postHPThreshold) {
-                for (String roi : synapseRois) {
-                    roiInfo.incrementPostForRoi(roi);
-                    roiInfo.incrementPostHPForRoi(roi);
-                }
-            } else if (type.equals(POST)) {
-                for (String roi : synapseRois) {
-                    roiInfo.incrementPostForRoi(roi);
-                }
-            }
-        }
 
-        // add to connection set node
-        connectionSet.setProperty("roiInfo", roiInfo.getAsJsonString());
+            // get a connection set
+            Node connectionSet = GraphTraversalTools.getConnectionSetNode(dbService, preBodyId, postBodyId, datasetLabel);
+
+            if (connectionSet == null) {
+                log.error(String.format("loader.setConnectionSetRoiInfo: ConnectionSet does not exist: %d to %d in dataset %s. ", preBodyId, postBodyId, datasetLabel));
+                throw new RuntimeException(String.format("loader.setConnectionSetRoiInfo: ConnectionSet does not exist: %d to %d in dataset %s. ", preBodyId, postBodyId, datasetLabel));
+            }
+
+            // get all synapses on that connection set
+            Set<Node> synapsesForConnectionSet = GraphTraversalTools.getSynapsesForConnectionSet(connectionSet);
+
+            // for each pre/post add to count and check confidence to add to hp count
+            RoiInfoWithHighPrecisionCounts roiInfo = new RoiInfoWithHighPrecisionCounts();
+            for (Node synapse : synapsesForConnectionSet) {
+                String type;
+                Double confidence;
+                if (synapse.hasProperty(TYPE)) {
+                    type = (String) synapse.getProperty(TYPE);
+                } else {
+                    type = null;
+                    log.error("loader.setConnectionSetRoiInfo: Synapse has no type property. Not added to roiInfo.");
+                }
+                if (synapse.hasProperty(CONFIDENCE)) {
+                    confidence = (Double) synapse.getProperty(CONFIDENCE);
+                } else {
+                    confidence = null;
+                    log.error("loader.setConnectionSetRoiInfo: Synapse has no confidence property.");
+                }
+                Set<String> synapseRois = getSynapseRois(synapse);
+                if (type.equals(PRE) && confidence != null && confidence > preHPThreshold) {
+                    for (String roi : synapseRois) {
+                        roiInfo.incrementPreForRoi(roi);
+                        roiInfo.incrementPreHPForRoi(roi);
+                    }
+                } else if (type.equals(PRE)) {
+                    for (String roi : synapseRois) {
+                        roiInfo.incrementPreForRoi(roi);
+                    }
+                } else if (type.equals(POST) && confidence != null && confidence > postHPThreshold) {
+                    for (String roi : synapseRois) {
+                        roiInfo.incrementPostForRoi(roi);
+                        roiInfo.incrementPostHPForRoi(roi);
+                    }
+                } else if (type.equals(POST)) {
+                    for (String roi : synapseRois) {
+                        roiInfo.incrementPostForRoi(roi);
+                    }
+                }
+            }
+
+            // add to connection set node
+            connectionSet.setProperty("roiInfo", roiInfo.getAsJsonString());
+        } catch (Exception e) {
+            log.info("loader.setConnectionSetRoiInfo: Error adding roiInfo:" + e);
+            throw new RuntimeException("loader.setConnectionSetRoiInfo: Error adding roiInfo:" + e);
+        }
 
         log.info("loader.setConnectionSetRoiInfo: exit");
 
