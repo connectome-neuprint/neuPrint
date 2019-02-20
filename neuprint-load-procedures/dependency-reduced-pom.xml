@@ -6,10 +6,10 @@
     <version>1.0-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>neuprinter</artifactId>
-  <name>neuprinter</name>
+  <artifactId>neuprint-load-procedures</artifactId>
+  <name>neuprint-load-procedures</name>
   <version>1.0-SNAPSHOT</version>
-  <description>Tools for importing connectome data into neo4j</description>
+  <description>Neo4j stored procedures to assist neuprint load</description>
   <build>
     <plugins>
       <plugin>
@@ -29,13 +29,6 @@
             <goals>
               <goal>shade</goal>
             </goals>
-            <configuration>
-              <transformers>
-                <transformer>
-                  <mainClass>org.janelia.flyem.neuprinter.NeuPrinterMain</mainClass>
-                </transformer>
-              </transformers>
-            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -77,11 +70,19 @@
           <groupId>com.fasterxml.jackson.core</groupId>
         </exclusion>
         <exclusion>
+          <artifactId>opencsv</artifactId>
+          <groupId>com.opencsv</groupId>
+        </exclusion>
+        <exclusion>
           <artifactId>javafaker</artifactId>
           <groupId>com.github.javafaker</groupId>
         </exclusion>
         <exclusion>
           <artifactId>commons-math3</artifactId>
+          <groupId>org.apache.commons</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>commons-text</artifactId>
           <groupId>org.apache.commons</groupId>
         </exclusion>
       </exclusions>
@@ -104,10 +105,6 @@
       <version>3.5.2</version>
       <scope>test</scope>
       <exclusions>
-        <exclusion>
-          <artifactId>neo4j</artifactId>
-          <groupId>org.neo4j</groupId>
-        </exclusion>
         <exclusion>
           <artifactId>neo4j-server</artifactId>
           <groupId>org.neo4j.app</groupId>
@@ -149,6 +146,60 @@
           <groupId>commons-codec</groupId>
         </exclusion>
       </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j</artifactId>
+      <version>3.5.2</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <artifactId>neo4j-lucene-index</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-fulltext-index</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-graph-algo</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-udc</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-data-collector</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-cypher</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-jmx</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-bolt</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-consistency-check</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-kernel</artifactId>
+          <groupId>org.neo4j</groupId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j.driver</groupId>
+      <artifactId>neo4j-java-driver</artifactId>
+      <version>1.7.2</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 </project>

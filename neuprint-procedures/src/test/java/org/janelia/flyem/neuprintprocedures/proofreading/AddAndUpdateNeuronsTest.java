@@ -11,6 +11,7 @@ import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.janelia.flyem.neuprintprocedures.functions.NeuPrintUserFunctions;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -49,6 +50,7 @@ public class AddAndUpdateNeuronsTest {
         neo4j = new Neo4jRule()
                 .withFunction(Json.class)
                 .withProcedure(Create.class)
+                .withProcedure(LoadingProcedures.class)
                 .withProcedure(ProofreaderProcedures.class)
                 .withFunction(NeuPrintUserFunctions.class);
     }
@@ -81,60 +83,60 @@ public class AddAndUpdateNeuronsTest {
 
         neo4jImporter.addSynapsesTo(dataset, preToPost);
         neo4jImporter.addSegmentRois(dataset, bodyList);
-        neo4jImporter.addConnectionSets(dataset, bodyList, mapper.getSynapseLocationToBodyIdMap());
+        neo4jImporter.addConnectionSets(dataset, bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F);
         neo4jImporter.addSynapseSets(dataset, bodyList);
         neo4jImporter.addSkeletonNodes(dataset, skeletonList);
-        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F,.20F, .80F);
+        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F);
         neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 1);
 
         String updateJson =
                 "{" +
-                "\"Id\": 8426959," +
-                "\"Size\": 12," +
-                "\"MutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
-                "\"MutationID\": 1000057479," +
-                "\"Status\": \"updated\"," +
-                "\"Soma\": {" +
-                "\"Location\": [14067, 10777, 15040]," +
-                "\"Radius\": 15040.0 }," +
-                "\"Name\": \"new name\", " +
-                "\"SynapseSources\": [831744,2589725]," +
-                "\"CurrentSynapses\": " +
-                "[" +
-                "{" +
-                "\"Location\": [4287, 2277, 1542]," +
-                "\"Type\": \"pre\"" +
-                "}," +
-                "{" +
-                "\"Location\": [4222, 2402, 1688]," +
-                "\"Type\": \"post\"" +
-                "}," +
-                "{" +
-                "\"Location\": [4287, 2277, 1502]," +
-                "\"Type\": \"pre\"" +
-                "}," +
-                "{" +
-                "\"Location\": [8000,7000,6000]," +
-                "\"Type\": \"post\"" +
-                "}," +
-                "{" +
-                "\"Location\": [4000,5000,6000]," +
-                "\"Type\": \"post\"" +
-                "}," +
-                "{" +
-                "\"Location\": [4298, 2294, 1542]," +
-                "\"Type\": \"post\"" +
-                "}," +
-                "{" +
-                "\"Location\": [4292, 2261, 1542]," +
-                "\"Type\": \"post\"" +
-                "}," +
-                "{" +
-                "\"Location\": [1000, 2000, 3000]," +
-                "\"Type\": \"pre\"" +
-                "}" +
-                "]" +
-                "}" ;
+                        "\"Id\": 8426959," +
+                        "\"Size\": 12," +
+                        "\"MutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
+                        "\"MutationID\": 1000057479," +
+                        "\"Status\": \"updated\"," +
+                        "\"Soma\": {" +
+                        "\"Location\": [14067, 10777, 15040]," +
+                        "\"Radius\": 15040.0 }," +
+                        "\"Name\": \"new name\", " +
+                        "\"SynapseSources\": [831744,2589725]," +
+                        "\"CurrentSynapses\": " +
+                        "[" +
+                        "{" +
+                        "\"Location\": [4287, 2277, 1542]," +
+                        "\"Type\": \"pre\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [4222, 2402, 1688]," +
+                        "\"Type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [4287, 2277, 1502]," +
+                        "\"Type\": \"pre\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [8000,7000,6000]," +
+                        "\"Type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [4000,5000,6000]," +
+                        "\"Type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [4298, 2294, 1542]," +
+                        "\"Type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [4292, 2261, 1542]," +
+                        "\"Type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"Location\": [1000, 2000, 3000]," +
+                        "\"Type\": \"pre\"" +
+                        "}" +
+                        "]" +
+                        "}";
 
         Session session = driver.session();
 
@@ -631,44 +633,44 @@ public class AddAndUpdateNeuronsTest {
                         "\"Location\": [14067, 10777, 15040]," +
                         "\"Radius\": 15040.0 }," +
                         "\"Name\": \"new name\" " +
-                        "}" ;
+                        "}";
 
         Gson gson = new Gson();
         NeuronAddition neuronAddition = gson.fromJson(updateJson, NeuronAddition.class);
         String neuronUpdateJson = gson.toJson(neuronAddition);
         session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson, $dataset)", parameters("updateJson", neuronUpdateJson, "dataset", "test")));
 
-        Node synapselessSegment = session.readTransaction(tx->tx.run("MATCH (n:`test-Segment`{bodyId:999}) RETURN n")).single().get(0).asNode();
+        Node synapselessSegment = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:999}) RETURN n")).single().get(0).asNode();
 
         // should have neuron label because has soma, name, and status
         Assert.assertTrue(synapselessSegment.hasLabel("Neuron"));
         Assert.assertTrue(synapselessSegment.hasLabel("test-Neuron"));
 
         Assert.assertEquals(120L, (long) synapselessSegment.asMap().get("size"));
-        Assert.assertEquals(15040.0, (double) synapselessSegment.asMap().get("somaRadius"),.00001 );
+        Assert.assertEquals(15040.0, (double) synapselessSegment.asMap().get("somaRadius"), .00001);
         Assert.assertEquals("new name", synapselessSegment.asMap().get("name"));
         Assert.assertEquals("auniqueid:0:999", synapselessSegment.asMap().get("mutationUuidAndId"));
 
-        int synapselessSegmentRelCount = session.readTransaction(tx->tx.run("MATCH (n:`test-Segment`{bodyId:999})-->(k) RETURN count(k)")).single().get(0).asInt();
+        int synapselessSegmentRelCount = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:999})-->(k) RETURN count(k)")).single().get(0).asInt();
 
         Assert.assertEquals(1, synapselessSegmentRelCount);
 
         // all nodes contain a synapse set
-        int synapselessSegmentSynapseSetCount = session.readTransaction(tx->tx.run("MATCH (n:`test-Segment`{bodyId:999})-[:Contains]->(s:SynapseSet) RETURN count(s)")).single().get(0).asInt();
+        int synapselessSegmentSynapseSetCount = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:999})-[:Contains]->(s:SynapseSet) RETURN count(s)")).single().get(0).asInt();
 
         Assert.assertEquals(1, synapselessSegmentSynapseSetCount);
 
         //but no synapses on synapse set
-        int synapselessSegmentSynapseCount = session.readTransaction(tx->tx.run("MATCH (n:`test-Segment`{bodyId:999})-[:Contains]->(s:SynapseSet)-[:Contains]->(syn) RETURN count(syn)")).single().get(0).asInt();
+        int synapselessSegmentSynapseCount = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:999})-[:Contains]->(s:SynapseSet)-[:Contains]->(syn) RETURN count(syn)")).single().get(0).asInt();
 
         Assert.assertEquals(0, synapselessSegmentSynapseCount);
 
         //should be able to delete this neuron
         session.writeTransaction(tx -> tx.run("CALL proofreader.deleteNeuron($bodyId, $dataset)", parameters("bodyId", 999, "dataset", "test")));
 
-        int synapselessSegmentCount = session.readTransaction(tx->tx.run("MATCH (n:`test-Segment`{bodyId:999}) RETURN count(n)")).single().get(0).asInt();
+        int synapselessSegmentCount = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:999}) RETURN count(n)")).single().get(0).asInt();
 
-        Assert.assertEquals(0,synapselessSegmentCount);
+        Assert.assertEquals(0, synapselessSegmentCount);
 
     }
 

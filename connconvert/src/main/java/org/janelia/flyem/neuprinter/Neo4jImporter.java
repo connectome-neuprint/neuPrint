@@ -578,7 +578,7 @@ public class Neo4jImporter implements AutoCloseable {
      * @param bodyList                   list of BodyWithSynapse objects
      * @param synapseLocationToBodyIdMap map of synapse locations to body ids
      */
-    public void addConnectionSets(final String dataset, final List<BodyWithSynapses> bodyList, final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap) {
+    public void addConnectionSets(final String dataset, final List<BodyWithSynapses> bodyList, final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap, final float preHPThreshold, final float postHPThreshold) {
 
         LOG.info("addConnectionSets: entry");
 
@@ -636,6 +636,13 @@ public class Neo4jImporter implements AutoCloseable {
                                         "location", Synapse.convertLocationStringToPoint(synapseLocationString),
                                         "datasetBodyIds", dataset + ":" + connectionSetKey)));
                     }
+
+                    batch.addStatement(new Statement("CALL loader.setConnectionSetRoiInfo($preBodyId, $postBodyId, $dataset, $preHPThreshold, $postHPThreshold)",
+                            parameters("preBodyId", connectionSet.getPresynapticBodyId(),
+                                    "postBodyId", connectionSet.getPostsynapticBodyId(),
+                                    "dataset", dataset,
+                                    "preHPThreshold", preHPThreshold,
+                                    "postHPThreshold", postHPThreshold)));
 
                 }
             }
@@ -1022,7 +1029,7 @@ public class Neo4jImporter implements AutoCloseable {
         StatementResult result = tx.run("MATCH (m:Meta{dataset:\"" + dataset + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois RETURN rois");
         List<?> resultList = (List<?>) result.next().asMap().get("rois");
         List<String> roiList = new ArrayList<>();
-        for (Object aResult: resultList) {
+        for (Object aResult : resultList) {
             roiList.add((String) aResult);
         }
         return roiList;

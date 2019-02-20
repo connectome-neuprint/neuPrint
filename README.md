@@ -10,6 +10,7 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 ## Requirements
 * Neo4j version 3.5.2
 * [apoc version 3.5.0.1](https://neo4j-contrib.github.io/neo4j-apoc-procedures/)
+* neuprint-load-procedures.jar OR neuprint-procedures.jar
 
 ## Example data
 

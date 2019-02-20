@@ -15,7 +15,7 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
     <name>neuprinter</name>
-    <description>Procedures for importing connectome data into neo4j</description>
+    <description>Tools for importing connectome data into neo4j</description>
 
 
     <dependencies>
@@ -81,6 +81,13 @@
             <groupId>com.opencsv</groupId>
             <artifactId>opencsv</artifactId>
             <version>4.1</version>
+            <scope>compile</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.janelia.flyem</groupId>
+            <artifactId>neuprint-load-procedures</artifactId>
+            <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
 

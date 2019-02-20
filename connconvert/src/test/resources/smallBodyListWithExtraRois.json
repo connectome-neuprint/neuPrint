@@ -3,7 +3,7 @@
     "BodyId": 8426959,
     "SynapseSet": [
       {
-        "Type": "pre", "Location": [ 4287, 2277, 1542 ], "Confidence": 1.0, "rois": [ "seven_column_roi","roiA" ],
+        "Type": "pre", "Location": [ 4287, 2277, 1542 ], "Confidence": 0.1, "rois": [ "seven_column_roi","roiA" ],
         "ConnectsTo": [
           [ 4298, 2294, 1542 ], [ 4301, 2276, 1535 ]
         ]

@@ -457,7 +457,7 @@ public class NeuPrinterMain {
 
                     if (parameters.startFromSynapsesLoad || parameters.addConnectionSets || parameters.doAll) {
                         timer.start();
-                        neo4jImporter.addConnectionSets(dataset, bodyList, synapseLocationToBodyIdMap);
+                        neo4jImporter.addConnectionSets(dataset, bodyList, synapseLocationToBodyIdMap, preHPThreshold, postHPThreshold);
                         LOG.info("Loading ConnectionSets took: " + timer.stop());
                         timer.reset();
 

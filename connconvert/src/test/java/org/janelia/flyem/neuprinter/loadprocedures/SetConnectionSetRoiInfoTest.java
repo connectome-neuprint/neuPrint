@@ -1,16 +1,15 @@
-package org.janelia.flyem.neuprintprocedures.loading;
+package org.janelia.flyem.neuprinter.loadprocedures;
 
 import apoc.convert.Json;
 import apoc.create.Create;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.NeuPrinterMain;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
-import org.janelia.flyem.neuprinter.model.SynapseCounter;
-import org.janelia.flyem.neuprinter.model.SynapseCounterWithHighPrecisionCounts;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -20,6 +19,7 @@ import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.harness.junit.Neo4jRule;
+import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 
 import java.util.HashMap;
 import java.util.List;
@@ -64,7 +64,7 @@ public class SetConnectionSetRoiInfoTest {
 
         neo4jImporter.addSynapsesTo(dataset, preToPost);
         neo4jImporter.addSegmentRois(dataset, bodyList);
-        neo4jImporter.addConnectionSets(dataset, bodyList, mapper.getSynapseLocationToBodyIdMap());
+        neo4jImporter.addConnectionSets(dataset, bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F);
         neo4jImporter.addSynapseSets(dataset, bodyList);
         neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F);
         neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 1);
@@ -92,7 +92,6 @@ public class SetConnectionSetRoiInfoTest {
         Assert.assertEquals(roiInfo.get("roiA").getPreHP(), 0);
         Assert.assertEquals(roiInfo.get("roiA").getPost(), 1);
         Assert.assertEquals(roiInfo.get("roiA").getPostHP(), 1);
-
 
     }
 }

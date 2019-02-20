@@ -1,7 +1,7 @@
-package org.janelia.flyem.neuprintprocedures.loading;
+package org.janelia.flyem.neuprintloadprocedures.procedures;
 
-import org.janelia.flyem.neuprinter.model.RoiInfoWithHighPrecisionCounts;
-import org.janelia.flyem.neuprintprocedures.GraphTraversalTools;
+import org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools;
+import org.janelia.flyem.neuprintloadprocedures.model.RoiInfoWithHighPrecisionCounts;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.logging.Log;
@@ -13,11 +13,11 @@ import org.neo4j.procedure.Procedure;
 
 import java.util.Set;
 
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONFIDENCE;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.POST;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.PRE;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.TYPE;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSynapseRois;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONFIDENCE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TYPE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
 
 public class LoadingProcedures {
     @Context

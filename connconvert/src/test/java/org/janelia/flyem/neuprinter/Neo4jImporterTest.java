@@ -8,6 +8,7 @@ import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -46,6 +47,7 @@ public class Neo4jImporterTest {
     static {
         neo4j = new Neo4jRule()
                 .withFunction(Json.class)
+                .withProcedure(LoadingProcedures.class)
                 .withProcedure(Create.class);
     }
 
@@ -79,7 +81,7 @@ public class Neo4jImporterTest {
         neo4jImporter.addSynapsesWithRois("test", bodyList);
         neo4jImporter.addSynapsesTo("test", preToPost);
         neo4jImporter.addSegmentRois("test", bodyList);
-        neo4jImporter.addConnectionSets("test", bodyList, mapper.getSynapseLocationToBodyIdMap());
+        neo4jImporter.addConnectionSets("test", bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F);
         neo4jImporter.addSynapseSets("test", bodyList);
         neo4jImporter.addSkeletonNodes("test", skeletonList);
         neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F, .20F, .80F);
@@ -414,7 +416,6 @@ public class Neo4jImporterTest {
 
         Assert.assertEquals(2, connectionSetPostCount);
 
-
         // weight should be equal to the number of psds per connection (assuming no many pre to one post connections)
         List<Record> connections = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PostSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.weight, cs.datasetBodyIds, count(s)").list();
         for (Record record : connections) {
@@ -427,6 +428,15 @@ public class Neo4jImporterTest {
 //            Assert.assertEquals(record.asMap().get("c.pre"), record.asMap().get("count(s)"));
 //        }
 
+    }
+
+    @Test
+    public void connectionSetsShouldHaveRoiInfoProperty() {
+        Session session = driver.session();
+
+        int countOfConnectionSetsWithoutRoiInfo = session.run("MATCH (t:ConnectionSet) WHERE NOT exists(t.roiInfo) RETURN count(t)").single().get("count(t)").asInt();
+
+        Assert.assertEquals(0,countOfConnectionSetsWithoutRoiInfo);
     }
 
     @Test
