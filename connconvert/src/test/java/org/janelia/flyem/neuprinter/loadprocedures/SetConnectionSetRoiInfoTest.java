@@ -88,10 +88,10 @@ public class SetConnectionSetRoiInfoTest {
 
         Assert.assertEquals(1, roiInfo.size());
 
-        Assert.assertEquals(roiInfo.get("roiA").getPre(), 1);
-        Assert.assertEquals(roiInfo.get("roiA").getPreHP(), 0);
-        Assert.assertEquals(roiInfo.get("roiA").getPost(), 1);
-        Assert.assertEquals(roiInfo.get("roiA").getPostHP(), 1);
+        Assert.assertEquals(1, roiInfo.get("roiA").getPre());
+        Assert.assertEquals(0, roiInfo.get("roiA").getPreHP());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPost());
+        Assert.assertEquals(1,roiInfo.get("roiA").getPostHP());
 
     }
 }
