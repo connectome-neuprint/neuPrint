@@ -220,7 +220,7 @@ public class LoadingProcedures {
                            @Name("type") final String type,
                            @Name("status") final String status,
                            @Name("size") final Long size,
-                           @Name("somaLocation") final List<Integer> somaLocation,
+                           @Name("somaLocation") final List<Long> somaLocation,
                            @Name("somaRadius") final Double somaRadius,
                            @Name("rois") final List<String> rois,
                            @Name("timeStamp") final LocalDateTime timeStamp) {
@@ -249,7 +249,7 @@ public class LoadingProcedures {
             newSegment.setProperty(STATUS, status);
             newSegment.setProperty(SIZE, size);
 
-            Point somaLocationPoint = new Location((long) somaLocation.get(0), (long) somaLocation.get(1), (long) somaLocation.get(2));
+            Point somaLocationPoint = new Location(somaLocation.get(0), somaLocation.get(1), somaLocation.get(2));
             newSegment.setProperty(SOMA_LOCATION, somaLocationPoint);
             newSegment.setProperty(SOMA_RADIUS, somaRadius);
 
