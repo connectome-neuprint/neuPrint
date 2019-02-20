@@ -55,18 +55,22 @@ public class LoadingProcedures {
         // for each pre/post add to count and check confidence to add to hp count
         RoiInfoWithHighPrecisionCounts roiInfo = new RoiInfoWithHighPrecisionCounts();
         for (Node synapse : synapsesForConnectionSet) {
-            String type = (String) synapse.getProperty(TYPE);
-            if (type == null) {
-                log.error("loader.setConnectionSetRoiInfo: Synapse has no type property.");
-                throw new RuntimeException("loader.setConnectionSetRoiInfo: Synapse has no type property.");
+            String type;
+            Double confidence;
+            if (synapse.hasProperty(TYPE)) {
+                type = (String) synapse.getProperty(TYPE);
+            } else {
+                type = null;
+                log.error("loader.setConnectionSetRoiInfo: Synapse has no type property. Not added to roiInfo.");
             }
-            Double confidence = (Double) synapse.getProperty(CONFIDENCE);
-            if (confidence == null) {
+            if (synapse.hasProperty(CONFIDENCE)) {
+                confidence = (Double) synapse.getProperty(CONFIDENCE);
+            } else {
+                confidence = null;
                 log.error("loader.setConnectionSetRoiInfo: Synapse has no confidence property.");
-                throw new RuntimeException("loader.setConnectionSetRoiInfo: Synapse has no confidence property.");
             }
             Set<String> synapseRois = getSynapseRois(synapse);
-            if (type.equals(PRE) && confidence > preHPThreshold) {
+            if (type.equals(PRE) && confidence != null && confidence > preHPThreshold) {
                 for (String roi : synapseRois) {
                     roiInfo.incrementPreForRoi(roi);
                     roiInfo.incrementPreHPForRoi(roi);
@@ -75,7 +79,7 @@ public class LoadingProcedures {
                 for (String roi : synapseRois) {
                     roiInfo.incrementPreForRoi(roi);
                 }
-            } else if (type.equals(POST) && confidence > postHPThreshold) {
+            } else if (type.equals(POST) && confidence != null && confidence > postHPThreshold) {
                 for (String roi : synapseRois) {
                     roiInfo.incrementPostForRoi(roi);
                     roiInfo.incrementPostHPForRoi(roi);
