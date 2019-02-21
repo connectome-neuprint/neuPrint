@@ -40,7 +40,11 @@ Features specific to the hemibrain dataset:
 * type: type of node indicated in swc file
 
 ### :ConnectsTo properties
-* weight: number of presynaptic densities per connection
+* weight: number of postsynaptic densities per connection
+* weightHP: number of high-precision postsynaptic densities per connection
+
+### :ConnectionSet properties
+* roiInfo: string containing json map in format {"roiA":{"pre":1,"post":2,"preHP":1,"postHP":1},...} where preHP and postHP indicate counts of high-precision synaptic densities
 
 ### :Meta
 * lastDatabaseEdit: date and time of last database edit (YYYY-MM-DDTHH:MM:SS).
@@ -48,6 +52,8 @@ Features specific to the hemibrain dataset:
 * totalPreCount: number of presynaptic densities in dataset
 * totalPostCount: number of postsynaptic densities in dataset
 * roiInfo: string containing json map in format {"roiA":{"pre":1,"post":2},...}
+* preHPThreshold: float (high-precision pre threshold)
+* postHPThreshold: float (high-precision post threshold)
 
 ### :DataModel
 * dataModelVersion: property graph model version number for database
