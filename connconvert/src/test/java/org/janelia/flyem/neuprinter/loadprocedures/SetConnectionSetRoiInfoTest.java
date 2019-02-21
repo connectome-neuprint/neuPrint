@@ -72,11 +72,11 @@ public class SetConnectionSetRoiInfoTest {
     }
 
     @Test
-    public void shouldAddRoiInfoToConnectionSet() {
+    public void shouldAddRoiInfoToConnectionSetAndWeightHPToConnectsTo() {
 
         Session session = driver.session();
 
-        session.writeTransaction(tx -> tx.run("CALL loader.setConnectionSetRoiInfo($preBodyId, $postBodyId, $dataset, $preHPThreshold, $postHPThreshold)", parameters("preBodyId", 8426959, "postBodyId", 26311, "dataset", "test", "preHPThreshold", .2, "postHPThreshold", .8)));
+        session.writeTransaction(tx -> tx.run("CALL loader.setConnectionSetRoiInfoAndWeightHP($preBodyId, $postBodyId, $dataset, $preHPThreshold, $postHPThreshold)", parameters("preBodyId", 8426959, "postBodyId", 26311, "dataset", "test", "preHPThreshold", .2, "postHPThreshold", .8)));
 
         String roiInfoString = session.readTransaction(tx -> tx.run("MATCH (n:`test-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) RETURN n.roiInfo", parameters("datasetBodyIds", "test:8426959:26311"))).single().get("n.roiInfo").asString();
 
@@ -89,9 +89,13 @@ public class SetConnectionSetRoiInfoTest {
         Assert.assertEquals(1, roiInfo.size());
 
         Assert.assertEquals(1, roiInfo.get("roiA").getPre());
-        Assert.assertEquals(0, roiInfo.get("roiA").getPreHP());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPreHP());
         Assert.assertEquals(1, roiInfo.get("roiA").getPost());
-        Assert.assertEquals(1,roiInfo.get("roiA").getPostHP());
+        Assert.assertEquals(0,roiInfo.get("roiA").getPostHP());
+
+        int weightHP = session.readTransaction(tx -> tx.run("MATCH (:`test-Segment`{bodyId:8426959})-[c:ConnectsTo]->({bodyId:26311}) RETURN c.weightHP")).single().get("c.weightHP").asInt();
+
+        Assert.assertEquals(0, weightHP);
 
     }
 }

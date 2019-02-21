@@ -635,7 +635,7 @@ public class Neo4jImporter implements AutoCloseable {
                                         "datasetBodyIds", dataset + ":" + connectionSetKey)));
                     }
 
-                    batch.addStatement(new Statement("CALL loader.setConnectionSetRoiInfo($preBodyId, $postBodyId, $dataset, $preHPThreshold, $postHPThreshold)",
+                    batch.addStatement(new Statement("CALL loader.setConnectionSetRoiInfoAndWeightHP($preBodyId, $postBodyId, $dataset, $preHPThreshold, $postHPThreshold)",
                             parameters("preBodyId", connectionSet.getPresynapticBodyId(),
                                     "postBodyId", connectionSet.getPostsynapticBodyId(),
                                     "dataset", dataset,

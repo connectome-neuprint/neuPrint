@@ -49,6 +49,7 @@ public class GraphTraversalTools {
     public static final String TIME_STAMP = "timeStamp";
     public static final String TYPE = "type";
     public static final String WEIGHT = "weight";
+    public static final String WEIGHT_HP = "weightHP";
     public static final String SKELETON_ID = "skeletonId";
     public static final String SKEL_NODE_ID = "skelNodeId";
     public static final String SOMA_LOCATION = "somaLocation";

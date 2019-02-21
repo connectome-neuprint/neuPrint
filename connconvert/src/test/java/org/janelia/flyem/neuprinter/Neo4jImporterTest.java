@@ -371,7 +371,7 @@ public class Neo4jImporterTest {
         Node postSynNode = session.run("MATCH (s:Synapse:`test-Synapse`:`test-PostSyn`:test:PostSyn{location:$location}) RETURN s",
                 parameters("location", postLocationPoint)).single().get(0).asNode();
 
-        Assert.assertEquals(1.0, postSynNode.asMap().get("confidence"));
+        Assert.assertEquals(0.1, (double) postSynNode.asMap().get("confidence"), 0.0001);
         Assert.assertEquals("post", postSynNode.asMap().get("type"));
         Assert.assertTrue(postSynNode.asMap().containsKey("roiA"));
     }
@@ -420,6 +420,12 @@ public class Neo4jImporterTest {
         List<Record> connections = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PostSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.weight, cs.datasetBodyIds, count(s)").list();
         for (Record record : connections) {
             Assert.assertEquals(record.asMap().get("c.weight"), record.asMap().get("count(s)"));
+        }
+
+        // weightHP should be equal to the number of high-precision psds per connection (assuming no many pre to one post connections)
+        List<Record> connectionsHP = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (n)<-[:From]-(cs:ConnectionSet)-[:To]->(m), (cs)-[:Contains]->(s:PostSyn) WHERE s.confidence>.81 RETURN n.bodyId, m.bodyId, c.weightHP, count(s)").list();
+        for (Record record : connectionsHP) {
+            Assert.assertSame(record.asMap().get("c.weightHP"), record.asMap().get("count(s)"));
         }
 
 //        // pre weight should be equal to the number of pre per connection
