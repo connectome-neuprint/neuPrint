@@ -22,14 +22,16 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 
 1. After cloning the repository, set uri, user, and password in the example.properties file to match the those of the target database. You can also change the batch size for database transactions in this file (default is 100). Unzip mb6_neo4j_inputs.zip.  
 
-2. Run the following on the command line:
+2. Check that you're using the correct version of Neo4j (see Requirements) and that apoc and neuprint-load-procedures are installed. 
+
+3. Run the following on the command line:
 ```console
 $ java -jar neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --addNeuronsAndSynapses --neuronJson=mb6_neo4j_inputs/mb6_Neurons_with_nt.json --synapseJson=mb6_neo4j_inputs/mb6_Synapses.json
 ```
 
 ## Load mb6 skeleton data into Neo4j
 
-1. Follow step 1 above. 
+1. Follow step 1 and 2 above. 
 
 2. Run the following on the command line:
 ```console
