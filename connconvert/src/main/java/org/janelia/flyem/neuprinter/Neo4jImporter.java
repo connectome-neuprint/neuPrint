@@ -84,7 +84,7 @@ public class Neo4jImporter implements AutoCloseable {
      */
     public Neo4jImporter(final Driver driver) {
         this.driver = driver;
-        this.statementsPerTransaction = 200;
+        this.statementsPerTransaction = 50;
     }
 
     /**
@@ -194,7 +194,7 @@ public class Neo4jImporter implements AutoCloseable {
                                         "type", neuron.getNeuronType(),
                                         "status", neuron.getStatus(),
                                         "size", neuron.getSize(),
-                                        "somaLocation", neuron.getSoma()!=null ? neuron.getSoma().getLocation() : null,
+                                        "somaLocation", neuron.getSoma() != null ? neuron.getSoma().getLocation() : null,
                                         "somaRadius", neuron.getSomaRadius(),
                                         "rois", roiList,
                                         "timeStamp", timeStamp))
@@ -213,7 +213,7 @@ public class Neo4jImporter implements AutoCloseable {
      * @param neuronList list of {@link Neuron} objects
      */
     public void addSegmentsOld(final String dataset,
-                            final List<Neuron> neuronList) {
+                               final List<Neuron> neuronList) {
         //TODO: arbitrary properties
         LOG.info("addSegments: entry");
 
@@ -262,7 +262,6 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSegments: exit");
     }
 
-
     /**
      * Adds ConnectsTo relationships between Segment nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
      *
@@ -270,6 +269,56 @@ public class Neo4jImporter implements AutoCloseable {
      * @param bodyList list of {@link BodyWithSynapses} objects
      */
     public void addConnectsTo(final String dataset, final List<BodyWithSynapses> bodyList) {
+
+        LOG.info("addConnectsTo: entry");
+
+        final String connectsToCall = "CALL loader.addConnectsTo(" +
+                "$preBodyId, " +
+                "$postBodyId, " +
+                "$weight, " +
+                "$preBodyPreCount, " +
+                "$preBodyPostCount, " +
+                "$preBodyRoiInfo, " +
+                "$dataset, " +
+                "$timeStamp" +
+                ")";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (final BodyWithSynapses body : bodyList) {
+
+                //set synapse counts per roi before adding to database
+                body.setSynapseCountsPerRoi();
+
+                for (final Long postsynapticBodyId : body.getConnectsTo().keySet()) {
+                    batch.addStatement(
+                            new Statement(connectsToCall,
+
+                                    parameters(
+                                            "preBodyId", body.getBodyId(),
+                                            "postBodyId", postsynapticBodyId,
+                                            "weight", body.getConnectsTo().get(postsynapticBodyId).getPost(),
+                                            "preBodyPreCount", body.getNumberOfPreSynapses(),
+                                            "preBodyPostCount", body.getNumberOfPostSynapses(),
+                                            "preBodyRoiInfo", body.getRoiInfo().getAsJsonString(),
+                                            "dataset", "test",
+                                            "timeStamp", timeStamp
+                                    ))
+                    );
+                }
+            }
+            batch.writeTransaction();
+        }
+
+        LOG.info("addConnectsTo: exit");
+    }
+
+    /**
+     * Adds ConnectsTo relationships between Segment nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
+     *
+     * @param dataset  dataset name
+     * @param bodyList list of {@link BodyWithSynapses} objects
+     */
+    public void addConnectsToOld(final String dataset, final List<BodyWithSynapses> bodyList) {
 
         LOG.info("addConnectsTo: entry");
 

@@ -9,9 +9,9 @@ import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrec
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
@@ -20,28 +20,29 @@ import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
 
 import java.lang.reflect.Type;
-import java.util.Map;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONFIDENCE;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.NAME;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONNECTS_TO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.FROM;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.NAME;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROI_INFO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SIZE;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_LOCATION;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_RADIUS;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.STATUS;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TIME_STAMP;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROI_INFO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TYPE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.createSegment;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegment;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
 
 public class LoadingProcedures {
@@ -211,7 +212,6 @@ public class LoadingProcedures {
 
     }
 
-
     @Procedure(value = "loader.addSegment", mode = Mode.WRITE)
     @Description("loader.addSegment : Add Segment nodes to database.")
     public void addSegment(@Name("bodyId") final Long bodyId,
@@ -227,62 +227,140 @@ public class LoadingProcedures {
 
         log.info("loader.addSegment: entry");
 
-            if (bodyId == null) {
-                log.error("loader.addSegment: No body ID provided.");
-                throw new RuntimeException("loader.addSegments: No body ID provided.");
-            } else if (datasetLabel == null) {
-                log.error("loader.addSegment: No dataset name provided.");
-                throw new RuntimeException("loader.addSegments: No dataset name provided.");
-            } else if (timeStamp == null) {
-                log.error("loader.addSegment: No time stamp provided.");
-                throw new RuntimeException("loader.addSegments: No time stamp provided.");
+        if (bodyId == null) {
+            log.error("loader.addSegment: No body ID provided.");
+            throw new RuntimeException("loader.addSegment: No body ID provided.");
+        } else if (datasetLabel == null) {
+            log.error("loader.addSegment: No dataset name provided.");
+            throw new RuntimeException("loader.addSegment: No dataset name provided.");
+        } else if (timeStamp == null) {
+            log.error("loader.addSegment: No time stamp provided.");
+            throw new RuntimeException("loader.addSegment: No time stamp provided.");
+        }
+
+        // check that neuron doesn't already exist
+        Node existingNeuron = getSegment(dbService, bodyId, datasetLabel);
+        if (existingNeuron != null) {
+            log.warn("loader.addSegment: Body ID already exists for this dataset. Will not overwrite.");
+        } else {
+            Node newSegment;
+            try {
+                newSegment = createSegment(dbService, bodyId, datasetLabel);
+            } catch (Exception e) {
+                log.error("loader.addSegment: Failed to create new segment: " + e);
+                throw new RuntimeException();
+            }
+            if (name != null) {
+                newSegment.setProperty(NAME, name);
+            }
+            if (type != null) {
+                newSegment.setProperty(TYPE, type);
+            }
+            if (status != null) {
+                newSegment.setProperty(STATUS, status);
+            }
+            if (size != null) {
+                newSegment.setProperty(SIZE, size);
             }
 
-            // check that neuron doesn't already exist
-            Node existingNeuron = getSegment(dbService, bodyId, datasetLabel);
-            if (existingNeuron != null) {
-                log.warn("loader.addSegment: Body ID already exists for this dataset. Will not overwrite.");
-            } else {
-                Node newSegment;
-                try {
-                    newSegment = createSegment(dbService, bodyId, datasetLabel);
-                } catch (Exception e) {
-                    log.error("loader.addSegment: Failed to create new segment: " + e);
-                    throw new RuntimeException();
-                }
-                if (name != null) {
-                    newSegment.setProperty(NAME, name);
-                }
-                if (type != null) {
-                    newSegment.setProperty(TYPE, type);
-                }
-                if (status != null) {
-                    newSegment.setProperty(STATUS, status);
-                }
-                if (size != null) {
-                    newSegment.setProperty(SIZE, size);
-                }
-
-                if (somaLocation != null) {
-                    Point somaLocationPoint = new Location(somaLocation.get(0), somaLocation.get(1), somaLocation.get(2));
-                    newSegment.setProperty(SOMA_LOCATION, somaLocationPoint);
-                }
-                if (somaRadius != null) {
-                    newSegment.setProperty(SOMA_RADIUS, somaRadius);
-                }
-
-                if (rois != null) {
-                    for (String roi : rois) {
-                        newSegment.setProperty(roi, true);
-                    }
-                }
-
-                newSegment.setProperty(TIME_STAMP, timeStamp);
+            if (somaLocation != null) {
+                Point somaLocationPoint = new Location(somaLocation.get(0), somaLocation.get(1), somaLocation.get(2));
+                newSegment.setProperty(SOMA_LOCATION, somaLocationPoint);
             }
+            if (somaRadius != null) {
+                newSegment.setProperty(SOMA_RADIUS, somaRadius);
+            }
+
+            if (rois != null) {
+                for (String roi : rois) {
+                    newSegment.setProperty(roi, true);
+                }
+            }
+
+            newSegment.setProperty(TIME_STAMP, timeStamp);
+        }
 
         log.info("loader.addSegment: exit");
 
     }
 
+    @Procedure(value = "loader.addConnectsTo", mode = Mode.WRITE)
+    @Description("loader.addConnectsTo : Add ConnectsTo relationship between bodies.")
+    public void addConnectsTo(@Name("preBodyId") final Long preBodyId,
+                              @Name("postBodyId") final Long postBodyId,
+                              @Name("weight") final Long weight,
+                              @Name("preBodyPreCount") final Long preBodyPreCount,
+                              @Name("preBodyPostCount") final Long preBodyPostCount,
+                              @Name("preBodyRoiInfo") final String preBodyRoiInfo,
+                              @Name("datasetLabel") final String datasetLabel,
+                              @Name("timeStamp") final LocalDateTime timeStamp) {
+
+        log.info("loader.addConnectsTo: entry");
+
+        if (preBodyId == null) {
+            log.error("loader.addConnectsTo: No pre body ID provided.");
+            throw new RuntimeException("loader.addConnectsTo: No pre body ID provided.");
+        } else if (postBodyId == null) {
+            log.error("loader.addConnectsTo: No post body ID provided.");
+            throw new RuntimeException("loader.addConnectsTo: No post body ID provided.");
+        } else if (weight == null) {
+            log.error("loader.addConnectsTo: No weight provided.");
+            throw new RuntimeException("loader.addConnectsTo: No weight provided.");
+        } else if (preBodyPreCount == null) {
+            log.error("loader.addConnectsTo: No pre count for pre body provided.");
+            throw new RuntimeException("loader.addConnectsTo: No pre count for pre body provided.");
+        } else if (preBodyPostCount == null) {
+            log.error("loader.addConnectsTo: No post count for pre body provided.");
+            throw new RuntimeException("loader.addConnectsTo: No post count for pre body provided.");
+        } else if (preBodyRoiInfo == null) {
+            log.error("loader.addConnectsTo: No roiInfo for pre body provided.");
+            throw new RuntimeException("loader.addConnectsTo: No roiInfo for pre body provided.");
+        } else if (datasetLabel == null) {
+            log.error("loader.addConnectsTo: No dataset name provided.");
+            throw new RuntimeException("loader.addConnectsTo: No dataset name provided.");
+        } else if (timeStamp == null) {
+            log.error("loader.addConnectsTo: No time stamp provided.");
+            throw new RuntimeException("loader.addConnectsTo: No time stamp provided.");
+        }
+
+        Node preBody = getSegment(dbService, preBodyId, datasetLabel);
+        Node postBody = getSegment(dbService, postBodyId, datasetLabel);
+
+        if (preBody == null) {
+            preBody = createSegment(dbService, preBodyId, datasetLabel);
+        }
+        if (postBody == null && !preBodyId.equals(postBodyId)) {
+            postBody = createSegment(dbService, postBodyId, datasetLabel);
+        } else if (postBody == null) {
+            postBody = preBody;
+        }
+
+        Relationship connectsToRel = preBody.createRelationshipTo(postBody, RelationshipType.withName(CONNECTS_TO));
+        connectsToRel.setProperty(WEIGHT, weight);
+
+        preBody.setProperty(PRE, preBodyPreCount);
+        preBody.setProperty(POST, preBodyPostCount);
+        preBody.setProperty(TIME_STAMP, timeStamp);
+        preBody.setProperty(ROI_INFO, preBodyRoiInfo);
+
+        postBody.setProperty(TIME_STAMP, timeStamp);
+
+        log.info("loader.addConnectsTo: exit");
+
+    }
+
+    public void addPostHPToConnectsTo(Node connectionSet, int postHP) {
+        Node preSynapticNode = connectionSet.getSingleRelationship(RelationshipType.withName(FROM), Direction.OUTGOING).getEndNode();
+        long postSynapticNodeId = connectionSet.getSingleRelationship(RelationshipType.withName(TO), Direction.OUTGOING).getEndNodeId();
+
+        Iterable<Relationship> connectsToRelationships = preSynapticNode.getRelationships(RelationshipType.withName(CONNECTS_TO), Direction.OUTGOING);
+
+        for (Relationship connectsToRel : connectsToRelationships) {
+            long endNodeIdForRel = connectsToRel.getEndNodeId();
+            if (postSynapticNodeId == endNodeIdForRel) {
+                connectsToRel.setProperty(WEIGHT_HP, postHP);
+            }
+        }
+    }
 
 }

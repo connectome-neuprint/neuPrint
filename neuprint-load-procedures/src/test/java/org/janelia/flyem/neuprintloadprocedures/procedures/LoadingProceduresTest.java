@@ -154,4 +154,79 @@ public class LoadingProceduresTest {
         Assert.assertEquals("{\"roiA\":{\"preHP\":1,\"postHP\":0,\"pre\":1,\"post\":1},\"roiB\":{\"preHP\":1,\"postHP\":1,\"pre\":1,\"post\":1}}", newRoiInfoString2);
 
     }
+
+    @Test
+    public void shouldAddConnectsTo() {
+
+        Session session = driver.session();
+
+        session.writeTransaction(tx -> tx.run("CALL loader.addSegment(" +
+                "$bodyId, " +
+                "$dataset, " +
+                "$name, " +
+                "$type, " +
+                "$status, " +
+                "$size, " +
+                "$somaLocation, " +
+                "$somaRadius, " +
+                "$rois, " +
+                "$timeStamp" +
+                ")", parameters(
+                "bodyId", 3,
+                "dataset", "test",
+                "name", "name1",
+                "type", null,
+                "status", "status1",
+                "size", 10000,
+                "somaLocation", null,
+                "somaRadius", 5.0D,
+                "rois", null,
+                "timeStamp", LocalDateTime.now()
+        )));
+
+        session.writeTransaction(tx -> tx.run("CALL loader.addSegment(" +
+                "$bodyId, " +
+                "$dataset, " +
+                "$name, " +
+                "$type, " +
+                "$status, " +
+                "$size, " +
+                "$somaLocation, " +
+                "$somaRadius, " +
+                "$rois, " +
+                "$timeStamp" +
+                ")", parameters(
+                "bodyId", 2,
+                "dataset", "test",
+                "name", null,
+                "type", null,
+                "status", "status1",
+                "size", 20000,
+                "somaLocation", null,
+                "somaRadius", null,
+                "rois", null,
+                "timeStamp", LocalDateTime.now()
+        )));
+
+        session.writeTransaction(tx -> tx.run("CALL loader.addConnectsTo(" +
+                "$preBodyId, " +
+                "$postBodyId, " +
+                "$weight, " +
+                "$preBodyPreCount, " +
+                "$preBodyPostCount, " +
+                "$preBodyRoiInfo, " +
+                "$dataset, " +
+                "$timeStamp" +
+                ")", parameters(
+                "preBodyId", 3,
+                "postBodyId", 2,
+                "weight", 5,
+                "preBodyPreCount", 3,
+                "preBodyPostCount", 5,
+                "preBodyRoiInfo", "{\"roiA\":{\"pre\":1,\"post\":2}}",
+                "dataset", "test",
+                "timeStamp", LocalDateTime.now()
+        )));
+
+    }
 }
