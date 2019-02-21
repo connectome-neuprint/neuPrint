@@ -185,9 +185,9 @@ public class NeuPrinterMain {
         @Parameter(
                 names = "--neuronThreshold",
                 description = "Integer indicating the number of synaptic densities (>=neuronThreshold/5 pre OR >=neuronThreshold post) a neuron should have to be given " +
-                        "the label of :Neuron (all have the :Segment label by default) and an auto-name (default is 10). To add auto-names, must have" +
+                        "the label of :Neuron (all have the :Segment label by default) and an auto-name. To add auto-names, must have" +
                         " --addAutoName OR --addAutoNamesOnly enabled.")
-        Integer neuronThreshold = 0;
+        Integer neuronThreshold = 10;
 
         @Parameter(
                 names = "--getSuperLevelRoisFromSynapses",
@@ -465,20 +465,12 @@ public class NeuPrinterMain {
 
                     if (parameters.addAutoNames) {
                         timer.start();
-                        if (parameters.neuronThreshold != null) {
-                            neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
-                        } else {
-                            neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 10);
-                        }
+                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
                         LOG.info("Adding autoNames and :Neuron labels took: " + timer.stop());
                         timer.reset();
                     } else {
                         timer.start();
-                        if (parameters.neuronThreshold != null) {
-                            neo4jImporter.addNeuronLabels(dataset, parameters.neuronThreshold);
-                        } else {
-                            neo4jImporter.addNeuronLabels(dataset, 10);
-                        }
+                        neo4jImporter.addNeuronLabels(dataset, parameters.neuronThreshold);
                         LOG.info("Adding :Neuron labels took: " + timer.stop());
                         timer.reset();
                     }
@@ -580,7 +572,6 @@ public class NeuPrinterMain {
         }
 
         if (parameters.editMode) {
-
 
         }
     }

@@ -127,9 +127,9 @@ $ java -jar neuprint.jar --help
         Integer indicating the number of synaptic densities (>=neuronThreshold/5 
         pre OR >=neuronThreshold post) a neuron should have to be given the 
         label of :Neuron (all have the :Segment label by default) and an 
-        auto-name (default is 10). To add auto-names, must have --addAutoName OR 
+        auto-name. To add auto-names, must have --addAutoName OR 
         --addAutoNamesOnly enabled.
-        Default: 0
+        Default: 10
       --postHPThreshold
         Confidence threshold to distinguish high-precision postsynaptic 
         densities (required)
