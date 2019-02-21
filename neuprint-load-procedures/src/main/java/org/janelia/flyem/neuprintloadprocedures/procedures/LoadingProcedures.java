@@ -73,14 +73,14 @@ public class LoadingProcedures {
                 if (synapse.hasProperty(TYPE)) {
                     type = (String) synapse.getProperty(TYPE);
                 } else {
-                    type = null;
-                    log.error("loader.setConnectionSetRoiInfoAndWeightHP: Synapse has no type property. Not added to roiInfo.");
+                    log.warn("loader.setConnectionSetRoiInfoAndWeightHP: Synapse has no type property. Not added to roiInfo.");
+                    break;
                 }
                 if (synapse.hasProperty(CONFIDENCE)) {
                     confidence = (Double) synapse.getProperty(CONFIDENCE);
                 } else {
                     confidence = null;
-                    log.error("loader.setConnectionSetRoiInfoAndWeightHP: Synapse has no confidence property.");
+                    log.warn("loader.setConnectionSetRoiInfoAndWeightHP: Synapse has no confidence property.");
                 }
                 Set<String> synapseRois = getSynapseRois(synapse);
                 if (type.equals(PRE) && confidence != null && confidence > preHPThreshold) {
@@ -117,8 +117,8 @@ public class LoadingProcedures {
             }
 
         } catch (Exception e) {
-            log.info("loader.setConnectionSetRoiInfoAndWeightHP: Error adding roiInfo:" + e);
-            throw new RuntimeException("loader.setConnectionSetRoiInfoAndWeightHP: Error adding roiInfo:" + e);
+            log.info(String.format("loader.setConnectionSetRoiInfoAndWeightHP: Error adding roiInfo: %s . pre body ID: %d, post body ID: %d", e, preBodyId, postBodyId));
+            throw new RuntimeException(String.format("loader.setConnectionSetRoiInfoAndWeightHP: Error adding roiInfo: %s . pre body ID: %d, post body ID: %d", e, preBodyId, postBodyId));
         }
 
         log.info("loader.setConnectionSetRoiInfoAndWeightHP: exit");

@@ -386,8 +386,8 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("addSynapsesTo: entry");
 
-        final String synapseRelationsText = "MERGE (s:`" + dataset + "-Synapse`{location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto, s.timeStamp=$timeStamp, s:Synapse, s:" + dataset + ", s:PreSyn, s:`" + dataset + "-PreSyn` \n" +
-                "MERGE (t:`" + dataset + "-Synapse`{location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto, t.timeStamp=$timeStamp, t:Synapse, t:" + dataset + ", s:PostSyn, s:`" + dataset + "-PostSyn` \n" +
+        final String synapseRelationsText = "MERGE (s:`" + dataset + "-Synapse`{location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto, s.type=\"pre\", s.timeStamp=$timeStamp, s:Synapse, s:" + dataset + ", s:PreSyn, s:`" + dataset + "-PreSyn` \n" +
+                "MERGE (t:`" + dataset + "-Synapse`{location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto, t.timeStamp=$timeStamp, s.type=\"post\", t:Synapse, t:" + dataset + ", s:PostSyn, s:`" + dataset + "-PostSyn` \n" +
                 "MERGE (s)-[:SynapsesTo]->(t)";
 
         try (final TransactionBatch batch = getBatch()) {
