@@ -8,6 +8,7 @@ import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -442,7 +443,23 @@ public class Neo4jImporterTest {
 
         int countOfConnectionSetsWithoutRoiInfo = session.run("MATCH (t:ConnectionSet) WHERE NOT exists(t.roiInfo) RETURN count(t)").single().get("count(t)").asInt();
 
-        Assert.assertEquals(0,countOfConnectionSetsWithoutRoiInfo);
+        Assert.assertEquals(0, countOfConnectionSetsWithoutRoiInfo);
+
+        String roiInfoString = session.readTransaction(tx -> tx.run("MATCH (n:`test-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) RETURN n.roiInfo", parameters("datasetBodyIds", "test:8426959:26311"))).single().get("n.roiInfo").asString();
+
+        Assert.assertNotNull(roiInfoString);
+
+        Gson gson = new Gson();
+        Map<String, SynapseCounterWithHighPrecisionCounts> roiInfo = gson.fromJson(roiInfoString, new TypeToken<Map<String, SynapseCounterWithHighPrecisionCounts>>() {
+        }.getType());
+
+        Assert.assertEquals(1, roiInfo.size());
+
+        Assert.assertEquals(1, roiInfo.get("roiA").getPre());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPreHP());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPost());
+        Assert.assertEquals(0, roiInfo.get("roiA").getPostHP());
+
     }
 
     @Test

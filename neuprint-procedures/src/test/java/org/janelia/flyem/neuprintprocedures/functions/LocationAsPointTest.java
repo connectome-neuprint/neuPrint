@@ -1,5 +1,6 @@
 package org.janelia.flyem.neuprintprocedures.functions;
 
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -26,6 +27,11 @@ public class LocationAsPointTest {
     @BeforeClass
     public static void before() {
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
+    }
+
+    @AfterClass
+    public static void after() {
+        driver.close();
     }
 
     @Test
