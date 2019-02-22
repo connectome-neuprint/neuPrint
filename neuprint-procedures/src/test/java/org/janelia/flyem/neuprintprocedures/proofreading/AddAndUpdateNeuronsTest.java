@@ -11,6 +11,7 @@ import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.janelia.flyem.neuprintprocedures.functions.NeuPrintUserFunctions;
 import org.junit.AfterClass;
@@ -244,9 +245,14 @@ public class AddAndUpdateNeuronsTest {
 
         // weight should be equal to the number of psds per connection (assuming no many pre to one post connections)
         List<Record> connections = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PostSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.weight, cs.datasetBodyIds, count(s)")).list();
-        for (
-                Record record : connections) {
+        for (Record record : connections) {
             Assert.assertEquals(record.asMap().get("c.weight"), record.asMap().get("count(s)"));
+        }
+
+        // weightHP should be equal to the number of high-precision psds per connection (assuming no many pre to one post connections)
+        List<Record> connectionsHP = session.run("MATCH (n:`test-Segment`)-[c:ConnectsTo]->(m), (n)<-[:From]-(cs:ConnectionSet)-[:To]->(m), (cs)-[:Contains]->(s:PostSyn) WHERE s.confidence>.81 RETURN n.bodyId, m.bodyId, c.weightHP, count(s)").list();
+        for (Record record : connectionsHP) {
+            Assert.assertSame(record.asMap().get("c.weightHP"), record.asMap().get("count(s)"));
         }
     }
 
@@ -276,6 +282,26 @@ public class AddAndUpdateNeuronsTest {
         int connectionSetToCount = session.readTransaction(tx -> tx.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959})<-[:To]-(c:ConnectionSet) WITH DISTINCT c AS cs RETURN count(cs)")).single().get(0).asInt();
 
         Assert.assertEquals(2, connectionSetToCount);
+
+        // check connection set roiInfo
+        int countOfConnectionSetsWithoutRoiInfo = session.run("MATCH (t:ConnectionSet) WHERE NOT exists(t.roiInfo) RETURN count(t)").single().get("count(t)").asInt();
+
+        Assert.assertEquals(0, countOfConnectionSetsWithoutRoiInfo);
+
+        String roiInfoString = session.readTransaction(tx -> tx.run("MATCH (t:ConnectionSet:test:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:26311\"}) RETURN t.roiInfo")).single().get("t.roiInfo").asString();
+
+        Assert.assertNotNull(roiInfoString);
+
+        Gson gson = new Gson();
+        Map<String, SynapseCounterWithHighPrecisionCounts> roiInfo = gson.fromJson(roiInfoString, new TypeToken<Map<String, SynapseCounterWithHighPrecisionCounts>>() {
+        }.getType());
+
+        Assert.assertEquals(1, roiInfo.size());
+
+        Assert.assertEquals(2, roiInfo.get("roiA").getPre());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPreHP());
+        Assert.assertEquals(2, roiInfo.get("roiA").getPost());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPostHP());
 
     }
 

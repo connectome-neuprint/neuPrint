@@ -35,7 +35,7 @@
     "BodyId": 26311,
     "SynapseSet": [
       { "Type": "post", "Location": [ 4301, 2276, 1535 ], "ConnectsFrom": [ [ 4287, 2277, 1542 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi", "roiA" ] },
-      { "Type": "post", "Location": [ 9000,8000,7000 ], "ConnectsFrom": [ [ 1000, 2000, 3000 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi", "roiA" ] },
+      { "Type": "post", "Location": [ 9000,8000,7000 ], "ConnectsFrom": [ [ 1000, 2000, 3000 ] ], "Confidence": 0.1, "rois": [ "seven_column_roi", "roiA" ] },
       { "Type": "pre", "Location": [ 4300, 2000, 1500 ], "ConnectsTo": [ [ 4222, 2402, 1688 ],[ 4000,5000,6000 ] ], "Confidence": 1.0, "rois": [ "seven_column_roi", "roiA" ] }
     ]
   },

@@ -58,62 +58,13 @@ public class LoadingProcedures {
                 throw new RuntimeException(String.format("loader.setConnectionSetRoiInfoAndWeightHP: ConnectionSet does not exist: %d to %d in dataset %s.", preBodyId, postBodyId, datasetLabel));
             }
 
-            // get all synapses on that connection set
+            // get all synapses on connection set
             Set<Node> synapsesForConnectionSet = GraphTraversalTools.getSynapsesForConnectionSet(connectionSet);
 
-            // for each pre/post add to count and check confidence to add to hp count
-            RoiInfoWithHighPrecisionCounts roiInfo = new RoiInfoWithHighPrecisionCounts();
-            // keep track of total postHP count to add to ConnectsTo relationship
-            int postHP = 0;
-
-            for (Node synapse : synapsesForConnectionSet) {
-                String type;
-                Double confidence;
-                if (synapse.hasProperty(TYPE)) {
-                    type = (String) synapse.getProperty(TYPE);
-                } else {
-                    log.warn("loader.setConnectionSetRoiInfoAndWeightHP: Synapse has no type property. Not added to roiInfo.");
-                    break;
-                }
-                if (synapse.hasProperty(CONFIDENCE)) {
-                    confidence = (Double) synapse.getProperty(CONFIDENCE);
-                } else {
-                    confidence = null;
-                    log.warn("loader.setConnectionSetRoiInfoAndWeightHP: Synapse has no confidence property.");
-                }
-                Set<String> synapseRois = getSynapseRois(synapse);
-                if (type.equals(PRE) && confidence != null && confidence > preHPThreshold) {
-                    for (String roi : synapseRois) {
-                        roiInfo.incrementPreForRoi(roi);
-                        roiInfo.incrementPreHPForRoi(roi);
-                    }
-                } else if (type.equals(PRE)) {
-                    for (String roi : synapseRois) {
-                        roiInfo.incrementPreForRoi(roi);
-                    }
-                } else if (type.equals(POST) && confidence != null && confidence > postHPThreshold) {
-                    postHP++;
-                    for (String roi : synapseRois) {
-                        roiInfo.incrementPostForRoi(roi);
-                        roiInfo.incrementPostHPForRoi(roi);
-                    }
-                } else if (type.equals(POST)) {
-                    for (String roi : synapseRois) {
-                        roiInfo.incrementPostForRoi(roi);
-                    }
-                }
-            }
-
-            // add to connection set node
-            connectionSet.setProperty(ROI_INFO, roiInfo.getAsJsonString());
+            int postHP = setConnectionSetRoiInfoAndGetWeightHP(synapsesForConnectionSet, connectionSet, preHPThreshold, postHPThreshold);
 
             // add postHP to ConnectsTo
-            try {
-                addPostHPToConnectsTo(connectionSet, postHP);
-            } catch (Exception e) {
-                log.error("loader.setConnectionSetRoiInfoAndWeightHP: Error adding weightHP: " + e);
-                throw new RuntimeException("loader.setConnectionSetRoiInfoAndWeightHP: Error adding weightHP: " + e);
-            }
+            addPostHPToConnectsTo(connectionSet, postHP);
 
         } catch (Exception e) {
             log.info(String.format("loader.setConnectionSetRoiInfoAndWeightHP: Error adding roiInfo: %s, pre body ID: %d, post body ID: %d", e, preBodyId, postBodyId));
@@ -136,6 +87,66 @@ public class LoadingProcedures {
                 connectsToRel.setProperty(WEIGHT_HP, postHP);
             }
         }
+    }
+
+    public static int setConnectionSetRoiInfoAndGetWeightHP(Set<Node> synapsesForConnectionSet, Node connectionSet, Double preHPThreshold, Double postHPThreshold) {
+
+        Object[] roiInfoAndPostHP = getRoiInfoForConnectionSet(synapsesForConnectionSet, preHPThreshold, postHPThreshold);
+        RoiInfoWithHighPrecisionCounts roiInfo = (RoiInfoWithHighPrecisionCounts) roiInfoAndPostHP[0];
+        int postHP = (int) roiInfoAndPostHP[1];
+
+        // add to connection set node
+        connectionSet.setProperty(ROI_INFO, roiInfo.getAsJsonString());
+
+        return postHP;
+
+    }
+
+    private static Object[] getRoiInfoForConnectionSet(Set<Node> synapsesForConnectionSet, Double preHPThreshold, Double postHPThreshold) {
+
+        // for each pre/post add to count and check confidence to add to hp count
+        RoiInfoWithHighPrecisionCounts roiInfo = new RoiInfoWithHighPrecisionCounts();
+
+        // total postHP count for weightHP on ConnectsTo
+        int postHP = 0;
+
+        for (Node synapse : synapsesForConnectionSet) {
+            String type;
+            Double confidence;
+            if (synapse.hasProperty(TYPE)) {
+                type = (String) synapse.getProperty(TYPE);
+            } else {
+                break;
+            }
+            if (synapse.hasProperty(CONFIDENCE)) {
+                confidence = (Double) synapse.getProperty(CONFIDENCE);
+            } else {
+                confidence = null;
+            }
+            Set<String> synapseRois = getSynapseRois(synapse);
+            if (type.equals(PRE) && confidence != null && confidence > preHPThreshold) {
+                for (String roi : synapseRois) {
+                    roiInfo.incrementPreForRoi(roi);
+                    roiInfo.incrementPreHPForRoi(roi);
+                }
+            } else if (type.equals(PRE)) {
+                for (String roi : synapseRois) {
+                    roiInfo.incrementPreForRoi(roi);
+                }
+            } else if (type.equals(POST) && confidence != null && confidence > postHPThreshold) {
+                postHP++;
+                for (String roi : synapseRois) {
+                    roiInfo.incrementPostForRoi(roi);
+                    roiInfo.incrementPostHPForRoi(roi);
+                }
+            } else if (type.equals(POST)) {
+                for (String roi : synapseRois) {
+                    roiInfo.incrementPostForRoi(roi);
+                }
+            }
+        }
+
+        return new Object[]{roiInfo, postHP};
     }
 
 }

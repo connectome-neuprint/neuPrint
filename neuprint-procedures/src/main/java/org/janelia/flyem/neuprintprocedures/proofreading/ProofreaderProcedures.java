@@ -43,6 +43,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.setConnectionSetRoiInfoAndGetWeightHP;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.BODY_ID;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CLUSTER_NAME;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONNECTION_SET;
@@ -57,7 +59,9 @@ import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.MUTATION_
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.NAME;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.NEURON;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.POST;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.POST_HP_THRESHOLD;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.PRE;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.PRE_HP_THRESHOLD;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.RADIUS;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.ROI_INFO;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.ROW_NUMBER;
@@ -76,6 +80,7 @@ import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_S
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.TO;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.TYPE;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.WEIGHT;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getMetaNode;
 
 public class ProofreaderProcedures {
 
@@ -677,7 +682,7 @@ public class ProofreaderProcedures {
             final Node endNode = connectsToRelationship.getEndNode();
             final long weight = connectsToRelationship.getWeight();
             // create a ConnectsTo relationship
-            addConnectsToRelationship(startNode, endNode, weight);
+            Relationship connectsToRel = addConnectsToRelationship(startNode, endNode, weight);
 
             // create a ConnectionSet node
             final Node connectionSet = dbService.createNode(Label.label(CONNECTION_SET), Label.label(datasetLabel), Label.label(datasetLabel + "-" + CONNECTION_SET));
@@ -689,11 +694,32 @@ public class ProofreaderProcedures {
             connectionSet.createRelationshipTo(startNode, RelationshipType.withName(FROM));
             connectionSet.createRelationshipTo(endNode, RelationshipType.withName(TO));
 
+            final Set<Node> synapsesForConnectionSet = connectsToRelationship.getSynapsesInConnectionSet();
+
             // add synapses to ConnectionSet
-            for (final Node synapse : connectsToRelationship.getSynapsesInConnectionSet()) {
+            for (final Node synapse : synapsesForConnectionSet) {
                 // connection set Contains synapse
                 connectionSet.createRelationshipTo(synapse, RelationshipType.withName(CONTAINS));
             }
+
+            // add roi info to connection sets and weight hp to connections
+            // get pre and post thresholds from meta node (if not present use 0.0)
+            Node metaNode = getMetaNode(dbService, datasetLabel);
+            Double preHPThreshold;
+            Double postHPThreshold;
+            if (metaNode.hasProperty(PRE_HP_THRESHOLD)) {
+                preHPThreshold = (Double) metaNode.getProperty(PRE_HP_THRESHOLD);
+            } else {
+                preHPThreshold = 0.0;
+            }
+            if (metaNode.hasProperty(POST_HP_THRESHOLD)) {
+                postHPThreshold = (Double) metaNode.getProperty(POST_HP_THRESHOLD);
+            } else {
+                postHPThreshold = 0.0;
+            }
+
+            int postHPCount = setConnectionSetRoiInfoAndGetWeightHP(synapsesForConnectionSet, connectionSet, preHPThreshold, postHPThreshold);
+            connectsToRel.setProperty(WEIGHT_HP, postHPCount);
 
         }
 
@@ -705,10 +731,11 @@ public class ProofreaderProcedures {
         }
     }
 
-    private void addConnectsToRelationship(Node startNode, Node endNode, long weight) {
+    private Relationship addConnectsToRelationship(Node startNode, Node endNode, long weight) {
         // create a ConnectsTo relationship
         Relationship relationship = startNode.createRelationshipTo(endNode, RelationshipType.withName(CONNECTS_TO));
         relationship.setProperty(WEIGHT, weight);
+        return relationship;
     }
 
 //

@@ -55,6 +55,8 @@ public class GraphTraversalTools {
     public static final String SOMA_RADIUS = "somaRadius";
     public static final String SUPER_LEVEL_ROIS = "superLevelRois";
     public static final String MUTATION_UUID_ID = "mutationUuidAndId";
+    public static final String PRE_HP_THRESHOLD = "preHPThreshold";
+    public static final String POST_HP_THRESHOLD = "postHPThreshold";
     //Relationship names
     public static final String CONNECTS_TO = "ConnectsTo";
     public static final String CONTAINS = "Contains";

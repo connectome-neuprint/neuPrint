@@ -32,7 +32,7 @@ public class ConnectsToRelationship {
         return this.endNode;
     }
 
-    public Set<Node> getSynapsesInConnectionSet() {
+    Set<Node> getSynapsesInConnectionSet() {
         return this.synapsesInConnectionSet;
     }
 
