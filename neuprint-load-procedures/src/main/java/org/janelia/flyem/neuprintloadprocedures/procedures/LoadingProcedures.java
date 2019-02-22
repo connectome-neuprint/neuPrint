@@ -18,7 +18,6 @@ import java.util.Set;
 
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONFIDENCE;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONNECTS_TO;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONTAINS;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.FROM;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE;
@@ -38,10 +37,10 @@ public class LoadingProcedures {
     @Procedure(value = "loader.setConnectionSetRoiInfoAndWeightHP", mode = Mode.WRITE)
     @Description("loader.setConnectionSetRoiInfoAndWeightHP : Add roiInfo property to ConnectionSet node.")
     public void setConnectionSetRoiInfoAndWeightHP(@Name("preBodyId") final Long preBodyId,
-                                        @Name("postBodyId") final Long postBodyId,
-                                        @Name("datasetLabel") final String datasetLabel,
-                                        @Name("preHPThreshold") final Double preHPThreshold,
-                                        @Name("postHPThreshold") final Double postHPThreshold) {
+                                                   @Name("postBodyId") final Long postBodyId,
+                                                   @Name("datasetLabel") final String datasetLabel,
+                                                   @Name("preHPThreshold") final Double preHPThreshold,
+                                                   @Name("postHPThreshold") final Double postHPThreshold) {
 
         log.info("loader.setConnectionSetRoiInfoAndWeightHP: entry");
 
@@ -55,8 +54,8 @@ public class LoadingProcedures {
             Node connectionSet = GraphTraversalTools.getConnectionSetNode(dbService, preBodyId, postBodyId, datasetLabel);
 
             if (connectionSet == null) {
-                log.error(String.format("loader.setConnectionSetRoiInfoAndWeightHP: ConnectionSet does not exist: %d to %d in dataset %s. ", preBodyId, postBodyId, datasetLabel));
-                throw new RuntimeException(String.format("loader.setConnectionSetRoiInfoAndWeightHP: ConnectionSet does not exist: %d to %d in dataset %s. ", preBodyId, postBodyId, datasetLabel));
+                log.error(String.format("loader.setConnectionSetRoiInfoAndWeightHP: ConnectionSet does not exist: %d to %d in dataset %s.", preBodyId, postBodyId, datasetLabel));
+                throw new RuntimeException(String.format("loader.setConnectionSetRoiInfoAndWeightHP: ConnectionSet does not exist: %d to %d in dataset %s.", preBodyId, postBodyId, datasetLabel));
             }
 
             // get all synapses on that connection set
@@ -117,15 +116,15 @@ public class LoadingProcedures {
             }
 
         } catch (Exception e) {
-            log.info(String.format("loader.setConnectionSetRoiInfoAndWeightHP: Error adding roiInfo: %s . pre body ID: %d, post body ID: %d", e, preBodyId, postBodyId));
-            throw new RuntimeException(String.format("loader.setConnectionSetRoiInfoAndWeightHP: Error adding roiInfo: %s . pre body ID: %d, post body ID: %d", e, preBodyId, postBodyId));
+            log.info(String.format("loader.setConnectionSetRoiInfoAndWeightHP: Error adding roiInfo: %s, pre body ID: %d, post body ID: %d", e, preBodyId, postBodyId));
+            throw new RuntimeException(String.format("loader.setConnectionSetRoiInfoAndWeightHP: Error adding roiInfo: %s, pre body ID: %d, post body ID: %d", e, preBodyId, postBodyId));
         }
 
         log.info("loader.setConnectionSetRoiInfoAndWeightHP: exit");
 
     }
 
-    public void addPostHPToConnectsTo(Node connectionSet, int postHP) {
+    private void addPostHPToConnectsTo(Node connectionSet, int postHP) {
         Node preSynapticNode = connectionSet.getSingleRelationship(RelationshipType.withName(FROM), Direction.OUTGOING).getEndNode();
         long postSynapticNodeId = connectionSet.getSingleRelationship(RelationshipType.withName(TO), Direction.OUTGOING).getEndNodeId();
 
@@ -133,8 +132,8 @@ public class LoadingProcedures {
 
         for (Relationship connectsToRel : connectsToRelationships) {
             long endNodeIdForRel = connectsToRel.getEndNodeId();
-            if (postSynapticNodeId==endNodeIdForRel) {
-                connectsToRel.setProperty(WEIGHT_HP,postHP);
+            if (postSynapticNodeId == endNodeIdForRel) {
+                connectsToRel.setProperty(WEIGHT_HP, postHP);
             }
         }
     }
