@@ -75,7 +75,7 @@ public class LoadingProcedures {
 
     }
 
-    private void addPostHPToConnectsTo(Node connectionSet, int postHP) {
+    public static void addPostHPToConnectsTo(Node connectionSet, int postHP) {
         Node preSynapticNode = connectionSet.getSingleRelationship(RelationshipType.withName(FROM), Direction.OUTGOING).getEndNode();
         long postSynapticNodeId = connectionSet.getSingleRelationship(RelationshipType.withName(TO), Direction.OUTGOING).getEndNodeId();
 

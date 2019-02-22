@@ -44,6 +44,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addPostHPToConnectsTo;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.setConnectionSetRoiInfoAndGetWeightHP;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.BODY_ID;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CLUSTER_NAME;
@@ -182,12 +183,12 @@ public class ProofreaderProcedures {
                 }
             }
 
-            log.info("proofreader.updateProperties: exit");
-
         } catch (Exception e) {
             log.error("Error running proofreader.updateProperties: " + e);
             throw new RuntimeException("Error running proofreader.updateProperties: " + e);
         }
+
+        log.info("proofreader.updateProperties: exit");
 
     }
 
@@ -485,8 +486,6 @@ public class ProofreaderProcedures {
                 log.info("Time to add skeleton:" + timer.stop());
                 timer.reset();
 
-                log.info("proofreader.addSkeleton: exit");
-
             } else {
                 log.warn("Body Id " + bodyId + " does not exist in the dataset.");
             }
@@ -495,6 +494,8 @@ public class ProofreaderProcedures {
             log.error("Error running proofreader.addSkeleton: " + e);
             throw new RuntimeException("Error running proofreader.addSkeleton: " + e);
         }
+
+        log.info("proofreader.addSkeleton: exit");
 
     }
 
@@ -536,6 +537,33 @@ public class ProofreaderProcedures {
             log.error("Error running proofreader.deleteSkeleton: " + e);
             throw new RuntimeException("Error running proofreader.deleteSkeleton: " + e);
         }
+
+        log.info("proofreader.deleteSkeleton: exit");
+
+    }
+
+    @Procedure(value = "temp.updateConnectionSetsAndWeightHP", mode = Mode.WRITE)
+    @Description("temp.updateConnectionSetsAndWeightHP(connectionSetNode, datasetLabel) ")
+    public void updateConnectionSetsAndWeightHP(@Name("connectionSetNode") Node connectionSetNode, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("temp.updateConnectionSetsAndWeightHP: entry");
+
+        try {
+            // get all synapses on connection set
+            Set<Node> synapsesForConnectionSet = org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet(connectionSetNode);
+
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(datasetLabel);
+
+            int postHP = setConnectionSetRoiInfoAndGetWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
+
+            // add postHP to ConnectsTo
+            addPostHPToConnectsTo(connectionSetNode, postHP);
+        } catch (Exception e) {
+            log.error("temp.updateConnectionSetsAndWeightHP: " + e);
+            throw new RuntimeException("temp.updateConnectionSetsAndWeightHP: " + e);
+        }
+
+        log.info("temp.updateConnectionSetsAndWeightHP: exit");
     }
 
 //    private void mergeSynapseSets(Node synapseSet1, Node synapseSet2) {
@@ -704,25 +732,30 @@ public class ProofreaderProcedures {
 
             // add roi info to connection sets and weight hp to connections
             // get pre and post thresholds from meta node (if not present use 0.0)
-            Node metaNode = getMetaNode(dbService, datasetLabel);
-            Double preHPThreshold;
-            Double postHPThreshold;
-            if (metaNode.hasProperty(PRE_HP_THRESHOLD)) {
-                preHPThreshold = (Double) metaNode.getProperty(PRE_HP_THRESHOLD);
-            } else {
-                preHPThreshold = 0.0;
-            }
-            if (metaNode.hasProperty(POST_HP_THRESHOLD)) {
-                postHPThreshold = (Double) metaNode.getProperty(POST_HP_THRESHOLD);
-            } else {
-                postHPThreshold = 0.0;
-            }
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(datasetLabel);
 
-            int postHPCount = setConnectionSetRoiInfoAndGetWeightHP(synapsesForConnectionSet, connectionSet, preHPThreshold, postHPThreshold);
+            int postHPCount = setConnectionSetRoiInfoAndGetWeightHP(synapsesForConnectionSet, connectionSet, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
             connectsToRel.setProperty(WEIGHT_HP, postHPCount);
 
         }
 
+    }
+
+    private Map<String, Double> getPreAndPostHPThresholdFromMetaNode(String datasetLabel) {
+        Node metaNode = getMetaNode(dbService, datasetLabel);
+        Map<String, Double> thresholdMap = new HashMap<>();
+        if (metaNode.hasProperty(PRE_HP_THRESHOLD)) {
+            thresholdMap.put(PRE_HP_THRESHOLD, (Double) metaNode.getProperty(PRE_HP_THRESHOLD));
+        } else {
+            thresholdMap.put(PRE_HP_THRESHOLD, 0.0);
+        }
+        if (metaNode.hasProperty(POST_HP_THRESHOLD)) {
+            thresholdMap.put(POST_HP_THRESHOLD, (Double) metaNode.getProperty(POST_HP_THRESHOLD));
+        } else {
+            thresholdMap.put(POST_HP_THRESHOLD, 0.0);
+        }
+
+        return thresholdMap;
     }
 
     private void addRoiPropertiesToSegmentGivenSynapseCountsPerRoi(Node segment, RoiInfo roiInfo) {
