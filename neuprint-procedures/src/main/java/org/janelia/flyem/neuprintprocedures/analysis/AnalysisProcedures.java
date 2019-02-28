@@ -1,22 +1,31 @@
 package org.janelia.flyem.neuprintprocedures.analysis;
 
+import apoc.path.RelationshipTypeAndDirections;
 import apoc.result.LongResult;
 import apoc.result.MapResult;
 import apoc.result.NodeResult;
 import apoc.result.StringResult;
+import apoc.result.WeightedPathResult;
+import apoc.util.Util;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
 import org.janelia.flyem.neuprintprocedures.Location;
+import org.neo4j.graphalgo.GraphAlgoFactory;
+import org.neo4j.graphalgo.PathFinder;
+import org.neo4j.graphalgo.WeightedPath;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.PathExpander;
+import org.neo4j.graphdb.PathExpanderBuilder;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.spatial.Point;
+import org.neo4j.helpers.collection.Pair;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
@@ -30,10 +39,23 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.*;
+import static java.lang.Float.NaN;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.BODY_ID;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONTAINS;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.LOCATION;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.POST_SYN;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.PRE_SYN;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SEGMENT;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKELETON;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKEL_NODE;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKEL_NODE_ID;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSES_TO;
+import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_SET;
 
 public class AnalysisProcedures {
 
@@ -340,7 +362,7 @@ public class AnalysisProcedures {
     @Procedure(value = "analysis.getInputAndOutputFeatureVectorsForAllNeurons", mode = Mode.READ)
     @Description("")
     public Stream<StringResult> getInputAndOutputFeatureVectorsForAllNeurons(@Name("datasetLabel") String datasetLabel,
-                                                                               @Name("synapseThreshold") Long synapseThreshold) {
+                                                                             @Name("synapseThreshold") Long synapseThreshold) {
         if (datasetLabel == null || synapseThreshold == null) {
             log.error("analysis.getInputAndOutputFeatureVectorsForAllNeurons: Missing input arguments.");
             throw new RuntimeException("analysis.getInputAndOutputFeatureVectorsForAllNeurons: Missing input arguments.");
@@ -355,12 +377,56 @@ public class AnalysisProcedures {
         log.info("analysis.getInputAndOutputFeatureVectorsForAllNeurons: " + neuronSet.size() + " neurons within " + datasetLabel +
                 " dataset with greater than " + synapseThreshold + " total synapses.");
 
-
         Set<ClusteringFeatureVector> clusteringFeatureVectors = getSetOfClusteringFeatureVectors(neuronSet, roiList);
 
         String featureVectorsJson = ClusteringFeatureVector.getClusteringFeatureVectorSetJson(clusteringFeatureVectors);
 
         return Stream.of(new StringResult(featureVectorsJson));
+    }
+
+    @Procedure(value = "analysis.getShortestPathWithMinWeight", mode = Mode.READ)
+    @Description("analysis.getShortestPathWithMinWeight(" +
+            "startNode, endNode, 'ConnectsTo>', 'prop', 'weight', 1, 10, 100)")
+    public Stream<WeightedPathResult> getShortestPathWithMinWeight(
+            @Name("startNode") Node startNode,
+            @Name("endNode") Node endNode,
+            @Name("relationshipTypesAndDirections") String relTypesAndDirs,
+            @Name("weightPropertyName") String weightPropertyName,
+            @Name("thresholdPropertyName") String thresholdPropertyName,
+            @Name(value = "defaultWeight", defaultValue = "NaN") double defaultWeight,
+            @Name(value = "minThreshold", defaultValue = "0") double minThreshold,
+            @Name(value = "numberOfWantedPaths", defaultValue = "1") long numberOfWantedPaths) {
+
+        PathFinder<WeightedPath> algo = GraphAlgoFactory.dijkstra(
+                buildPathExpanderWithMinWeight(relTypesAndDirs, thresholdPropertyName, minThreshold),
+                (relationship, direction) -> Util.toDouble(relationship.getProperty(weightPropertyName, defaultWeight)),
+                (int) numberOfWantedPaths
+        );
+        return WeightedPathResult.streamWeightedPathResult(startNode, endNode, algo);
+
+    }
+
+    private PathExpander<Object> buildPathExpanderWithMinWeight(String relationshipsAndDirections, String relationshipProperty, Double minValue) {
+        PathExpanderBuilder builder = PathExpanderBuilder.empty();
+        for (Pair<RelationshipType, Direction> pair : RelationshipTypeAndDirections
+                .parse(relationshipsAndDirections)) {
+            if (pair.first() == null) {
+                if (pair.other() == null) {
+                    builder = PathExpanderBuilder.allTypesAndDirections();
+                } else {
+                    builder = PathExpanderBuilder.allTypes(pair.other());
+                }
+            } else {
+                if (pair.other() == null) {
+                    builder = builder.add(pair.first());
+                } else {
+                    builder = builder.add(pair.first(), pair.other());
+                }
+            }
+        }
+        Predicate<Relationship> aboveMinWeight = rel -> (Util.toDouble(rel.getProperty(relationshipProperty, NaN)) >= minValue);
+        builder = builder.addRelationshipFilter(aboveMinWeight);
+        return builder.build();
     }
 
     private Set<ClusteringFeatureVector> getSetOfClusteringFeatureVectors(Set<NeuronWithRoiInfoMap> neuronSet, List<String> roiList) {
