@@ -386,7 +386,7 @@ public class AnalysisProcedures {
 
     @Procedure(value = "analysis.getShortestPathWithMinWeight", mode = Mode.READ)
     @Description("analysis.getShortestPathWithMinWeight(" +
-            "startNode, endNode, 'ConnectsTo>', 'prop', 'weight', 1, 10, 100)")
+            "startNode, endNode, 'ConnectsTo>', 'prop', 'weight', 1, 10) YIELD path, weight")
     public Stream<WeightedPathResult> getShortestPathWithMinWeight(
             @Name("startNode") Node startNode,
             @Name("endNode") Node endNode,
@@ -394,13 +394,11 @@ public class AnalysisProcedures {
             @Name("weightPropertyName") String weightPropertyName,
             @Name("thresholdPropertyName") String thresholdPropertyName,
             @Name(value = "defaultWeight", defaultValue = "NaN") double defaultWeight,
-            @Name(value = "minThreshold", defaultValue = "0") double minThreshold,
-            @Name(value = "numberOfWantedPaths", defaultValue = "1") long numberOfWantedPaths) {
+            @Name(value = "minThreshold", defaultValue = "0") double minThreshold) {
 
         PathFinder<WeightedPath> algo = GraphAlgoFactory.dijkstra(
                 buildPathExpanderWithMinWeight(relTypesAndDirs, thresholdPropertyName, minThreshold),
-                (relationship, direction) -> Util.toDouble(relationship.getProperty(weightPropertyName, defaultWeight)),
-                (int) numberOfWantedPaths
+                (relationship, direction) -> Util.toDouble(relationship.getProperty(weightPropertyName, defaultWeight))
         );
         return WeightedPathResult.streamWeightedPathResult(startNode, endNode, algo);
 

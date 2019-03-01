@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.neo4j.driver.v1.Config;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.driver.v1.types.Path;
@@ -69,15 +70,13 @@ public class ShortestPathTest {
                     "$weightName," +
                     "$thresholdName," +
                     "$defaultWeight," +
-                    "$minValue," +
-                    "$numberOfPaths) " +
+                    "$minValue) " +
                     "YIELD path, weight RETURN path, weight", parameters(
                     "relationshipTypeAndDir", "ConnectsTo>",
                     "weightName", "default",
                     "defaultWeight", 1,
                     "thresholdName", "weight",
-                    "minValue", 1,
-                    "numberOfPaths", 1
+                    "minValue", 1
             )).single().get(0).asPath());
 
             for (Node node : segments.nodes()) {
@@ -85,34 +84,40 @@ public class ShortestPathTest {
                 Assert.assertTrue(bodyId == 8426959L || bodyId == 26311L);
             }
 
-
-            Path segmentsWithMinWeight = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:8426959}), (m{bodyId:26311}) CALL analysis.getShortestPathWithMinWeight" +
+            List<Record> records = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:8426959}), (m{bodyId:26311}) CALL analysis.getShortestPathWithMinWeight" +
                     "(n,m," +
                     "$relationshipTypeAndDir," +
                     "$weightName," +
                     "$thresholdName," +
                     "$defaultWeight," +
-                    "$minValue," +
-                    "$numberOfPaths) " +
+                    "$minValue) " +
                     "YIELD path, weight RETURN path, weight", parameters(
                     "relationshipTypeAndDir", "ConnectsTo>",
                     "weightName", "default",
                     "defaultWeight", 1,
                     "thresholdName", "weight",
-                    "minValue", 2,
-                    "numberOfPaths", 1
-            )).single().get(0).asPath());
+                    "minValue", 2
+            )).list());
 
-            for (Node node : segmentsWithMinWeight.nodes()) {
-                long bodyId = (Long) node.asMap().get("bodyId");
-                Assert.assertTrue(bodyId == 8426959L || bodyId == 26311L || bodyId == 1L);
+
+            Assert.assertEquals(2, records.size());
+
+            for (Record record : records) {
+                Path segmentsWithMinWeight = (Path) record.asMap().get("path");
+
+                for (Node node : segmentsWithMinWeight.nodes()) {
+                    long bodyId = (Long) node.asMap().get("bodyId");
+                    Assert.assertTrue(bodyId == 8426959L || bodyId == 26311L || bodyId == 1L || bodyId == 2L);
+                }
+
+                for (Relationship relationship : segmentsWithMinWeight.relationships()) {
+                    Assert.assertEquals(2L, relationship.asMap().get("weight"));
+                }
+
+                Assert.assertEquals(2,segmentsWithMinWeight.length());
+
             }
 
-            for (Relationship relationship : segmentsWithMinWeight.relationships()) {
-                Assert.assertEquals(2L, relationship.asMap().get("weight"));
-            }
-
-            Assert.assertEquals(2,segmentsWithMinWeight.length());
 
 
         }
