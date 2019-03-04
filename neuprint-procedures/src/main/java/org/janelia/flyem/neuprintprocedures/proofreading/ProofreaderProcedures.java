@@ -44,7 +44,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
-import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addPostHPToConnectsTo;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.setConnectionSetRoiInfoAndGetWeightHP;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.BODY_ID;
 import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CLUSTER_NAME;
@@ -540,30 +539,6 @@ public class ProofreaderProcedures {
 
         log.info("proofreader.deleteSkeleton: exit");
 
-    }
-
-    @Procedure(value = "temp.updateConnectionSetsAndWeightHP", mode = Mode.WRITE)
-    @Description("temp.updateConnectionSetsAndWeightHP(connectionSetNode, datasetLabel) ")
-    public void updateConnectionSetsAndWeightHP(@Name("connectionSetNode") Node connectionSetNode, @Name("datasetLabel") String datasetLabel) {
-
-        log.info("temp.updateConnectionSetsAndWeightHP: entry");
-
-        try {
-            // get all synapses on connection set
-            Set<Node> synapsesForConnectionSet = org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet(connectionSetNode);
-
-            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(datasetLabel);
-
-            int postHP = setConnectionSetRoiInfoAndGetWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
-
-            // add postHP to ConnectsTo
-            addPostHPToConnectsTo(connectionSetNode, postHP);
-        } catch (Exception e) {
-            log.error("temp.updateConnectionSetsAndWeightHP: " + e);
-            throw new RuntimeException("temp.updateConnectionSetsAndWeightHP: " + e);
-        }
-
-        log.info("temp.updateConnectionSetsAndWeightHP: exit");
     }
 
 //    private void mergeSynapseSets(Node synapseSet1, Node synapseSet2) {
