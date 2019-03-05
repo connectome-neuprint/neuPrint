@@ -567,6 +567,11 @@ public class ProofreaderProcedures {
 
             Node synapse = getSynapse(dbService, x, y, z, dataset);
 
+            Node neuron = getSegmentThatContainsSynapse(synapse);
+            acquireWriteLockForSegmentSubgraph(neuron);
+            Node metaNode = getMetaNode(dbService, dataset);
+            acquireWriteLockForNode(metaNode);
+
             if (synapse == null) {
                 log.error("proofreader.addRoiToSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
                 throw new RuntimeException("proofreader.addRoiToSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
@@ -601,7 +606,6 @@ public class ProofreaderProcedures {
             }
 
             // update roi info and roi properties on neuron/segment
-            Node neuron = getSegmentThatContainsSynapse(synapse);
             if (neuron != null) {
                 // add boolean property
                 neuron.setProperty(roiName, true);
@@ -621,7 +625,6 @@ public class ProofreaderProcedures {
             }
 
             // update meta node
-            Node metaNode = getMetaNode(dbService, dataset);
             String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
             if (metaRoiInfoString != null) {
                 String roiInfoJsonString = addSynapseToRoiInfo(metaRoiInfoString, roiName, synapseType);
@@ -653,6 +656,11 @@ public class ProofreaderProcedures {
             }
 
             Node synapse = getSynapse(dbService, x, y, z, dataset);
+
+            Node neuron = getSegmentThatContainsSynapse(synapse);
+            acquireWriteLockForSegmentSubgraph(neuron);
+            Node metaNode = getMetaNode(dbService, dataset);
+            acquireWriteLockForNode(metaNode);
 
             if (synapse == null) {
                 log.error("proofreader.removeRoiFromSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
@@ -688,7 +696,6 @@ public class ProofreaderProcedures {
             }
 
             // update roi info and roi properties on neuron/segment
-            Node neuron = getSegmentThatContainsSynapse(synapse);
             if (neuron != null) {
 
                 // update roi info
@@ -711,7 +718,6 @@ public class ProofreaderProcedures {
             }
 
             // update meta node
-            Node metaNode = getMetaNode(dbService, dataset);
             String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
             if (metaRoiInfoString != null) {
                 String roiInfoJsonString = removeSynapseFromRoiInfo(metaRoiInfoString, roiName, synapseType);
