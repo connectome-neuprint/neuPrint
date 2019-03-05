@@ -1,8 +1,7 @@
 package org.janelia.flyem.neuprintloadprocedures;
 
-import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -11,6 +10,8 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.spatial.Point;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,8 @@ public class GraphTraversalTools {
     public static final String LOCATION = "location";
     public static final String POST = "post";
     public static final String PRE = "pre";
+    public static final String PRE_HP_THRESHOLD = "preHPThreshold";
+    public static final String POST_HP_THRESHOLD = "postHPThreshold";
     public static final String SIZE = "size";
     public static final String NAME = "name";
     public static final String STATUS = "status";
@@ -72,6 +75,11 @@ public class GraphTraversalTools {
         return dbService.findNode(Label.label(dataset + "-" + SYNAPSE), LOCATION, location);
     }
 
+    public static Node getSynapse(final GraphDatabaseService dbService, final Double x, final Double y, final Double z, final String dataset) {
+        Point point = getLocationAs3dCartesianPoint(dbService, x, y, z);
+        return getSynapse(dbService, point, dataset);
+    }
+
     public static Node getMetaNode(final GraphDatabaseService dbService, final String dataset) {
         return dbService.findNode(Label.label(META), DATASET, dataset);
     }
@@ -88,9 +96,21 @@ public class GraphTraversalTools {
         return dbService.findNode(Label.label(dataset + "-" + CONNECTION_SET), DATASET_BODY_IDs, dataset + ":" + preBodyId + ":" + postBodyId);
     }
 
+    public static List<Node> getConnectionSetsForSynapse(final GraphDatabaseService dbService, final Node synapse) {
+        List<Node> connectionSetList = new ArrayList<>();
+        if (synapse.hasRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
+            for (Relationship containsRel : synapse.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
+                if (containsRel.getStartNode().hasLabel(Label.label(CONNECTION_SET))) {
+                    connectionSetList.add(containsRel.getStartNode());
+                }
+            }
+        }
+        return connectionSetList;
+    }
+
     public static Set<Node> getSynapsesForConnectionSet(final Node connectionSet) {
         final Set<Node> synapseSet = new HashSet<>();
-        for (final Relationship containsRel: connectionSet.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+        for (final Relationship containsRel : connectionSet.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
             synapseSet.add(containsRel.getEndNode());
         }
         return synapseSet;
@@ -170,12 +190,6 @@ public class GraphTraversalTools {
     public static Point getLocationAs3dCartesianPoint(final GraphDatabaseService dbService, Double x, Double y, Double z) {
         Map<String, Object> pointQueryResult = dbService.execute("RETURN point({ x:" + x + ", y:" + y + ", z:" + z + ", crs:'cartesian-3D'}) AS point").next();
         return (Point) pointQueryResult.get("point");
-    }
-
-    public static Map<String, SynapseCounter> getRoiInfoAsMap(String roiInfo) {
-        Gson gson = new Gson();
-        return gson.fromJson(roiInfo, new TypeToken<Map<String, SynapseCounter>>() {
-        }.getType());
     }
 
 }

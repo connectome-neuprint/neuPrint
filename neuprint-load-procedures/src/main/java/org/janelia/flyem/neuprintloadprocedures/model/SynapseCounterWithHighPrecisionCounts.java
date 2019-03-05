@@ -60,6 +60,24 @@ public class SynapseCounterWithHighPrecisionCounts extends SynapseCounter {
         this.postHP++;
     }
 
+    /**
+     * Decrements the high-precision presynaptic density count.
+     */
+    public void decrementPreHP() {
+        if (this.preHP > 0) {
+            this.preHP--;
+        }
+    }
+
+    /**
+     * Increments the high-precision presynaptic density count.
+     */
+    public void decrementPostHP() {
+        if (this.postHP > 0) {
+            this.postHP--;
+        }
+    }
+
     @Override
     public String toString() {
         return "{pre: " + this.getPre() + ", post: " + this.getPost() + ", preHP: " + this.preHP + ", postHP: " + this.postHP + "}";

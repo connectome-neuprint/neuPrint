@@ -15,7 +15,7 @@ import java.util.TreeSet;
 public class RoiInfoWithHighPrecisionCountsTest {
 
     @Test
-    public void shouldIncrementPrePostAndTotalAppropriately() {
+    public void shouldIncrementAndDecrementPrePostAndTotalAppropriately() {
 
         RoiInfoWithHighPrecisionCounts roiInfo = new RoiInfoWithHighPrecisionCounts();
 
@@ -48,6 +48,33 @@ public class RoiInfoWithHighPrecisionCountsTest {
         Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPost());
         Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPreHP());
         Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPostHP());
+
+        roiInfo.decrementPreHPForRoi("testRoi");
+
+        Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPre());
+        Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPost());
+        Assert.assertEquals(0, roiInfo.getSynapseCountsForRoi("testRoi").getPreHP());
+        Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPostHP());
+
+        roiInfo.decrementPostHPForRoi("testRoi");
+
+        Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPre());
+        Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPost());
+        Assert.assertEquals(0, roiInfo.getSynapseCountsForRoi("testRoi").getPreHP());
+        Assert.assertEquals(0, roiInfo.getSynapseCountsForRoi("testRoi").getPostHP());
+
+        roiInfo.decrementPreForRoi("testRoi");
+
+        Assert.assertEquals(0, roiInfo.getSynapseCountsForRoi("testRoi").getPre());
+        Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPost());
+        Assert.assertEquals(0, roiInfo.getSynapseCountsForRoi("testRoi").getPreHP());
+        Assert.assertEquals(0, roiInfo.getSynapseCountsForRoi("testRoi").getPostHP());
+
+        roiInfo.decrementPostForRoi("testRoi");
+
+        Assert.assertEquals(0, roiInfo.getSetOfRois().size());
+
+
     }
 
     @Test

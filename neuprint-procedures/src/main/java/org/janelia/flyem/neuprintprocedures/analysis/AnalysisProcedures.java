@@ -44,18 +44,18 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.lang.Float.NaN;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.BODY_ID;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONTAINS;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.LOCATION;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.POST_SYN;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.PRE_SYN;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SEGMENT;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKELETON;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKEL_NODE;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKEL_NODE_ID;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSES_TO;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_SET;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.BODY_ID;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONTAINS;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.LOCATION;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST_SYN;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE_SYN;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SEGMENT;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKELETON;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKEL_NODE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKEL_NODE_ID;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSES_TO;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE_SET;
 
 public class AnalysisProcedures {
 

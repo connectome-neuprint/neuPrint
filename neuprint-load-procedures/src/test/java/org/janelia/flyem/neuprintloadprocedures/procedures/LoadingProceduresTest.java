@@ -4,6 +4,7 @@ import apoc.convert.Json;
 import apoc.create.Create;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.janelia.flyem.neuprintloadprocedures.model.RoiInfoWithHighPrecisionCounts;
 import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -16,6 +17,7 @@ import org.neo4j.harness.junit.Neo4jRule;
 
 import java.util.Map;
 
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToRoiInfoWithHP;
 import static org.neo4j.driver.v1.Values.parameters;
 import static org.neo4j.driver.v1.Values.point;
 
@@ -79,5 +81,24 @@ public class LoadingProceduresTest {
 
             Assert.assertEquals(1, weightHP);
         }
+    }
+
+    @Test
+    public void shouldAddSynapseToRoiInfoWithHP() {
+        RoiInfoWithHighPrecisionCounts roiInfo = new RoiInfoWithHighPrecisionCounts();
+        roiInfo.incrementPreForRoi("roiA");
+        roiInfo.incrementPreHPForRoi("roiA");
+        roiInfo.incrementPostForRoi("roiA");
+
+        String initialRoiInfoString = roiInfo.getAsJsonString();
+
+        String newRoiInfoString = addSynapseToRoiInfoWithHP(initialRoiInfoString, "roiB", "post", 0.5, .9, .4);
+
+        Assert.assertEquals("{\"roiA\":{\"preHP\":1,\"postHP\":0,\"pre\":1,\"post\":1},\"roiB\":{\"preHP\":0,\"postHP\":1,\"pre\":0,\"post\":1}}",newRoiInfoString);
+
+        String newRoiInfoString2 = addSynapseToRoiInfoWithHP(newRoiInfoString, "roiB", "pre", 0.98, .9, .4);
+
+        Assert.assertEquals("{\"roiA\":{\"preHP\":1,\"postHP\":0,\"pre\":1,\"post\":1},\"roiB\":{\"preHP\":1,\"postHP\":1,\"pre\":1,\"post\":1}}",newRoiInfoString2);
+
     }
 }

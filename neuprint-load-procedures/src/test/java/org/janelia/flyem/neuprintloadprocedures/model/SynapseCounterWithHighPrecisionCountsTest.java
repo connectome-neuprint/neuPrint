@@ -9,7 +9,7 @@ import org.junit.Test;
 public class SynapseCounterWithHighPrecisionCountsTest {
 
     @Test
-    public void shouldIncrementPrePostAndTotalAppropriately() {
+    public void shouldIncrementAndDecrementPrePostAndTotalAppropriately() {
 
         SynapseCounterWithHighPrecisionCounts synapseCounter = new SynapseCounterWithHighPrecisionCounts();
 
@@ -42,6 +42,34 @@ public class SynapseCounterWithHighPrecisionCountsTest {
         Assert.assertEquals(1, synapseCounter.getPost());
         Assert.assertEquals(1, synapseCounter.getPreHP());
         Assert.assertEquals(1, synapseCounter.getPostHP());
+
+        synapseCounter.decrementPre();
+
+        Assert.assertEquals(0, synapseCounter.getPre());
+        Assert.assertEquals(1, synapseCounter.getPost());
+        Assert.assertEquals(1, synapseCounter.getPreHP());
+        Assert.assertEquals(1, synapseCounter.getPostHP());
+
+        synapseCounter.decrementPost();
+
+        Assert.assertEquals(0, synapseCounter.getPre());
+        Assert.assertEquals(0, synapseCounter.getPost());
+        Assert.assertEquals(1, synapseCounter.getPreHP());
+        Assert.assertEquals(1, synapseCounter.getPostHP());
+
+        synapseCounter.decrementPreHP();
+
+        Assert.assertEquals(0, synapseCounter.getPre());
+        Assert.assertEquals(0, synapseCounter.getPost());
+        Assert.assertEquals(0, synapseCounter.getPreHP());
+        Assert.assertEquals(1, synapseCounter.getPostHP());
+
+        synapseCounter.decrementPostHP();
+
+        Assert.assertEquals(0, synapseCounter.getPre());
+        Assert.assertEquals(0, synapseCounter.getPost());
+        Assert.assertEquals(0, synapseCounter.getPreHP());
+        Assert.assertEquals(0, synapseCounter.getPostHP());
 
     }
 }

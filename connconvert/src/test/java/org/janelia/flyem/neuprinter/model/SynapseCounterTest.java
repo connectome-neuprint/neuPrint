@@ -25,5 +25,17 @@ public class SynapseCounterTest {
         Assert.assertEquals(1, synapseCounter.getPre());
         Assert.assertEquals(1, synapseCounter.getPost());
 
+        synapseCounter.decrementPre();
+
+        Assert.assertEquals(0, synapseCounter.getPre());
+        Assert.assertEquals(1, synapseCounter.getPost());
+
+        synapseCounter.decrementPost();
+
+        Assert.assertEquals(0, synapseCounter.getPre());
+        Assert.assertEquals(0, synapseCounter.getPost());
+
+
+
     }
 }

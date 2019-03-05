@@ -15,7 +15,7 @@ import java.util.TreeSet;
 public class RoiInfoTest {
 
     @Test
-    public void shouldIncrementPrePostAndTotalAppropriately() {
+    public void shouldIncrementAndDecrementPrePostAndTotalAppropriately() {
 
         RoiInfo roiInfo = new RoiInfo();
 
@@ -30,6 +30,15 @@ public class RoiInfoTest {
 
         Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPre());
         Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPost());
+
+        roiInfo.decrementPreForRoi("testRoi");
+
+        Assert.assertEquals(0, roiInfo.getSynapseCountsForRoi("testRoi").getPre());
+        Assert.assertEquals(1, roiInfo.getSynapseCountsForRoi("testRoi").getPost());
+
+        roiInfo.decrementPostForRoi("testRoi");
+
+        Assert.assertEquals(0, roiInfo.getSetOfRois().size());
     }
 
     @Test

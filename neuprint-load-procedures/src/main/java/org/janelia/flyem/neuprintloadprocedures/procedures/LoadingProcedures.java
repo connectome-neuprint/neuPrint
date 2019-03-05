@@ -1,7 +1,10 @@
 package org.janelia.flyem.neuprintloadprocedures.procedures;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools;
 import org.janelia.flyem.neuprintloadprocedures.model.RoiInfoWithHighPrecisionCounts;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -14,6 +17,8 @@ import org.neo4j.procedure.Mode;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
 
+import java.lang.reflect.Type;
+import java.util.Map;
 import java.util.Set;
 
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONFIDENCE;
@@ -33,6 +38,9 @@ public class LoadingProcedures {
 
     @Context
     public Log log;
+
+    public static final Type ROI_INFO_WITH_HP_TYPE = new TypeToken<Map<String, SynapseCounterWithHighPrecisionCounts>>() {
+    }.getType();
 
     @Procedure(value = "loader.setConnectionSetRoiInfoAndWeightHP", mode = Mode.WRITE)
     @Description("loader.setConnectionSetRoiInfoAndWeightHP : Add roiInfo property to ConnectionSet node.")
@@ -147,6 +155,48 @@ public class LoadingProcedures {
         }
 
         return new Object[]{roiInfo, postHP};
+    }
+
+    public static String addSynapseToRoiInfoWithHP(String roiInfoString, String roi, String synapseType, Double synapseConfidence, Double preHPThreshold, Double postHPThreshold) {
+        Gson gson = new Gson();
+        Map<String, SynapseCounterWithHighPrecisionCounts> roiInfoMap = gson.fromJson(roiInfoString, ROI_INFO_WITH_HP_TYPE);
+        RoiInfoWithHighPrecisionCounts roiInfo = new RoiInfoWithHighPrecisionCounts(roiInfoMap);
+
+        if (synapseType.equals(PRE) && synapseConfidence != null && synapseConfidence > preHPThreshold) {
+            roiInfo.incrementPreForRoi(roi);
+            roiInfo.incrementPreHPForRoi(roi);
+        } else if (synapseType.equals(PRE)) {
+            roiInfo.incrementPreForRoi(roi);
+        } else if (synapseType.equals(POST) && synapseConfidence != null && synapseConfidence > postHPThreshold) {
+            roiInfo.incrementPostForRoi(roi);
+            roiInfo.incrementPostHPForRoi(roi);
+        } else if (synapseType.equals(POST)) {
+            roiInfo.incrementPostForRoi(roi);
+        }
+
+        return roiInfo.getAsJsonString();
+
+    }
+
+    public static String removeSynapseFromRoiInfoWithHP(String roiInfoString, String roi, String synapseType, Double synapseConfidence, Double preHPThreshold, Double postHPThreshold) {
+        Gson gson = new Gson();
+        Map<String, SynapseCounterWithHighPrecisionCounts> roiInfoMap = gson.fromJson(roiInfoString, ROI_INFO_WITH_HP_TYPE);
+        RoiInfoWithHighPrecisionCounts roiInfo = new RoiInfoWithHighPrecisionCounts(roiInfoMap);
+
+        if (synapseType.equals(PRE) && synapseConfidence != null && synapseConfidence > preHPThreshold) {
+            roiInfo.decrementPreForRoi(roi);
+            roiInfo.decrementPreHPForRoi(roi);
+        } else if (synapseType.equals(PRE)) {
+            roiInfo.decrementPreForRoi(roi);
+        } else if (synapseType.equals(POST) && synapseConfidence != null && synapseConfidence > postHPThreshold) {
+            roiInfo.decrementPostForRoi(roi);
+            roiInfo.decrementPostHPForRoi(roi);
+        } else if (synapseType.equals(POST)) {
+            roiInfo.decrementPostForRoi(roi);
+        }
+
+        return roiInfo.getAsJsonString();
+
     }
 
 }

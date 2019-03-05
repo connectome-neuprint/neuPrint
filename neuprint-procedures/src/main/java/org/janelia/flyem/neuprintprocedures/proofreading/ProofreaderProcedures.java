@@ -2,6 +2,7 @@ package org.janelia.flyem.neuprintprocedures.proofreading;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.RoiInfo;
@@ -9,7 +10,7 @@ import org.janelia.flyem.neuprinter.model.SkelNode;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.Synapse;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
-import org.janelia.flyem.neuprintprocedures.GraphTraversalTools;
+import org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools;
 import org.janelia.flyem.neuprintprocedures.Location;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -29,6 +30,7 @@ import org.neo4j.procedure.Procedure;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
@@ -43,44 +45,50 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.BODY_ID;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CLUSTER_NAME;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONFIDENCE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONNECTION_SET;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONNECTS_TO;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONTAINS;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.DATASET_BODY_ID;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.DATASET_BODY_IDs;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.FROM;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.LINKS_TO;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.LOCATION;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.MUTATION_UUID_ID;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.NAME;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.NEURON;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST_HP_THRESHOLD;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE_HP_THRESHOLD;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.RADIUS;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROI_INFO;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROW_NUMBER;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SEGMENT;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SIZE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKELETON;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKELETON_ID;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKEL_NODE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKEL_NODE_ID;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_LOCATION;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_RADIUS;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.STATUS;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SUPER_LEVEL_ROIS;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSES_TO;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE_SET;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TO;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TYPE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getConnectionSetsForSynapse;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getMetaNode;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegment;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapse;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToRoiInfoWithHP;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.removeSynapseFromRoiInfoWithHP;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.setConnectionSetRoiInfoAndGetWeightHP;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.BODY_ID;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CLUSTER_NAME;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONNECTION_SET;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONNECTS_TO;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONTAINS;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.DATASET_BODY_ID;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.DATASET_BODY_IDs;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.FROM;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.LINKS_TO;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.LOCATION;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.MUTATION_UUID_ID;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.NAME;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.NEURON;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.POST;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.POST_HP_THRESHOLD;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.PRE;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.PRE_HP_THRESHOLD;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.RADIUS;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.ROI_INFO;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.ROW_NUMBER;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SEGMENT;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SIZE;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKELETON;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKELETON_ID;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKEL_NODE;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SKEL_NODE_ID;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SOMA_LOCATION;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SOMA_RADIUS;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.STATUS;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SUPER_LEVEL_ROIS;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSES_TO;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_SET;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.TO;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.TYPE;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.WEIGHT;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getMetaNode;
 
 public class ProofreaderProcedures {
 
@@ -89,6 +97,9 @@ public class ProofreaderProcedures {
 
     @Context
     public Log log;
+
+    public static final Type ROI_INFO_TYPE = new TypeToken<Map<String, SynapseCounter>>() {
+    }.getType();
 
     @Procedure(value = "proofreader.updateProperties", mode = Mode.WRITE)
     @Description("proofreader.updateProperties : Update properties on a Neuron/Segment node.")
@@ -107,7 +118,7 @@ public class ProofreaderProcedures {
 
             Neuron neuron = gson.fromJson(neuronJsonObject, Neuron.class);
 
-            Node neuronNode = GraphTraversalTools.getSegment(dbService, neuron.getId(), datasetLabel);
+            Node neuronNode = getSegment(dbService, neuron.getId(), datasetLabel);
 
             if (neuronNode == null) {
                 log.warn("Neuron with id " + neuron.getId() + " not found in database. Aborting update.");
@@ -284,7 +295,7 @@ public class ProofreaderProcedures {
                     // get the synapse by location
                     List<Integer> synapseLocation = synapse.getLocation();
                     Point synapseLocationPoint = new Location((long) synapseLocation.get(0), (long) synapseLocation.get(1), (long) synapseLocation.get(2));
-                    Node synapseNode = GraphTraversalTools.getSynapse(dbService, synapseLocationPoint, datasetLabel);
+                    Node synapseNode = getSynapse(dbService, synapseLocationPoint, datasetLabel);
 
                     if (synapseNode == null) {
                         log.error("Synapse not found in database: " + synapse);
@@ -539,6 +550,216 @@ public class ProofreaderProcedures {
 
         log.info("proofreader.deleteSkeleton: exit");
 
+    }
+
+    @Procedure(value = "proofreader.addRoiToSynapse", mode = Mode.WRITE)
+    @Description("proofreader.addRoiToSynapse(x,y,z,roiName,dataset) : add an ROI to a synapse. ")
+    public void addRoiToSynapse(@Name("x") final Double x, @Name("y") final Double y, @Name("z") final Double z, @Name("roiName") final String roiName, @Name("dataset") final String dataset) {
+
+        log.info("proofreader.addRoiToSynapse: entry");
+
+        try {
+
+            if (x == null || y == null || z == null || roiName == null || dataset == null) {
+                log.error("proofreader.addRoiToSynapse: Missing input arguments.");
+                throw new RuntimeException("proofreader.addRoiToSynapse: Missing input arguments.");
+            }
+
+            Node synapse = getSynapse(dbService, x, y, z, dataset);
+
+            if (synapse == null) {
+                log.error("proofreader.addRoiToSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
+                throw new RuntimeException("proofreader.addRoiToSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
+            }
+
+            // add roi to synapse
+            synapse.setProperty(roiName, true);
+
+            String synapseType = (String) synapse.getProperty(TYPE);
+            if (synapseType == null) {
+                log.warn("proofreader.addRoiToSynapse: No type value found on synapse: " + synapse.getAllProperties());
+            }
+            Double synapseConfidence = (Double) synapse.getProperty(CONFIDENCE);
+            if (synapseConfidence == null) {
+                log.warn("proofreader.addRoiToSynapse: No confidence value found on synapse: " + synapse.getAllProperties());
+            }
+
+            // update connection set counts
+            // get the connection sets that it's part of
+            List<Node> connectionSetList = getConnectionSetsForSynapse(dbService, synapse);
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
+            // change roiInfo for each connection set
+            for (Node connectionSetNode : connectionSetList) {
+
+                String roiInfoString = (String) connectionSetNode.getProperty(ROI_INFO);
+                if (roiInfoString != null) {
+                    String roiInfoJsonString = addSynapseToRoiInfoWithHP(roiInfoString, roiName, synapseType, synapseConfidence, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
+                    connectionSetNode.setProperty(ROI_INFO, roiInfoJsonString);
+                } else {
+                    log.warn("proofreader.addRoiToSynapse: No roi info found on connection set: " + connectionSetNode.getAllProperties());
+                }
+            }
+
+            // update roi info and roi properties on neuron/segment
+            Node neuron = getSegmentThatContainsSynapse(synapse);
+            if (neuron != null) {
+                // add boolean property
+                neuron.setProperty(roiName, true);
+
+                // update roi info
+                String roiInfoString = (String) neuron.getProperty(ROI_INFO);
+                if (roiInfoString != null) {
+
+                    String roiInfoJsonString = addSynapseToRoiInfo(roiInfoString, roiName, synapseType);
+                    neuron.setProperty(ROI_INFO, roiInfoJsonString);
+
+                } else {
+                    log.warn("proofreader.addRoiToSynapse: No roi info found on neuron: " + neuron.getAllProperties());
+                }
+            } else {
+                log.warn("proofreader.addRoiToSynapse: Synapse not connected to neuron: " + synapse.getAllProperties());
+            }
+
+            // update meta node
+            Node metaNode = getMetaNode(dbService, dataset);
+            String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
+            if (metaRoiInfoString != null) {
+                String roiInfoJsonString = addSynapseToRoiInfo(metaRoiInfoString, roiName, synapseType);
+                metaNode.setProperty(ROI_INFO, roiInfoJsonString);
+            } else {
+                log.warn("proofreader.addRoiToSynapse: No roi info found on meta node for dataset: " + dataset);
+            }
+
+        } catch (Exception e) {
+            log.error("proofreader.addRoiToSynapse: " + e);
+            throw new RuntimeException("proofreader.addRoiToSynapse: " + e);
+        }
+
+        log.info("proofreader.addRoiToSynapse: exit");
+
+    }
+
+    @Procedure(value = "proofreader.removeRoiFromSynapse", mode = Mode.WRITE)
+    @Description("proofreader.removeRoiFromSynapse(x,y,z,roiName,dataset) : remove an ROI from a synapse. ")
+    public void removeRoiFromSynapse(@Name("x") final Double x, @Name("y") final Double y, @Name("z") final Double z, @Name("roiName") final String roiName, @Name("dataset") final String dataset) {
+
+        log.info("proofreader.removeRoiFromSynapse: entry");
+
+        try {
+
+            if (x == null || y == null || z == null || roiName == null || dataset == null) {
+                log.error("proofreader.removeRoiFromSynapse: Missing input arguments.");
+                throw new RuntimeException("proofreader.removeRoiFromSynapse: Missing input arguments.");
+            }
+
+            Node synapse = getSynapse(dbService, x, y, z, dataset);
+
+            if (synapse == null) {
+                log.error("proofreader.removeRoiFromSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
+                throw new RuntimeException("proofreader.removeRoiFromSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
+            }
+
+            // remove roi from synapse
+            synapse.removeProperty(roiName);
+
+            String synapseType = (String) synapse.getProperty(TYPE);
+            if (synapseType == null) {
+                log.warn("proofreader.removeRoiFromSynapse: No type value found on synapse: " + synapse.getAllProperties());
+            }
+            Double synapseConfidence = (Double) synapse.getProperty(CONFIDENCE);
+            if (synapseConfidence == null) {
+                log.warn("proofreader.removeRoiFromSynapse: No confidence value found on synapse: " + synapse.getAllProperties());
+            }
+
+            // update connection set counts
+            // get the connection sets that it's part of
+            List<Node> connectionSetList = getConnectionSetsForSynapse(dbService, synapse);
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
+            // change roiInfo for each connection set
+            for (Node connectionSetNode : connectionSetList) {
+
+                String roiInfoString = (String) connectionSetNode.getProperty(ROI_INFO);
+                if (roiInfoString != null) {
+                    String roiInfoJsonString = removeSynapseFromRoiInfoWithHP(roiInfoString, roiName, synapseType, synapseConfidence, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
+                    connectionSetNode.setProperty(ROI_INFO, roiInfoJsonString);
+                } else {
+                    log.warn("proofreader.removeRoiFromSynapse: No roi info found on connection set: " + connectionSetNode.getAllProperties());
+                }
+            }
+
+            // update roi info and roi properties on neuron/segment
+            Node neuron = getSegmentThatContainsSynapse(synapse);
+            if (neuron != null) {
+
+                // update roi info
+                String roiInfoString = (String) neuron.getProperty(ROI_INFO);
+                if (roiInfoString != null) {
+
+                    String roiInfoJsonString = removeSynapseFromRoiInfo(roiInfoString, roiName, synapseType);
+                    neuron.setProperty(ROI_INFO, roiInfoJsonString);
+
+                    // remove boolean property if no longer present on neuron
+                    if (!roiInfoContainsRoi(roiInfoJsonString, roiName)) {
+                        neuron.removeProperty(roiName);
+                    }
+
+                } else {
+                    log.warn("proofreader.removeRoiFromSynapse: No roi info found on neuron: " + neuron.getAllProperties());
+                }
+            } else {
+                log.warn("proofreader.removeRoiFromSynapse: Synapse not connected to neuron: " + synapse.getAllProperties());
+            }
+
+            // update meta node
+            Node metaNode = getMetaNode(dbService, dataset);
+            String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
+            if (metaRoiInfoString != null) {
+                String roiInfoJsonString = removeSynapseFromRoiInfo(metaRoiInfoString, roiName, synapseType);
+                metaNode.setProperty(ROI_INFO, roiInfoJsonString);
+            } else {
+                log.warn("proofreader.removeRoiFromSynapse: No roi info found on meta node for dataset: " + dataset);
+            }
+
+        } catch (Exception e) {
+            log.error("proofreader.removeRoiFromSynapse: " + e);
+            throw new RuntimeException("proofreader.removeRoiFromSynapse: " + e);
+        }
+
+        log.info("proofreader.removeRoiFromSynapse: exit");
+
+    }
+
+    private String addSynapseToRoiInfo(String roiInfoString, String roiName, String synapseType) {
+        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
+        RoiInfo roiInfo = new RoiInfo(roiInfoMap);
+
+        if (synapseType.equals(PRE)) {
+            roiInfo.incrementPreForRoi(roiName);
+        } else if (synapseType.equals(POST)) {
+            roiInfo.incrementPostForRoi(roiName);
+        }
+
+        return roiInfo.getAsJsonString();
+
+    }
+
+    private String removeSynapseFromRoiInfo(String roiInfoString, String roiName, String synapseType) {
+        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
+        RoiInfo roiInfo = new RoiInfo(roiInfoMap);
+
+        if (synapseType.equals(PRE)) {
+            roiInfo.decrementPreForRoi(roiName);
+        } else if (synapseType.equals(POST)) {
+            roiInfo.decrementPostForRoi(roiName);
+        }
+
+        return roiInfo.getAsJsonString();
+
+    }
+
+    private boolean roiInfoContainsRoi(String roiInfoString, String queriedRoi) {
+        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
+        return roiInfoMap.containsKey(queriedRoi);
     }
 
 //    private void mergeSynapseSets(Node synapseSet1, Node synapseSet2) {
@@ -868,7 +1089,7 @@ public class ProofreaderProcedures {
         long totalPost = 0;
         boolean setClusterName = true;
         try {
-            roiInfoObject = GraphTraversalTools.getRoiInfoAsMap((String) segment.getProperty(ROI_INFO));
+            roiInfoObject = getRoiInfoAsMap((String) segment.getProperty(ROI_INFO));
         } catch (Exception e) {
             log.warn("Error retrieving roiInfo from body id " + bodyId + " in " + datasetLabel + ". No cluster name added.");
             setClusterName = false;
@@ -909,6 +1130,11 @@ public class ProofreaderProcedures {
             }
         }
 
+    }
+
+    public static Map<String, SynapseCounter> getRoiInfoAsMap(String roiInfo) {
+        Gson gson = new Gson();
+        return gson.fromJson(roiInfo, ROI_INFO_TYPE);
     }
 
     private void acquireWriteLockForNode(Node node) {

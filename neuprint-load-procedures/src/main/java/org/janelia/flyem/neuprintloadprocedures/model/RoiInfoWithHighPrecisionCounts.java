@@ -21,6 +21,10 @@ public class RoiInfoWithHighPrecisionCounts {
     public RoiInfoWithHighPrecisionCounts() {
     }
 
+    public RoiInfoWithHighPrecisionCounts(Map<String, SynapseCounterWithHighPrecisionCounts> roiInfoMap) {
+        this.synapseCountsPerRoi.putAll(roiInfoMap);
+    }
+
     /**
      * @return a map of ROIs to {@link SynapseCounterWithHighPrecisionCounts} instances
      */
@@ -113,6 +117,63 @@ public class RoiInfoWithHighPrecisionCounts {
             addSynapseCountsForRoi(roi);
         }
         this.synapseCountsPerRoi.get(roi).incrementPostHP();
+    }
+
+    /**
+     * Decrements the presynaptic density count for the provided ROI by 1.
+     *
+     * @param roi ROI name
+     */
+    public void decrementPreForRoi(String roi) {
+        if (this.synapseCountsPerRoi.containsKey(roi)) {
+            SynapseCounterWithHighPrecisionCounts synapseCounter = this.synapseCountsPerRoi.get(roi);
+            synapseCounter.decrementPre();
+
+            if (synapseCounter.getPre() + synapseCounter.getPost() == 0) {
+                this.synapseCountsPerRoi.remove(roi);
+            }
+
+        }
+    }
+
+    /**
+     * Decrements the postsynaptic density count for the provided ROI by 1.
+     *
+     * @param roi ROI name
+     */
+    public void decrementPostForRoi(String roi) {
+        if (this.synapseCountsPerRoi.containsKey(roi)) {
+            SynapseCounterWithHighPrecisionCounts synapseCounter = this.synapseCountsPerRoi.get(roi);
+
+            synapseCounter.decrementPost();
+
+            if (synapseCounter.getPre() + synapseCounter.getPost() == 0) {
+                this.synapseCountsPerRoi.remove(roi);
+            }
+        }
+
+    }
+
+    /**
+     * Decrements the high-precision presynaptic density count for the provided ROI by 1.
+     *
+     * @param roi ROI name
+     */
+    public void decrementPreHPForRoi(String roi) {
+        if (this.synapseCountsPerRoi.containsKey(roi)) {
+            this.synapseCountsPerRoi.get(roi).decrementPreHP();
+        }
+    }
+
+    /**
+     * Decrements the high-precision postsynaptic density count for the provided ROI by 1.
+     *
+     * @param roi ROI name
+     */
+    public void decrementPostHPForRoi(String roi) {
+        if (this.synapseCountsPerRoi.containsKey(roi)) {
+            this.synapseCountsPerRoi.get(roi).decrementPostHP();
+        }
     }
 
     /**

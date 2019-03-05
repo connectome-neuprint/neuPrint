@@ -116,9 +116,10 @@ class TransactionDataHandler {
     }
 
     private void checkIfShouldUpdateMetaNodeSynapseCounts(Node node) {
-        if (node.hasLabel(Label.label(SYNAPSE)) && !transactionData.isDeleted(node)) {
-            shouldMetaNodeSynapseCountsBeUpdated = true;
-        }
+        // disabled for now; will manually update meta info
+//        if (node.hasLabel(Label.label(SYNAPSE)) && !transactionData.isDeleted(node)) {
+//            shouldMetaNodeSynapseCountsBeUpdated = true;
+//        }
     }
 
     boolean shouldTimeStampAndUpdateMetaNodeTimeStamp() {

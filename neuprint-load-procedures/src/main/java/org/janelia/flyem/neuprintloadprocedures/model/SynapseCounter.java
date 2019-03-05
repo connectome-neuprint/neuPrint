@@ -56,6 +56,24 @@ public class SynapseCounter {
         this.post++;
     }
 
+    /**
+     * Decrements the presynaptic density count.
+     */
+    public void decrementPre() {
+        if (this.pre > 0) {
+            this.pre--;
+        }
+    }
+
+    /**
+     * Decrements the postsynaptic density count.
+     */
+    public void decrementPost() {
+        if (this.post > 0) {
+            this.post--;
+        }
+    }
+
     @Override
     public String toString() {
         return "{pre: " + this.pre + ", post: " + this.post + "}";

@@ -4,7 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.model.SynapseCounter;
-import org.janelia.flyem.neuprintprocedures.Location;
+import org.janelia.flyem.neuprintloadprocedures.Location;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -28,18 +28,18 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.CONTAINS;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.NEURON;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.POST_SYN;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.PRE_SYN;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.ROI_INFO;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSES_TO;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.SYNAPSE_SET;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getLocationAs3dCartesianPoint;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getRoiInfoAsMap;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSegment;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSynapseLocationSet;
-import static org.janelia.flyem.neuprintprocedures.GraphTraversalTools.getSynapseSetForNeuron;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONTAINS;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.NEURON;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST_SYN;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE_SYN;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROI_INFO;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSES_TO;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE_SET;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getLocationAs3dCartesianPoint;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegment;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseLocationSet;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseSetForNeuron;
+import static org.janelia.flyem.neuprintprocedures.proofreading.ProofreaderProcedures.getRoiInfoAsMap;
 
 public class NeuPrintUserFunctions {
 
