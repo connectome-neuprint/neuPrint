@@ -355,6 +355,10 @@ public class LoadingProcedures {
 
         Node segment = getSegment(dbService, bodyId, datasetLabel);
 
+        if (segment == null) {
+            segment = createSegment(dbService, bodyId, datasetLabel);
+        }
+
         segment.setProperty(PRE, preCount);
         segment.setProperty(POST, postCount);
         segment.setProperty(ROI_INFO, roiInfo);
