@@ -96,20 +96,6 @@ public class LoadingProcedures {
 
     }
 
-    public static void addPostHPToConnectsTo(Node connectionSet, int postHP) {
-        Node preSynapticNode = connectionSet.getSingleRelationship(RelationshipType.withName(FROM), Direction.OUTGOING).getEndNode();
-        long postSynapticNodeId = connectionSet.getSingleRelationship(RelationshipType.withName(TO), Direction.OUTGOING).getEndNodeId();
-
-        Iterable<Relationship> connectsToRelationships = preSynapticNode.getRelationships(RelationshipType.withName(CONNECTS_TO), Direction.OUTGOING);
-
-        for (Relationship connectsToRel : connectsToRelationships) {
-            long endNodeIdForRel = connectsToRel.getEndNodeId();
-            if (postSynapticNodeId == endNodeIdForRel) {
-                connectsToRel.setProperty(WEIGHT_HP, postHP);
-            }
-        }
-    }
-
     public static int setConnectionSetRoiInfoAndGetWeightHP(Set<Node> synapsesForConnectionSet, Node connectionSet, Double preHPThreshold, Double postHPThreshold) {
 
         Object[] roiInfoAndPostHP = getRoiInfoForConnectionSet(synapsesForConnectionSet, preHPThreshold, postHPThreshold);
