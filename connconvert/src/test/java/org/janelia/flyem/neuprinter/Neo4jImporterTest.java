@@ -76,20 +76,22 @@ public class Neo4jImporterTest {
 
         Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
 
-        neo4jImporter.prepDatabase("test");
-        neo4jImporter.addSegments("test", neuronList);
-        neo4jImporter.addConnectsTo("test", bodyList);
-        neo4jImporter.addSynapsesWithRois("test", bodyList);
-        neo4jImporter.addSynapsesTo("test", preToPost);
-        neo4jImporter.addSegmentRois("test", bodyList);
-        neo4jImporter.addConnectionSets("test", bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F);
-        neo4jImporter.addSynapseSets("test", bodyList);
-        neo4jImporter.addSkeletonNodes("test", skeletonList);
-        neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F, .20F, .80F);
-        neo4jImporter.addAutoNamesAndNeuronLabels("test", 5);
-        neo4jImporter.addDvidUuid("test", "1234");
-        neo4jImporter.addDvidServer("test", "test1:23");
-        neo4jImporter.addClusterNames("test", .1F);
+        String dataset = "test";
+
+        neo4jImporter.prepDatabase(dataset);
+        neo4jImporter.addSegments(dataset, neuronList);
+        neo4jImporter.addConnectsTo(dataset, bodyList);
+        neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+        neo4jImporter.addSynapsesTo(dataset, preToPost);
+        neo4jImporter.addSegmentRois(dataset, bodyList);
+        neo4jImporter.addConnectionSets(dataset, bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F);
+        neo4jImporter.addSynapseSets(dataset, bodyList);
+        neo4jImporter.addSkeletonNodes(dataset, skeletonList);
+        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F);
+        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 5);
+        neo4jImporter.addDvidUuid(dataset, "1234");
+        neo4jImporter.addDvidServer(dataset, "test1:23");
+        neo4jImporter.addClusterNames(dataset, .1F);
 
     }
 
@@ -504,7 +506,7 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        float dataModelVersion = session.run("MATCH (n:Meta)-[:Is]->(d:DataModel) RETURN d.dataModelVersion").single().get(0).asFloat();
+        float dataModelVersion = session.run("MATCH (n:Meta:test)-[:Is]->(d:DataModel) RETURN d.dataModelVersion").single().get(0).asFloat();
 
         Assert.assertEquals(1.0F, dataModelVersion, .00001);
 
@@ -515,8 +517,8 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        float preHPThreshold = session.run("MATCH (n:Meta) RETURN n.preHPThreshold").single().get(0).asFloat();
-        float postHPThreshold = session.run("MATCH (n:Meta) RETURN n.postHPThreshold").single().get(0).asFloat();
+        float preHPThreshold = session.run("MATCH (n:Meta:test) RETURN n.preHPThreshold").single().get(0).asFloat();
+        float postHPThreshold = session.run("MATCH (n:Meta:test) RETURN n.postHPThreshold").single().get(0).asFloat();
 
         // test that pre and post HP thresholds are on Meta node
         Assert.assertEquals(.2F, preHPThreshold, .0001);
@@ -573,7 +575,7 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        int belowThresholdAutoNameCount = session.run("MATCH (n:Segment) WHERE (n.pre>=1 OR n.post>=5) AND NOT exists(n.autoName) RETURN count(n)").single().get(0).asInt();
+        int belowThresholdAutoNameCount = session.run("MATCH (n:Segment:test) WHERE (n.pre>=1 OR n.post>=5) AND NOT exists(n.autoName) RETURN count(n)").single().get(0).asInt();
 
         Assert.assertEquals(0, belowThresholdAutoNameCount);
 
@@ -584,7 +586,7 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        int belowThresholdNeuronCount = session.run("MATCH (n:Segment) WHERE (n.pre>=1 OR n.post>=5) AND NOT n:Neuron RETURN count(n)").single().get(0).asInt();
+        int belowThresholdNeuronCount = session.run("MATCH (n:Segment:test) WHERE (n.pre>=1 OR n.post>=5) AND NOT n:Neuron RETURN count(n)").single().get(0).asInt();
 
         Assert.assertEquals(0, belowThresholdNeuronCount);
 

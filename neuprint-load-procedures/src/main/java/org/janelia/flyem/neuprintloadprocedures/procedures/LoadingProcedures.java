@@ -275,9 +275,6 @@ public class LoadingProcedures {
     public void addConnectsTo(@Name("preBodyId") final Long preBodyId,
                               @Name("postBodyId") final Long postBodyId,
                               @Name("weight") final Long weight,
-                              @Name("preBodyPreCount") final Long preBodyPreCount,
-                              @Name("preBodyPostCount") final Long preBodyPostCount,
-                              @Name("preBodyRoiInfo") final String preBodyRoiInfo,
                               @Name("datasetLabel") final String datasetLabel,
                               @Name("timeStamp") final LocalDateTime timeStamp) {
 
@@ -292,15 +289,6 @@ public class LoadingProcedures {
         } else if (weight == null) {
             log.error("loader.addConnectsTo: No weight provided.");
             throw new RuntimeException("loader.addConnectsTo: No weight provided.");
-        } else if (preBodyPreCount == null) {
-            log.error("loader.addConnectsTo: No pre count for pre body provided.");
-            throw new RuntimeException("loader.addConnectsTo: No pre count for pre body provided.");
-        } else if (preBodyPostCount == null) {
-            log.error("loader.addConnectsTo: No post count for pre body provided.");
-            throw new RuntimeException("loader.addConnectsTo: No post count for pre body provided.");
-        } else if (preBodyRoiInfo == null) {
-            log.error("loader.addConnectsTo: No roiInfo for pre body provided.");
-            throw new RuntimeException("loader.addConnectsTo: No roiInfo for pre body provided.");
         } else if (datasetLabel == null) {
             log.error("loader.addConnectsTo: No dataset name provided.");
             throw new RuntimeException("loader.addConnectsTo: No dataset name provided.");
@@ -324,14 +312,55 @@ public class LoadingProcedures {
         Relationship connectsToRel = preBody.createRelationshipTo(postBody, RelationshipType.withName(CONNECTS_TO));
         connectsToRel.setProperty(WEIGHT, weight);
 
-        preBody.setProperty(PRE, preBodyPreCount);
-        preBody.setProperty(POST, preBodyPostCount);
+
         preBody.setProperty(TIME_STAMP, timeStamp);
-        preBody.setProperty(ROI_INFO, preBodyRoiInfo);
 
         postBody.setProperty(TIME_STAMP, timeStamp);
 
+
         log.info("loader.addConnectsTo: exit");
+
+    }
+
+    @Procedure(value = "loader.addSynapseCountsAndRoiInfo", mode = Mode.WRITE)
+    @Description("loader.addSynapseCountsAndRoiInfo : Add pre, post, and roiInfo properties to Segment.")
+    public void addSynapseCountsAndRoiInfo(@Name("bodyId") final Long bodyId,
+                              @Name("preCount") final Long preCount,
+                              @Name("postCount") final Long postCount,
+                              @Name("roiInfo") final String roiInfo,
+                              @Name("datasetLabel") final String datasetLabel,
+                              @Name("timeStamp") final LocalDateTime timeStamp) {
+
+        log.info("loader.addSynapseCountsAndRoiInfo: entry");
+
+        if (bodyId == null) {
+            log.error("loader.addSynapseCountsAndRoiInfo: No body ID provided.");
+            throw new RuntimeException("loader.addSynapseCountsAndRoiInfo: No body ID provided.");
+        } else if (preCount == null) {
+            log.error("loader.addSynapseCountsAndRoiInfo: No pre count for body provided.");
+            throw new RuntimeException("loader.addSynapseCountsAndRoiInfo: No pre count for body provided.");
+        } else if (postCount == null) {
+            log.error("loader.addSynapseCountsAndRoiInfo: No post count for body provided.");
+            throw new RuntimeException("loader.addSynapseCountsAndRoiInfo: No post count for body provided.");
+        } else if (roiInfo == null) {
+            log.error("loader.addSynapseCountsAndRoiInfo: No roiInfo for body provided.");
+            throw new RuntimeException("loader.addSynapseCountsAndRoiInfo: No roiInfo for body provided.");
+        } else if (datasetLabel == null) {
+            log.error("loader.addSynapseCountsAndRoiInfo: No dataset name provided.");
+            throw new RuntimeException("loader.addSynapseCountsAndRoiInfo: No dataset name provided.");
+        } else if (timeStamp == null) {
+            log.error("loader.addSynapseCountsAndRoiInfo: No time stamp provided.");
+            throw new RuntimeException("loader.addSynapseCountsAndRoiInfo: No time stamp provided.");
+        }
+
+        Node segment = getSegment(dbService, bodyId, datasetLabel);
+
+        segment.setProperty(PRE, preCount);
+        segment.setProperty(POST, postCount);
+        segment.setProperty(ROI_INFO, roiInfo);
+        segment.setProperty(TIME_STAMP, timeStamp);
+
+        log.info("loader.addSynapseCountsAndRoiInfo: exit");
 
     }
 

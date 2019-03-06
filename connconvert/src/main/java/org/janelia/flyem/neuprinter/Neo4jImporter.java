@@ -276,9 +276,15 @@ public class Neo4jImporter implements AutoCloseable {
                 "$preBodyId, " +
                 "$postBodyId, " +
                 "$weight, " +
-                "$preBodyPreCount, " +
-                "$preBodyPostCount, " +
-                "$preBodyRoiInfo, " +
+                "$dataset, " +
+                "$timeStamp" +
+                ")";
+
+        final String addCountsAndRoiInfoCall = "CALL loader.addSynapseCountsAndRoiInfo(" +
+                "$bodyId, " +
+                "$preCount, " +
+                "$postCount, " +
+                "$roiInfo, " +
                 "$dataset, " +
                 "$timeStamp" +
                 ")";
@@ -292,19 +298,27 @@ public class Neo4jImporter implements AutoCloseable {
                 for (final Long postsynapticBodyId : body.getConnectsTo().keySet()) {
                     batch.addStatement(
                             new Statement(connectsToCall,
-
                                     parameters(
                                             "preBodyId", body.getBodyId(),
                                             "postBodyId", postsynapticBodyId,
                                             "weight", body.getConnectsTo().get(postsynapticBodyId).getPost(),
-                                            "preBodyPreCount", body.getNumberOfPreSynapses(),
-                                            "preBodyPostCount", body.getNumberOfPostSynapses(),
-                                            "preBodyRoiInfo", body.getRoiInfo().getAsJsonString(),
-                                            "dataset", "test",
-                                            "timeStamp", timeStamp
+                                            "timeStamp", timeStamp,
+                                            "dataset", dataset
                                     ))
                     );
                 }
+
+                batch.addStatement((
+                        new Statement(addCountsAndRoiInfoCall,
+                                parameters(
+                                        "bodyId", body.getBodyId(),
+                                        "preCount", body.getNumberOfPreSynapses(),
+                                        "postCount", body.getNumberOfPostSynapses(),
+                                        "roiInfo", body.getRoiInfo().getAsJsonString(),
+                                        "timeStamp", timeStamp,
+                                        "dataset", dataset
+                                ))
+                        ));
             }
             batch.writeTransaction();
         }

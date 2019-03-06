@@ -212,18 +212,28 @@ public class LoadingProceduresTest {
                 "$preBodyId, " +
                 "$postBodyId, " +
                 "$weight, " +
-                "$preBodyPreCount, " +
-                "$preBodyPostCount, " +
-                "$preBodyRoiInfo, " +
                 "$dataset, " +
                 "$timeStamp" +
                 ")", parameters(
                 "preBodyId", 3,
                 "postBodyId", 2,
                 "weight", 5,
-                "preBodyPreCount", 3,
-                "preBodyPostCount", 5,
-                "preBodyRoiInfo", "{\"roiA\":{\"pre\":1,\"post\":2}}",
+                "dataset", "test",
+                "timeStamp", LocalDateTime.now()
+        )));
+
+        session.writeTransaction(tx -> tx.run("CALL loader.addSynapseCountsAndRoiInfo(" +
+                "$bodyId, " +
+                "$preCount, " +
+                "$postCount, " +
+                "$roiInfo, " +
+                "$dataset, " +
+                "$timeStamp" +
+                ")", parameters(
+                "bodyId", 3,
+                "preCount", 2,
+                "postCount", 5,
+                "roiInfo", "{\"roiA\":{\"pre\":1,\"post\":2}}",
                 "dataset", "test",
                 "timeStamp", LocalDateTime.now()
         )));

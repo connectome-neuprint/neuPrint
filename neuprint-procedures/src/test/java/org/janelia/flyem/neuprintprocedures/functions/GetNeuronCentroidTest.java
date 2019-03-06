@@ -3,6 +3,7 @@ package org.janelia.flyem.neuprintprocedures.functions;
 import org.janelia.flyem.neuprinter.Neo4jImporter;
 import org.janelia.flyem.neuprinter.SynapseMapper;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
+import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -26,7 +27,8 @@ public class GetNeuronCentroidTest {
 
     static {
         neo4j = new Neo4jRule()
-                .withFunction(NeuPrintUserFunctions.class);
+                .withFunction(NeuPrintUserFunctions.class)
+                .withProcedure(LoadingProcedures.class);
     }
 
     @BeforeClass
