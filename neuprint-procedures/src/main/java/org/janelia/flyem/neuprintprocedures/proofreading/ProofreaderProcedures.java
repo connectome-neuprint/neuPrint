@@ -578,60 +578,67 @@ public class ProofreaderProcedures {
                 throw new RuntimeException("proofreader.addRoiToSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
             }
 
-            // add roi to synapse
-            synapse.setProperty(roiName, true);
+            boolean roiAlreadyPresent = synapse.hasProperty(roiName);
 
-            String synapseType = (String) synapse.getProperty(TYPE);
-            if (synapseType == null) {
-                log.warn("proofreader.addRoiToSynapse: No type value found on synapse: " + synapse.getAllProperties());
-            }
-            Double synapseConfidence = (Double) synapse.getProperty(CONFIDENCE);
-            if (synapseConfidence == null) {
-                log.warn("proofreader.addRoiToSynapse: No confidence value found on synapse: " + synapse.getAllProperties());
-            }
+            if (!roiAlreadyPresent) {
 
-            // update connection set counts
-            // get the connection sets that it's part of
-            List<Node> connectionSetList = getConnectionSetsForSynapse(dbService, synapse);
-            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
-            // change roiInfo for each connection set
-            for (Node connectionSetNode : connectionSetList) {
+                // add roi to synapse
+                synapse.setProperty(roiName, true);
 
-                String roiInfoString = (String) connectionSetNode.getProperty(ROI_INFO);
-                if (roiInfoString != null) {
-                    String roiInfoJsonString = addSynapseToRoiInfoWithHP(roiInfoString, roiName, synapseType, synapseConfidence, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
-                    connectionSetNode.setProperty(ROI_INFO, roiInfoJsonString);
-                } else {
-                    log.warn("proofreader.addRoiToSynapse: No roi info found on connection set: " + connectionSetNode.getAllProperties());
+                String synapseType = (String) synapse.getProperty(TYPE);
+                if (synapseType == null) {
+                    log.warn("proofreader.addRoiToSynapse: No type value found on synapse: " + synapse.getAllProperties());
                 }
-            }
+                Double synapseConfidence = (Double) synapse.getProperty(CONFIDENCE);
+                if (synapseConfidence == null) {
+                    log.warn("proofreader.addRoiToSynapse: No confidence value found on synapse: " + synapse.getAllProperties());
+                }
 
-            // update roi info and roi properties on neuron/segment
-            if (neuron != null) {
-                // add boolean property
-                neuron.setProperty(roiName, true);
+                // update connection set counts
+                // get the connection sets that it's part of
+                List<Node> connectionSetList = getConnectionSetsForSynapse(dbService, synapse);
+                Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
+                // change roiInfo for each connection set
+                for (Node connectionSetNode : connectionSetList) {
 
-                // update roi info
-                String roiInfoString = (String) neuron.getProperty(ROI_INFO);
-                if (roiInfoString != null) {
+                    String roiInfoString = (String) connectionSetNode.getProperty(ROI_INFO);
+                    if (roiInfoString != null) {
+                        String roiInfoJsonString = addSynapseToRoiInfoWithHP(roiInfoString, roiName, synapseType, synapseConfidence, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
+                        connectionSetNode.setProperty(ROI_INFO, roiInfoJsonString);
+                    } else {
+                        log.warn("proofreader.addRoiToSynapse: No roi info found on connection set: " + connectionSetNode.getAllProperties());
+                    }
+                }
 
-                    String roiInfoJsonString = addSynapseToRoiInfo(roiInfoString, roiName, synapseType);
-                    neuron.setProperty(ROI_INFO, roiInfoJsonString);
+                // update roi info and roi properties on neuron/segment
+                if (neuron != null) {
+                    // add boolean property
+                    neuron.setProperty(roiName, true);
 
+                    // update roi info
+                    String roiInfoString = (String) neuron.getProperty(ROI_INFO);
+                    if (roiInfoString != null) {
+
+                        String roiInfoJsonString = addSynapseToRoiInfo(roiInfoString, roiName, synapseType);
+                        neuron.setProperty(ROI_INFO, roiInfoJsonString);
+
+                    } else {
+                        log.warn("proofreader.addRoiToSynapse: No roi info found on neuron: " + neuron.getAllProperties());
+                    }
                 } else {
-                    log.warn("proofreader.addRoiToSynapse: No roi info found on neuron: " + neuron.getAllProperties());
+                    log.warn("proofreader.addRoiToSynapse: Synapse not connected to neuron: " + synapse.getAllProperties());
+                }
+
+                // update meta node
+                String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
+                if (metaRoiInfoString != null) {
+                    String roiInfoJsonString = addSynapseToRoiInfo(metaRoiInfoString, roiName, synapseType);
+                    metaNode.setProperty(ROI_INFO, roiInfoJsonString);
+                } else {
+                    log.warn("proofreader.addRoiToSynapse: No roi info found on meta node for dataset: " + dataset);
                 }
             } else {
-                log.warn("proofreader.addRoiToSynapse: Synapse not connected to neuron: " + synapse.getAllProperties());
-            }
-
-            // update meta node
-            String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
-            if (metaRoiInfoString != null) {
-                String roiInfoJsonString = addSynapseToRoiInfo(metaRoiInfoString, roiName, synapseType);
-                metaNode.setProperty(ROI_INFO, roiInfoJsonString);
-            } else {
-                log.warn("proofreader.addRoiToSynapse: No roi info found on meta node for dataset: " + dataset);
+                log.warn("proofreader.addRoiToSynapse: roi already present on synapse. Ignoring update request: " + synapse.getAllProperties());
             }
 
         } catch (Exception e) {
@@ -668,63 +675,70 @@ public class ProofreaderProcedures {
                 throw new RuntimeException("proofreader.removeRoiFromSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
             }
 
-            // remove roi from synapse
-            synapse.removeProperty(roiName);
+            boolean roiPresent = synapse.hasProperty(roiName);
 
-            String synapseType = (String) synapse.getProperty(TYPE);
-            if (synapseType == null) {
-                log.warn("proofreader.removeRoiFromSynapse: No type value found on synapse: " + synapse.getAllProperties());
-            }
-            Double synapseConfidence = (Double) synapse.getProperty(CONFIDENCE);
-            if (synapseConfidence == null) {
-                log.warn("proofreader.removeRoiFromSynapse: No confidence value found on synapse: " + synapse.getAllProperties());
-            }
+            if (roiPresent) {
 
-            // update connection set counts
-            // get the connection sets that it's part of
-            List<Node> connectionSetList = getConnectionSetsForSynapse(dbService, synapse);
-            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
-            // change roiInfo for each connection set
-            for (Node connectionSetNode : connectionSetList) {
+                // remove roi from synapse
+                synapse.removeProperty(roiName);
 
-                String roiInfoString = (String) connectionSetNode.getProperty(ROI_INFO);
-                if (roiInfoString != null) {
-                    String roiInfoJsonString = removeSynapseFromRoiInfoWithHP(roiInfoString, roiName, synapseType, synapseConfidence, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
-                    connectionSetNode.setProperty(ROI_INFO, roiInfoJsonString);
-                } else {
-                    log.warn("proofreader.removeRoiFromSynapse: No roi info found on connection set: " + connectionSetNode.getAllProperties());
+                String synapseType = (String) synapse.getProperty(TYPE);
+                if (synapseType == null) {
+                    log.warn("proofreader.removeRoiFromSynapse: No type value found on synapse: " + synapse.getAllProperties());
                 }
-            }
+                Double synapseConfidence = (Double) synapse.getProperty(CONFIDENCE);
+                if (synapseConfidence == null) {
+                    log.warn("proofreader.removeRoiFromSynapse: No confidence value found on synapse: " + synapse.getAllProperties());
+                }
 
-            // update roi info and roi properties on neuron/segment
-            if (neuron != null) {
+                // update connection set counts
+                // get the connection sets that it's part of
+                List<Node> connectionSetList = getConnectionSetsForSynapse(dbService, synapse);
+                Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
+                // change roiInfo for each connection set
+                for (Node connectionSetNode : connectionSetList) {
 
-                // update roi info
-                String roiInfoString = (String) neuron.getProperty(ROI_INFO);
-                if (roiInfoString != null) {
-
-                    String roiInfoJsonString = removeSynapseFromRoiInfo(roiInfoString, roiName, synapseType);
-                    neuron.setProperty(ROI_INFO, roiInfoJsonString);
-
-                    // remove boolean property if no longer present on neuron
-                    if (!roiInfoContainsRoi(roiInfoJsonString, roiName)) {
-                        neuron.removeProperty(roiName);
+                    String roiInfoString = (String) connectionSetNode.getProperty(ROI_INFO);
+                    if (roiInfoString != null) {
+                        String roiInfoJsonString = removeSynapseFromRoiInfoWithHP(roiInfoString, roiName, synapseType, synapseConfidence, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
+                        connectionSetNode.setProperty(ROI_INFO, roiInfoJsonString);
+                    } else {
+                        log.warn("proofreader.removeRoiFromSynapse: No roi info found on connection set: " + connectionSetNode.getAllProperties());
                     }
+                }
 
+                // update roi info and roi properties on neuron/segment
+                if (neuron != null) {
+
+                    // update roi info
+                    String roiInfoString = (String) neuron.getProperty(ROI_INFO);
+                    if (roiInfoString != null) {
+
+                        String roiInfoJsonString = removeSynapseFromRoiInfo(roiInfoString, roiName, synapseType);
+                        neuron.setProperty(ROI_INFO, roiInfoJsonString);
+
+                        // remove boolean property if no longer present on neuron
+                        if (!roiInfoContainsRoi(roiInfoJsonString, roiName)) {
+                            neuron.removeProperty(roiName);
+                        }
+
+                    } else {
+                        log.warn("proofreader.removeRoiFromSynapse: No roi info found on neuron: " + neuron.getAllProperties());
+                    }
                 } else {
-                    log.warn("proofreader.removeRoiFromSynapse: No roi info found on neuron: " + neuron.getAllProperties());
+                    log.warn("proofreader.removeRoiFromSynapse: Synapse not connected to neuron: " + synapse.getAllProperties());
+                }
+
+                // update meta node
+                String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
+                if (metaRoiInfoString != null) {
+                    String roiInfoJsonString = removeSynapseFromRoiInfo(metaRoiInfoString, roiName, synapseType);
+                    metaNode.setProperty(ROI_INFO, roiInfoJsonString);
+                } else {
+                    log.warn("proofreader.removeRoiFromSynapse: No roi info found on meta node for dataset: " + dataset);
                 }
             } else {
-                log.warn("proofreader.removeRoiFromSynapse: Synapse not connected to neuron: " + synapse.getAllProperties());
-            }
-
-            // update meta node
-            String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
-            if (metaRoiInfoString != null) {
-                String roiInfoJsonString = removeSynapseFromRoiInfo(metaRoiInfoString, roiName, synapseType);
-                metaNode.setProperty(ROI_INFO, roiInfoJsonString);
-            } else {
-                log.warn("proofreader.removeRoiFromSynapse: No roi info found on meta node for dataset: " + dataset);
+                log.warn("proofreader.removeRoiFromSynapse: roi not present on synapse. Ignoring update request: " + synapse.getAllProperties());
             }
 
         } catch (Exception e) {

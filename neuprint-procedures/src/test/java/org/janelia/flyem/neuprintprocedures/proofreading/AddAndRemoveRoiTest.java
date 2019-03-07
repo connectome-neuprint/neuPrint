@@ -51,7 +51,7 @@ public class AddAndRemoveRoiTest {
     }
 
     @BeforeClass
-    public static void before() throws InterruptedException {
+    public static void before() {
 
         File swcFile1 = new File("src/test/resources/8426959.swc");
         File swcFile2 = new File("src/test/resources/831744.swc");
@@ -130,6 +130,22 @@ public class AddAndRemoveRoiTest {
         Assert.assertEquals(1, roiInfoMap.get("roiX").getPre());
         Assert.assertEquals(0, roiInfoMap.get("roiX").getPost());
 
+
+        // should not be able to add twice
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addRoiToSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4287, "y", 2277, "z", 1542, "roiName", "roiX", "dataset", "test")));
+
+        List<Record> csRecordList2 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Synapse`)<-[:Contains]-(cs:ConnectionSet) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN cs.roiInfo", parameters("x", 4287, "y", 2277, "z", 1542))).list();
+
+        for (Record record : csRecordList2) {
+            String roiInfo2 = record.get(0).asString();
+            Map<String, SynapseCounterWithHighPrecisionCounts> roiInfoMap2 = gson.fromJson(roiInfo2, ROI_INFO_TYPE);
+            Assert.assertEquals(1, roiInfoMap2.get("roiX").getPre());
+            Assert.assertEquals(0, roiInfoMap2.get("roiX").getPreHP());
+            Assert.assertEquals(0, roiInfoMap2.get("roiX").getPost());
+            Assert.assertEquals(0, roiInfoMap2.get("roiX").getPostHP());
+        }
+
     }
 
     @Test
@@ -171,6 +187,13 @@ public class AddAndRemoveRoiTest {
         Map<String, SynapseCounter> roiInfoMap = gson.fromJson(metaRoiInfo, ROI_INFO_TYPE);
         Assert.assertEquals(3, roiInfoMap.get("roiA").getPre());
         Assert.assertEquals(6, roiInfoMap.get("roiA").getPost());
+
+        // should not be able to delete twice
+        session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4287, "y", 2277, "z", 1542, "roiName", "roiA", "dataset", "test")));
+        String metaRoiInfo2 = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test) RETURN n.roiInfo").single().get(0).asString());
+        Map<String, SynapseCounter> roiInfoMap2 = gson.fromJson(metaRoiInfo2, ROI_INFO_TYPE);
+        Assert.assertEquals(3, roiInfoMap2.get("roiA").getPre());
+        Assert.assertEquals(6, roiInfoMap2.get("roiA").getPost());
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4287, "y", 2277, "z", 1502, "roiName", "roiA", "dataset", "test")));
         session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4222, "y", 2402, "z", 1688, "roiName", "roiA", "dataset", "test")));
