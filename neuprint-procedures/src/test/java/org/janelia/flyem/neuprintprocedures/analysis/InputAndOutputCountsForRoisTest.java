@@ -59,7 +59,7 @@ public class InputAndOutputCountsForRoisTest {
             neo4jImporter.addSynapsesTo(dataset, preToPost);
             neo4jImporter.addSegmentRois(dataset, bodyList);
             neo4jImporter.addSynapseSets(dataset, bodyList);
-            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F);
+            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F, true);
             neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
 
             String jsonData = session.readTransaction(tx -> tx.run("CALL analysis.getInputAndOutputCountsForRois(8426959,\"test\") YIELD value AS dataJson RETURN dataJson").single().get(0).asString());

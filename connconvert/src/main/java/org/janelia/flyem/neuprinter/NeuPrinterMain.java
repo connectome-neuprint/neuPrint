@@ -137,6 +137,13 @@ public class NeuPrinterMain {
         float postHPThreshold;
 
         @Parameter(
+                names = "--addConnectionSetRoiInfoAndWeightHP",
+                description = "Indicates that an roiInfo property should be added to each ConnectionSet and that the weightHP property should be added to all ConnectionSets (omit to skip).",
+                arity = 0
+        )
+        boolean addConnectionSetRoiInfoAndWeightHP;
+
+        @Parameter(
                 names = "--synapseJson",
                 description = "JSON file containing body synapse data to import")
         String synapseJson;
@@ -150,7 +157,7 @@ public class NeuPrinterMain {
                 names = "--editMode",
                 description = "Indicates that neuprint is being used in edit mode to alter data in an existing database (omit to skip).",
                 arity = 0)
-        public boolean editMode;
+        boolean editMode;
 
         @Parameter(
                 names = "--addMetaNodeOnly",
@@ -193,25 +200,25 @@ public class NeuPrinterMain {
                 names = "--getSuperLevelRoisFromSynapses",
                 description = "Indicates that super level rois should be computed from synapses JSON and added to the Meta node.",
                 arity = 0)
-        public boolean getSuperLevelRoisFromSynapses;
+        boolean getSuperLevelRoisFromSynapses;
 
         @Parameter(
                 names = "--uuid",
                 description = "DVID UUID to be added to Meta node."
         )
-        public String dvidUuid;
+        String dvidUuid;
 
         @Parameter(
                 names = "--server",
                 description = "DVID server to be added to Meta node."
         )
-        public String dvidServer;
+        String dvidServer;
 
         @Parameter(
                 names = "--addClusterNames",
                 description = "Indicates that cluster names should be added to Neuron nodes.",
                 arity = 0)
-        public boolean addClusterNames;
+        boolean addClusterNames;
 
         @Parameter(
                 names = "--help",
@@ -453,7 +460,7 @@ public class NeuPrinterMain {
 
                     if (parameters.startFromSynapsesLoad || parameters.addConnectionSets || parameters.addNeuronsAndSynapses) {
                         timer.start();
-                        neo4jImporter.addConnectionSets(dataset, bodyList, synapseLocationToBodyIdMap, preHPThreshold, postHPThreshold);
+                        neo4jImporter.addConnectionSets(dataset, bodyList, synapseLocationToBodyIdMap, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
                         LOG.info("Loading ConnectionSets took: " + timer.stop());
                         timer.reset();
 
@@ -481,7 +488,7 @@ public class NeuPrinterMain {
                     timer.reset();
 
                     timer.start();
-                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold);
+                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
                     LOG.info("Adding :Meta node took: " + timer.stop());
                     timer.reset();
 
@@ -534,7 +541,7 @@ public class NeuPrinterMain {
             if (parameters.addMetaNodeOnly) {
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
                     neo4jImporter.prepDatabase(dataset);
-                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold);
+                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
                 }
             }
 

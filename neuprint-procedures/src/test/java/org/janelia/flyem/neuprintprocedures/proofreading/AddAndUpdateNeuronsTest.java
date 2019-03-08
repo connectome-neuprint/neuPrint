@@ -84,10 +84,10 @@ public class AddAndUpdateNeuronsTest {
 
         neo4jImporter.addSynapsesTo(dataset, preToPost);
         neo4jImporter.addSegmentRois(dataset, bodyList);
-        neo4jImporter.addConnectionSets(dataset, bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F);
+        neo4jImporter.addConnectionSets(dataset, bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F, true);
         neo4jImporter.addSynapseSets(dataset, bodyList);
         neo4jImporter.addSkeletonNodes(dataset, skeletonList);
-        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F);
+        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F, true);
         neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 1);
 
         String updateJson =

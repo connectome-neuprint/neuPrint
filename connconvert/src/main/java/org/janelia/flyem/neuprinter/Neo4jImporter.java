@@ -576,7 +576,7 @@ public class Neo4jImporter implements AutoCloseable {
      * @param bodyList                   list of BodyWithSynapse objects
      * @param synapseLocationToBodyIdMap map of synapse locations to body ids
      */
-    public void addConnectionSets(final String dataset, final List<BodyWithSynapses> bodyList, final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap, final float preHPThreshold, final float postHPThreshold) {
+    public void addConnectionSets(final String dataset, final List<BodyWithSynapses> bodyList, final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap, final float preHPThreshold, final float postHPThreshold, boolean addConnectionSetRoiInfoAndWeightHP) {
 
         LOG.info("addConnectionSets: entry");
 
@@ -635,13 +635,15 @@ public class Neo4jImporter implements AutoCloseable {
                                         "datasetBodyIds", dataset + ":" + connectionSetKey)));
                     }
 
-                    // TODO: I assume this is faster and easier to implement using a stored procedure but requires the user to add the loading procedures jar file to neo4j/plugins. Look into efficient ways to implement this using raw cypher queries.
-                    batch.addStatement(new Statement("CALL loader.setConnectionSetRoiInfoAndWeightHP($preBodyId, $postBodyId, $dataset, $preHPThreshold, $postHPThreshold)",
-                            parameters("preBodyId", connectionSet.getPresynapticBodyId(),
-                                    "postBodyId", connectionSet.getPostsynapticBodyId(),
-                                    "dataset", dataset,
-                                    "preHPThreshold", preHPThreshold,
-                                    "postHPThreshold", postHPThreshold)));
+                    if (addConnectionSetRoiInfoAndWeightHP) {
+                        // TODO: I assume this is faster and easier to implement using a stored procedure but requires the user to add the loading procedures jar file to neo4j/plugins. Look into efficient ways to implement this using raw cypher queries.
+                        batch.addStatement(new Statement("CALL loader.setConnectionSetRoiInfoAndWeightHP($preBodyId, $postBodyId, $dataset, $preHPThreshold, $postHPThreshold)",
+                                parameters("preBodyId", connectionSet.getPresynapticBodyId(),
+                                        "postBodyId", connectionSet.getPostsynapticBodyId(),
+                                        "dataset", dataset,
+                                        "preHPThreshold", preHPThreshold,
+                                        "postHPThreshold", postHPThreshold)));
+                    }
 
                 }
             }
@@ -734,7 +736,7 @@ public class Neo4jImporter implements AutoCloseable {
      * @param preHPThreshold   high-precision threshold for presynaptic densities
      * @param postHPThreshold  high-precision threshold for postsynaptic densities
      */
-    public void createMetaNodeWithDataModelNode(final String dataset, final float dataModelVersion, final float preHPThreshold, final float postHPThreshold) {
+    public void createMetaNodeWithDataModelNode(final String dataset, final float dataModelVersion, final float preHPThreshold, final float postHPThreshold, final boolean addConnectionSetRoiInfoAndWeightHP) {
 
         LOG.info("createMetaNodeWithDataModelNode: enter");
 
@@ -746,6 +748,17 @@ public class Neo4jImporter implements AutoCloseable {
                 "m.superLevelRois=$superLevelRois, " +
                 "m.preHPThreshold=$preHPThreshold, " +
                 "m.postHPThreshold=$postHPThreshold, " +
+                "m.totalPreCount=$totalPre, " +
+                "m.totalPostCount=$totalPost \n" +
+                "MERGE (d:DataModel{dataModelVersion:$dataModelVersion}) ON CREATE SET d.dataModelVersion=$dataModelVersion, d.timeStamp=$timeStamp \n" +
+                "MERGE (m)-[:Is]->(d)";
+
+        final String metaNodeStringWithoutHPThresholds = "MERGE (m:Meta{dataset:$dataset}) ON CREATE SET " +
+                "m:" + dataset + "," +
+                "m.lastDatabaseEdit=$timeStamp," +
+                "m.dataset=$dataset, " +
+                "m.roiInfo=$synapseCountPerRoi, " +
+                "m.superLevelRois=$superLevelRois, " +
                 "m.totalPreCount=$totalPre, " +
                 "m.totalPostCount=$totalPost \n" +
                 "MERGE (d:DataModel{dataModelVersion:$dataModelVersion}) ON CREATE SET d.dataModelVersion=$dataModelVersion, d.timeStamp=$timeStamp \n" +
@@ -768,16 +781,27 @@ public class Neo4jImporter implements AutoCloseable {
         }
 
         try (final TransactionBatch batch = getBatch()) {
-            batch.addStatement(new Statement(metaNodeString, parameters("dataset", dataset,
-                    "synapseCountPerRoi", roiInfo.getAsJsonString(),
-                    "superLevelRois", rootRois,
-                    "preHPThreshold", preHPThreshold,
-                    "postHPThreshold", postHPThreshold,
-                    "totalPre", totalPre,
-                    "totalPost", totalPost,
-                    "timeStamp", timeStamp,
-                    "dataModelVersion", dataModelVersion
-            )));
+            if (addConnectionSetRoiInfoAndWeightHP) {
+                batch.addStatement(new Statement(metaNodeString, parameters("dataset", dataset,
+                        "synapseCountPerRoi", roiInfo.getAsJsonString(),
+                        "superLevelRois", rootRois,
+                        "preHPThreshold", preHPThreshold,
+                        "postHPThreshold", postHPThreshold,
+                        "totalPre", totalPre,
+                        "totalPost", totalPost,
+                        "timeStamp", timeStamp,
+                        "dataModelVersion", dataModelVersion
+                )));
+            } else {
+                batch.addStatement(new Statement(metaNodeStringWithoutHPThresholds, parameters("dataset", dataset,
+                        "synapseCountPerRoi", roiInfo.getAsJsonString(),
+                        "superLevelRois", rootRois,
+                        "totalPre", totalPre,
+                        "totalPost", totalPost,
+                        "timeStamp", timeStamp,
+                        "dataModelVersion", dataModelVersion
+                )));
+            }
 
             batch.writeTransaction();
 

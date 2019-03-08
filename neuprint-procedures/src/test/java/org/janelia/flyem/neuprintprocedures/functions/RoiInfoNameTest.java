@@ -62,7 +62,7 @@ public class RoiInfoNameTest {
         neo4jImporter.addSynapsesTo(dataset, preToPost);
         neo4jImporter.addSegmentRois(dataset, bodyList);
         neo4jImporter.addSynapseSets(dataset, bodyList);
-        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F);
+        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F, true);
         neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
         neo4jImporter.addClusterNames("test", .1F);
     }
