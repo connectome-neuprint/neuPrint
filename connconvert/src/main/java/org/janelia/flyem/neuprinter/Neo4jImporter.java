@@ -10,6 +10,7 @@ import org.janelia.flyem.neuprinter.model.AutoName;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
 import org.janelia.flyem.neuprinter.model.ConnectionSet;
 import org.janelia.flyem.neuprinter.model.ConnectionSetMap;
+import org.janelia.flyem.neuprinter.model.MetaInfo;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.RoiInfo;
 import org.janelia.flyem.neuprinter.model.SkelNode;
@@ -809,6 +810,25 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("createMetaNodeWithDataModelNode: exit");
 
+    }
+
+    public void addMetaInfo(String dataset, MetaInfo metaInfo) {
+
+        LOG.info("addMetaInfo: enter");
+        String metaNodeUuidString = "MATCH (m:Meta{dataset:$dataset}) SET m.neuroglancerInfo=$neuroglancerInfo, m.uuid=$uuid, m.dvidServer=$dvidServer, m.statusDefinitions=$statusDefinitions, m.meshHost=$meshHost";
+        try (final TransactionBatch batch = getBatch()) {
+            batch.addStatement(new Statement(metaNodeUuidString, parameters("dataset", dataset,
+                    "neuroglancerInfo", metaInfo.getNeuroglancerInfo(),
+                    "uuid", metaInfo.getUuid(),
+                    "dvidServer", metaInfo.getDvidServer(),
+                    "statusDefinitions", metaInfo.getStatusDefinitions(),
+                    "meshHost", metaInfo.getMeshHost()
+            )));
+
+            batch.writeTransaction();
+
+        }
+        LOG.info("addMetaInfo: exit");
     }
 
     public void addDvidUuid(String dataset, String uuid) {

@@ -73,6 +73,8 @@ public class Neo4jImporterTest {
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies(bodiesJsonPath);
         HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
 
+        MetaInfo metaInfo = NeuPrinterMain.readMetaInfoJson("src/test/resources/testMetaInfo.json");
+
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
         Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
@@ -88,9 +90,8 @@ public class Neo4jImporterTest {
         neo4jImporter.addSkeletonNodes("test", skeletonList);
         neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F, .20F, .80F, true);
         neo4jImporter.addAutoNamesAndNeuronLabels("test", 5);
-        neo4jImporter.addDvidUuid("test", "1234");
-        neo4jImporter.addDvidServer("test", "test1:23");
         neo4jImporter.addClusterNames("test", .1F);
+        neo4jImporter.addMetaInfo("test", metaInfo);
 
     }
 
@@ -592,14 +593,18 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void shouldAddDvidUuidAndServerToMetaNode() {
+    public void shouldAddMetaInfoToMetaNode() {
 
         Session session = driver.session();
 
         Node metaNode = session.readTransaction(tx -> tx.run("MATCH (n:Meta{dataset:\"test\"}) RETURN n")).single().get(0).asNode();
 
-        Assert.assertEquals("1234", metaNode.asMap().get("uuid"));
-        Assert.assertEquals("test1:23", metaNode.asMap().get("dvidServer"));
+        Assert.assertEquals("123456d", metaNode.asMap().get("uuid"));
+        Assert.assertEquals("test server", metaNode.asMap().get("dvidServer"));
+        Assert.assertEquals("test neuroglancer info", metaNode.asMap().get("neuroglancerInfo"));
+        Assert.assertEquals("test host", metaNode.asMap().get("meshHost"));
+        Assert.assertEquals("test definitions", metaNode.asMap().get("statusDefinitions"));
+
 
     }
 

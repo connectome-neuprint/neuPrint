@@ -64,6 +64,7 @@ public class SynapseMapper {
             return bodyList;
 
         } catch (Exception e) {
+            LOG.severe("Error reading synapse json.");
             e.printStackTrace();
             System.exit(1);
             return new ArrayList<>();

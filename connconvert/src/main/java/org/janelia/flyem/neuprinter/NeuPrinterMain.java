@@ -8,6 +8,7 @@ import com.google.common.base.Stopwatch;
 import org.janelia.flyem.neuprinter.db.DbConfig;
 import org.janelia.flyem.neuprinter.json.JsonUtils;
 import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
+import org.janelia.flyem.neuprinter.model.MetaInfo;
 import org.janelia.flyem.neuprinter.model.Neuron;
 import org.janelia.flyem.neuprinter.model.Skeleton;
 import org.janelia.flyem.neuprinter.model.SynapseLocationToBodyIdMap;
@@ -154,6 +155,12 @@ public class NeuPrinterMain {
         String skeletonDirectory;
 
         @Parameter(
+                names = "--metaInfoJson",
+                description = "JSON file containing meta information for dataset"
+        )
+        String metaInfoJson;
+
+        @Parameter(
                 names = "--editMode",
                 description = "Indicates that neuprint is being used in edit mode to alter data in an existing database (omit to skip).",
                 arity = 0)
@@ -256,7 +263,10 @@ public class NeuPrinterMain {
             neuronList = Neuron.fromJson(reader);
             LOG.info("Number of neurons/segments: " + neuronList.size());
         } catch (Exception e) {
+            neuronList = new ArrayList<>();
+            LOG.error("Error reading neurons json.");
             e.printStackTrace();
+            System.exit(1);
         }
 
 //        try (JsonReader reader = new JsonReader(new FileReader(filepath)) ) {
@@ -292,6 +302,7 @@ public class NeuPrinterMain {
             bodyList = BodyWithSynapses.fromJson(reader);
             LOG.info("Number of bodies with synapses: " + bodyList.size());
         } catch (Exception e) {
+            bodyList = new ArrayList<>();
             e.printStackTrace();
         }
 
@@ -315,6 +326,19 @@ public class NeuPrinterMain {
 //
 //        }
         return bodyList;
+    }
+
+    public static MetaInfo readMetaInfoJson(String filepath) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
+            MetaInfo metaInfo = MetaInfo.fromJson(reader);
+            LOG.info("Meta info for dataset: " + metaInfo);
+            return metaInfo;
+        } catch (Exception e) {
+            LOG.error("Error reading meta info json.");
+            e.printStackTrace();
+            System.exit(1);
+            return null;
+        }
     }
 
     /**
@@ -527,6 +551,19 @@ public class NeuPrinterMain {
                     neo4jImporter.addSkeletonNodes(dataset, skeletonList);
                     LOG.info("Loading all Skeleton nodes took: " + timer.stop());
                     timer.reset();
+                }
+
+            }
+
+            if (parameters.metaInfoJson != null) {
+
+                // read meta info data
+                MetaInfo metaInfo = readMetaInfoJson(parameters.metaInfoJson);
+                if (metaInfo != null) {
+                    try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                        neo4jImporter.addMetaInfo(dataset, metaInfo);
+                        LOG.info("Finished adding meta info.");
+                    }
                 }
 
             }

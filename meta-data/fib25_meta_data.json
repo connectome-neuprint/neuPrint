@@ -1,0 +1,7 @@
+{
+  "neuroglancerInfo": "{'segmentation':{'host':'http://35.199.37.244','uuid':'see meta node','dataType':'groundtruth'},'grayscale':{'host':'http://emdata.janelia.org','uuid':'822524777d3048b8bd520043f90c1d28','dataType':'grayscaleview'}}" ,
+  "uuid": "2b6d75f1c6e348ce945e1a66eb2f6bf3",
+  "dvidServer": "emdata2:7000",
+  "meshHost": "",
+  "statusDefinitions": ""
+}
