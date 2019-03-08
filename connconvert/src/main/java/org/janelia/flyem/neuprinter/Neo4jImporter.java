@@ -635,6 +635,7 @@ public class Neo4jImporter implements AutoCloseable {
                                         "datasetBodyIds", dataset + ":" + connectionSetKey)));
                     }
 
+                    // TODO: I assume this is faster and easier to implement using a stored procedure but requires the user to add the loading procedures jar file to neo4j/plugins. Look into efficient ways to implement this using raw cypher queries.
                     batch.addStatement(new Statement("CALL loader.setConnectionSetRoiInfoAndWeightHP($preBodyId, $postBodyId, $dataset, $preHPThreshold, $postHPThreshold)",
                             parameters("preBodyId", connectionSet.getPresynapticBodyId(),
                                     "postBodyId", connectionSet.getPostsynapticBodyId(),
