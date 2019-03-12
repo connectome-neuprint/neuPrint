@@ -117,9 +117,10 @@ public class Neo4jImporter implements AutoCloseable {
      *
      * @param dataset dataset name
      */
-    public void prepDatabase(String dataset) {
+    public void prepDatabase(final String dataset) {
 
         LOG.info("prepDatabase: entry");
+
         final String[] prepTextArray = {
                 "CREATE CONSTRAINT ON (n:`" + dataset + "-Neuron`) ASSERT n.bodyId IS UNIQUE",
                 "CREATE CONSTRAINT ON (n:`" + dataset + "-Segment`) ASSERT n.bodyId IS UNIQUE",
@@ -129,7 +130,6 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-SkelNode`) ASSERT s.skelNodeId IS UNIQUE",
                 "CREATE CONSTRAINT ON (s:`" + dataset + "-Skeleton`) ASSERT s.skeletonId IS UNIQUE",
                 "CREATE CONSTRAINT ON (m:Meta) ASSERT m.dataset IS UNIQUE",
-                "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.autoName is UNIQUE",
                 "CREATE CONSTRAINT ON (d:DataModel) ASSERT d.dataModelVersion IS UNIQUE",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(status)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(somaLocation)",
@@ -137,7 +137,6 @@ public class Neo4jImporter implements AutoCloseable {
                 "CREATE INDEX ON :`" + dataset + "-SkelNode`(location)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(pre)",
                 "CREATE INDEX ON :`" + dataset + "-Neuron`(post)",
-                "CREATE INDEX ON :`" + dataset + "-Neuron`(clusterName)",
                 "CREATE INDEX ON :Neuron(name)",
                 "CREATE INDEX ON :`" + dataset + "-Segment`(pre)",
                 "CREATE INDEX ON :`" + dataset + "-Segment`(post)",
@@ -153,6 +152,35 @@ public class Neo4jImporter implements AutoCloseable {
 
         LOG.info("prepDatabase: exit");
 
+    }
+
+    public void prepDatabaseForAutoNames(final String dataset) {
+
+        LOG.info("prepDatabaseForAutoNames: entry");
+
+        final String prepText = "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.autoName is UNIQUE";
+
+        try (final TransactionBatch batch = getBatch()) {
+            batch.addStatement(new Statement(prepText));
+            batch.writeTransaction();
+        }
+
+        LOG.info("prepDatabaseForAutoNames: exit");
+
+    }
+
+    public void prepDatabaseForClusterNames(final String dataset) {
+
+        LOG.info("prepDatabaseForClusterNames: entry");
+
+        final String prepText = "CREATE INDEX ON :`" + dataset + "-Neuron`(clusterName)";
+
+        try (final TransactionBatch batch = getBatch()) {
+            batch.addStatement(new Statement(prepText));
+            batch.writeTransaction();
+        }
+
+        LOG.info("prepDatabaseForClusterNames: exit");
     }
 
     /**
@@ -461,6 +489,8 @@ public class Neo4jImporter implements AutoCloseable {
     public void addAutoNamesAndNeuronLabels(final String dataset, int neuronThreshold) {
 
         LOG.info("addAutoNamesAndNeuronLabels: entry");
+
+        prepDatabaseForAutoNames(dataset);
 
         List<AutoName> autoNameList = new ArrayList<>();
         List<Long> bodyIdsWithoutNames;
@@ -914,7 +944,9 @@ public class Neo4jImporter implements AutoCloseable {
         }
     }
 
-    public void addClusterNames(String dataset, float threshold) {
+    public void addClusterNames(final String dataset, final float threshold) {
+
+        prepDatabaseForClusterNames(dataset);
 
         List<Node> neuronNodeList;
         Set<String> roiSet;
