@@ -3,5 +3,5 @@
   "uuid": "2b6d75f1c6e348ce945e1a66eb2f6bf3",
   "dvidServer": "emdata2:7000",
   "meshHost": "",
-  "statusDefinitions": ""
+  "statusDefinitions": "{'final':'has been fully traced or reconstructed','ask':'proofreaders were not able to trace the body further; reconstruction incomplete','final (irrelevant)':'not a neuron','partially traced':'body is traced except for regions of the body that leave the volume','not examined':'not proofread/traced','uncorrected':''}"
 }
