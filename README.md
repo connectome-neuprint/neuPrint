@@ -9,7 +9,7 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 
 ## Requirements
 * Neo4j version 3.5.3
-* [apoc version 3.5.0.1](https://neo4j-contrib.github.io/neo4j-apoc-procedures/)<sup>1</sup>
+* [apoc version 3.5.0.1](https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/tag/3.5.0.1)<sup>1</sup>
 * **Optional** neuprint-load-procedures.jar OR neuprint-procedures.jar<sup>2</sup>
     
 1. Note that to install plugins in neo4j, the .jar files must be copied into the plugins directory of your neo4j database. [This may be helpful.](https://community.neo4j.com/t/how-can-i-install-apoc-library-for-neo4j-version-3-4-6-edition-community/1495)
