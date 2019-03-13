@@ -48,122 +48,123 @@ Follow these [input specifications](jsonspecs.md) to create your own neurons.jso
 ```console
 $ java -jar neuprint.jar --help
   
- Usage: java -cp neuprint.jar [options]
-   Options:
-     --addAutoNames
-       Indicates that automatically generated names should be added for this 
-       dataset. Auto-names are in the format ROIA-ROIB_8 where ROIA is the roi 
-       in which a given neuron has the most inputs (postsynaptic densities) and 
-       ROIB is the roi in which a neuron has the most outputs (presynaptic 
-       densities). The final number renders this name unique per dataset. Names 
-       are only generated for neurons that have greater than the number of 
-       synapses indicated by neuronThreshold. If neurons do not already have a 
-       name, the auto-name is added to the name property. (skip to omit)
-       Default: false
-     --addAutoNamesOnly
-       Indicates that only the autoNames should be added for this dataset. 
-       Requires the existing dataset to be completely loaded into neo4j. Names 
-       are only generated for neurons that have greater than the number of 
-       synapsesindicated by neuronThreshold (omit to skip)
-       Default: false
-     --addClusterNames
-       Indicates that cluster names should be added to Neuron nodes.
-       Default: false
-     --addConnectionSetRoiInfoAndWeightHP
-       Indicates that an roiInfo property should be added to each ConnectionSet 
-       and that the weightHP property should be added to all ConnectionSets 
-       (omit to skip).
-       Default: false
-     --addConnectionSets
-       Indicates that connection set nodes should be added (omit to skip)
-       Default: false
-     --addConnectsTo
-       Indicates that ConnectsTo relations should be added (omit to skip)
-       Default: false
-     --addMetaNodeOnly
-       Indicates that only the Meta Node should be added for this dataset. 
-       Requires the existing dataset to be completely loaded into neo4j. (omit 
-       to skip)
-       Default: false
-     --addNeuronsAndSynapses
-       Indicates that both neurons and synapses JSONs should be loaded and all 
-       database features added
-       Default: false
-     --addSegmentRois
-       Indicates that neuron ROI labels should be added (omit to skip)
-       Default: false
-     --addSkeletons
-       Indicates that skeleton nodes should be added (omit to skip)
-       Default: false
-     --addSynapses
-       Indicates that synapse nodes should be added (omit to skip)
-       Default: false
-     --addSynapsesTo
-       Indicates that SynapsesTo relations should be added (omit to skip)
-       Default: false
-     --dataModelVersion
-       Data model version (required)
-       Default: 1.0
-   * --datasetLabel
-       Dataset value for all nodes (required)
-   * --dbProperties
-       Properties file containing database information (required)
-     --editMode
-       Indicates that neuprint is being used in edit mode to alter data in an 
-       existing database (omit to skip).
-       Default: false
-     --getSuperLevelRoisFromSynapses
-       Indicates that super level rois should be computed from synapses JSON 
-       and added to the Meta node.
-       Default: false
-     --help
- 
-     --indexBooleanRoiPropertiesOnly
-       Indicates that only boolean roi properties should be indexed. Requires 
-       the existing dataset to be completely loaded into neo4j. (omit to skip)
-       Default: false
-     --loadNeurons
-       Indicates that data from neurons JSON should be loaded to database (omit 
-       to skip)
-       Default: false
-     --loadSynapses
-       Indicates that data from synapses JSON should be loaded to database 
-       (omit to skip)
-       Default: false
-     --metaInfoJson
-       JSON file containing meta information for dataset
-     --neuronJson
-       JSON file containing neuron data to import
-     --neuronThreshold
-       Integer indicating the number of synaptic densities (>=neuronThreshold/5 
-       pre OR >=neuronThreshold post) a neuron should have to be given the 
-       label of :Neuron (all have the :Segment label by default) and an 
-       auto-name. To add auto-names, must have --addAutoName OR 
-       --addAutoNamesOnly enabled.
-       Default: 10
-     --postHPThreshold
-       Confidence threshold to distinguish high-precision postsynaptic 
-       densities (required)
-       Default: 0.0
-     --preHPThreshold
-       Confidence threshold to distinguish high-precision presynaptic densities 
-       (required) 
-       Default: 0.0
-     --prepDatabase
-       Indicates that database constraints and indexes should be setup (omit to 
-       skip) 
-       Default: false
-     --server
-       DVID server to be added to Meta node.
-     --skeletonDirectory
-       Path to directory containing skeleton files for this dataset
-     --startFromSynapseLoad
-       Indicates that load should start from the synapses JSON.
-       Default: false
-     --synapseJson
-       JSON file containing body synapse data to import
-     --uuid
-       DVID UUID to be added to Meta node.
+Usage: java -jar neuprint.jar [options]
+  Options:
+    --addAutoNames
+      Indicates that automatically generated names should be added for this 
+      dataset. Auto-names are in the format ROIA-ROIB_8 where ROIA is the roi 
+      in which a given neuron has the most inputs (postsynaptic densities) and 
+      ROIB is the roi in which a neuron has the most outputs (presynaptic 
+      densities). The final number renders this name unique per dataset. Names 
+      are only generated for neurons that have greater than the number of 
+      synapses indicated by neuronThreshold. If neurons do not already have a 
+      name, the auto-name is added to the name property. (skip to omit)
+      Default: false
+    --addAutoNamesOnly
+      Indicates that only the autoNames should be added for this dataset. 
+      Requires the existing dataset to be completely loaded into neo4j. Names 
+      are only generated for neurons that have greater than the number of 
+      synapsesindicated by neuronThreshold (omit to skip)
+      Default: false
+    --addClusterNames
+      Indicates that cluster names should be added to Neuron nodes. (true by 
+      default) 
+      Default: true
+    --addConnectionSetRoiInfoAndWeightHP
+      Indicates that an roiInfo property should be added to each ConnectionSet 
+      and that the weightHP property should be added to all ConnectionSets 
+      (omit to skip).
+      Default: false
+    --addConnectionSets
+      Indicates that connection set nodes should be added (omit to skip)
+      Default: false
+    --addConnectsTo
+      Indicates that ConnectsTo relations should be added (omit to skip)
+      Default: false
+    --addMetaNodeOnly
+      Indicates that only the Meta Node should be added for this dataset. 
+      Requires the existing dataset to be completely loaded into neo4j. (omit 
+      to skip)
+      Default: false
+    --addNeuronsAndSynapses
+      Indicates that both neurons and synapses JSONs should be loaded and all 
+      database features added
+      Default: false
+    --addSegmentRois
+      Indicates that neuron ROI labels should be added (omit to skip)
+      Default: false
+    --addSkeletons
+      Indicates that skeleton nodes should be added (omit to skip)
+      Default: false
+    --addSynapses
+      Indicates that synapse nodes should be added (omit to skip)
+      Default: false
+    --addSynapsesTo
+      Indicates that SynapsesTo relations should be added (omit to skip)
+      Default: false
+    --dataModelVersion
+      Data model version (required)
+      Default: 1.0
+  * --datasetLabel
+      Dataset value for all nodes (required)
+  * --dbProperties
+      Properties file containing database information (required)
+    --editMode
+      Indicates that neuprint is being used in edit mode to alter data in an 
+      existing database (omit to skip).
+      Default: false
+    --getSuperLevelRoisFromSynapses
+      Indicates that super level rois should be computed from synapses JSON 
+      and added to the Meta node.
+      Default: false
+    --help
+
+    --indexBooleanRoiPropertiesOnly
+      Indicates that only boolean roi properties should be indexed. Requires 
+      the existing dataset to be completely loaded into neo4j. (omit to skip)
+      Default: false
+    --loadNeurons
+      Indicates that data from neurons JSON should be loaded to database (omit 
+      to skip)
+      Default: false
+    --loadSynapses
+      Indicates that data from synapses JSON should be loaded to database 
+      (omit to skip)
+      Default: false
+    --metaInfoJson
+      JSON file containing meta information for dataset
+    --neuronJson
+      JSON file containing neuron data to import
+    --neuronThreshold
+      Integer indicating the number of synaptic densities (>=neuronThreshold/5 
+      pre OR >=neuronThreshold post) a neuron should have to be given the 
+      label of :Neuron (all have the :Segment label by default) and an 
+      auto-name. To add auto-names, must have --addAutoName OR 
+      --addAutoNamesOnly enabled.
+      Default: 10
+    --postHPThreshold
+      Confidence threshold to distinguish high-precision postsynaptic 
+      densities (required)
+      Default: 0.0
+    --preHPThreshold
+      Confidence threshold to distinguish high-precision presynaptic densities 
+      (required) 
+      Default: 0.0
+    --prepDatabase
+      Indicates that database constraints and indexes should be setup (omit to 
+      skip) 
+      Default: false
+    --server
+      DVID server to be added to Meta node.
+    --skeletonDirectory
+      Path to directory containing skeleton files for this dataset
+    --startFromSynapseLoad
+      Indicates that load should start from the synapses JSON.
+      Default: false
+    --synapseJson
+      JSON file containing body synapse data to import
+    --uuid
+      DVID UUID to be added to Meta node.
 ```
 ## neuPrint Property Graph Model
 

@@ -223,9 +223,9 @@ public class NeuPrinterMain {
 
         @Parameter(
                 names = "--addClusterNames",
-                description = "Indicates that cluster names should be added to Neuron nodes.",
-                arity = 0)
-        boolean addClusterNames;
+                description = "Indicates that cluster names should be added to Neuron nodes. (true by default)",
+                arity = 1)
+        boolean addClusterNames = true;
 
         @Parameter(
                 names = "--help",
@@ -384,7 +384,7 @@ public class NeuPrinterMain {
 
         final NeuPrinterParameters parameters = new NeuPrinterParameters();
         final JCommander jCommander = new JCommander(parameters);
-        jCommander.setProgramName("java -cp neuprint.jar");
+        jCommander.setProgramName("java -jar neuprint.jar");
 
         boolean parseFailed = true;
         try {
