@@ -29,6 +29,7 @@ Features specific to the hemibrain dataset:
 * roiInfo: string containing json map in format {"roiA":{"pre":1,"post":2},...}
 * \<roi\>: boolean indicating that body is located in a particular roi (if present, always true)
 * (optional) autoName: automatically generated name in format \<max input roi\>-\<max output roi\>_\<instance number\> (unique per dataset)
+* (Neurons only) clusterName: name generated using input and output ROIs for a neuron. If a neuron has greater than 10% of either its presynaptic or postsynaptic densities in an ROI, that ROI is added to the clusterName. ROIs are listed in lexicographic order within the name, and are in the format \<input roi 1\>.\<input roi 2\>...\<input roi n\>-\<output roi 1\>.\<output roi 2\>...\<output roi n\>. For example, roiA.roiB-roiB.roiC.roiD. If there is no input and/or output ROI in which a neuron has greater than 10% of synapses, this part of the name will be "none" (e.g. none-roiA for no input ROI). This property is used to quickly find neurons with similar connectivity patterns. 
 
 ### :Synapse properties
 * type: type of synapse
