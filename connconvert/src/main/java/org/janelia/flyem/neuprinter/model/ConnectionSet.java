@@ -91,8 +91,8 @@ public class ConnectionSet {
     @Override
     public int hashCode() {
         int result = 17;
-        result = 31 * result + (int) presynapticBodyId;
-        result = 31 * result + (int) postsynapticBodyId;
+        result = 31 * result + (int) (this.presynapticBodyId^(this.presynapticBodyId>>>32));
+        result = 31 * result + (int) (this.postsynapticBodyId^(this.postsynapticBodyId>>>32));
         return result;
     }
 }
