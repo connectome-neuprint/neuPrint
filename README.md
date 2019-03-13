@@ -9,10 +9,12 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 
 ## Requirements
 * Neo4j version 3.5.3
-* [apoc version 3.5.0.1](https://neo4j-contrib.github.io/neo4j-apoc-procedures/)
-* neuprint-load-procedures.jar OR neuprint-procedures.jar (Triggers in neuprint-procedures.jar may slow down the load, so neuprint-load-procedures.jar is recommended)
+* [apoc version 3.5.0.1](https://neo4j-contrib.github.io/neo4j-apoc-procedures/)<sup>1</sup>
+* **Optional** neuprint-load-procedures.jar OR neuprint-procedures.jar<sup>2</sup>
+    
+1. Note that to install plugins in neo4j, the .jar files must be copied into the plugins directory of your neo4j database. [This may be helpful.](https://community.neo4j.com/t/how-can-i-install-apoc-library-for-neo4j-version-3-4-6-edition-community/1495)
+2. One of these is required for loading if using flag `--addConnectionSetRoiInfoAndWeightHP`. Triggers in neuprint-procedures.jar may slow down the load, so neuprint-load-procedures.jar is recommended. neuprint-procedures.jar contains custom stored procedures and functions for use with the rest of the neuPrint ecosystem. If using with neuPrintHTTP and neuPrintExplorer, install neuprint-procedures after loading the data.
 
-NOTE: To install the latter two, both apoc and neuprint procedures .jar files must be copied into the plugins directory of your neo4j database. [This may be helpful.](https://community.neo4j.com/t/how-can-i-install-apoc-library-for-neo4j-version-3-4-6-edition-community/1495)
 
 ## Example data
 
