@@ -3,7 +3,7 @@
 
 
 # neuPrint
-A blueprint of the brain. A set of tools for loading and analyzing connectome data into a Neo4j database. Analyze connectome data stored in Neo4j using [neuPrintExplorer](https://github.com/connectome-neuprint/neuPrintExplorer). 
+A blueprint of the brain. A set of tools for loading and analyzing connectome data into a Neo4j database. Analyze and explore connectome data stored in Neo4j using the neuPrint ecosystem: [neuPrintHTTP](https://github.com/connectome-neuprint/neuPrintHTTP), [neuPrintExplorer](https://github.com/connectome-neuprint/neuPrintExplorer), [Python API](https://github.com/connectome-neuprint/neuprint-python). 
 
 [Javadocs](https://connectome-neuprint.github.io/neuPrint/)
 
