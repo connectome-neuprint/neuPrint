@@ -10,7 +10,7 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 ## Requirements
 * Neo4j version 3.5.3
 * [apoc version 3.5.0.1](https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/tag/3.5.0.1)<sup>1</sup>
-* **Optional** neuprint-load-procedures.jar OR neuprint-procedures.jar<sup>2</sup>
+* **Optional** neuprint-load-procedures.jar OR neuprint-procedures.jar (found in `executables` directory) <sup>2</sup>
     
 1. Note that to install plugins in neo4j, the .jar files must be copied into the plugins directory of your neo4j database. [This may be helpful.](https://community.neo4j.com/t/how-can-i-install-apoc-library-for-neo4j-version-3-4-6-edition-community/1495)
 2. One of these is required for loading if using flag `--addConnectionSetRoiInfoAndWeightHP`. Triggers in neuprint-procedures.jar may slow down the load, so neuprint-load-procedures.jar is recommended. neuprint-procedures.jar contains custom stored procedures and functions for use with the rest of the neuPrint ecosystem. If using with neuPrintHTTP and neuPrintExplorer, install neuprint-procedures after loading the data.
@@ -30,7 +30,7 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 
 3. Run the following on the command line:
 ```console
-$ java -jar neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --addNeuronsAndSynapses --neuronJson=mb6_neo4j_inputs/mb6_Neurons_with_nt.json --synapseJson=mb6_neo4j_inputs/mb6_Synapses.json --metaInfoJson=meta-data/mb6_meta_data.json
+$ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --addNeuronsAndSynapses --neuronJson=mb6_neo4j_inputs/mb6_Neurons_with_nt.json --synapseJson=mb6_neo4j_inputs/mb6_Synapses.json --metaInfoJson=meta-data/mb6_meta_data.json
 ```
 
 ## Load mb6 skeleton data into Neo4j
@@ -39,7 +39,7 @@ $ java -jar neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --
 
 2. Run the following on the command line:
 ```console
-$ java -jar neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --prepDatabase --addSkeletons --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons
+$ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --prepDatabase --addSkeletons --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons
 ```
 The ```prepDatabase``` flag ensures that the proper indices and constraints are set in the database. Note that ```--addSkeletons --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons``` can be added to the previous command to load skeletons with the neuron/synapse data.
 
@@ -48,7 +48,7 @@ The ```prepDatabase``` flag ensures that the proper indices and constraints are 
 Follow these [input specifications](jsonspecs.md) to create your own neurons.json, synapses.json, and skeleton files. To create a database on your computer, use [Neo4j Desktop](https://neo4j.com/download/?ref=product).
 
 ```console
-$ java -jar neuprint.jar --help
+$ java -jar executables/neuprint.jar --help
   
 Usage: java -jar neuprint.jar [options]
   Options:

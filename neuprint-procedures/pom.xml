@@ -85,6 +85,22 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <phase>verify</phase>
+                        <configuration>
+                            <tasks>
+                                <copy file="target/${project.artifactId}-${project.version}.jar" tofile="../executables/${project.artifactId}.jar"/>
+                            </tasks>
+                        </configuration>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 
