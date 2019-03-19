@@ -2,12 +2,12 @@ package org.janelia.flyem.neuprintprocedures.proofreading;
 
 import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
-import org.janelia.flyem.neuprinter.Neo4jImporter;
-import org.janelia.flyem.neuprinter.NeuPrinterMain;
-import org.janelia.flyem.neuprinter.SynapseMapper;
-import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
-import org.janelia.flyem.neuprinter.model.Neuron;
-import org.janelia.flyem.neuprinter.model.Skeleton;
+import org.janelia.flyem.neuprint.Neo4jImporter;
+import org.janelia.flyem.neuprint.NeuPrinterMain;
+import org.janelia.flyem.neuprint.SynapseMapper;
+import org.janelia.flyem.neuprint.model.BodyWithSynapses;
+import org.janelia.flyem.neuprint.model.Neuron;
+import org.janelia.flyem.neuprint.model.Skeleton;
 import org.janelia.flyem.neuprintprocedures.functions.NeuPrintUserFunctions;
 import org.junit.Assert;
 import org.junit.Rule;

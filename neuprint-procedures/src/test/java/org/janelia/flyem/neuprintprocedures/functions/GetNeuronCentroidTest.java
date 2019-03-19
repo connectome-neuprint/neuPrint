@@ -1,8 +1,8 @@
 package org.janelia.flyem.neuprintprocedures.functions;
 
-import org.janelia.flyem.neuprinter.Neo4jImporter;
-import org.janelia.flyem.neuprinter.SynapseMapper;
-import org.janelia.flyem.neuprinter.model.BodyWithSynapses;
+import org.janelia.flyem.neuprint.Neo4jImporter;
+import org.janelia.flyem.neuprint.SynapseMapper;
+import org.janelia.flyem.neuprint.model.BodyWithSynapses;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;

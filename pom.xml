@@ -12,7 +12,7 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>connconvert</module>
+        <module>neuprint</module>
         <module>neuprint-load-procedures</module>
         <module>neuprint-procedures</module>
     </modules>

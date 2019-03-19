@@ -2,8 +2,8 @@ package org.janelia.flyem.neuprintprocedures.functions;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import org.janelia.flyem.neuprinter.Neo4jImporter;
-import org.janelia.flyem.neuprinter.model.SynapseCounter;
+import org.janelia.flyem.neuprint.Neo4jImporter;
+import org.janelia.flyem.neuprint.model.SynapseCounter;
 import org.janelia.flyem.neuprintloadprocedures.Location;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;

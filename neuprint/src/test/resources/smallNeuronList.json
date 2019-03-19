@@ -1,0 +1,47 @@
+[
+  {
+    "Id": 8426959,
+    "Status": "final",
+    "Size": 14766
+  },
+  {
+    "Id": 26311,
+    "Status": "ask",
+    "Name": "Dm12-4",
+    "Size": 3158061
+  },
+  {
+    "Id": 100523,
+    "Status": "final",
+    "Size": 79742
+  },
+  {
+    "Id": 100526,
+    "Status": "final",
+    "Size": 33588
+  },
+  {
+    "Id": 100539,
+    "Status": "final",
+    "Size": 1174
+  },
+  {
+    "Id": 100541,
+    "Size": 11024
+  },
+  {
+    "Id": 100554,
+    "Status": "final (irrelevant)",
+    "Size": 1756948
+  },
+  {
+    "Id": 100569,
+    "Status": "final",
+    "Size": 1031,
+    "Name": "KC-5",
+    "NeuronType": "KC",
+    "rois": ["roi1","roi2"],
+    "Soma": { "Location":[1,2,3],"Radius":5.0}
+}
+
+]

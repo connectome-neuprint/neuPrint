@@ -2,8 +2,8 @@ package org.janelia.flyem.neuprintprocedures.proofreading;
 
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
-import org.janelia.flyem.neuprinter.model.Soma;
-import org.janelia.flyem.neuprinter.model.Synapse;
+import org.janelia.flyem.neuprint.model.Soma;
+import org.janelia.flyem.neuprint.model.Synapse;
 
 import java.util.Set;
 

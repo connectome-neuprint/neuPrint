@@ -46,7 +46,7 @@
 
         <dependency>
             <groupId>org.janelia.flyem</groupId>
-            <artifactId>neuprinter</artifactId>
+            <artifactId>neuprint</artifactId>
             <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>

@@ -48,8 +48,8 @@ var activeTableTab = "activeTableTab";
 </div>
 <div class="subNav">
 <ul class="navList">
-<li><a href="../../../../org/janelia/flyem/neuprinter/Neo4jEditor.html" title="class in org.janelia.flyem.neuprinter"><span class="typeNameLink">Prev&nbsp;Class</span></a></li>
-<li><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporterTest.html" title="class in org.janelia.flyem.neuprinter"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
+<li><a href="../../../../org/janelia/flyem/neuprinter/Neo4jEditor.html" title="class in org.janelia.flyem.neuprint"><span class="typeNameLink">Prev&nbsp;Class</span></a></li>
+<li><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporterTest.html" title="class in org.janelia.flyem.neuprint"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
 </ul>
 <ul class="navList">
 <li><a href="../../../../index.html?org/janelia/flyem/neuprinter/Neo4jImporter.html" target="_top">Frames</a></li>
@@ -91,7 +91,7 @@ var activeTableTab = "activeTableTab";
 <!-- ========= END OF TOP NAVBAR ========= -->
 <!-- ======== START OF CLASS DATA ======== -->
 <div class="header">
-<div class="subTitle">org.janelia.flyem.neuprinter</div>
+<div class="subTitle">org.janelia.flyem.neuprint</div>
 <h2 title="Class Neo4jImporter" class="title">Class Neo4jImporter</h2>
 </div>
 <div class="contentContainer">
@@ -99,7 +99,7 @@ var activeTableTab = "activeTableTab";
 <li>java.lang.Object</li>
 <li>
 <ul class="inheritance">
-<li>org.janelia.flyem.neuprinter.Neo4jImporter</li>
+<li>org.janelia.flyem.neuprint.Neo4jImporter</li>
 </ul>
 </li>
 </ul>
@@ -134,7 +134,7 @@ implements java.lang.AutoCloseable</pre>
 <th class="colOne" scope="col">Constructor and Description</th>
 </tr>
 <tr class="altColor">
-<td class="colOne"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#Neo4jImporter-org.janelia.flyem.neuprinter.db.DbConfig-">Neo4jImporter</a></span>(<a href="../../../../org/janelia/flyem/neuprinter/db/DbConfig.html" title="class in org.janelia.flyem.neuprinter.db">DbConfig</a>&nbsp;dbConfig)</code>
+<td class="colOne"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#Neo4jImporter-org.janelia.flyem.neuprinter.db.DbConfig-">Neo4jImporter</a></span>(<a href="../../../../org/janelia/flyem/neuprinter/db/DbConfig.html" title="class in org.janelia.flyem.neuprint.db">DbConfig</a>&nbsp;dbConfig)</code>
 <div class="block">Class constructor.</div>
 </td>
 </tr>
@@ -174,15 +174,15 @@ implements java.lang.AutoCloseable</pre>
 <tr id="i2" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#addConnectionSets-java.lang.String-java.util.List-org.janelia.flyem.neuprinter.model.SynapseLocationToBodyIdMap-">addConnectionSets</a></span>(java.lang.String&nbsp;dataset,
-                 java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList,
-                 <a href="../../../../org/janelia/flyem/neuprinter/model/SynapseLocationToBodyIdMap.html" title="class in org.janelia.flyem.neuprinter.model">SynapseLocationToBodyIdMap</a>&nbsp;synapseLocationToBodyIdMap)</code>
+                 java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList,
+                 <a href="../../../../org/janelia/flyem/neuprinter/model/SynapseLocationToBodyIdMap.html" title="class in org.janelia.flyem.neuprint.model">SynapseLocationToBodyIdMap</a>&nbsp;synapseLocationToBodyIdMap)</code>
 <div class="block">Adds ConnectionSet nodes to database and connects them to appropriate Segment and Synapse nodes via Contains Relationships.</div>
 </td>
 </tr>
 <tr id="i3" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#addConnectsTo-java.lang.String-java.util.List-">addConnectsTo</a></span>(java.lang.String&nbsp;dataset,
-             java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>
+             java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>
 <div class="block">Adds ConnectsTo relationships between Segment nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.</div>
 </td>
 </tr>
@@ -206,33 +206,33 @@ implements java.lang.AutoCloseable</pre>
 <tr id="i7" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#addPreCountToConnectsToRelationships-java.lang.String-java.util.List-">addPreCountToConnectsToRelationships</a></span>(java.lang.String&nbsp;dataset,
-                                    java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>&nbsp;</td>
+                                    java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>&nbsp;</td>
 </tr>
 <tr id="i8" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#addSegmentRois-java.lang.String-java.util.List-">addSegmentRois</a></span>(java.lang.String&nbsp;dataset,
-              java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>
+              java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>
 <div class="block">Adds roi labels to Segment nodes.</div>
 </td>
 </tr>
 <tr id="i9" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#addSegments-java.lang.String-java.util.List-">addSegments</a></span>(java.lang.String&nbsp;dataset,
-           java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/Neuron.html" title="class in org.janelia.flyem.neuprinter.model">Neuron</a>&gt;&nbsp;neuronList)</code>
+           java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/Neuron.html" title="class in org.janelia.flyem.neuprint.model">Neuron</a>&gt;&nbsp;neuronList)</code>
 <div class="block">Adds Segment nodes with properties specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.</div>
 </td>
 </tr>
 <tr id="i10" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#addSkeletonNodes-java.lang.String-java.util.List-">addSkeletonNodes</a></span>(java.lang.String&nbsp;dataset,
-                java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/Skeleton.html" title="class in org.janelia.flyem.neuprinter.model">Skeleton</a>&gt;&nbsp;skeletonList)</code>
+                java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/Skeleton.html" title="class in org.janelia.flyem.neuprint.model">Skeleton</a>&gt;&nbsp;skeletonList)</code>
 <div class="block">Adds Skeleton and SkelNode nodes to database.</div>
 </td>
 </tr>
 <tr id="i11" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#addSynapseSets-java.lang.String-java.util.List-">addSynapseSets</a></span>(java.lang.String&nbsp;dataset,
-              java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>
+              java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>
 <div class="block">Adds SynapseSet nodes to database and connects them to Segment nodes and Synapse nodes via Contains relationships.</div>
 </td>
 </tr>
@@ -246,7 +246,7 @@ implements java.lang.AutoCloseable</pre>
 <tr id="i13" class="rowColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#addSynapsesWithRois-java.lang.String-java.util.List-">addSynapsesWithRois</a></span>(java.lang.String&nbsp;dataset,
-                   java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>
+                   java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>
 <div class="block">Adds Synapse nodes to database as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.</div>
 </td>
 </tr>
@@ -276,7 +276,7 @@ implements java.lang.AutoCloseable</pre>
 <tr id="i18" class="altColor">
 <td class="colFirst"><code>void</code></td>
 <td class="colLast"><code><span class="memberNameLink"><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporter.html#setSuperLevelRois-java.lang.String-java.util.List-">setSuperLevelRois</a></span>(java.lang.String&nbsp;dataset,
-                 java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>&nbsp;</td>
+                 java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</code>&nbsp;</td>
 </tr>
 </table>
 <ul class="blockList">
@@ -306,11 +306,11 @@ implements java.lang.AutoCloseable</pre>
 <ul class="blockList">
 <li class="blockList">
 <h4>Neo4jImporter</h4>
-<pre>public&nbsp;Neo4jImporter(<a href="../../../../org/janelia/flyem/neuprinter/db/DbConfig.html" title="class in org.janelia.flyem.neuprinter.db">DbConfig</a>&nbsp;dbConfig)</pre>
+<pre>public&nbsp;Neo4jImporter(<a href="../../../../org/janelia/flyem/neuprinter/db/DbConfig.html" title="class in org.janelia.flyem.neuprint.db">DbConfig</a>&nbsp;dbConfig)</pre>
 <div class="block">Class constructor.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
-<dd><code>dbConfig</code> - <a href="../../../../org/janelia/flyem/neuprinter/db/DbConfig.html" title="class in org.janelia.flyem.neuprinter.db"><code>DbConfig</code></a> object containing the database configuration</dd>
+<dd><code>dbConfig</code> - <a href="../../../../org/janelia/flyem/neuprinter/db/DbConfig.html" title="class in org.janelia.flyem.neuprint.db"><code>DbConfig</code></a> object containing the database configuration</dd>
 </dl>
 </li>
 </ul>
@@ -371,12 +371,12 @@ implements java.lang.AutoCloseable</pre>
 <li class="blockList">
 <h4>addSegments</h4>
 <pre>public&nbsp;void&nbsp;addSegments(java.lang.String&nbsp;dataset,
-                        java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/Neuron.html" title="class in org.janelia.flyem.neuprinter.model">Neuron</a>&gt;&nbsp;neuronList)</pre>
+                        java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/Neuron.html" title="class in org.janelia.flyem.neuprint.model">Neuron</a>&gt;&nbsp;neuronList)</pre>
 <div class="block">Adds Segment nodes with properties specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>dataset</code> - dataset name</dd>
-<dd><code>neuronList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/Neuron.html" title="class in org.janelia.flyem.neuprinter.model"><code>Neuron</code></a> objects</dd>
+<dd><code>neuronList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/Neuron.html" title="class in org.janelia.flyem.neuprint.model"><code>Neuron</code></a> objects</dd>
 </dl>
 </li>
 </ul>
@@ -387,12 +387,12 @@ implements java.lang.AutoCloseable</pre>
 <li class="blockList">
 <h4>addConnectsTo</h4>
 <pre>public&nbsp;void&nbsp;addConnectsTo(java.lang.String&nbsp;dataset,
-                          java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
+                          java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
 <div class="block">Adds ConnectsTo relationships between Segment nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>dataset</code> - dataset name</dd>
-<dd><code>bodyList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model"><code>BodyWithSynapses</code></a> objects</dd>
+<dd><code>bodyList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model"><code>BodyWithSynapses</code></a> objects</dd>
 </dl>
 </li>
 </ul>
@@ -403,7 +403,7 @@ implements java.lang.AutoCloseable</pre>
 <li class="blockList">
 <h4>addPreCountToConnectsToRelationships</h4>
 <pre>public&nbsp;void&nbsp;addPreCountToConnectsToRelationships(java.lang.String&nbsp;dataset,
-                                                 java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
+                                                 java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
 </li>
 </ul>
 <a name="addSynapsesWithRois-java.lang.String-java.util.List-">
@@ -413,12 +413,12 @@ implements java.lang.AutoCloseable</pre>
 <li class="blockList">
 <h4>addSynapsesWithRois</h4>
 <pre>public&nbsp;void&nbsp;addSynapsesWithRois(java.lang.String&nbsp;dataset,
-                                java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
+                                java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
 <div class="block">Adds Synapse nodes to database as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>dataset</code> - dataset</dd>
-<dd><code>bodyList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model"><code>BodyWithSynapses</code></a> objects</dd>
+<dd><code>bodyList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model"><code>BodyWithSynapses</code></a> objects</dd>
 </dl>
 </li>
 </ul>
@@ -448,12 +448,12 @@ implements java.lang.AutoCloseable</pre>
 <li class="blockList">
 <h4>addSegmentRois</h4>
 <pre>public&nbsp;void&nbsp;addSegmentRois(java.lang.String&nbsp;dataset,
-                           java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
+                           java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
 <div class="block">Adds roi labels to Segment nodes.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>dataset</code> - dataset name</dd>
-<dd><code>bodyList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model"><code>BodyWithSynapses</code></a> objects</dd>
+<dd><code>bodyList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model"><code>BodyWithSynapses</code></a> objects</dd>
 </dl>
 </li>
 </ul>
@@ -473,7 +473,7 @@ implements java.lang.AutoCloseable</pre>
 <dd><code>dataset</code> - dataset name</dd>
 <dd><code>neuronThreshold</code> - Neuron must have >=neuronThreshold/5 presynaptic densities or >=neuronThreshold postsynaptic densities to be given an autoName and :Neuron label</dd>
 <dt><span class="seeLabel">See Also:</span></dt>
-<dd><a href="../../../../org/janelia/flyem/neuprinter/model/AutoName.html" title="class in org.janelia.flyem.neuprinter.model"><code>AutoName</code></a></dd>
+<dd><a href="../../../../org/janelia/flyem/neuprinter/model/AutoName.html" title="class in org.janelia.flyem.neuprint.model"><code>AutoName</code></a></dd>
 </dl>
 </li>
 </ul>
@@ -500,12 +500,12 @@ implements java.lang.AutoCloseable</pre>
 <li class="blockList">
 <h4>addSynapseSets</h4>
 <pre>public&nbsp;void&nbsp;addSynapseSets(java.lang.String&nbsp;dataset,
-                           java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
+                           java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
 <div class="block">Adds SynapseSet nodes to database and connects them to Segment nodes and Synapse nodes via Contains relationships.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>dataset</code> - dataset name</dd>
-<dd><code>bodyList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model"><code>BodyWithSynapses</code></a> objects</dd>
+<dd><code>bodyList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model"><code>BodyWithSynapses</code></a> objects</dd>
 </dl>
 </li>
 </ul>
@@ -516,8 +516,8 @@ implements java.lang.AutoCloseable</pre>
 <li class="blockList">
 <h4>addConnectionSets</h4>
 <pre>public&nbsp;void&nbsp;addConnectionSets(java.lang.String&nbsp;dataset,
-                              java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList,
-                              <a href="../../../../org/janelia/flyem/neuprinter/model/SynapseLocationToBodyIdMap.html" title="class in org.janelia.flyem.neuprinter.model">SynapseLocationToBodyIdMap</a>&nbsp;synapseLocationToBodyIdMap)</pre>
+                              java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList,
+                              <a href="../../../../org/janelia/flyem/neuprinter/model/SynapseLocationToBodyIdMap.html" title="class in org.janelia.flyem.neuprint.model">SynapseLocationToBodyIdMap</a>&nbsp;synapseLocationToBodyIdMap)</pre>
 <div class="block">Adds ConnectionSet nodes to database and connects them to appropriate Segment and Synapse nodes via Contains Relationships.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
@@ -534,14 +534,14 @@ implements java.lang.AutoCloseable</pre>
 <li class="blockList">
 <h4>addSkeletonNodes</h4>
 <pre>public&nbsp;void&nbsp;addSkeletonNodes(java.lang.String&nbsp;dataset,
-                             java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/Skeleton.html" title="class in org.janelia.flyem.neuprinter.model">Skeleton</a>&gt;&nbsp;skeletonList)</pre>
+                             java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/Skeleton.html" title="class in org.janelia.flyem.neuprint.model">Skeleton</a>&gt;&nbsp;skeletonList)</pre>
 <div class="block">Adds Skeleton and SkelNode nodes to database. Segments are connected to Skeletons via Contains relationships.
  Skeletons are connected to SkelNodes via Contains relationships. SkelNodes point to their children with LinksTo
  relationships.</div>
 <dl>
 <dt><span class="paramLabel">Parameters:</span></dt>
 <dd><code>dataset</code> - dataset name</dd>
-<dd><code>skeletonList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/Skeleton.html" title="class in org.janelia.flyem.neuprinter.model"><code>Skeleton</code></a> objects</dd>
+<dd><code>skeletonList</code> - list of <a href="../../../../org/janelia/flyem/neuprinter/model/Skeleton.html" title="class in org.janelia.flyem.neuprint.model"><code>Skeleton</code></a> objects</dd>
 </dl>
 </li>
 </ul>
@@ -599,7 +599,7 @@ implements java.lang.AutoCloseable</pre>
 <li class="blockList">
 <h4>setSuperLevelRois</h4>
 <pre>public&nbsp;void&nbsp;setSuperLevelRois(java.lang.String&nbsp;dataset,
-                              java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprinter.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
+                              java.util.List&lt;<a href="../../../../org/janelia/flyem/neuprinter/model/BodyWithSynapses.html" title="class in org.janelia.flyem.neuprint.model">BodyWithSynapses</a>&gt;&nbsp;bodyList)</pre>
 </li>
 </ul>
 <a name="addClusterNames-java.lang.String-float-">
@@ -639,8 +639,8 @@ implements java.lang.AutoCloseable</pre>
 </div>
 <div class="subNav">
 <ul class="navList">
-<li><a href="../../../../org/janelia/flyem/neuprinter/Neo4jEditor.html" title="class in org.janelia.flyem.neuprinter"><span class="typeNameLink">Prev&nbsp;Class</span></a></li>
-<li><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporterTest.html" title="class in org.janelia.flyem.neuprinter"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
+<li><a href="../../../../org/janelia/flyem/neuprinter/Neo4jEditor.html" title="class in org.janelia.flyem.neuprint"><span class="typeNameLink">Prev&nbsp;Class</span></a></li>
+<li><a href="../../../../org/janelia/flyem/neuprinter/Neo4jImporterTest.html" title="class in org.janelia.flyem.neuprint"><span class="typeNameLink">Next&nbsp;Class</span></a></li>
 </ul>
 <ul class="navList">
 <li><a href="../../../../index.html?org/janelia/flyem/neuprinter/Neo4jImporter.html" target="_top">Frames</a></li>
