@@ -8,11 +8,11 @@
     <parent>
         <artifactId>neuprint-root</artifactId>
         <groupId>org.janelia.flyem</groupId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0</version>
     </parent>
 
     <artifactId>neuprint</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.0</version>
     <packaging>jar</packaging>
     <name>neuprint</name>
     <description>Tools for importing connectome data into neo4j</description>
@@ -73,7 +73,7 @@
         <dependency>
             <groupId>org.janelia.flyem</groupId>
             <artifactId>neuprint-load-procedures</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>1.0</version>
             <scope>compile</scope>
         </dependency>
 
