@@ -139,10 +139,10 @@ public class NeuPrinterMain {
 
         @Parameter(
                 names = "--addConnectionSetRoiInfoAndWeightHP",
-                description = "Indicates that an roiInfo property should be added to each ConnectionSet and that the weightHP property should be added to all ConnectionSets (omit to skip).",
-                arity = 0
+                description = "Indicates that an roiInfo property should be added to each ConnectionSet and that the weightHP property should be added to all ConnectionSets (true by default).",
+                arity = 1
         )
-        boolean addConnectionSetRoiInfoAndWeightHP;
+        boolean addConnectionSetRoiInfoAndWeightHP = true;
 
         @Parameter(
                 names = "--synapseJson",
