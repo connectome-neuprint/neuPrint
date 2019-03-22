@@ -126,32 +126,18 @@ public class ProofreaderProcedures {
             } else {
 
                 boolean isNeuron = false;
-                boolean checkIfStillNeuron = false;
 
                 if (neuron.getStatus() != null) {
-                    if (!neuron.getStatus().equals("")) {
                         neuronNode.setProperty(STATUS, neuron.getStatus());
                         // adding a status makes it a Neuron
                         isNeuron = true;
-                    } else {
-                        // delete status when passed empty string
-                        neuronNode.removeProperty(STATUS);
-                        checkIfStillNeuron = true;
-                    }
                     log.info("Updated status for neuron " + neuron.getId() + ".");
                 }
 
                 if (neuron.getName() != null) {
-                    if (!neuron.getName().equals("")) {
                         neuronNode.setProperty(NAME, neuron.getName());
                         // adding a name makes it a Neuron
                         isNeuron = true;
-                    } else {
-                        // delete name when passed empty string
-                        neuronNode.removeProperty(NAME);
-                        checkIfStillNeuron = true;
-                    }
-
                     log.info("Updated name for neuron " + neuron.getId() + ".");
                 }
 
@@ -173,24 +159,6 @@ public class ProofreaderProcedures {
 
                 if (isNeuron) {
                     convertSegmentToNeuron(neuronNode, datasetLabel, neuron.getId());
-                } else if (checkIfStillNeuron) {
-                    long preCount = 0;
-                    long postCount = 0;
-                    if (neuronNode.hasProperty(PRE)) {
-                        preCount = (long) neuronNode.getProperty(PRE);
-                    }
-                    if (neuronNode.hasProperty(POST)) {
-                        postCount = (long) neuronNode.getProperty(POST);
-                    }
-
-                    // check if neuron
-                    if (!(preCount >= 2 || postCount >= 10 || neuronNode.hasProperty(NAME) || neuronNode.hasProperty(SOMA_RADIUS) || neuronNode.hasProperty(STATUS))) {
-                        // remove neuron labels
-                        neuronNode.removeLabel(Label.label(NEURON));
-                        neuronNode.removeLabel(Label.label(datasetLabel + "-" + NEURON));
-                        // remove cluster name
-                        neuronNode.removeProperty(CLUSTER_NAME);
-                    }
                 }
             }
 
@@ -201,6 +169,130 @@ public class ProofreaderProcedures {
 
         log.info("proofreader.updateProperties: exit");
 
+    }
+
+    @Procedure(value = "proofreader.deleteSoma", mode = Mode.WRITE)
+    @Description("proofreader.deleteSoma(bodyId, datasetLabel): Delete soma (radius and location) from Neuron node.")
+    public void deleteSoma(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel){
+
+        log.info("proofreader.deleteSoma: entry");
+
+        try {
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteSoma: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteSoma: Missing input arguments.");
+            }
+
+            // get the neuron node
+
+            Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
+
+            if (neuronNode == null) {
+                log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of soma.");
+            } else {
+
+                // delete soma radius
+                neuronNode.removeProperty(SOMA_RADIUS);
+
+                // delete soma location
+                neuronNode.removeProperty(SOMA_LOCATION);
+
+                // check if it should still be labeled neuron and remove designation if necessary
+                if (!checkIfStillNeuron(neuronNode)) {
+                    System.out.println("Removing neuron designation");
+                    removeNeuronDesignationFromNode(neuronNode, datasetLabel);
+                }
+
+                log.info("Successfully deleted soma information from " + bodyId);
+            }
+
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteSoma: " + e);
+            throw new RuntimeException("Error running proofreader.deleteSoma: " + e);
+        }
+
+        log.info("proofreader.deleteSoma: exit");
+
+    }
+
+    @Procedure(value = "proofreader.deleteName", mode = Mode.WRITE)
+    @Description("proofreader.deleteName(bodyId, datasetLabel): Delete name from Neuron node.")
+    public void deleteName(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel){
+
+        log.info("proofreader.deleteName: entry");
+
+        try {
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteName: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteName: Missing input arguments.");
+            }
+
+            // get the neuron node
+            Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
+
+            if (neuronNode == null) {
+                log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of name.");
+            } else {
+
+                // delete name
+                neuronNode.removeProperty(NAME);
+
+                // check if it should still be labeled neuron and remove designation if necessary
+                if (!checkIfStillNeuron(neuronNode)) {
+                    removeNeuronDesignationFromNode(neuronNode, datasetLabel);
+                }
+
+                log.info("Successfully deleted name information from " + bodyId);
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteName: " + e);
+            throw new RuntimeException("Error running proofreader.deleteName: " + e);
+        }
+
+        log.info("proofreader.deleteName: exit");
+    }
+
+    @Procedure(value = "proofreader.deleteStatus", mode = Mode.WRITE)
+    @Description("proofreader.deleteStatus(bodyId, datasetLabel): Delete name from Neuron node.")
+    public void deleteStatus(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel){
+
+        log.info("proofreader.deleteStatus: entry");
+
+        try {
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteStatus: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteStatus: Missing input arguments.");
+            }
+
+            // get the neuron node
+            Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
+
+            if (neuronNode == null) {
+                log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of status.");
+            } else {
+
+                // delete status
+                neuronNode.removeProperty(STATUS);
+
+                // check if it should still be labeled neuron and remove designation if necessary
+                if (!checkIfStillNeuron(neuronNode)) {
+                    removeNeuronDesignationFromNode(neuronNode, datasetLabel);
+                }
+
+                log.info("Successfully deleted status information from " + bodyId);
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteStatus: " + e);
+            throw new RuntimeException("Error running proofreader.deleteStatus: " + e);
+        }
+
+        log.info("proofreader.deleteStatus: exit");
     }
 
     @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
@@ -772,6 +864,28 @@ public class ProofreaderProcedures {
         }
 
         log.info("temp.updateConnectionSetsAndWeightHP: exit");
+    }
+
+    private boolean checkIfStillNeuron(Node neuronNode) {
+        long preCount = 0;
+        long postCount = 0;
+        if (neuronNode.hasProperty(PRE)) {
+            preCount = (long) neuronNode.getProperty(PRE);
+        }
+        if (neuronNode.hasProperty(POST)) {
+            postCount = (long) neuronNode.getProperty(POST);
+        }
+
+        // returns true if meets the definition for a neuron
+        return (preCount >= 2 || postCount >= 10 || neuronNode.hasProperty(NAME) || neuronNode.hasProperty(SOMA_RADIUS) || neuronNode.hasProperty(STATUS));
+    }
+
+    private void removeNeuronDesignationFromNode(Node neuronNode, String datasetLabel) {
+        // remove neuron labels
+        neuronNode.removeLabel(Label.label(NEURON));
+        neuronNode.removeLabel(Label.label(datasetLabel + "-" + NEURON));
+        // remove cluster name
+        neuronNode.removeProperty(CLUSTER_NAME);
     }
 
     private String addSynapseToRoiInfo(String roiInfoString, String roiName, String synapseType) {

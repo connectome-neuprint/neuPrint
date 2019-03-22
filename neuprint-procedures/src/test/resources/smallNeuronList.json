@@ -34,11 +34,13 @@
   {
     "Id": 100554,
     "Status": "final (irrelevant)",
+    "Name": "testName",
     "Size": 1756948
   },
   {
     "Id": 100569,
     "Status": "final",
-    "Size": 1031
+    "Size": 1031,
+    "Soma": { "Location":[1,2,4],"Radius":10.0}
   }
 ]
