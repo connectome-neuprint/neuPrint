@@ -189,7 +189,6 @@ public class ProofreaderProcedures {
         } catch (Exception e) {
             log.warn("Error retrieving roiInfo from body id " + bodyId + " in " + datasetLabel + ". No cluster name added.");
             setClusterName = false;
-//            throw new RuntimeException("Error retrieving roiInfo from body id " + bodyId + " in " + datasetLabel + ":" + e);
         }
 
         try {
@@ -197,7 +196,6 @@ public class ProofreaderProcedures {
         } catch (Exception e) {
             log.warn("Error retrieving pre from body id " + bodyId + " in " + datasetLabel + ". No cluster name added.");
             setClusterName = false;
-//            throw new RuntimeException("Error retrieving pre from body id " + bodyId + " in " + datasetLabel + ":" + e);
         }
 
         try {
@@ -205,7 +203,6 @@ public class ProofreaderProcedures {
         } catch (Exception e) {
             log.warn("Error retrieving post from body id " + bodyId + " in " + datasetLabel + ". No cluster name added.");
             setClusterName = false;
-//            throw new RuntimeException("Error retrieving post from body id " + bodyId + " in " + datasetLabel + ":" + e);
         }
 
         if (setClusterName) {
@@ -247,7 +244,6 @@ public class ProofreaderProcedures {
             }
 
             // get the neuron node
-
             Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
 
             if (neuronNode == null) {
@@ -990,16 +986,6 @@ public class ProofreaderProcedures {
 
         return skelNodeNode;
     }
-
-//
-//    private void setSynapseRoisFromDatabase(Synapse synapse, String datasetLabel) {
-//        List<String> roiList = getRoisForSynapse(synapse, datasetLabel);
-//        if (roiList.size() == 0) {
-//            log.info(String.format("ProofreaderProcedures setSynapseRoisFromDatabase: No roi found on %s: %s", SYNAPSE, synapse));
-//            //throw new RuntimeException(String.format("No roi found on %s: %s", SYNAPSE, synapse));
-//        }
-//        synapse.addRoiList(new ArrayList<>(roiList));
-//    }
 
     @Procedure(value = "proofreader.deleteSkeleton", mode = Mode.WRITE)
     @Description("proofreader.deleteSkeleton(bodyId,datasetLabel) : delete skeleton for provided body id ")
