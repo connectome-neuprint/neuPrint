@@ -172,23 +172,8 @@ Usage: java -jar neuprint.jar [options]
 
 [Model details](pgmspecs.md)
 
-## neuPrint Neo4j Stored Procedures (Under development; may not be up-to-date)
+## Developer Instructions
 
-Place neuprint-procedures.jar into the plugins folder of your neo4j database, and restart the database. Under development. All features are experimental. 
-### Proofreader procedures (READ/WRITE)
-1. applies time stamp to nodes when they are created, when their properties change, when relationships are changed, and when relationship properties are changed. 
-2. proofreader.mergeNeuronsFromJson(mergeJson, datasetLabel) : merge neurons from json file containing single mergeaction json
-3. proofreader.cleaveNeuronsFromJson(cleaveJson, datasetLabel) : cleave neuron from json file containing a single cleaveaction json
-3. proofreader.addSkeleton(fileUrl,datasetLabel): Load skeleton file from url into database and connect to appropriate neuron. Returns the new skeleton node. e.g.: ``` CALL proofreader.addSkeleton("http://fileurl/87475_swc","mb6") YIELD node RETURN node ```
-### Analysis procedures (READ)
-1. analysis.getLineGraph(bodyId,datasetLabel,vertexSynapseThreshold=50): used to produce an edge-to-vertex dual graph, or line graph, for a neuron. Returned value is a map with the vertex json under key "Vertices" and edge json under "Edges". 
-2. analysis.getConnectionCentroidsAndSkeleton(bodyId,datasetLabel,vertexSynapseThreshold=50) Provides the synapse points and centroid for each type of synaptic connection (e.g. neuron A to neuron B) present in the neuron with the provided bodyId as well as the skeleton for that body. Returned value is a map with the centroid json " +
-under key "Centroids" and the skeleton json under key "Skeleton". 
-3. analysis.calculateSkeletonDistance(datasetLabel, SkelNodeA,SkelNodeB): Calculates the distance between two :SkelNodes for a body. See #4.
-4. analysis.getNearestSkelNodeOnBodyToPoint(bodyId,datasetLabel,x,y,z): Returns the :SkelNode on the given body's skeleton that is closest to the provided point. To be used with #3.
-5. analysis.getInputAndOutputCountsForRois(bodyId,datasetLabel): Produces json array with counts of inputs and outputs per roi for a given neuron.
-6. analysis.getInputAndOutputFeatureVectorsForNeuronsInRoi(roi,datasetLabel,synapseThreshold): Produces json array with input and output feature vectors for each neuron in the provide ROI. Vectors contain the synapse count per ROI.
-### neuprintUserFunctions (READ, output a single value)
-1. neuprint.locationAs3dCartPoint(x,y,z) : returns a 3D Cartesian org.neo4j.graphdb.spatial.Point type with the provided coordinates. 
+`mvn test` will run all tests, `mvn package` will run all tests and package the .jar file. Running `mvn verify` will copy .jar files to the `executables` directory (`package` places .jar files in the `target` directory). Versioning must be done manually in the pom.xml file.
       
 
