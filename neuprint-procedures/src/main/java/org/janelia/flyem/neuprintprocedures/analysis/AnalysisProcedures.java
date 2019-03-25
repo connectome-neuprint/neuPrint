@@ -11,7 +11,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprint.model.SkelNode;
 import org.janelia.flyem.neuprint.model.SynapseCounter;
-import org.janelia.flyem.neuprintprocedures.Location;
+import org.janelia.flyem.neuprintloadprocedures.Location;
 import org.neo4j.graphalgo.GraphAlgoFactory;
 import org.neo4j.graphalgo.PathFinder;
 import org.neo4j.graphalgo.WeightedPath;
@@ -136,6 +136,96 @@ public class AnalysisProcedures {
 
     }
 
+    private SynapticConnectionVertexMap getSynapticConnectionNodeMap(Set<Long> neuronBodyIdSet, String datasetLabel) {
+        SynapticConnectionVertexMap synapticConnectionVertexMap = new SynapticConnectionVertexMap();
+
+        for (Long neuronBodyId : neuronBodyIdSet) {
+
+            Node neuron = acquireSegmentFromDatabase(neuronBodyId, datasetLabel);
+            Node neuronSynapseSet = getSynapseSetForNode(neuron);
+
+            if (neuronSynapseSet != null) {
+                for (Relationship synapseRelationship : neuronSynapseSet.getRelationships(Direction.OUTGOING, RelationshipType.withName(CONTAINS))) {
+                    // get each synapse node
+                    Node synapseNode = synapseRelationship.getEndNode();
+
+                    //get all the synapses that connect to this neuron
+                    for (Relationship synapsesToRelationship : synapseNode.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
+                        Node connectedSynapseNode = synapsesToRelationship.getOtherNode(synapseNode);
+                        if (!connectedSynapseNode.hasLabel(Label.label("createdforsynapsesto"))) {
+                            Relationship synapseToSynapseSetRelationship = connectedSynapseNode.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING);
+                            if (synapseToSynapseSetRelationship != null) {
+                                Node synapseSet = synapseToSynapseSetRelationship.getStartNode();
+                                Relationship neuronToSynapseSetRelationship = synapseSet.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING);
+                                Node connectedNeuron = neuronToSynapseSetRelationship.getStartNode();
+                                Long connectedNeuronBodyId = (Long) connectedNeuron.getProperty(BODY_ID);
+
+                                String categoryString;
+
+                                if (synapseNode.hasLabel(Label.label(PRE_SYN))) {
+                                    categoryString = neuron.getProperty(BODY_ID) + "_to_" + connectedNeuronBodyId;
+                                    synapticConnectionVertexMap.addSynapticConnection(categoryString, synapseNode, connectedSynapseNode);
+
+                                } else if (synapseNode.hasLabel(Label.label(POST_SYN))) {
+                                    categoryString = connectedNeuronBodyId + "_to_" + neuron.getProperty(BODY_ID);
+                                    synapticConnectionVertexMap.addSynapticConnection(categoryString, connectedSynapseNode, synapseNode);
+                                }
+
+                            } else {
+                                log.info(String.format("No %s relationship found for %s: %s", SYNAPSE_SET, SYNAPSE, connectedSynapseNode.getAllProperties()));
+                            }
+
+                        } else {
+                            log.info(String.format("Connected %s is not associated with any %s: %s", SYNAPSE, SEGMENT, connectedSynapseNode.getAllProperties()));
+                        }
+                    }
+                }
+            } else {
+                log.info("No %s found for neuron %d.", SYNAPSE_SET, neuronBodyId);
+            }
+        }
+
+        return synapticConnectionVertexMap;
+    }
+
+    private Node acquireSegmentFromDatabase(Long nodeBodyId, String datasetLabel) throws Error {
+
+        Map<String, Object> parametersMap = new HashMap<>();
+        parametersMap.put(BODY_ID, nodeBodyId);
+        Map<String, Object> nodeQueryResult;
+        Node foundNode;
+
+        try {
+            nodeQueryResult = dbService.execute("MATCH (node:`" + datasetLabel + "-Segment`{bodyId:$bodyId}) RETURN node", parametersMap).next();
+        } catch (java.util.NoSuchElementException nse) {
+            log.error(String.format("acquireSegmentFromDatabase: Error using analysis procedures: Node must exist in the dataset and be labeled :%s-%s.", datasetLabel, SEGMENT));
+            nse.printStackTrace();
+            throw new RuntimeException(String.format("acquireSegmentFromDatabase: Error using analysis procedures: Node must exist in the dataset and be labeled :%s-%s.", datasetLabel, SEGMENT));
+        }
+
+        try {
+            foundNode = (Node) nodeQueryResult.get("node");
+        } catch (NullPointerException npe) {
+            npe.printStackTrace();
+            throw new RuntimeException(String.format("acquireSegmentFromDatabase: Error using analysis procedures: Node must exist in the dataset and be labeled :%s-%s.", datasetLabel, SEGMENT));
+        }
+
+        return foundNode;
+
+    }
+
+    private Node getSynapseSetForNode(final Node node) {
+
+        Node nodeSynapseSetNode = null;
+        for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName(CONTAINS))) {
+            Node containedNode = nodeRelationship.getEndNode();
+            if (containedNode.hasLabel(Label.label(SYNAPSE_SET))) {
+                nodeSynapseSetNode = containedNode;
+            }
+        }
+        return nodeSynapseSetNode;
+    }
+
     @Procedure(value = "analysis.getConnectionCentroidsAndSkeleton", mode = Mode.READ)
     @Description("Provides the synapse points and centroid for each type of synaptic connection (e.g. neuron A to neuron B) " +
             "present in the neuron with the provided bodyId as well as the skeleton for that body. Returned value is a map with the centroid json " +
@@ -175,6 +265,35 @@ public class AnalysisProcedures {
         return Stream.of(new MapResult(jsonMap));
     }
 
+    private List<Node> getSkelNodesForSkeleton(Node neuron) {
+
+        Node nodeSkeletonNode = null;
+        List<Node> skelNodeList = new ArrayList<>();
+        for (Relationship nodeRelationship : neuron.getRelationships(RelationshipType.withName(CONTAINS))) {
+            Node containedNode = nodeRelationship.getEndNode();
+            if (containedNode.hasLabel(Label.label(SKELETON))) {
+                nodeSkeletonNode = containedNode;
+            }
+        }
+
+        if (nodeSkeletonNode != null) {
+            for (Relationship skeletonRelationship : nodeSkeletonNode.getRelationships(RelationshipType.withName(CONTAINS))) {
+                Node containedNode = skeletonRelationship.getEndNode();
+                if (containedNode.hasLabel(Label.label(SKEL_NODE))) {
+                    skelNodeList.add(containedNode);
+                }
+            }
+        } else {
+            throw new Error("No skeleton for bodyId " + neuron.getProperty(BODY_ID));
+        }
+
+        return skelNodeList;
+    }
+
+    private static List<Integer> getNeo4jPointLocationAsLocationList(Point neo4jPoint) {
+        return neo4jPoint.getCoordinate().getCoordinate().stream().map(d -> (int) Math.round(d)).collect(Collectors.toList());
+    }
+
     @Procedure(value = "analysis.calculateSkeletonDistance", mode = Mode.READ)
     @Description("Calculates the distance between two :SkelNodes for a body.")
     public Stream<LongResult> calculateSkeletonDistance(@Name("datasetLabel") String datasetLabel,
@@ -193,6 +312,28 @@ public class AnalysisProcedures {
 
         return Stream.of(new LongResult(Math.round(distance)));
 
+    }
+
+    private List<Node> getNodesAlongPath(Node skelNodeA, Node skelNodeB, String datasetLabel) {
+
+        Map<String, Object> pathQueryResult = null;
+        Map<String, Object> parametersMap = new HashMap<>();
+        parametersMap.put("skelNodeIdA", skelNodeA.getProperty(SKEL_NODE_ID));
+        parametersMap.put("skelNodeIdB", skelNodeB.getProperty(SKEL_NODE_ID));
+        try {
+            pathQueryResult = dbService.execute("MATCH p=(:`" + datasetLabel + "-SkelNode`{skelNodeId:$skelNodeIdA})-[:LinksTo*]-(:`" + datasetLabel + "-SkelNode`{skelNodeId:$skelNodeIdB}) RETURN nodes(p) AS nodeList", parametersMap).next();
+        } catch (Exception e) {
+            log.error("Error getting path between SkelNodes.");
+            e.printStackTrace();
+        }
+
+        return (ArrayList<Node>) pathQueryResult.get("nodeList");
+
+    }
+
+    static Location getSkelOrSynapseNodeLocation(Node node) {
+        List<Integer> locationList = getNeo4jPointLocationAsLocationList((Point) node.getProperty(LOCATION));
+        return new Location((long) locationList.get(0), (long) locationList.get(1), (long) locationList.get(2));
     }
 
     @Procedure(value = "analysis.getNearestSkelNodeOnBodyToPoint", mode = Mode.READ)
@@ -238,6 +379,18 @@ public class AnalysisProcedures {
 
         return Stream.of(new StringResult(roiCountJson));
 
+    }
+
+    private Map<String, SynapseCounter> getSynapseCounterMapForNeuron(NeuronWithRoiInfoMap neuron) {
+
+//        String synapseCountPerRoiJson = (String) neuron.getProperty(ROI_INFO);
+//        Gson gson = new Gson();
+//        Map<String, SynapseCounter> synapseCountPerRoiMap = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String, SynapseCounter>>() {
+//        }.getType());
+        Map<String, SynapseCounter> synapseCountPerRoiMap = new HashMap<>(neuron.getRoiInfoMap());
+        synapseCountPerRoiMap.put("total", new SynapseCounter(Math.toIntExact(neuron.getPre()), Math.toIntExact(neuron.getPost())));
+
+        return synapseCountPerRoiMap;
     }
 
     @Procedure(value = "analysis.getInputAndOutputFeatureVectorsForNeuronsInRoiAndTopXFirstDegreeConnections", mode = Mode.READ)
@@ -332,6 +485,88 @@ public class AnalysisProcedures {
 
     }
 
+    private List<String> getRoiListForDataset(String datasetLabel) {
+
+        Node metaNode = dbService.findNode(Label.label("Meta"), "dataset", datasetLabel);
+
+        String roiInfo = (String) metaNode.getProperty("roiInfo");
+        Gson gson = new Gson();
+        Map<String, SynapseCounter> roiInfoMap = gson.fromJson(roiInfo, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+
+        //        String getRoiFromMeta = "MATCH (n:Meta{dataset:\"" + datasetLabel + "\"}) RETURN keys(apoc.convert.fromJsonMap(n.roiInfo)) AS rois";
+//
+//        Map<String, Object> roiListQueryResult;
+//        List<String> rois = null;
+//        try {
+//            roiListQueryResult = dbService.execute(getRoiFromMeta).next();
+//            List<String> labels = (ArrayList<String>) roiListQueryResult.get("rois");
+//            rois = labels.stream()
+//                    .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
+//                    .collect(Collectors.toList());
+//        } catch (NoSuchElementException nse) {
+//            throw new RuntimeException("getRoiListForDataset: No Meta node found for this dataset.");
+//        } catch (NullPointerException npe) {
+//            throw new RuntimeException("getRoiListForDataset: No rois property found on Meta node for this dataset.");
+//        } catch (Exception e) {
+//            log.error("getRoiListForDataset: Error getting roi list from " + datasetLabel + ".");
+//            e.printStackTrace();
+//        }
+        return roiInfoMap.keySet().stream().filter(l -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi"))).collect(Collectors.toList());
+    }
+
+    private Set<NeuronWithRoiInfoMap> getNeuronSetFromRoi(String roi, Long roiSynapseThreshold, String datasetLabel, Long synapseThreshold) {
+
+        ResourceIterator<Node> nodes = dbService.findNodes(Label.label(datasetLabel + "-Neuron"), roi, true);
+        Set<NeuronWithRoiInfoMap> relevantNeuronNodes = new HashSet<>();
+        Gson gson = new Gson();
+        while (nodes.hasNext()) {
+            Node currentNode = nodes.next();
+            Map<String, Object> properties = currentNode.getProperties("pre", "post", "roiInfo", "bodyId");
+            Map<String, SynapseCounter> roiInfo = gson.fromJson((String) properties.get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
+            }.getType());
+            long pre = (long) properties.get("pre");
+            long post = (long) properties.get("post");
+            long roiSynapseTotal = roiInfo.get(roi).getPre() + roiInfo.get(roi).getPost();
+            if ((pre + post) > synapseThreshold && roiSynapseTotal > roiSynapseThreshold) {
+                relevantNeuronNodes.add(new NeuronWithRoiInfoMap(currentNode, (long) properties.get("bodyId"), roiInfo, pre, post));
+            }
+        }
+//        Map<String, Object> roiQueryResult = null;
+//        String bigQuery = "MATCH (node:`" + datasetLabel + "-Neuron`{`" + roi + "`:true}) WHERE (node.pre+node.post)>" + synapseThreshold +
+//                " AND apoc.convert.fromJsonMap(node.roiInfo).`" + roi + "`.pre+apoc.convert.fromJsonMap(node.roiInfo).`" + roi + "`.post>" + roiSynapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList";
+//            try {
+//            roiQueryResult = dbService.execute(bigQuery).next();
+//        } catch (Exception e) {
+//            log.error("getNeuronSetFromRoi: Error getting node body ids for roi with name " + roi + ".");
+//            e.printStackTrace();
+//        }
+
+//        return new HashSet<>((ArrayList<Long>) roiQueryResult.get("bodyIdList"));
+
+        return relevantNeuronNodes;
+
+    }
+
+    private Map<String, Object> getTopXFirstDegreeConnectionsForNeuron(Long bodyId, String datasetLabel, long maxFirstDegreeConnections) {
+
+        Map<String, Object> parametersMap = new HashMap<>();
+        parametersMap.put("nodeBodyId", bodyId);
+        Map<String, Object> roiQueryResult = null;
+        String firstDegreeConnectionQuery = "MATCH (node:`" + datasetLabel + "-Neuron`{bodyId:$nodeBodyId})-[r:ConnectsTo]-(p:`" + datasetLabel + "-Neuron`) WITH p AS connection, " +
+                "startNode(r)=node AS out " +
+                "ORDER BY r.weight DESC LIMIT " + maxFirstDegreeConnections + " RETURN collect(connection) AS neuronList, collect(out) AS outList";
+        try {
+            roiQueryResult = dbService.execute(firstDegreeConnectionQuery, parametersMap).next();
+        } catch (Exception e) {
+            log.error("Error getting node body ids connected to " + bodyId + ".");
+            e.printStackTrace();
+        }
+
+        return roiQueryResult;
+
+    }
+
     @Procedure(value = "analysis.getInputAndOutputFeatureVectorsForNeuronsInRoi", mode = Mode.READ)
     @Description("")
     public Stream<StringResult> getInputAndOutputFeatureVectorsForNeuronsInRoi(@Name("roi") String roi,
@@ -359,6 +594,29 @@ public class AnalysisProcedures {
         return Stream.of(new StringResult(featureVectorsJson));
     }
 
+    private Set<ClusteringFeatureVector> getSetOfClusteringFeatureVectors(Set<NeuronWithRoiInfoMap> neuronSet, List<String> roiList) {
+
+        //for each neuron get the number of inputs per roi
+        //another vector with number of outputs per roi
+        //to be normalized and/or combined into one vector later.
+        Set<ClusteringFeatureVector> clusteringFeatureVectors = new HashSet<>();
+        for (NeuronWithRoiInfoMap neuron : neuronSet) {
+            Map<String, SynapseCounter> synapseCounterMap = getSynapseCounterMapForNeuron(neuron);
+            long[] inputFeatureVector = new long[roiList.size()];
+            long[] outputFeatureVector = new long[roiList.size()];
+            for (int i = 0; i < roiList.size(); i++) {
+                if (synapseCounterMap.get(roiList.get(i)) != null) {
+                    inputFeatureVector[i] = synapseCounterMap.get(roiList.get(i)).getPost();
+                    outputFeatureVector[i] = synapseCounterMap.get(roiList.get(i)).getPre();
+                }
+            }
+            clusteringFeatureVectors.add(new ClusteringFeatureVector(neuron.getBodyId(), inputFeatureVector, outputFeatureVector));
+        }
+
+        return clusteringFeatureVectors;
+
+    }
+
     @Procedure(value = "analysis.getInputAndOutputFeatureVectorsForAllNeurons", mode = Mode.READ)
     @Description("")
     public Stream<StringResult> getInputAndOutputFeatureVectorsForAllNeurons(@Name("datasetLabel") String datasetLabel,
@@ -382,6 +640,38 @@ public class AnalysisProcedures {
         String featureVectorsJson = ClusteringFeatureVector.getClusteringFeatureVectorSetJson(clusteringFeatureVectors);
 
         return Stream.of(new StringResult(featureVectorsJson));
+    }
+
+    private Set<NeuronWithRoiInfoMap> getNeuronSetFromDataset(String datasetLabel, Long synapseThreshold) {
+
+        ResourceIterator<Node> nodes = dbService.findNodes(Label.label(datasetLabel + "-Neuron"));
+        Set<NeuronWithRoiInfoMap> relevantNeuronNodes = new HashSet<>();
+        Gson gson = new Gson();
+        while (nodes.hasNext()) {
+            Node currentNode = nodes.next();
+            Map<String, Object> properties = currentNode.getProperties("pre", "post", "roiInfo", "bodyId");
+            Map<String, SynapseCounter> roiInfo = gson.fromJson((String) properties.get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
+            }.getType());
+            long pre = (long) properties.get("pre");
+            long post = (long) properties.get("post");
+            if ((pre + post) > synapseThreshold) {
+                relevantNeuronNodes.add(new NeuronWithRoiInfoMap(currentNode, (long) properties.get("bodyId"), roiInfo, pre, post));
+            }
+        }
+//        Map<String, Object> roiQueryResult = null;
+//        String bigQuery = "MATCH (node:`" + datasetLabel + "-Neuron`{`" + roi + "`:true}) WHERE (node.pre+node.post)>" + synapseThreshold +
+//                " AND apoc.convert.fromJsonMap(node.roiInfo).`" + roi + "`.pre+apoc.convert.fromJsonMap(node.roiInfo).`" + roi + "`.post>" + roiSynapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList";
+//            try {
+//            roiQueryResult = dbService.execute(bigQuery).next();
+//        } catch (Exception e) {
+//            log.error("getNeuronSetFromRoi: Error getting node body ids for roi with name " + roi + ".");
+//            e.printStackTrace();
+//        }
+
+//        return new HashSet<>((ArrayList<Long>) roiQueryResult.get("bodyIdList"));
+
+        return relevantNeuronNodes;
+
     }
 
     @Procedure(value = "analysis.getShortestPathWithMinWeight", mode = Mode.READ)
@@ -425,296 +715,6 @@ public class AnalysisProcedures {
         Predicate<Relationship> aboveMinWeight = rel -> (Util.toDouble(rel.getProperty(relationshipProperty, NaN)) >= minValue);
         builder = builder.addRelationshipFilter(aboveMinWeight);
         return builder.build();
-    }
-
-    private Set<ClusteringFeatureVector> getSetOfClusteringFeatureVectors(Set<NeuronWithRoiInfoMap> neuronSet, List<String> roiList) {
-
-        //for each neuron get the number of inputs per roi
-        //another vector with number of outputs per roi
-        //to be normalized and/or combined into one vector later.
-        Set<ClusteringFeatureVector> clusteringFeatureVectors = new HashSet<>();
-        for (NeuronWithRoiInfoMap neuron : neuronSet) {
-            Map<String, SynapseCounter> synapseCounterMap = getSynapseCounterMapForNeuron(neuron);
-            long[] inputFeatureVector = new long[roiList.size()];
-            long[] outputFeatureVector = new long[roiList.size()];
-            for (int i = 0; i < roiList.size(); i++) {
-                if (synapseCounterMap.get(roiList.get(i)) != null) {
-                    inputFeatureVector[i] = synapseCounterMap.get(roiList.get(i)).getPost();
-                    outputFeatureVector[i] = synapseCounterMap.get(roiList.get(i)).getPre();
-                }
-            }
-            clusteringFeatureVectors.add(new ClusteringFeatureVector(neuron.getBodyId(), inputFeatureVector, outputFeatureVector));
-        }
-
-        return clusteringFeatureVectors;
-
-    }
-
-    private Map<String, SynapseCounter> getSynapseCounterMapForNeuron(NeuronWithRoiInfoMap neuron) {
-
-//        String synapseCountPerRoiJson = (String) neuron.getProperty(ROI_INFO);
-//        Gson gson = new Gson();
-//        Map<String, SynapseCounter> synapseCountPerRoiMap = gson.fromJson(synapseCountPerRoiJson, new TypeToken<Map<String, SynapseCounter>>() {
-//        }.getType());
-        Map<String, SynapseCounter> synapseCountPerRoiMap = new HashMap<>(neuron.getRoiInfoMap());
-        synapseCountPerRoiMap.put("total", new SynapseCounter(Math.toIntExact(neuron.getPre()), Math.toIntExact(neuron.getPost())));
-
-        return synapseCountPerRoiMap;
-    }
-
-    private List<Node> getSkelNodesForSkeleton(Node neuron) {
-
-        Node nodeSkeletonNode = null;
-        List<Node> skelNodeList = new ArrayList<>();
-        for (Relationship nodeRelationship : neuron.getRelationships(RelationshipType.withName(CONTAINS))) {
-            Node containedNode = nodeRelationship.getEndNode();
-            if (containedNode.hasLabel(Label.label(SKELETON))) {
-                nodeSkeletonNode = containedNode;
-            }
-        }
-
-        if (nodeSkeletonNode != null) {
-            for (Relationship skeletonRelationship : nodeSkeletonNode.getRelationships(RelationshipType.withName(CONTAINS))) {
-                Node containedNode = skeletonRelationship.getEndNode();
-                if (containedNode.hasLabel(Label.label(SKEL_NODE))) {
-                    skelNodeList.add(containedNode);
-                }
-            }
-        } else {
-            throw new Error("No skeleton for bodyId " + neuron.getProperty(BODY_ID));
-        }
-
-        return skelNodeList;
-    }
-
-    static Location getSkelOrSynapseNodeLocation(Node node) {
-        List<Integer> locationList = getNeo4jPointLocationAsLocationList((Point) node.getProperty(LOCATION));
-        return new Location((long) locationList.get(0), (long) locationList.get(1), (long) locationList.get(2));
-    }
-
-    private static List<Integer> getNeo4jPointLocationAsLocationList(Point neo4jPoint) {
-        return neo4jPoint.getCoordinate().getCoordinate().stream().map(d -> (int) Math.round(d)).collect(Collectors.toList());
-    }
-
-    private List<Node> getNodesAlongPath(Node skelNodeA, Node skelNodeB, String datasetLabel) {
-
-        Map<String, Object> pathQueryResult = null;
-        Map<String, Object> parametersMap = new HashMap<>();
-        parametersMap.put("skelNodeIdA", skelNodeA.getProperty(SKEL_NODE_ID));
-        parametersMap.put("skelNodeIdB", skelNodeB.getProperty(SKEL_NODE_ID));
-        try {
-            pathQueryResult = dbService.execute("MATCH p=(:`" + datasetLabel + "-SkelNode`{skelNodeId:$skelNodeIdA})-[:LinksTo*]-(:`" + datasetLabel + "-SkelNode`{skelNodeId:$skelNodeIdB}) RETURN nodes(p) AS nodeList", parametersMap).next();
-        } catch (Exception e) {
-            log.error("Error getting path between SkelNodes.");
-            e.printStackTrace();
-        }
-
-        return (ArrayList<Node>) pathQueryResult.get("nodeList");
-
-    }
-
-    private Set<NeuronWithRoiInfoMap> getNeuronSetFromDataset(String datasetLabel, Long synapseThreshold) {
-
-        ResourceIterator<Node> nodes = dbService.findNodes(Label.label(datasetLabel + "-Neuron"));
-        Set<NeuronWithRoiInfoMap> relevantNeuronNodes = new HashSet<>();
-        Gson gson = new Gson();
-        while (nodes.hasNext()) {
-            Node currentNode = nodes.next();
-            Map<String, Object> properties = currentNode.getProperties("pre", "post", "roiInfo", "bodyId");
-            Map<String, SynapseCounter> roiInfo = gson.fromJson((String) properties.get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
-            }.getType());
-            long pre = (long) properties.get("pre");
-            long post = (long) properties.get("post");
-            if ((pre + post) > synapseThreshold) {
-                relevantNeuronNodes.add(new NeuronWithRoiInfoMap(currentNode, (long) properties.get("bodyId"), roiInfo, pre, post));
-            }
-        }
-//        Map<String, Object> roiQueryResult = null;
-//        String bigQuery = "MATCH (node:`" + datasetLabel + "-Neuron`{`" + roi + "`:true}) WHERE (node.pre+node.post)>" + synapseThreshold +
-//                " AND apoc.convert.fromJsonMap(node.roiInfo).`" + roi + "`.pre+apoc.convert.fromJsonMap(node.roiInfo).`" + roi + "`.post>" + roiSynapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList";
-//            try {
-//            roiQueryResult = dbService.execute(bigQuery).next();
-//        } catch (Exception e) {
-//            log.error("getNeuronSetFromRoi: Error getting node body ids for roi with name " + roi + ".");
-//            e.printStackTrace();
-//        }
-
-//        return new HashSet<>((ArrayList<Long>) roiQueryResult.get("bodyIdList"));
-
-        return relevantNeuronNodes;
-
-    }
-
-    private Set<NeuronWithRoiInfoMap> getNeuronSetFromRoi(String roi, Long roiSynapseThreshold, String datasetLabel, Long synapseThreshold) {
-
-        ResourceIterator<Node> nodes = dbService.findNodes(Label.label(datasetLabel + "-Neuron"), roi, true);
-        Set<NeuronWithRoiInfoMap> relevantNeuronNodes = new HashSet<>();
-        Gson gson = new Gson();
-        while (nodes.hasNext()) {
-            Node currentNode = nodes.next();
-            Map<String, Object> properties = currentNode.getProperties("pre", "post", "roiInfo", "bodyId");
-            Map<String, SynapseCounter> roiInfo = gson.fromJson((String) properties.get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
-            }.getType());
-            long pre = (long) properties.get("pre");
-            long post = (long) properties.get("post");
-            long roiSynapseTotal = roiInfo.get(roi).getPre() + roiInfo.get(roi).getPost();
-            if ((pre + post) > synapseThreshold && roiSynapseTotal > roiSynapseThreshold) {
-                relevantNeuronNodes.add(new NeuronWithRoiInfoMap(currentNode, (long) properties.get("bodyId"), roiInfo, pre, post));
-            }
-        }
-//        Map<String, Object> roiQueryResult = null;
-//        String bigQuery = "MATCH (node:`" + datasetLabel + "-Neuron`{`" + roi + "`:true}) WHERE (node.pre+node.post)>" + synapseThreshold +
-//                " AND apoc.convert.fromJsonMap(node.roiInfo).`" + roi + "`.pre+apoc.convert.fromJsonMap(node.roiInfo).`" + roi + "`.post>" + roiSynapseThreshold + " WITH collect(node.bodyId) AS bodyIdList RETURN bodyIdList";
-//            try {
-//            roiQueryResult = dbService.execute(bigQuery).next();
-//        } catch (Exception e) {
-//            log.error("getNeuronSetFromRoi: Error getting node body ids for roi with name " + roi + ".");
-//            e.printStackTrace();
-//        }
-
-//        return new HashSet<>((ArrayList<Long>) roiQueryResult.get("bodyIdList"));
-
-        return relevantNeuronNodes;
-
-    }
-
-    private List<String> getRoiListForDataset(String datasetLabel) {
-
-        Node metaNode = dbService.findNode(Label.label("Meta"), "dataset", datasetLabel);
-
-        String roiInfo = (String) metaNode.getProperty("roiInfo");
-        Gson gson = new Gson();
-        Map<String, SynapseCounter> roiInfoMap = gson.fromJson(roiInfo, new TypeToken<Map<String, SynapseCounter>>() {
-        }.getType());
-
-        //        String getRoiFromMeta = "MATCH (n:Meta{dataset:\"" + datasetLabel + "\"}) RETURN keys(apoc.convert.fromJsonMap(n.roiInfo)) AS rois";
-//
-//        Map<String, Object> roiListQueryResult;
-//        List<String> rois = null;
-//        try {
-//            roiListQueryResult = dbService.execute(getRoiFromMeta).next();
-//            List<String> labels = (ArrayList<String>) roiListQueryResult.get("rois");
-//            rois = labels.stream()
-//                    .filter((l) -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi")))
-//                    .collect(Collectors.toList());
-//        } catch (NoSuchElementException nse) {
-//            throw new RuntimeException("getRoiListForDataset: No Meta node found for this dataset.");
-//        } catch (NullPointerException npe) {
-//            throw new RuntimeException("getRoiListForDataset: No rois property found on Meta node for this dataset.");
-//        } catch (Exception e) {
-//            log.error("getRoiListForDataset: Error getting roi list from " + datasetLabel + ".");
-//            e.printStackTrace();
-//        }
-        return roiInfoMap.keySet().stream().filter(l -> (!l.equals("seven_column_roi") && !l.equals("kc_alpha_roi"))).collect(Collectors.toList());
-    }
-
-    private Map<String, Object> getTopXFirstDegreeConnectionsForNeuron(Long bodyId, String datasetLabel, long maxFirstDegreeConnections) {
-
-        Map<String, Object> parametersMap = new HashMap<>();
-        parametersMap.put("nodeBodyId", bodyId);
-        Map<String, Object> roiQueryResult = null;
-        String firstDegreeConnectionQuery = "MATCH (node:`" + datasetLabel + "-Neuron`{bodyId:$nodeBodyId})-[r:ConnectsTo]-(p:`" + datasetLabel + "-Neuron`) WITH p AS connection, " +
-                "startNode(r)=node AS out " +
-                "ORDER BY r.weight DESC LIMIT " + maxFirstDegreeConnections + " RETURN collect(connection) AS neuronList, collect(out) AS outList";
-        try {
-            roiQueryResult = dbService.execute(firstDegreeConnectionQuery, parametersMap).next();
-        } catch (Exception e) {
-            log.error("Error getting node body ids connected to " + bodyId + ".");
-            e.printStackTrace();
-        }
-
-        return roiQueryResult;
-
-    }
-
-    private Node acquireSegmentFromDatabase(Long nodeBodyId, String datasetLabel) throws Error {
-
-        Map<String, Object> parametersMap = new HashMap<>();
-        parametersMap.put(BODY_ID, nodeBodyId);
-        Map<String, Object> nodeQueryResult;
-        Node foundNode;
-
-        try {
-            nodeQueryResult = dbService.execute("MATCH (node:`" + datasetLabel + "-Segment`{bodyId:$bodyId}) RETURN node", parametersMap).next();
-        } catch (java.util.NoSuchElementException nse) {
-            log.error(String.format("acquireSegmentFromDatabase: Error using analysis procedures: Node must exist in the dataset and be labeled :%s-%s.", datasetLabel, SEGMENT));
-            nse.printStackTrace();
-            throw new RuntimeException(String.format("acquireSegmentFromDatabase: Error using analysis procedures: Node must exist in the dataset and be labeled :%s-%s.", datasetLabel, SEGMENT));
-        }
-
-        try {
-            foundNode = (Node) nodeQueryResult.get("node");
-        } catch (NullPointerException npe) {
-            npe.printStackTrace();
-            throw new RuntimeException(String.format("acquireSegmentFromDatabase: Error using analysis procedures: Node must exist in the dataset and be labeled :%s-%s.", datasetLabel, SEGMENT));
-        }
-
-        return foundNode;
-
-    }
-
-    private Node getSynapseSetForNode(final Node node) {
-
-        Node nodeSynapseSetNode = null;
-        for (Relationship nodeRelationship : node.getRelationships(RelationshipType.withName(CONTAINS))) {
-            Node containedNode = nodeRelationship.getEndNode();
-            if (containedNode.hasLabel(Label.label(SYNAPSE_SET))) {
-                nodeSynapseSetNode = containedNode;
-            }
-        }
-        return nodeSynapseSetNode;
-    }
-
-    private SynapticConnectionVertexMap getSynapticConnectionNodeMap(Set<Long> neuronBodyIdSet, String datasetLabel) {
-        SynapticConnectionVertexMap synapticConnectionVertexMap = new SynapticConnectionVertexMap();
-
-        for (Long neuronBodyId : neuronBodyIdSet) {
-
-            Node neuron = acquireSegmentFromDatabase(neuronBodyId, datasetLabel);
-            Node neuronSynapseSet = getSynapseSetForNode(neuron);
-
-            if (neuronSynapseSet != null) {
-                for (Relationship synapseRelationship : neuronSynapseSet.getRelationships(Direction.OUTGOING, RelationshipType.withName(CONTAINS))) {
-                    // get each synapse node
-                    Node synapseNode = synapseRelationship.getEndNode();
-
-                    //get all the synapses that connect to this neuron
-                    for (Relationship synapsesToRelationship : synapseNode.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
-                        Node connectedSynapseNode = synapsesToRelationship.getOtherNode(synapseNode);
-                        if (!connectedSynapseNode.hasLabel(Label.label("createdforsynapsesto"))) {
-                            Relationship synapseToSynapseSetRelationship = connectedSynapseNode.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING);
-                            if (synapseToSynapseSetRelationship != null) {
-                                Node synapseSet = synapseToSynapseSetRelationship.getStartNode();
-                                Relationship neuronToSynapseSetRelationship = synapseSet.getSingleRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING);
-                                Node connectedNeuron = neuronToSynapseSetRelationship.getStartNode();
-                                Long connectedNeuronBodyId = (Long) connectedNeuron.getProperty(BODY_ID);
-
-                                String categoryString;
-
-                                if (synapseNode.hasLabel(Label.label(PRE_SYN))) {
-                                    categoryString = neuron.getProperty(BODY_ID) + "_to_" + connectedNeuronBodyId;
-                                    synapticConnectionVertexMap.addSynapticConnection(categoryString, synapseNode, connectedSynapseNode);
-
-                                } else if (synapseNode.hasLabel(Label.label(POST_SYN))) {
-                                    categoryString = connectedNeuronBodyId + "_to_" + neuron.getProperty(BODY_ID);
-                                    synapticConnectionVertexMap.addSynapticConnection(categoryString, connectedSynapseNode, synapseNode);
-                                }
-
-                            } else {
-                                log.info(String.format("No %s relationship found for %s: %s", SYNAPSE_SET, SYNAPSE, connectedSynapseNode.getAllProperties()));
-                            }
-
-                        } else {
-                            log.info(String.format("Connected %s is not associated with any %s: %s", SYNAPSE, SEGMENT, connectedSynapseNode.getAllProperties()));
-                        }
-                    }
-                }
-            } else {
-                log.info("No %s found for neuron %d.", SYNAPSE_SET, neuronBodyId);
-            }
-        }
-
-        return synapticConnectionVertexMap;
     }
 
 }
@@ -784,6 +784,13 @@ class NeuronWithRoiInfoMap {
     }
 
     @Override
+    public int hashCode() {
+        int result = 17;
+        result = 31 * result + bodyId.hashCode();
+        return result;
+    }
+
+    @Override
     public boolean equals(Object o) {
         boolean isEqual = false;
         if (this == o) {
@@ -793,12 +800,5 @@ class NeuronWithRoiInfoMap {
             isEqual = this.bodyId.equals(that.bodyId);
         }
         return isEqual;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = 17;
-        result = 31 * result + bodyId.hashCode();
-        return result;
     }
 }

@@ -1,6 +1,6 @@
 package org.janelia.flyem.neuprintprocedures.analysis;
 
-import org.janelia.flyem.neuprintprocedures.Location;
+import org.janelia.flyem.neuprintloadprocedures.Location;
 import org.neo4j.graphdb.Node;
 
 public class SkelNodeDistanceToPoint {
@@ -28,8 +28,10 @@ public class SkelNodeDistanceToPoint {
     }
 
     @Override
-    public String toString() {
-        return this.distanceToPoint + " for " + this.skelNodeLocation;
+    public int hashCode() {
+        int result = 17;
+        result = 31 * result + this.skelNode.hashCode();
+        return result;
     }
 
     @Override
@@ -45,11 +47,8 @@ public class SkelNodeDistanceToPoint {
     }
 
     @Override
-    public int hashCode() {
-        int result = 17;
-        result = 31 * result + this.skelNode.hashCode();
-        return result;
+    public String toString() {
+        return this.distanceToPoint + " for " + this.skelNodeLocation;
     }
-
 
 }

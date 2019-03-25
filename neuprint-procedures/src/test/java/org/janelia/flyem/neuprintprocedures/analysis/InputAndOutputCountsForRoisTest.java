@@ -10,7 +10,6 @@ import org.janelia.flyem.neuprint.NeuPrinterMain;
 import org.janelia.flyem.neuprint.SynapseMapper;
 import org.janelia.flyem.neuprint.model.BodyWithSynapses;
 import org.janelia.flyem.neuprint.model.Neuron;
-import org.janelia.flyem.neuprint.model.SortBodyByNumberOfSynapses;
 import org.janelia.flyem.neuprint.model.SynapseCounter;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -42,7 +41,6 @@ public class InputAndOutputCountsForRoisTest {
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
         HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
-        bodyList.sort(new SortBodyByNumberOfSynapses());
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 

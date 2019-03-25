@@ -8,7 +8,6 @@ import org.janelia.flyem.neuprint.NeuPrinterMain;
 import org.janelia.flyem.neuprint.SynapseMapper;
 import org.janelia.flyem.neuprint.model.BodyWithSynapses;
 import org.janelia.flyem.neuprint.model.Neuron;
-import org.janelia.flyem.neuprint.model.SortBodyByNumberOfSynapses;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -44,7 +43,6 @@ public class ShortestPathTest {
         SynapseMapper mapper = new SynapseMapper();
         List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRoisForShortestPath.json");
         HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
-        bodyList.sort(new SortBodyByNumberOfSynapses());
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -99,7 +97,6 @@ public class ShortestPathTest {
                     "minValue", 2
             )).list());
 
-
             Assert.assertEquals(2, records.size());
 
             for (Record record : records) {
@@ -114,11 +111,9 @@ public class ShortestPathTest {
                     Assert.assertEquals(2L, relationship.asMap().get("weight"));
                 }
 
-                Assert.assertEquals(2,segmentsWithMinWeight.length());
+                Assert.assertEquals(2, segmentsWithMinWeight.length());
 
             }
-
-
 
         }
 

@@ -1,7 +1,7 @@
 package org.janelia.flyem.neuprintprocedures.analysis;
 
 import com.google.gson.annotations.SerializedName;
-import org.janelia.flyem.neuprintprocedures.Location;
+import org.janelia.flyem.neuprintloadprocedures.Location;
 import org.neo4j.graphdb.Node;
 
 import java.util.HashSet;
@@ -42,10 +42,6 @@ public class SynapticConnectionVertex {
         return this.centroidLocation;
     }
 
-    public Long[] getCentroidLocation() {
-        return centroidLocation;
-    }
-
     public void setCentroidLocationAndSynapseCounts() {
         this.pre = preSynapseLocations.size();
         this.post = postSynapseLocations.size();
@@ -56,15 +52,11 @@ public class SynapticConnectionVertex {
         locationSetUnion.addAll(preSynapseLocations);
         locationSetUnion.addAll(postSynapseLocations);
 
-        Long[] summedLocation = locationSetUnion.stream().reduce(new Location(0L,0L,0L), Location::getSummedLocations).getLocation();
+        Long[] summedLocation = locationSetUnion.stream().reduce(new Location(0L, 0L, 0L), Location::getSummedLocations).getLocation();
 
-        this.centroidLocation[0] = (long) Math.round(summedLocation[0]/totalSynapseCount);
-        this.centroidLocation[1] = (long) Math.round(summedLocation[1]/totalSynapseCount);
-        this.centroidLocation[2] = (long) Math.round(summedLocation[2]/totalSynapseCount);
-    }
-
-    public String getConnectionDescription() {
-        return connectionDescription;
+        this.centroidLocation[0] = (long) Math.round(summedLocation[0] / totalSynapseCount);
+        this.centroidLocation[1] = (long) Math.round(summedLocation[1] / totalSynapseCount);
+        this.centroidLocation[2] = (long) Math.round(summedLocation[2] / totalSynapseCount);
     }
 
     public Integer getPre() {
@@ -75,11 +67,20 @@ public class SynapticConnectionVertex {
         return post;
     }
 
-    @Override
-    public String toString() {
-        return "Synaptic Connection Vertex : " + this.connectionDescription;
+    public Long[] getCentroidLocation() {
+        return centroidLocation;
     }
 
+    public String getConnectionDescription() {
+        return connectionDescription;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = 17;
+        result = 31 * result + this.connectionDescription.hashCode();
+        return result;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -94,9 +95,7 @@ public class SynapticConnectionVertex {
     }
 
     @Override
-    public int hashCode() {
-        int result = 17;
-        result = 31 * result + this.connectionDescription.hashCode();
-        return result;
+    public String toString() {
+        return "Synaptic Connection Vertex : " + this.connectionDescription;
     }
 }

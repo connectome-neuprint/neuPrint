@@ -1,8 +1,6 @@
-/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/NeuronUpdate.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/Neuron.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/db/DbConfig.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/AutoName.java
-/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/SortNeuronBySize.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/db/TransactionBatch.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/SynapseLocationToBodyIdMap.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/SortBodyByNumberOfSynapses.java
