@@ -599,6 +599,15 @@ public class AddAndUpdateNeuronsTest {
         Assert.assertEquals(5.0D, neuronNode2.asMap().get("somaRadius"));
         Assert.assertEquals(Values.point(9157, 1, 2, 3).asPoint(), neuronNode2.asMap().get("somaLocation"));
 
+        //type addition
+        String neuronObjectJson3 = "{ \"Id\":222, \"NeuronType\": \"testType\"}";
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson3, "dataset", "test")));
+        Node neuronNode3 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) RETURN n")).single().get(0).asNode();
+
+        Assert.assertEquals("testType", neuronNode3.asMap().get("type"));
+
+
     }
 
     @Test

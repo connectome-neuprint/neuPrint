@@ -128,16 +128,16 @@ public class ProofreaderProcedures {
                 boolean isNeuron = false;
 
                 if (neuron.getStatus() != null) {
-                        neuronNode.setProperty(STATUS, neuron.getStatus());
-                        // adding a status makes it a Neuron
-                        isNeuron = true;
+                    neuronNode.setProperty(STATUS, neuron.getStatus());
+                    // adding a status makes it a Neuron
+                    isNeuron = true;
                     log.info("Updated status for neuron " + neuron.getId() + ".");
                 }
 
                 if (neuron.getName() != null) {
-                        neuronNode.setProperty(NAME, neuron.getName());
-                        // adding a name makes it a Neuron
-                        isNeuron = true;
+                    neuronNode.setProperty(NAME, neuron.getName());
+                    // adding a name makes it a Neuron
+                    isNeuron = true;
                     log.info("Updated name for neuron " + neuron.getId() + ".");
                 }
 
@@ -157,6 +157,11 @@ public class ProofreaderProcedures {
                     isNeuron = true;
                 }
 
+                if (neuron.getNeuronType() != null) {
+                    neuronNode.setProperty(TYPE, neuron.getNeuronType());
+                    log.info("Updated type for neuron " + neuron.getId() + ".");
+                }
+
                 if (isNeuron) {
                     convertSegmentToNeuron(neuronNode, datasetLabel, neuron.getId());
                 }
@@ -173,7 +178,7 @@ public class ProofreaderProcedures {
 
     @Procedure(value = "proofreader.deleteSoma", mode = Mode.WRITE)
     @Description("proofreader.deleteSoma(bodyId, datasetLabel): Delete soma (radius and location) from Neuron node.")
-    public void deleteSoma(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel){
+    public void deleteSoma(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.deleteSoma: entry");
 
@@ -207,7 +212,6 @@ public class ProofreaderProcedures {
                 log.info("Successfully deleted soma information from " + bodyId);
             }
 
-
         } catch (Exception e) {
             log.error("Error running proofreader.deleteSoma: " + e);
             throw new RuntimeException("Error running proofreader.deleteSoma: " + e);
@@ -219,7 +223,7 @@ public class ProofreaderProcedures {
 
     @Procedure(value = "proofreader.deleteName", mode = Mode.WRITE)
     @Description("proofreader.deleteName(bodyId, datasetLabel): Delete name from Neuron node.")
-    public void deleteName(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel){
+    public void deleteName(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.deleteName: entry");
 
@@ -258,7 +262,7 @@ public class ProofreaderProcedures {
 
     @Procedure(value = "proofreader.deleteStatus", mode = Mode.WRITE)
     @Description("proofreader.deleteStatus(bodyId, datasetLabel): Delete name from Neuron node.")
-    public void deleteStatus(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel){
+    public void deleteStatus(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.deleteStatus: entry");
 
