@@ -8,10 +8,10 @@ Synapses.json
 ```console
 [
 	{
-        "type”: “<pre or post>”,
-	    “confidence”: <confidence value>,
-		“location”: [x,y,z],
-		“rois”: [“<roi1>”, “<roi2>”, …]
+        "type": "<pre or post>",
+	"confidence": <confidence value>,
+	"location": [x,y,z],
+	"rois": ["<roi1>", "<roi2>", …]
 	},
   ...
 ]
@@ -21,7 +21,7 @@ Synapses.json
 An array of synaptic connections (edges between synapse nodes) in the dataset. Note that since in some organisms one pre can synapse onto many posts, a pre location may occur multiple times in the file. There should be one object per **SynapsesTo** relationship in the dataset.
 
 Connections.json
-```
+```console
 [
     {
         "pre": [x,y,z],  
@@ -36,20 +36,19 @@ Connections.json
 # Neurons
 Describes all neurons/bodies in the dataset. Includes properties of the neurons as well as the synapses they contain.
 
-
 Neurons.json
 ```console
 [
 	{
-    “id”: <unique int64 indentifies>,
-    “status”: “<status of neuron>”,
-    “name”: “<neuron name>”,                 // Naming scheme to be discussed 
-    “type”: “<neuron type name>”,
-    "instance: "<neuron instance name>",
-    “size”: <num voxels in body> ,
-    “rois”: [“<roi1>”, “<roi2>”, …],            // (optional) we use rois from synapses to add rois to neurons
-    “soma”: { "location”:[x,y,z],”radius”:<float>}
-    "synapseSet": [[x1,y1,z1],[x2,y2,z2],...]       // can use the index on location to find these synapse nodes in the database, other properties (e.g. ConnectsTo relationships, roiInfo) can be derived database after all synapses are added.
+    "id": <unique int64 indentifier>,
+    "status": "<status of neuron>",
+    "name": "<neuron name>",                 // Naming scheme to be discussed 
+    "type": "<neuron type name>",
+    "instance": "<neuron instance name>",
+    "size": <num voxels in body> ,
+    "rois": ["<roi1>", "<roi2>", …],            // (optional) we use rois from synapses to add rois to neurons
+    "soma": { "location":[x,y,z],"radius":<float>}
+    "synapseSet": [[x1,y1,z1],[x2,y2,z2],...]       // can use the index on location to find these synapse nodes in the database, other properties (e.g. ConnectsTo relationships, roiInfo) can be derived from database after all synapses are added.
     },
 	...
 ]
