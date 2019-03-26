@@ -47,7 +47,7 @@ Neurons.json
     “type”: “<neuron type name>”,
     "instance: "<neuron instance name>",
     “size”: <num voxels in body> ,
-    “rois”: [“<roi1>”, “<roi2>”, …],
+    “rois”: [“<roi1>”, “<roi2>”, …],            // (optional) we use rois from synapses to add rois to neurons
     “soma”: { "location”:[x,y,z],”radius”:<float>}
     "synapseSet": [[x1,y1,z1],[x2,y2,z2],...]       // can use the index on location to find these synapse nodes in the database, other properties (e.g. ConnectsTo relationships, roiInfo) can be derived database after all synapses are added.
     },
