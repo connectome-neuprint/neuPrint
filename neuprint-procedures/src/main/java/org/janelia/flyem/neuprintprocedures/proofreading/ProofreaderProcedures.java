@@ -121,6 +121,8 @@ public class ProofreaderProcedures {
                 log.warn("Neuron with id " + neuron.getId() + " not found in database. Aborting update.");
             } else {
 
+                acquireWriteLockForNode(neuronNode);
+
                 boolean isNeuron = false;
 
                 if (neuron.getStatus() != null) {
@@ -192,6 +194,8 @@ public class ProofreaderProcedures {
                 log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of soma.");
             } else {
 
+                acquireWriteLockForNode(neuronNode);
+
                 // delete soma radius
                 neuronNode.removeProperty(SOMA_RADIUS);
 
@@ -236,6 +240,8 @@ public class ProofreaderProcedures {
                 log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of name.");
             } else {
 
+                acquireWriteLockForNode(neuronNode);
+
                 // delete name
                 neuronNode.removeProperty(NAME);
 
@@ -274,6 +280,8 @@ public class ProofreaderProcedures {
             if (neuronNode == null) {
                 log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of status.");
             } else {
+
+                acquireWriteLockForNode(neuronNode);
 
                 // delete status
                 neuronNode.removeProperty(STATUS);
