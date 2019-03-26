@@ -59,8 +59,10 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.NAME;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.NEURON;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST_HP_THRESHOLD;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST_SYN;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE_HP_THRESHOLD;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE_SYN;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.RADIUS;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROI_INFO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROW_NUMBER;
@@ -74,6 +76,7 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_RADIUS;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.STATUS;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SUPER_LEVEL_ROIS;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSES_TO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE_SET;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TO;
@@ -846,6 +849,76 @@ public class ProofreaderProcedures {
         }
 
         log.info("proofreader.removeRoiFromSynapse: exit");
+
+    }
+
+    @Procedure(value = "proofreader.addSynapse", mode = Mode.WRITE)
+    @Description("proofreader.addSynapse(synapseJson, dataset) : Add a synapse node to the dataset specified by an input JSON. Will only add the node, not the connections to other synapse nodes.")
+    public void addSynapse(@Name("synapseJson") final String synapseJson, @Name("dataset") final String dataset) {
+
+        log.info("proofreader.addSynapse: entry");
+
+        try {
+
+            if (synapseJson == null || dataset == null) {
+                log.error("proofreader.addSynapse: Missing input arguments.");
+                throw new RuntimeException("proofreader.addSynapse: Missing input arguments.");
+            }
+
+            Gson gson = new Gson();
+            Synapse synapse = gson.fromJson(synapseJson, Synapse.class);
+
+            // add basic synapse labels
+            final Node newSynapseNode = dbService.createNode(
+                    Label.label(SYNAPSE),
+                    Label.label(dataset),
+                    Label.label(dataset + "-" + SYNAPSE));
+
+            // add location
+            List<Integer> synapseLocationList = synapse.getLocation();
+            Point synapseLocationPoint = new Location((long) synapseLocationList.get(0), (long) synapseLocationList.get(1), (long) synapseLocationList.get(2));
+
+            try {
+                newSynapseNode.setProperty(LOCATION, synapseLocationPoint);
+            } catch (org.neo4j.graphdb.ConstraintViolationException cve) {
+                log.error("Synapse with location " + synapseLocationList + " already exists in database. Aborting synapse addition.");
+                throw new RuntimeException("Synapse with location " + synapseLocationList + " already exists in database. Aborting synapse addition.");
+            }
+
+            // synapse must have type
+            if (synapse.getType() == null) {
+                log.error("Synapse with location " + synapseLocationList + " does not have a type specified. Aborting synapse addition.");
+                throw new RuntimeException("Synapse with location " + synapseLocationList + " does not have a type specified. Aborting synapse addition.");
+            }
+
+            // add PreSyn or PostSyn label and type property
+            if (synapse.getType().equals(POST)) {
+                newSynapseNode.addLabel(Label.label(POST_SYN));
+                newSynapseNode.addLabel(Label.label(dataset + "-" + POST_SYN));
+                newSynapseNode.setProperty(TYPE, synapse.getType());
+            } else if (synapse.getType().equals(PRE)) {
+                newSynapseNode.addLabel(Label.label(PRE_SYN));
+                newSynapseNode.addLabel(Label.label(dataset + "-" + PRE_SYN));
+                newSynapseNode.setProperty(TYPE, synapse.getType());
+            } else {
+                log.error("Synapse type must be either 'pre' or 'post'. Was " + synapse.getType() + ". Aborting synapse addition.");
+                throw new RuntimeException("Synapse type must be either 'pre' or 'post'. Was " + synapse.getType() + ". Aborting synapse addition.");
+            }
+
+            // add confidence (default value will be 0.0)
+            newSynapseNode.setProperty(CONFIDENCE, synapse.getConfidence());
+
+            // add rois
+            for (String roi : synapse.getRois()) {
+                newSynapseNode.setProperty(roi, true);
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.addSynapse: " + e);
+            throw new RuntimeException("Error running proofreader.addSynapse: " + e);
+        }
+
+        log.info("proofreader.addSynapse: exit");
 
     }
 
