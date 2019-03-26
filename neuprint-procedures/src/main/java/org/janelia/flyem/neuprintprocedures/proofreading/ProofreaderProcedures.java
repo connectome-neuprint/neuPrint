@@ -199,7 +199,7 @@ public class ProofreaderProcedures {
                 neuronNode.removeProperty(SOMA_LOCATION);
 
                 // check if it should still be labeled neuron and remove designation if necessary
-                if (!checkIfStillNeuron(neuronNode)) {
+                if (shouldNotBeLabeledNeuron(neuronNode)) {
                     System.out.println("Removing neuron designation");
                     removeNeuronDesignationFromNode(neuronNode, datasetLabel);
                 }
@@ -240,7 +240,7 @@ public class ProofreaderProcedures {
                 neuronNode.removeProperty(NAME);
 
                 // check if it should still be labeled neuron and remove designation if necessary
-                if (!checkIfStillNeuron(neuronNode)) {
+                if (shouldNotBeLabeledNeuron(neuronNode)) {
                     removeNeuronDesignationFromNode(neuronNode, datasetLabel);
                 }
 
@@ -279,7 +279,7 @@ public class ProofreaderProcedures {
                 neuronNode.removeProperty(STATUS);
 
                 // check if it should still be labeled neuron and remove designation if necessary
-                if (!checkIfStillNeuron(neuronNode)) {
+                if (shouldNotBeLabeledNeuron(neuronNode)) {
                     removeNeuronDesignationFromNode(neuronNode, datasetLabel);
                 }
 
@@ -693,7 +693,7 @@ public class ProofreaderProcedures {
                 for (Node connectionSetNode : connectionSetList) {
 
                     String roiInfoString = (String) connectionSetNode.getProperty(ROI_INFO);
-                    if (roiInfoString != null) {
+                    if (roiInfoString != null && synapseType != null) {
                         String roiInfoJsonString = addSynapseToRoiInfoWithHP(roiInfoString, roiName, synapseType, synapseConfidence, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
                         connectionSetNode.setProperty(ROI_INFO, roiInfoJsonString);
                     } else {
@@ -708,7 +708,7 @@ public class ProofreaderProcedures {
 
                     // update roi info
                     String roiInfoString = (String) neuron.getProperty(ROI_INFO);
-                    if (roiInfoString != null) {
+                    if (roiInfoString != null && synapseType != null) {
 
                         String roiInfoJsonString = addSynapseToRoiInfo(roiInfoString, roiName, synapseType);
                         neuron.setProperty(ROI_INFO, roiInfoJsonString);
@@ -722,7 +722,7 @@ public class ProofreaderProcedures {
 
                 // update meta node
                 String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
-                if (metaRoiInfoString != null) {
+                if (metaRoiInfoString != null && synapseType != null ) {
                     String roiInfoJsonString = addSynapseToRoiInfo(metaRoiInfoString, roiName, synapseType);
                     metaNode.setProperty(ROI_INFO, roiInfoJsonString);
                 } else {
@@ -790,7 +790,7 @@ public class ProofreaderProcedures {
                 for (Node connectionSetNode : connectionSetList) {
 
                     String roiInfoString = (String) connectionSetNode.getProperty(ROI_INFO);
-                    if (roiInfoString != null) {
+                    if (roiInfoString != null && synapseType != null) {
                         String roiInfoJsonString = removeSynapseFromRoiInfoWithHP(roiInfoString, roiName, synapseType, synapseConfidence, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
                         connectionSetNode.setProperty(ROI_INFO, roiInfoJsonString);
                     } else {
@@ -803,7 +803,7 @@ public class ProofreaderProcedures {
 
                     // update roi info
                     String roiInfoString = (String) neuron.getProperty(ROI_INFO);
-                    if (roiInfoString != null) {
+                    if (roiInfoString != null && synapseType != null) {
 
                         String roiInfoJsonString = removeSynapseFromRoiInfo(roiInfoString, roiName, synapseType);
                         neuron.setProperty(ROI_INFO, roiInfoJsonString);
@@ -822,7 +822,7 @@ public class ProofreaderProcedures {
 
                 // update meta node
                 String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
-                if (metaRoiInfoString != null) {
+                if (metaRoiInfoString != null && synapseType != null) {
                     String roiInfoJsonString = removeSynapseFromRoiInfo(metaRoiInfoString, roiName, synapseType);
                     metaNode.setProperty(ROI_INFO, roiInfoJsonString);
                 } else {
@@ -888,7 +888,7 @@ public class ProofreaderProcedures {
         return gson.fromJson(roiInfo, ROI_INFO_TYPE);
     }
 
-    private boolean checkIfStillNeuron(Node neuronNode) {
+    private boolean shouldNotBeLabeledNeuron(Node neuronNode) {
         long preCount = 0;
         long postCount = 0;
         if (neuronNode.hasProperty(PRE)) {
@@ -899,7 +899,7 @@ public class ProofreaderProcedures {
         }
 
         // returns true if meets the definition for a neuron
-        return (preCount >= 2 || postCount >= 10 || neuronNode.hasProperty(NAME) || neuronNode.hasProperty(SOMA_RADIUS) || neuronNode.hasProperty(STATUS));
+        return !(preCount >= 2 || postCount >= 10 || neuronNode.hasProperty(NAME) || neuronNode.hasProperty(SOMA_RADIUS) || neuronNode.hasProperty(STATUS));
     }
 
     private void removeNeuronDesignationFromNode(Node neuronNode, String datasetLabel) {
