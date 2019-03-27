@@ -80,6 +80,8 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAP
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSES_TO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE_SET;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TO;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TOTAL_POST_COUNT;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TOTAL_PRE_COUNT;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TYPE;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
@@ -733,13 +735,7 @@ public class ProofreaderProcedures {
                     }
 
                     // update meta node
-                    String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
-                    if (metaRoiInfoString != null) {
-                        String roiInfoJsonString = addSynapseToRoiInfo(metaRoiInfoString, roiName, synapseType);
-                        metaNode.setProperty(ROI_INFO, roiInfoJsonString);
-                    } else {
-                        log.warn("proofreader.addRoiToSynapse: No roi info found on meta node for dataset: " + dataset);
-                    }
+                    addSynapseToMetaRoiInfo(metaNode, roiName, synapseType);
                 }
             } else {
                 log.warn("proofreader.addRoiToSynapse: roi already present on synapse. Ignoring update request: " + synapse.getAllProperties());
@@ -899,15 +895,17 @@ public class ProofreaderProcedures {
                 throw new RuntimeException("Synapse with location " + synapseLocationList + " does not have a type specified. Aborting synapse addition.");
             }
 
-            // add PreSyn or PostSyn label and type property
+            // add PreSyn or PostSyn label and type property and increment counts on meta node
             if (synapse.getType().equals(POST)) {
                 newSynapseNode.addLabel(Label.label(POST_SYN));
                 newSynapseNode.addLabel(Label.label(dataset + "-" + POST_SYN));
                 newSynapseNode.setProperty(TYPE, synapse.getType());
+                incrementMetaNodeTotalPostCount(metaNode);
             } else if (synapse.getType().equals(PRE)) {
                 newSynapseNode.addLabel(Label.label(PRE_SYN));
                 newSynapseNode.addLabel(Label.label(dataset + "-" + PRE_SYN));
                 newSynapseNode.setProperty(TYPE, synapse.getType());
+                incrementMetaNodeTotalPreCount(metaNode);
             } else {
                 log.error("Synapse type must be either 'pre' or 'post'. Was " + synapse.getType() + ". Aborting synapse addition.");
                 throw new RuntimeException("Synapse type must be either 'pre' or 'post'. Was " + synapse.getType() + ". Aborting synapse addition.");
@@ -916,16 +914,11 @@ public class ProofreaderProcedures {
             // add confidence (default value will be 0.0)
             newSynapseNode.setProperty(CONFIDENCE, synapse.getConfidence());
 
-            // add rois
+            // add rois and update roiInfo on Meta node
             for (String roi : synapse.getRois()) {
                 newSynapseNode.setProperty(roi, true);
+                addSynapseToMetaRoiInfo(metaNode, roi, synapse.getType());
             }
-
-            // TODO: update meta node
-
-            // increment total pre/post count
-
-            // increment roi Info on meta node
 
         } catch (Exception e) {
             log.error("Error running proofreader.addSynapse: " + e);
@@ -991,7 +984,7 @@ public class ProofreaderProcedures {
 
         } catch (Exception e) {
             log.error("Error running proofreader.addConnectionBetweenSynapseNodes: " + e);
-            throw new RuntimeException("Error running pproofreader.addConnectionBetweenSynapseNodese: " + e);
+            throw new RuntimeException("Error running proofreader.addConnectionBetweenSynapseNodes: " + e);
         }
 
         log.info("proofreader.addConnectionBetweenSynapseNodes: exit");
@@ -1026,6 +1019,32 @@ public class ProofreaderProcedures {
         log.info("temp.updateConnectionSetsAndWeightHP: exit");
     }
 
+    private void incrementMetaNodeTotalPreCount(Node metaNode) {
+        if (metaNode != null) {
+            Long currentTotalPreCount = (Long) metaNode.getProperty(TOTAL_PRE_COUNT);
+            if (currentTotalPreCount != null) {
+                metaNode.setProperty(TOTAL_PRE_COUNT, ++currentTotalPreCount);
+            } else {
+                log.warn("No totalPreCount property found on Meta node. This property will not be updated.");
+            }
+        } else {
+            log.warn("No Meta node found. totalPreCount will not be updated.");
+        }
+    }
+
+    private void incrementMetaNodeTotalPostCount(Node metaNode) {
+        if (metaNode != null) {
+            Long currentTotalPostCount = (Long) metaNode.getProperty(TOTAL_POST_COUNT);
+            if (currentTotalPostCount != null) {
+                metaNode.setProperty(TOTAL_POST_COUNT, ++currentTotalPostCount);
+            } else {
+                log.warn("No totalPostCount property found on Meta node. This property will not be updated.");
+            }
+        } else {
+            log.warn("No Meta node found. totalPostCount will not be updated.");
+        }
+    }
+
     private String addSynapseToRoiInfo(String roiInfoString, String roiName, String synapseType) {
         Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
         RoiInfo roiInfo = new RoiInfo(roiInfoMap);
@@ -1038,6 +1057,39 @@ public class ProofreaderProcedures {
 
         return roiInfo.getAsJsonString();
 
+    }
+
+    private void addSynapseToMetaRoiInfo(Node metaNode, String roiName, String synapseType) {
+        if (metaNode != null) {
+            String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
+            if (metaRoiInfoString != null) {
+                String roiInfoJsonString = addSynapseToRoiInfo(metaRoiInfoString, roiName, synapseType);
+                metaNode.setProperty(ROI_INFO, roiInfoJsonString);
+            } else {
+                log.warn("No roiInfo property found on Meta node. roiInfo will not be updated.");
+            }
+        } else {
+            log.warn("No Meta node found. roiInfo will not be updated.");
+        }
+    }
+
+    private String removeSynapseFromRoiInfo(String roiInfoString, String roiName, String synapseType) {
+        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
+        RoiInfo roiInfo = new RoiInfo(roiInfoMap);
+
+        if (synapseType.equals(PRE)) {
+            roiInfo.decrementPreForRoi(roiName);
+        } else if (synapseType.equals(POST)) {
+            roiInfo.decrementPostForRoi(roiName);
+        }
+
+        return roiInfo.getAsJsonString();
+
+    }
+
+    private boolean roiInfoContainsRoi(String roiInfoString, String queriedRoi) {
+        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
+        return roiInfoMap.containsKey(queriedRoi);
     }
 
     public static Map<String, SynapseCounter> getRoiInfoAsMap(String roiInfo) {
@@ -1338,25 +1390,6 @@ public class ProofreaderProcedures {
         skelNodeNode.setProperty(TYPE, skelNode.getType());
 
         return skelNodeNode;
-    }
-
-    private String removeSynapseFromRoiInfo(String roiInfoString, String roiName, String synapseType) {
-        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
-        RoiInfo roiInfo = new RoiInfo(roiInfoMap);
-
-        if (synapseType.equals(PRE)) {
-            roiInfo.decrementPreForRoi(roiName);
-        } else if (synapseType.equals(POST)) {
-            roiInfo.decrementPostForRoi(roiName);
-        }
-
-        return roiInfo.getAsJsonString();
-
-    }
-
-    private boolean roiInfoContainsRoi(String roiInfoString, String queriedRoi) {
-        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
-        return roiInfoMap.containsKey(queriedRoi);
     }
 
     // Generic methods for removing features from graph and acquiring write locks

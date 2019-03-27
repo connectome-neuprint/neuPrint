@@ -2,11 +2,14 @@ package org.janelia.flyem.neuprintprocedures.proofreading;
 
 import apoc.convert.Json;
 import apoc.create.Create;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprint.Neo4jImporter;
 import org.janelia.flyem.neuprint.NeuPrinterMain;
 import org.janelia.flyem.neuprint.SynapseMapper;
 import org.janelia.flyem.neuprint.model.BodyWithSynapses;
 import org.janelia.flyem.neuprint.model.Neuron;
+import org.janelia.flyem.neuprint.model.SynapseCounter;
 import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.janelia.flyem.neuprintprocedures.functions.NeuPrintUserFunctions;
 import org.junit.AfterClass;
@@ -78,9 +81,15 @@ public class AddAndDeleteSynapseTest {
     }
 
     @Test
-    public void shouldAddSynapseNode() {
+    public void shouldAddSynapseNodeAndUpdateMetaNode() {
 
         Session session = driver.session();
+
+        // get original meta node roi info for comparison
+        String origMetaNodeRoiInfoString = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.roiInfo")).single().get(0).asString();
+        Gson gson = new Gson();
+        Map<String, SynapseCounter> origMetaRoiInfo = gson.fromJson(origMetaNodeRoiInfoString, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
 
         String synapseJson = "{ \"Type\": \"post\", \"Location\": [ 1,2,3 ], \"Confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
 
@@ -104,6 +113,38 @@ public class AddAndDeleteSynapseTest {
         Assert.assertTrue(synapseNode.hasLabel("test-PostSyn"));
         Assert.assertFalse(synapseNode.hasLabel("PreSyn"));
         Assert.assertFalse(synapseNode.hasLabel("test-PreSyn"));
+
+        String synapseJson2 = "{ \"Type\": \"pre\", \"Location\": [ 8,50,9 ], \"Confidence\": .88, \"rois\": [ \"roiA\", \"test2\" ] }";
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson2, "dataset", "test")));
+
+        // meta node total pre and post count should match database
+        long preSynapseCount = session.readTransaction(tx -> tx.run("MATCH (n:PreSyn) RETURN count(n)")).single().get(0).asLong();
+        long postSynapseCount = session.readTransaction(tx -> tx.run("MATCH (n:PostSyn) RETURN count(n)")).single().get(0).asLong();
+        Map<String, Object> metaNodeProps = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.totalPreCount, n.totalPostCount, n.roiInfo")).single().asMap();
+
+        Assert.assertEquals(preSynapseCount, metaNodeProps.get("n.totalPreCount"));
+        Assert.assertEquals(postSynapseCount, metaNodeProps.get("n.totalPostCount"));
+
+        Map<String, SynapseCounter> metaRoiInfo = gson.fromJson((String) metaNodeProps.get("n.roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+
+        Assert.assertEquals(origMetaRoiInfo.get("roiA").getPre() + 1, metaRoiInfo.get("roiA").getPre());
+        Assert.assertEquals(origMetaRoiInfo.get("roiA").getPost(), metaRoiInfo.get("roiA").getPost());
+        if (origMetaRoiInfo.containsKey("test1")) {
+            Assert.assertEquals(origMetaRoiInfo.get("test1").getPre(), metaRoiInfo.get("test1").getPre());
+            Assert.assertEquals(origMetaRoiInfo.get("test1").getPost() + 1, metaRoiInfo.get("test1").getPost());
+        } else {
+            Assert.assertEquals(1, metaRoiInfo.get("test1").getPost());
+            Assert.assertEquals(0, metaRoiInfo.get("test1").getPre());
+        }
+        if (origMetaRoiInfo.containsKey("test2")) {
+            Assert.assertEquals(origMetaRoiInfo.get("test2").getPre() + 1, metaRoiInfo.get("test2").getPre());
+            Assert.assertEquals(origMetaRoiInfo.get("test2").getPost() + 1, metaRoiInfo.get("test2").getPost());
+        } else {
+            Assert.assertEquals(1, metaRoiInfo.get("test2").getPre());
+            Assert.assertEquals(1, metaRoiInfo.get("test2").getPost());
+        }
 
     }
 
