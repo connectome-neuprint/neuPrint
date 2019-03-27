@@ -733,7 +733,7 @@ public class ProofreaderProcedures {
 
                 // update meta node
                 String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
-                if (metaRoiInfoString != null && synapseType != null ) {
+                if (metaRoiInfoString != null && synapseType != null) {
                     String roiInfoJsonString = addSynapseToRoiInfo(metaRoiInfoString, roiName, synapseType);
                     metaNode.setProperty(ROI_INFO, roiInfoJsonString);
                 } else {
@@ -913,12 +913,82 @@ public class ProofreaderProcedures {
                 newSynapseNode.setProperty(roi, true);
             }
 
+            // TODO: update meta node
+
+            // increment total pre/post count
+
+            // increment roi Info on meta node
+
         } catch (Exception e) {
             log.error("Error running proofreader.addSynapse: " + e);
             throw new RuntimeException("Error running proofreader.addSynapse: " + e);
         }
 
         log.info("proofreader.addSynapse: exit");
+
+    }
+
+    @Procedure(value = "proofreader.addConnectionBetweenSynapseNodes", mode = Mode.WRITE)
+    @Description("proofreader.addConnectionBetweenSynapseNodes(preX,preY,preZ,postX,postY,postZ,dataset) : Add a SynapsesTo relationship between two Synapse nodes. Both nodes must exist in the dataset, and neither can be currently owned by a Neuron/Segment.")
+    public void addConnectionBetweenSynapseNodes(@Name("preX") final Double preX, @Name("preY") final Double preY, @Name("preZ") final Double preZ, @Name("postX") final Double postX, @Name("postY") final Double postY, @Name("postZ") final Double postZ, @Name("dataset") final String dataset) {
+
+        log.info("proofreader.addConnectionBetweenSynapseNodes: entry");
+
+        try {
+            if (preX == null || preY == null || preZ == null || postX == null || postY == null || postZ == null || dataset == null) {
+                log.error("proofreader.addConnectionBetweenSynapseNodes: Missing input arguments.");
+                throw new RuntimeException("proofreader.addConnectionBetweenSynapseNodes: Missing input arguments.");
+            }
+
+            // acquire both synapse nodes
+            Node preSynapse = getSynapse(dbService, preX, preY, preZ, dataset);
+            Node postSynapse = getSynapse(dbService, postX, postY, postZ, dataset);
+
+            acquireWriteLockForNode(preSynapse);
+            acquireWriteLockForNode(postSynapse);
+
+            // error if synapses are not found
+            if (preSynapse == null) {
+                log.error(String.format("proofreader.addConnectionBetweenSynapseNodes: No synapse with location [%f,%f,%f] in dataset %s.", preX, preY, preZ, dataset));
+                throw new RuntimeException(String.format("proofreader.addConnectionBetweenSynapseNodes: No synapse with location [%f,%f,%f] in dataset %s.", preX, preY, preZ, dataset));
+            }
+            if (postSynapse == null) {
+                log.error(String.format("proofreader.addConnectionBetweenSynapseNodes: No synapse with location [%f,%f,%f] in dataset %s.", postX, postY, postZ, dataset));
+                throw new RuntimeException(String.format("proofreader.addConnectionBetweenSynapseNodes: No synapse with location [%f,%f,%f] in dataset %s.", postX, postY, postZ, dataset));
+            }
+
+            // error if 1st location not pre or 2nd location not post
+            if (!preSynapse.hasLabel(Label.label(PRE_SYN))) {
+                log.error(String.format("proofreader.addConnectionBetweenSynapseNodes: Synapse with location [%f,%f,%f] is not a presynaptic density.", preX, preY, preZ));
+                throw new RuntimeException(String.format("proofreader.addConnectionBetweenSynapseNodes: Synapse with location [%f,%f,%f] is not a presynaptic density.", preX, preY, preZ));
+            }
+            if (!postSynapse.hasLabel(Label.label(POST_SYN))) {
+                log.error(String.format("proofreader.addConnectionBetweenSynapseNodes: Synapse with location [%f,%f,%f] is not a postsynaptic density.", postX, postY, postZ));
+                throw new RuntimeException(String.format("proofreader.addConnectionBetweenSynapseNodes: Synapse with location [%f,%f,%f] is not a postsynaptic density.", postX, postY, postZ));
+            }
+
+            // error if a synapse already belongs to a body
+            // TODO: may in the future add ability to connect to synapses that are already on a body
+            if (getSegmentThatContainsSynapse(preSynapse) != null) {
+                log.error(String.format("proofreader.addConnectionBetweenSynapseNodes: Synapse with location [%f,%f,%f] is currently owned by a body.", preX, preY, preZ));
+                throw new RuntimeException(String.format("proofreader.addConnectionBetweenSynapseNodes: Synapse with location [%f,%f,%f] is currently owned by a body.", preX, preY, preZ));
+            }
+            if (getSegmentThatContainsSynapse(postSynapse) != null) {
+                log.error(String.format("proofreader.addConnectionBetweenSynapseNodes: Synapse with location [%f,%f,%f] is currently owned by a body.", postX, postY, postZ));
+                throw new RuntimeException(String.format("proofreader.addConnectionBetweenSynapseNodes: Synapse with location [%f,%f,%f] is currently owned by a body.", postX, postY, postZ));
+            }
+
+            // create connection between synapses
+            preSynapse.createRelationshipTo(postSynapse,RelationshipType.withName(SYNAPSES_TO));
+
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.addConnectionBetweenSynapseNodes: " + e);
+            throw new RuntimeException("Error running pproofreader.addConnectionBetweenSynapseNodese: " + e);
+        }
+
+
+        log.info("proofreader.addConnectionBetweenSynapseNodes: exit");
 
     }
 
