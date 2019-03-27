@@ -1,7 +1,5 @@
 package org.janelia.flyem.neuprintloadprocedures;
 
-import com.google.gson.reflect.TypeToken;
-import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -10,7 +8,6 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.spatial.Point;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -50,6 +47,8 @@ public class GraphTraversalTools {
     public static final String RADIUS = "radius";
     public static final String ROW_NUMBER = "rowNumber";
     public static final String TIME_STAMP = "timeStamp";
+    public static final String TOTAL_PRE_COUNT = "totalPreCount";
+    public static final String TOTAL_POST_COUNT = "totalPostCount";
     public static final String TYPE = "type";
     public static final String WEIGHT = "weight";
     public static final String WEIGHT_HP = "weightHP";
