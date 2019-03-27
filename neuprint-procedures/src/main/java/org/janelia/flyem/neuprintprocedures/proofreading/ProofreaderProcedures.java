@@ -1430,16 +1430,20 @@ public class ProofreaderProcedures {
     }
 
     private void acquireWriteLockForNode(Node node) {
-        try (Transaction tx = dbService.beginTx()) {
-            tx.acquireWriteLock(node);
-            tx.success();
+        if (node != null) {
+            try (Transaction tx = dbService.beginTx()) {
+                tx.acquireWriteLock(node);
+                tx.success();
+            }
         }
     }
 
     private void acquireWriteLockForRelationship(Relationship relationship) {
-        try (Transaction tx = dbService.beginTx()) {
-            tx.acquireWriteLock(relationship);
-            tx.success();
+        if (relationship != null) {
+            try (Transaction tx = dbService.beginTx()) {
+                tx.acquireWriteLock(relationship);
+                tx.success();
+            }
         }
     }
 
