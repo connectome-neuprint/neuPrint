@@ -292,4 +292,65 @@ public class AddAndDeleteSynapseTest {
 
     }
 
+    @Test
+    public void shouldDeleteOrphanSynapses() {
+
+        Session session = driver.session();
+
+        // get original meta node roi info for comparison
+        String origMetaNodeRoiInfoString = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.roiInfo")).single().get(0).asString();
+        Gson gson = new Gson();
+        Map<String, SynapseCounter> origMetaRoiInfo = gson.fromJson(origMetaNodeRoiInfoString, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+
+        String preSynapseJson = "{ \"Type\": \"pre\", \"Location\": [ 2,22,222 ], \"Confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", preSynapseJson, "dataset", "test")));
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteSynapse($x,$y,$z,$dataset)", parameters("x", 2, "y", 22, "z", 222, "dataset", "test")));
+
+        // meta node total pre and post count should match database
+        long preSynapseCount = session.readTransaction(tx -> tx.run("MATCH (n:PreSyn) RETURN count(n)")).single().get(0).asLong();
+        long postSynapseCount = session.readTransaction(tx -> tx.run("MATCH (n:PostSyn) RETURN count(n)")).single().get(0).asLong();
+        Map<String, Object> metaNodeProps = session.readTransaction(tx -> tx.run("MATCH (n:Meta) RETURN n.totalPreCount, n.totalPostCount, n.roiInfo")).single().asMap();
+
+        Assert.assertEquals(preSynapseCount, metaNodeProps.get("n.totalPreCount"));
+        Assert.assertEquals(postSynapseCount, metaNodeProps.get("n.totalPostCount"));
+
+        Map<String, SynapseCounter> metaRoiInfo = gson.fromJson((String) metaNodeProps.get("n.roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+
+        if (origMetaRoiInfo.containsKey("test1")) {
+            Assert.assertEquals(origMetaRoiInfo.get("test1").getPre(), metaRoiInfo.get("test1").getPre());
+            Assert.assertEquals(origMetaRoiInfo.get("test1").getPost(), metaRoiInfo.get("test1").getPost());
+        } else {
+            Assert.assertFalse(metaRoiInfo.containsKey("test1"));
+        }
+        if (origMetaRoiInfo.containsKey("test2")) {
+            Assert.assertEquals(origMetaRoiInfo.get("test2").getPre(), metaRoiInfo.get("test2").getPre());
+            Assert.assertEquals(origMetaRoiInfo.get("test2").getPost() , metaRoiInfo.get("test2").getPost());
+        } else {
+            Assert.assertFalse(metaRoiInfo.containsKey("test2"));
+        }
+
+
+        // synapse is deleted
+        int synapseCount = session.readTransaction(tx -> tx.run("WITH point({ x:2, y:22, z:222 }) AS loc MATCH (n:`test-Synapse`{location:loc}) RETURN count(n)")).single().get(0).asInt();
+        Assert.assertEquals(0, synapseCount);
+
+
+        // should continue quietly if synapse doesn't exist
+        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteSynapse($x,$y,$z,$dataset)", parameters("x", 3, "y", 33, "z", 333, "dataset", "test")));
+
+
+    }
+
+    @Test(expected = org.neo4j.driver.v1.exceptions.ClientException.class)
+    public void shouldErrorIfSynapseNotOrphaned() {
+
+        Session session = driver.session();
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteSynapse($x,$y,$z,$dataset)", parameters("x", 4301, "y", 2276, "z", 1535, "dataset", "test")));
+
+    }
+
 }

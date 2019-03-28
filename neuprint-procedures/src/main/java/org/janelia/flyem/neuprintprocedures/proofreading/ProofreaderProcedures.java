@@ -89,6 +89,7 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getCo
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getMetaNode;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegment;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapse;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addPostHPToConnectsTo;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToRoiInfoWithHP;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.removeSynapseFromRoiInfoWithHP;
@@ -398,7 +399,7 @@ public class ProofreaderProcedures {
                     // get the synapse type
                     final String synapseType = (String) synapseNode.getProperty(TYPE);
                     // get synapse rois for adding to the body and roiInfo
-                    final Set<String> synapseRois = GraphTraversalTools.getSynapseRois(synapseNode);
+                    final Set<String> synapseRois = getSynapseRois(synapseNode);
 
                     if (synapseType.equals(PRE)) {
                         for (String roi : synapseRois) {
@@ -991,6 +992,77 @@ public class ProofreaderProcedures {
 
     }
 
+    @Procedure(value = "proofreader.deleteSynapse", mode = Mode.WRITE)
+    @Description("proofreader.deleteSynapse(x, y, z, dataset) : Remove a synapse node specified by the 3D location provided.")
+    public void deleteSynapse(@Name("x") final Double x, @Name("y") final Double y, @Name("z") final Double z, @Name("dataset") final String dataset) {
+
+        log.info("proofreader.deleteSynapse: entry");
+
+        try {
+
+            if (x == null || y == null || z == null || dataset == null) {
+                log.error("proofreader.deleteSynapse: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteSynapse: Missing input arguments.");
+            }
+
+            // acquire the synapse node
+            Node synapse = getSynapse(dbService, x, y, z, dataset);
+
+            // acquire meta node for updating
+            Node metaNode = getMetaNode(dbService, dataset);
+            acquireWriteLockForNode(metaNode);
+
+            // warn if it doesn't exist
+            if (synapse == null) {
+                log.warn(String.format("proofreader.deleteSynapse: No synapse found at location [%f,%f,%f]. Aborting deletion. ", x, y, z));
+            } else {
+
+                acquireWriteLockForNode(synapse);
+
+                String synapseType = (String) synapse.getProperty(TYPE);
+                if (synapseType == null || !(synapseType.equals(PRE) || synapseType.equals(POST))) {
+                    log.error("proofreader.deleteSynapse: Synapse must have type property equal to \"pre\" or \"post\".");
+                    throw new RuntimeException("proofreader.deleteSynapse: Synapse must have type property equal to \"pre\" or \"post\".");
+                }
+
+                // if orphan continue, otherwise update neuron info
+                Node containingSegment = getSegmentThatContainsSynapse(synapse);
+                if (containingSegment != null) {
+                    log.error("proofreader.deleteSynapse: Deleting non-orphan synapses not yet supported.");
+                    throw new RuntimeException("proofreader.deleteSynapse: Deleting non-orphan synapses not yet supported.");
+                }
+
+                // delete synapsesTo relationships
+                for (Relationship synapsesToRel : synapse.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
+                    synapsesToRel.delete();
+                }
+
+                // remove from meta node counts and roiInfo
+                Set<String> synapseRois = getSynapseRois(synapse);
+                if (synapseType.equals(PRE)) {
+                    decrementMetaNodeTotalPreCount(metaNode);
+                } else {
+                    decrementMetaNodeTotalPostCount(metaNode);
+                }
+
+                for (String roi : synapseRois) {
+                    removeSynapseFromMetaRoiInfo(metaNode, roi, synapseType);
+                }
+
+                // delete synapse node
+                synapse.delete();
+
+            }
+
+        } catch (Exception e) {
+            log.error("proofreader.deleteSynapse: " + e);
+            throw new RuntimeException("proofreader.deleteSynapse: " + e);
+        }
+
+        log.info("proofreader.deleteSynapse: exit");
+
+    }
+
     // Left as example showing how to update the data model incrementally.
     // I would use a query like
     // "CALL apoc.periodic.iterate(“MATCH (n:`hemibrain-ConnectionSet`) RETURN n”, “CALL temp.updateConnectionSetsAndWeightHP(n,'hemibrain') RETURN n.datasetBodyIds”, {batchSize:100, parallel:true}) yield batches, total return batches, total"
@@ -1032,11 +1104,37 @@ public class ProofreaderProcedures {
         }
     }
 
+    private void decrementMetaNodeTotalPreCount(Node metaNode) {
+        if (metaNode != null) {
+            Long currentTotalPreCount = (Long) metaNode.getProperty(TOTAL_PRE_COUNT);
+            if (currentTotalPreCount != null) {
+                metaNode.setProperty(TOTAL_PRE_COUNT, --currentTotalPreCount);
+            } else {
+                log.warn("No totalPreCount property found on Meta node. This property will not be updated.");
+            }
+        } else {
+            log.warn("No Meta node found. totalPreCount will not be updated.");
+        }
+    }
+
     private void incrementMetaNodeTotalPostCount(Node metaNode) {
         if (metaNode != null) {
             Long currentTotalPostCount = (Long) metaNode.getProperty(TOTAL_POST_COUNT);
             if (currentTotalPostCount != null) {
                 metaNode.setProperty(TOTAL_POST_COUNT, ++currentTotalPostCount);
+            } else {
+                log.warn("No totalPostCount property found on Meta node. This property will not be updated.");
+            }
+        } else {
+            log.warn("No Meta node found. totalPostCount will not be updated.");
+        }
+    }
+
+    private void decrementMetaNodeTotalPostCount(Node metaNode) {
+        if (metaNode != null) {
+            Long currentTotalPostCount = (Long) metaNode.getProperty(TOTAL_POST_COUNT);
+            if (currentTotalPostCount != null) {
+                metaNode.setProperty(TOTAL_POST_COUNT, --currentTotalPostCount);
             } else {
                 log.warn("No totalPostCount property found on Meta node. This property will not be updated.");
             }
@@ -1085,6 +1183,20 @@ public class ProofreaderProcedures {
 
         return roiInfo.getAsJsonString();
 
+    }
+
+    private void removeSynapseFromMetaRoiInfo(Node metaNode, String roiName, String synapseType) {
+        if (metaNode != null) {
+            String metaRoiInfoString = (String) metaNode.getProperty(ROI_INFO);
+            if (metaRoiInfoString != null) {
+                String roiInfoJsonString = removeSynapseFromRoiInfo(metaRoiInfoString, roiName, synapseType);
+                metaNode.setProperty(ROI_INFO, roiInfoJsonString);
+            } else {
+                log.warn("No roiInfo property found on Meta node. roiInfo will not be updated.");
+            }
+        } else {
+            log.warn("No Meta node found. roiInfo will not be updated.");
+        }
     }
 
     private boolean roiInfoContainsRoi(String roiInfoString, String queriedRoi) {
