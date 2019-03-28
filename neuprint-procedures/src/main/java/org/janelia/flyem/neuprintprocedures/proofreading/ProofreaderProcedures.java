@@ -88,12 +88,13 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGH
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getConnectionSetsForSynapse;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getMetaNode;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegment;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegmentRois;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapse;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
-import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addPostHPToConnectsTo;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToRoiInfoWithHP;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addWeightAndWeightHPToConnectsTo;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.removeSynapseFromRoiInfoWithHP;
-import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.setConnectionSetRoiInfoAndGetWeightHP;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.setConnectionSetRoiInfoAndGetWeightAndWeightHP;
 
 public class ProofreaderProcedures {
 
@@ -702,7 +703,7 @@ public class ProofreaderProcedures {
                 // update connection set counts (no need to update roiInfos if synapse is not pre or post)
                 if (synapseType != null) {
                     // get the connection sets that it's part of
-                    List<Node> connectionSetList = getConnectionSetsForSynapse(dbService, synapse);
+                    List<Node> connectionSetList = getConnectionSetsForSynapse(synapse);
                     Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
                     // change roiInfo for each connection set
                     for (Node connectionSetNode : connectionSetList) {
@@ -795,7 +796,7 @@ public class ProofreaderProcedures {
                 // update connection set counts (no need to update roiInfos if synapse is not pre or post)
                 if (synapseType != null) {
                     // get the connection sets that it's part of
-                    List<Node> connectionSetList = getConnectionSetsForSynapse(dbService, synapse);
+                    List<Node> connectionSetList = getConnectionSetsForSynapse(synapse);
                     Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
                     // change roiInfo for each connection set
                     for (Node connectionSetNode : connectionSetList) {
@@ -1011,6 +1012,7 @@ public class ProofreaderProcedures {
             // acquire meta node for updating
             Node metaNode = getMetaNode(dbService, dataset);
             acquireWriteLockForNode(metaNode);
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
 
             // warn if it doesn't exist
             if (synapse == null) {
@@ -1027,12 +1029,26 @@ public class ProofreaderProcedures {
 
                 // if orphan continue, otherwise update neuron info
                 Node containingSegment = getSegmentThatContainsSynapse(synapse);
+
                 if (containingSegment != null) {
-                    log.error("proofreader.deleteSynapse: Deleting non-orphan synapses not yet supported.");
-                    throw new RuntimeException("proofreader.deleteSynapse: Deleting non-orphan synapses not yet supported.");
+
+                    // get list of affected bodies from connection set
+                    Set<Node> affectedConnectionSets = getConnectionSetsAffectedBySynapse(synapse, dataset);
+
+                    // delete relationships to synapse set and connection set
+                    for (Relationship containsRel : synapse.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
+                        containsRel.delete();
+                        System.out.println("Deleting contains relationship.");
+                    }
+
+                    // recompute connection set and ConnectsTo information
+                    for (Node connectionSet : affectedConnectionSets) {
+                        computeAndSetConnectionInformation(connectionSet, thresholdMap);
+                    }
+
                 }
 
-                // delete synapsesTo relationships
+                // delete synapsesTo relationships (may be multiple)
                 for (Relationship synapsesToRel : synapse.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
                     synapsesToRel.delete();
                 }
@@ -1051,6 +1067,40 @@ public class ProofreaderProcedures {
 
                 // delete synapse node
                 synapse.delete();
+
+                // recompute information on containing segment
+                if (containingSegment != null) {
+                    // set pre and post count
+                    if (synapseType.equals(PRE)) {
+                        decrementSegmentPreCount(containingSegment);
+                    } else {
+                        decrementSegmentPostCount(containingSegment);
+                    }
+
+                    // set roiInfo
+                    String roiInfoString = (String) containingSegment.getProperty(ROI_INFO, "{}");
+
+                    for (String roi : synapseRois) {
+                        roiInfoString = removeSynapseFromRoiInfo(roiInfoString, roi, synapseType);
+                    }
+
+                    containingSegment.setProperty(ROI_INFO, roiInfoString);
+
+                    // set rois by comparing keys in roiInfo to rois on segment
+                    Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
+                    Set<String> currentSegmentRois = getSegmentRois(containingSegment);
+                    currentSegmentRois.removeAll(roiInfoMap.keySet());
+                    for (String roiToRemove : currentSegmentRois) {
+                        containingSegment.removeProperty(roiToRemove);
+                    }
+
+                    // check if should still be a neuron
+                    if (shouldNotBeLabeledNeuron(containingSegment)) {
+                        removeNeuronDesignationFromNode(containingSegment, dataset);
+                    }
+
+                }
+
 
             }
 
@@ -1074,21 +1124,99 @@ public class ProofreaderProcedures {
         log.info("temp.updateConnectionSetsAndWeightHP: entry");
 
         try {
-            // get all synapses on connection set
-            Set<Node> synapsesForConnectionSet = org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet(connectionSetNode);
 
             Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(datasetLabel);
 
-            int postHP = setConnectionSetRoiInfoAndGetWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
+            computeAndSetConnectionInformation(connectionSetNode, thresholdMap);
 
-            // add postHP to ConnectsTo
-            addPostHPToConnectsTo(connectionSetNode, postHP);
         } catch (Exception e) {
             log.error("temp.updateConnectionSetsAndWeightHP: " + e);
             throw new RuntimeException("temp.updateConnectionSetsAndWeightHP: " + e);
         }
 
         log.info("temp.updateConnectionSetsAndWeightHP: exit");
+    }
+
+    private void computeAndSetConnectionInformation(Node connectionSetNode, Map<String, Double> thresholdMap) {
+        Set<Node> synapsesForConnectionSet = org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet(connectionSetNode);
+
+        int[] results = setConnectionSetRoiInfoAndGetWeightAndWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
+        int weight = results[0];
+        int weightHP = results[1];
+
+        // add weight info to ConnectsTo (will delete ConnectsTo relationship if weight is == 0)
+        addWeightAndWeightHPToConnectsTo(connectionSetNode, weight, weightHP);
+
+        // delete connection set if weight is 0
+        if (weight == 0) {
+            removeAllRelationships(connectionSetNode);
+            connectionSetNode.delete();
+        }
+
+    }
+
+    private Set<Node> getConnectionSetsAffectedBySynapse(final Node synapse, final String dataset) {
+        // get all connection sets that this synapse is involved in
+        List<Node> connectionSets = getConnectionSetsForSynapse(synapse);
+
+        connectionSets.forEach(x -> System.out.println(x.getAllProperties()));
+
+        for (Node connectionSet : connectionSets) {
+            long preBodyId;
+            long postBodyId;
+            try {
+                String datasetBodyIds = (String) connectionSet.getProperty(DATASET_BODY_IDs);
+                String[] splitDatasetBodyIds = datasetBodyIds.split(":");
+                preBodyId = Long.parseLong(splitDatasetBodyIds[1]);
+                postBodyId = Long.parseLong(splitDatasetBodyIds[2]);
+            } catch (Exception e) {
+                log.error("Error retrieving pre and post synaptic body IDs from connection set " + connectionSet.getAllProperties() + ": " + e);
+                throw new RuntimeException("Error retrieving pre and post synaptic body IDs from connection set " + connectionSet.getAllProperties() + ": " + e);
+            }
+
+            Node preBody = getSegment(dbService, preBodyId, dataset);
+            if (preBody == null) {
+                log.error("Error retrieving pre body with ID " + preBodyId);
+                throw new RuntimeException("Error retrieving pre body with ID " + preBodyId);
+            }
+            Node postBody = getSegment(dbService, postBodyId, dataset);
+            if (postBody == null) {
+                log.error("Error retrieving post body with ID " + postBodyId);
+                throw new RuntimeException("Error retrieving post body with ID " + postBodyId);
+            }
+
+        }
+
+        return new HashSet<>(connectionSets);
+
+//        // for each connection set, decrement weight and weightHP on appropriate ConnectsTo (getting rid of a SynapsesTo relationship, so doesn't matter if the synapse is pre or post, weight will decrease by 1)
+//        for (Node connectionSet : connectionSets) {
+//            Long preBodyId;
+//            Long postBodyId;
+//            try {
+//                String datasetBodyIds = (String) connectionSet.getProperty(DATASET_BODY_IDs);
+//                String[] splitDatasetBodyIds = datasetBodyIds.split(":");
+//                preBodyId = Long.parseLong(splitDatasetBodyIds[1]);
+//                postBodyId = Long.parseLong(splitDatasetBodyIds[2]);
+//            } catch (Exception e) {
+//                log.error("Error retrieving pre and post synaptic body IDs from connection set " + connectionSet.getAllProperties() + ": " + e);
+//                throw new RuntimeException("Error retrieving pre and post synaptic body IDs from connection set " + connectionSet.getAllProperties() + ": " + e);
+//            }
+//            Relationship connectsToRel = getConnectsToRelationshipBetweenSegments(dbService, preBodyId, postBodyId, dataset);
+//            if (connectsToRel == null) {
+//                log.error("Could not retrieve ConnectsTo relationship for connection set: " + connectionSet.getAllProperties());
+//                throw new RuntimeException("Could not retrieve ConnectsTo relationship for connection set: " + connectionSet.getAllProperties());
+//            }
+//
+//            System.out.println(connectsToRel);
+//
+//            decrementConnectsToWeight(connectsToRel);
+//
+//            // deal with weightHP later.
+//
+//
+//
+//        }
     }
 
     private void incrementMetaNodeTotalPreCount(Node metaNode) {
@@ -1117,6 +1245,24 @@ public class ProofreaderProcedures {
         }
     }
 
+    private void decrementConnectsToWeight(Relationship connectsToRel) {
+        Long currentWeight = (Long) connectsToRel.getProperty(WEIGHT);
+        if (currentWeight == null) {
+            log.error(String.format("No weight found on ConnectsTo relationship between nodes with neo4j ids %d and %d.", connectsToRel.getStartNodeId(), connectsToRel.getEndNodeId()));
+            throw new RuntimeException(String.format("No weight found on ConnectsTo relationship between nodes with neo4j ids %d and %d.", connectsToRel.getStartNodeId(), connectsToRel.getEndNodeId()));
+        }
+        connectsToRel.setProperty(WEIGHT, --currentWeight);
+    }
+
+    private void decrementConnectsToWeightHP(Relationship connectsToRel) {
+        Long currentWeightHP = (Long) connectsToRel.getProperty(WEIGHT_HP);
+        if (currentWeightHP == null) {
+            log.error(String.format("No weightHP found on ConnectsTo relationship between nodes with neo4j ids %d and %d.", connectsToRel.getStartNodeId(), connectsToRel.getEndNodeId()));
+            throw new RuntimeException(String.format("No weightHP found on ConnectsTo relationship between nodes with neo4j ids %d and %d.", connectsToRel.getStartNodeId(), connectsToRel.getEndNodeId()));
+        }
+        connectsToRel.setProperty(WEIGHT_HP, --currentWeightHP);
+    }
+
     private void incrementMetaNodeTotalPostCount(Node metaNode) {
         if (metaNode != null) {
             Long currentTotalPostCount = (Long) metaNode.getProperty(TOTAL_POST_COUNT);
@@ -1140,6 +1286,26 @@ public class ProofreaderProcedures {
             }
         } else {
             log.warn("No Meta node found. totalPostCount will not be updated.");
+        }
+    }
+
+    private void decrementSegmentPreCount(Node segment) {
+        Long currentTotalPreCount = (Long) segment.getProperty(PRE);
+        if (currentTotalPreCount != null) {
+            segment.setProperty(PRE, --currentTotalPreCount);
+        } else {
+            log.error("Segment pre count is absent: " + segment.getAllProperties());
+            throw new RuntimeException("Segment pre count is absent: " + segment.getAllProperties());
+        }
+    }
+
+    private void decrementSegmentPostCount(Node segment) {
+        Long currentTotalPostCount = (Long) segment.getProperty(POST);
+        if (currentTotalPostCount != null) {
+            segment.setProperty(POST, --currentTotalPostCount);
+        } else {
+            log.error("Segment post count is absent: " + segment.getAllProperties());
+            throw new RuntimeException("Segment post count is absent: " + segment.getAllProperties());
         }
     }
 
@@ -1407,7 +1573,7 @@ public class ProofreaderProcedures {
             // get pre and post thresholds from meta node (if not present use 0.0)
             Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(datasetLabel);
 
-            int postHPCount = setConnectionSetRoiInfoAndGetWeightHP(synapsesForConnectionSet, connectionSet, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
+            int postHPCount = setConnectionSetRoiInfoAndGetWeightAndWeightHP(synapsesForConnectionSet, connectionSet, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD))[1];
             connectsToRel.setProperty(WEIGHT_HP, postHPCount);
 
         }

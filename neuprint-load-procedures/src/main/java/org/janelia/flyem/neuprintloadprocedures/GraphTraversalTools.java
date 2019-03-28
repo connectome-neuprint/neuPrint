@@ -29,6 +29,7 @@ public class GraphTraversalTools {
     public static final String POST_SYN = "PostSyn";
     public static final String PRE_SYN = "PreSyn";
     //Property names
+    public static final String AUTO_NAME = "autoName";
     public static final String BODY_ID = "bodyId";
     public static final String CONFIDENCE = "confidence";
     public static final String CLUSTER_NAME = "clusterName";
@@ -95,7 +96,7 @@ public class GraphTraversalTools {
         return dbService.findNode(Label.label(dataset + "-" + CONNECTION_SET), DATASET_BODY_IDs, dataset + ":" + preBodyId + ":" + postBodyId);
     }
 
-    public static List<Node> getConnectionSetsForSynapse(final GraphDatabaseService dbService, final Node synapse) {
+    public static List<Node> getConnectionSetsForSynapse(final Node synapse) {
         List<Node> connectionSetList = new ArrayList<>();
         if (synapse.hasRelationship(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
             for (Relationship containsRel : synapse.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
@@ -113,6 +114,26 @@ public class GraphTraversalTools {
             synapseSet.add(containsRel.getEndNode());
         }
         return synapseSet;
+    }
+
+    public static Relationship getConnectsToRelationshipBetweenSegments(final GraphDatabaseService dbService, final Long preBodyId, final Long postBodyId, final String dataset) {
+
+        Relationship desiredConnectsToRelationship = null;
+        if (preBodyId != null && postBodyId != null && dataset != null) {
+            Node preSegment = getSegment(dbService, preBodyId, dataset);
+            Node postSegment = getSegment(dbService, postBodyId, dataset);
+            for (Relationship connectsToRel : preSegment.getRelationships(RelationshipType.withName(CONNECTS_TO), Direction.OUTGOING)) {
+                long retrievedSegmentId = connectsToRel.getEndNode().getId();
+                if (retrievedSegmentId == postSegment.getId()) {
+                    desiredConnectsToRelationship = connectsToRel;
+                    break;
+                }
+            }
+        } else {
+            throw new RuntimeException(String.format("preBodyId, postBodyId, and dataset fields must be non-null. Were %d, %d, and %s, respectively.", preBodyId, postBodyId, dataset));
+        }
+
+        return desiredConnectsToRelationship;
     }
 
     public static Node getSynapseSetForNeuron(final Node neuron) {
@@ -184,6 +205,28 @@ public class GraphTraversalTools {
                                 !p.equals(CONFIDENCE))
                 )
                 .collect(Collectors.toSet());
+    }
+
+    public static Set<String> getSegmentRois(final Node segment) {
+        Map<String, Object> segmentNodeProperties = segment.getAllProperties();
+        return segmentNodeProperties.keySet().stream()
+                .filter(p -> (
+                        !p.equals(TIME_STAMP) &&
+                                !p.equals(CLUSTER_NAME) &&
+                                !p.equals(AUTO_NAME) &&
+                                !p.equals(SOMA_LOCATION) &&
+                                !p.equals(SOMA_RADIUS) &&
+                                !p.equals(STATUS) &&
+                                !p.equals(ROI_INFO) &&
+                                !p.equals(TYPE) &&
+                                !p.equals(NAME) &&
+                                !p.equals(SIZE) &&
+                                !p.equals(POST) &&
+                                !p.equals(PRE) &&
+                                !p.equals(BODY_ID))
+                )
+                .collect(Collectors.toSet());
+
     }
 
     public static Point getLocationAs3dCartesianPoint(final GraphDatabaseService dbService, Double x, Double y, Double z) {

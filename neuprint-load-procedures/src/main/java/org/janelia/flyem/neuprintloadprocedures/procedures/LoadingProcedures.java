@@ -29,6 +29,7 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROI_INFO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TYPE;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
 
@@ -69,10 +70,12 @@ public class LoadingProcedures {
             // get all synapses on connection set
             Set<Node> synapsesForConnectionSet = GraphTraversalTools.getSynapsesForConnectionSet(connectionSet);
 
-            int postHP = setConnectionSetRoiInfoAndGetWeightHP(synapsesForConnectionSet, connectionSet, preHPThreshold, postHPThreshold);
+            int[] results = setConnectionSetRoiInfoAndGetWeightAndWeightHP(synapsesForConnectionSet, connectionSet, preHPThreshold, postHPThreshold);
+            int weight = results[0];
+            int weightHP = results[1];
 
             // add postHP to ConnectsTo
-            addPostHPToConnectsTo(connectionSet, postHP);
+            addWeightAndWeightHPToConnectsTo(connectionSet, weight, weightHP);
 
         } catch (Exception e) {
             log.info(String.format("loader.setConnectionSetRoiInfoAndWeightHP: Error adding roiInfo: %s, pre body ID: %d, post body ID: %d", e, preBodyId, postBodyId));
@@ -83,7 +86,8 @@ public class LoadingProcedures {
 
     }
 
-    public static void addPostHPToConnectsTo(Node connectionSet, int postHP) {
+    public static void addWeightAndWeightHPToConnectsTo(Node connectionSet, int weight, int weightHP) {
+        // will delete ConnectsTo if weight == 0
         Node preSynapticNode = connectionSet.getSingleRelationship(RelationshipType.withName(FROM), Direction.OUTGOING).getEndNode();
         long postSynapticNodeId = connectionSet.getSingleRelationship(RelationshipType.withName(TO), Direction.OUTGOING).getEndNodeId();
 
@@ -92,21 +96,27 @@ public class LoadingProcedures {
         for (Relationship connectsToRel : connectsToRelationships) {
             long endNodeIdForRel = connectsToRel.getEndNodeId();
             if (postSynapticNodeId == endNodeIdForRel) {
-                connectsToRel.setProperty(WEIGHT_HP, postHP);
+                if (weight > 0) {
+                    connectsToRel.setProperty(WEIGHT, weight);
+                    connectsToRel.setProperty(WEIGHT_HP, weightHP);
+                } else {
+                    connectsToRel.delete();
+                }
             }
         }
     }
 
-    public static int setConnectionSetRoiInfoAndGetWeightHP(Set<Node> synapsesForConnectionSet, Node connectionSet, Double preHPThreshold, Double postHPThreshold) {
+    public static int[] setConnectionSetRoiInfoAndGetWeightAndWeightHP(Set<Node> synapsesForConnectionSet, Node connectionSet, Double preHPThreshold, Double postHPThreshold) {
 
-        Object[] roiInfoAndPostHP = getRoiInfoForConnectionSet(synapsesForConnectionSet, preHPThreshold, postHPThreshold);
-        RoiInfoWithHighPrecisionCounts roiInfo = (RoiInfoWithHighPrecisionCounts) roiInfoAndPostHP[0];
-        int postHP = (int) roiInfoAndPostHP[1];
+        Object[] roiInfoPostHPAndPost = getRoiInfoForConnectionSet(synapsesForConnectionSet, preHPThreshold, postHPThreshold);
+        RoiInfoWithHighPrecisionCounts roiInfo = (RoiInfoWithHighPrecisionCounts) roiInfoPostHPAndPost[0];
+        int postHP = (int) roiInfoPostHPAndPost[1];
+        int post = (int) roiInfoPostHPAndPost[2];
 
         // add to connection set node
         connectionSet.setProperty(ROI_INFO, roiInfo.getAsJsonString());
 
-        return postHP;
+        return new int[]{post, postHP};
 
     }
 
@@ -117,6 +127,8 @@ public class LoadingProcedures {
 
         // total postHP count for weightHP on ConnectsTo
         int postHP = 0;
+        // total post count for weight on ConnectsTo
+        int post = 0;
 
         for (Node synapse : synapsesForConnectionSet) {
             String type;
@@ -143,18 +155,20 @@ public class LoadingProcedures {
                 }
             } else if (type.equals(POST) && confidence != null && confidence > postHPThreshold) {
                 postHP++;
+                post++;
                 for (String roi : synapseRois) {
                     roiInfo.incrementPostForRoi(roi);
                     roiInfo.incrementPostHPForRoi(roi);
                 }
             } else if (type.equals(POST)) {
+                post++;
                 for (String roi : synapseRois) {
                     roiInfo.incrementPostForRoi(roi);
                 }
             }
         }
 
-        return new Object[]{roiInfo, postHP};
+        return new Object[]{roiInfo, postHP, post};
     }
 
     public static String addSynapseToRoiInfoWithHP(String roiInfoString, String roi, String synapseType, Double synapseConfidence, Double preHPThreshold, Double postHPThreshold) {

@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprint.Neo4jImporter;
 import org.janelia.flyem.neuprint.model.SynapseCounter;
+import org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools;
 import org.janelia.flyem.neuprintloadprocedures.Location;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -37,6 +38,7 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAP
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE_SET;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getLocationAs3dCartesianPoint;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegment;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapse;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseLocationSet;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseSetForNeuron;
 import static org.janelia.flyem.neuprintprocedures.proofreading.ProofreaderProcedures.getRoiInfoAsMap;
@@ -67,7 +69,7 @@ public class NeuPrintUserFunctions {
 
     @UserFunction("neuprint.getNeuronCentroid")
     @Description("neuprint.getNeuronCentroid(bodyId, dataset) : returns location of synapse closest to centroid of queried neuron as a list of longs. Returns [0,0,0] if there are no synapses on the body.")
-    public List<Long> getNeuronCentroid(@Name("bodyId") Long bodyId, @Name("dataset") String dataset) {
+    public List<Long> getNeuronCentroid(@Name("bodyId") final Long bodyId, @Name("dataset") final String dataset) {
         if (bodyId == null || dataset == null) {
             throw new RuntimeException("Must provide bodyId and dataset.");
         }
@@ -245,6 +247,35 @@ public class NeuPrintUserFunctions {
 
         return gson.toJson(categoryCounts);
 
+    }
+
+    // wrapper functions for graph traversal tools
+    @UserFunction("neuprint.getSynapseRois")
+    @Description("neuprint.getSynapseRois(x,y,z,dataset) : returns a list of ROIs for the provided synapse.")
+    public List<String> getSynapseRois(@Name("x") final Double x, @Name("y") final Double y, @Name("z") final Double z, @Name("dataset") final String dataset) {
+        if (x == null || y == null || z == null || dataset == null) {
+            throw new RuntimeException("Must provide x, y, z, and dataset name.");
+        }
+        Node synapse = getSynapse(dbService, x, y, z, dataset);
+        if (synapse == null) {
+            throw new RuntimeException(String.format("Synapse not found at location: [%f,%f,%f]", x, y, z));
+        }
+        Set<String> synapseRois = GraphTraversalTools.getSynapseRois(synapse);
+        return new ArrayList<>(synapseRois);
+    }
+
+    @UserFunction("neuprint.getSegmentRois")
+    @Description("neuprint.getSegmentRois(bodyId,dataset) : returns a list of ROIs for the provided segment.")
+    public List<String> getSegmentRois(@Name("bodyId") final Long bodyId, @Name("dataset") final String dataset) {
+        if (bodyId == null || dataset == null) {
+            throw new RuntimeException("Must provide bodyId and dataset name.");
+        }
+        Node segment = getSegment(dbService, bodyId, dataset);
+        if (segment == null) {
+            throw new RuntimeException(String.format("Segment with bodyId %d not found in dataset %s.", bodyId, dataset));
+        }
+        Set<String> segmentRois = GraphTraversalTools.getSegmentRois(segment);
+        return new ArrayList<>(segmentRois);
     }
 
 //    class Connection {

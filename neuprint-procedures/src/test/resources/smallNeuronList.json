@@ -41,6 +41,8 @@
     "Id": 100569,
     "Status": "final",
     "Size": 1031,
+    "NeuronType": "Dm",
+    "Name": "test2",
     "Soma": { "Location":[1,2,4],"Radius":10.0}
   }
 ]

@@ -327,30 +327,72 @@ public class AddAndDeleteSynapseTest {
         }
         if (origMetaRoiInfo.containsKey("test2")) {
             Assert.assertEquals(origMetaRoiInfo.get("test2").getPre(), metaRoiInfo.get("test2").getPre());
-            Assert.assertEquals(origMetaRoiInfo.get("test2").getPost() , metaRoiInfo.get("test2").getPost());
+            Assert.assertEquals(origMetaRoiInfo.get("test2").getPost(), metaRoiInfo.get("test2").getPost());
         } else {
             Assert.assertFalse(metaRoiInfo.containsKey("test2"));
         }
-
 
         // synapse is deleted
         int synapseCount = session.readTransaction(tx -> tx.run("WITH point({ x:2, y:22, z:222 }) AS loc MATCH (n:`test-Synapse`{location:loc}) RETURN count(n)")).single().get(0).asInt();
         Assert.assertEquals(0, synapseCount);
 
-
         // should continue quietly if synapse doesn't exist
         session.writeTransaction(tx -> tx.run("CALL proofreader.deleteSynapse($x,$y,$z,$dataset)", parameters("x", 3, "y", 33, "z", 333, "dataset", "test")));
 
-
     }
 
-    @Test(expected = org.neo4j.driver.v1.exceptions.ClientException.class)
-    public void shouldErrorIfSynapseNotOrphaned() {
+    @Test
+    public void shouldDeleteNonOrphanedSynapse() {
 
         Session session = driver.session();
 
+        // post synapse
         session.writeTransaction(tx -> tx.run("CALL proofreader.deleteSynapse($x,$y,$z,$dataset)", parameters("x", 4301, "y", 2276, "z", 1535, "dataset", "test")));
 
+        int synapseCount = session.readTransaction(tx -> tx.run("WITH point({ x:4301, y:2276, z:1535 }) AS loc MATCH (n:`test-Synapse`{location:loc}) RETURN count(n)")).single().get(0).asInt();
+        Assert.assertEquals(0, synapseCount);
+
+        // check connection sets
+        int connectionSetCount = session.readTransaction(tx -> tx.run("MATCH (n:ConnectionSet{datasetBodyIds:\"test:8426959:26311\"}) RETURN count(n)")).single().get(0).asInt();
+        Assert.assertEquals(0, connectionSetCount);
+
+        // check connects to relationships
+        int connectsToCount = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:8426959})-[c:ConnectsTo]->(m{bodyId:26311}) RETURN count(c)")).single().get(0).asInt();
+        Assert.assertEquals(0, connectsToCount);
+
+        // check affected neuron
+        Node neuron = session.readTransaction(tx -> tx.run("MATCH (m:Segment:`test-Segment`{bodyId:26311}) RETURN m")).single().get(0).asNode();
+        // should still be neuron
+        Assert.assertTrue(neuron.hasLabel("Neuron"));
+        Assert.assertTrue(neuron.hasLabel("test-Neuron"));
+        // check properties
+        Map<String,Object> neuronMap = neuron.asMap();
+        Assert.assertEquals(1L, neuronMap.get("pre"));
+        Assert.assertEquals(1L, neuronMap.get("post"));
+
+        String roiInfoString = (String) neuronMap.get("roiInfo");
+        Gson gson = new Gson();
+        Map<String, SynapseCounter> roiInfo = gson.fromJson(roiInfoString, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+        Assert.assertEquals(1, roiInfo.keySet().size());
+        Assert.assertTrue(roiInfo.containsKey("roiA"));
+        Assert.assertEquals(1, roiInfo.get("roiA").getPre());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPost());
+
+        // check rois on neuron
+        List<Object> segmentRois = session.readTransaction(tx -> tx.run("WITH neuprint.getSegmentRois(26311,'test') AS roiList RETURN roiList")).single().get(0).asList();
+        Assert.assertEquals(1, segmentRois.size());
+        Assert.assertTrue(segmentRois.contains("roiA"));
+
+
+
+        // pre synapse (goes to multiple posts)
+        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteSynapse($x,$y,$z,$dataset)", parameters("x", 4287, "y", 2277, "z", 1542, "dataset", "test")));
+
+        int synapseCount2 = session.readTransaction(tx -> tx.run("WITH point({ x:4287, y:2277, z:1542 }) AS loc MATCH (n:`test-Synapse`{location:loc}) RETURN count(n)")).single().get(0).asInt();
+        Assert.assertEquals(0, synapseCount2);
+
+        // TODO: finish writing tests
     }
 
 }

@@ -112,6 +112,7 @@ public class Neuron {
         return removeUnwantedRois(this.rois);
     }
 
+    // TODO: remove these ROIs from input data and test data and remove this filter
     static List<String> removeUnwantedRois(List<String> rois) {
         List<String> newRoiList;
         if (rois != null) {
