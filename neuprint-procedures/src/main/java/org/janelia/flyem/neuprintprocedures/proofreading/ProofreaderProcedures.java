@@ -1145,8 +1145,9 @@ public class ProofreaderProcedures {
 
             Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(datasetLabel);
 
-            // TODO: remove unnecessary checks
-            computeAndSetConnectionInformation(connectionSetNode, thresholdMap);
+            Set<Node> synapsesForConnectionSet = org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet(connectionSetNode);
+
+            setConnectionSetRoiInfoWeightAndWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap);
 
         } catch (Exception e) {
             log.error("temp.updateConnectionSetsAndWeightHP: " + e);
@@ -1204,16 +1205,23 @@ public class ProofreaderProcedures {
         }
     }
 
-    private void computeAndSetConnectionInformation(Node connectionSetNode, Map<String, Double> thresholdMap) {
-
-        Set<Node> correctedSynapsesForConnectionSet = removeUnconnectedSynapsesFromConnectionSet(connectionSetNode);
-
-        int[] results = setConnectionSetRoiInfoAndGetWeightAndWeightHP(correctedSynapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
+    private int[] setConnectionSetRoiInfoWeightAndWeightHP(Set<Node> synapsesForConnectionSet, Node connectionSetNode, Map<String,Double> thresholdMap) {
+        int[] results = setConnectionSetRoiInfoAndGetWeightAndWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
         int weight = results[0];
         int weightHP = results[1];
 
         // add weight info to ConnectsTo (will delete ConnectsTo relationship if weight is == 0)
         addWeightAndWeightHPToConnectsTo(connectionSetNode, weight, weightHP);
+
+        return results;
+    }
+
+    private void computeAndSetConnectionInformation(Node connectionSetNode, Map<String, Double> thresholdMap) {
+
+        Set<Node> correctedSynapsesForConnectionSet = removeUnconnectedSynapsesFromConnectionSet(connectionSetNode);
+
+        int[] results = setConnectionSetRoiInfoWeightAndWeightHP(correctedSynapsesForConnectionSet, connectionSetNode, thresholdMap);
+        int weight = results[0];
 
         // delete connection set if weight is 0
         if (weight == 0) {
