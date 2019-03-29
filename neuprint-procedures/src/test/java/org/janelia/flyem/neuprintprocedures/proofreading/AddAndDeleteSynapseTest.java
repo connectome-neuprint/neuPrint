@@ -115,6 +115,9 @@ public class AddAndDeleteSynapseTest {
         Assert.assertFalse(synapseNode.hasLabel("PreSyn"));
         Assert.assertFalse(synapseNode.hasLabel("test-PreSyn"));
 
+        // synapse has dataset label
+        Assert.assertTrue(synapseNode.hasLabel("test"));
+
         String synapseJson2 = "{ \"Type\": \"pre\", \"Location\": [ 8,50,9 ], \"Confidence\": .88, \"rois\": [ \"roiA\", \"test2\" ] }";
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson2, "dataset", "test")));
