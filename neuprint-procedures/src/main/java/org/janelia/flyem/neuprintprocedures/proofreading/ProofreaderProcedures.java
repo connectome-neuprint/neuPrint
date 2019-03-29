@@ -106,7 +106,7 @@ public class ProofreaderProcedures {
     public Log log;
 
     @Procedure(value = "proofreader.updateProperties", mode = Mode.WRITE)
-    @Description("proofreader.updateProperties : Update properties on a Neuron/Segment node. Supports adding status, type, name, size, and soma. Input JSON should follow specifications for \"Neurons\" JSON file: https://github.com/connectome-neuprint/neuPrint/blob/master/jsonspecs.md")
+    @Description("proofreader.updateProperties(neuronJsonObject, dataset) : Update properties on a Neuron/Segment node. Supports adding status, type, name, size, and soma. Input JSON should follow specifications for \"Neurons\" JSON file supply a single Neuron/Segment object as a string: https://github.com/connectome-neuprint/neuPrint/blob/master/jsonspecs.md")
     public void updateProperties(@Name("neuronJsonObject") String neuronJsonObject, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.updateProperties: entry");
@@ -309,7 +309,7 @@ public class ProofreaderProcedures {
     }
 
     @Procedure(value = "proofreader.addNeuron", mode = Mode.WRITE)
-    @Description("proofreader.addNeuron(neuronAdditionJsonObject, datasetLabel): add a Neuron/Segment with properties, synapses, and connections specified by an input JSON.")
+    @Description("proofreader.addNeuron(neuronAdditionJsonObject, datasetLabel): add a Neuron/Segment with properties, synapses, and connections specified by an input JSON (see https://github.com/connectome-neuprint/neuPrint/blob/master/graphupdateAPI.md) ")
     public void addNeuron(@Name("neuronAdditionJson") String neuronAdditionJson, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.addNeuron: entry");
@@ -501,7 +501,7 @@ public class ProofreaderProcedures {
     }
 
     @Procedure(value = "proofreader.deleteNeuron", mode = Mode.WRITE)
-    @Description("proofreader.deleteNeuron(bodyId, datasetLabel) : Delete a Neuron/Segment from the database.")
+    @Description("proofreader.deleteNeuron(bodyId, datasetLabel) : Delete a Neuron/Segment from the database. Will orphan any synapses contained by the body.")
     public void deleteNeuron(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.deleteNeuron: entry");
@@ -525,7 +525,7 @@ public class ProofreaderProcedures {
     }
 
     @Procedure(value = "proofreader.addSkeleton", mode = Mode.WRITE)
-    @Description("proofreader.addSkeleton(fileUrl,datasetLabel) : load skeleton from provided url and connect to its associated Neuron/Segment (note: file URL must contain body id of neuron/segment) ")
+    @Description("proofreader.addSkeleton(fileUrl,datasetLabel) : Load skeleton from provided URL and connect it to its associated Neuron/Segment. (Note: file URL must end with \"<bodyID>.swc\" or \"<bodyID>_swc\" where <bodyID> is the body ID of the Neuron/Segment) ")
     public void addSkeleton(@Name("fileUrl") String fileUrlString, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.addSkeleton: entry");
@@ -616,7 +616,7 @@ public class ProofreaderProcedures {
     }
 
     @Procedure(value = "proofreader.deleteSkeleton", mode = Mode.WRITE)
-    @Description("proofreader.deleteSkeleton(bodyId,datasetLabel) : delete skeleton for Neuron/Segment provided body id ")
+    @Description("proofreader.deleteSkeleton(bodyId,datasetLabel) : delete skeleton for Neuron/Segment with provided body id ")
     public void deleteSkeleton(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
 
         log.info("proofreader.deleteSkeleton: entry");
@@ -854,7 +854,7 @@ public class ProofreaderProcedures {
     }
 
     @Procedure(value = "proofreader.addSynapse", mode = Mode.WRITE)
-    @Description("proofreader.addSynapse(synapseJson, dataset) : Add a synapse node to the dataset specified by an input JSON. Will only add the node, not the connections to other synapse nodes.")
+    @Description("proofreader.addSynapse(synapseJson, dataset) : Add a synapse node to the dataset specified by an input JSON (see https://github.com/connectome-neuprint/neuPrint/blob/master/graphupdateAPI.md). Will only add the Synapse node, not the connections to other Synapse nodes.")
     public void addSynapse(@Name("synapseJson") final String synapseJson, @Name("dataset") final String dataset) {
 
         log.info("proofreader.addSynapse: entry");

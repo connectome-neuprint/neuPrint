@@ -175,5 +175,10 @@ Usage: java -jar neuprint.jar [options]
 ## Developer Instructions
 
 `mvn test` will run all tests, `mvn package` will run all tests and package the .jar file. Running `mvn verify` will copy .jar files to the `executables` directory (`package` places .jar files in the `target` directory). Versioning must be done manually in the pom.xml file.
+
+## neuPrint Custom Procedures and Functions
+These are found in the neuprint-procedures.jar file:
+* [Graph Update API](graphupdateAPI.md)
+* Analysis Procedures (docs coming soon)
       
 

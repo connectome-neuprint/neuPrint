@@ -30,9 +30,6 @@ public class NeuronAddition {
     @SerializedName("Soma")
     private Soma soma; // optional
 
-    @SerializedName("SynapseSources")
-    private Set<Long> synapseSources;
-
     @SerializedName("CurrentSynapses")
     private Set<Synapse> currentSynapses;
 
@@ -64,15 +61,13 @@ public class NeuronAddition {
         return soma;
     }
 
-    public Set<Long> getSynapseSources() {
-        return synapseSources;
-    }
-
     public Set<Synapse> getCurrentSynapses() {
         return currentSynapses;
     }
 
-    public void setToInitialMutationId() { this.mutationId = 0L; }
+    public void setToInitialMutationId() {
+        this.mutationId = 0L;
+    }
 
     @Override
     public String toString() {
