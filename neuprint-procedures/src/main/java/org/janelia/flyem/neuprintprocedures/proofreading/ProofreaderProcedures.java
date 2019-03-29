@@ -211,7 +211,6 @@ public class ProofreaderProcedures {
 
                 // check if it should still be labeled neuron and remove designation if necessary
                 if (shouldNotBeLabeledNeuron(neuronNode)) {
-                    System.out.println("Removing neuron designation");
                     removeNeuronDesignationFromNode(neuronNode, datasetLabel);
                 }
 
@@ -1030,15 +1029,20 @@ public class ProofreaderProcedures {
                 // if orphan continue, otherwise update neuron info
                 Node containingSegment = getSegmentThatContainsSynapse(synapse);
 
+                // delete synapsesTo relationships (may be multiple)
+                for (Relationship synapsesToRel : synapse.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
+                    // get list of pre
+                    synapsesToRel.delete();
+                }
+
                 if (containingSegment != null) {
 
-                    // get list of affected bodies from connection set
+                    // get list of affected connection sets
                     Set<Node> affectedConnectionSets = getConnectionSetsAffectedBySynapse(synapse, dataset);
 
                     // delete relationships to synapse set and connection set
                     for (Relationship containsRel : synapse.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
                         containsRel.delete();
-                        System.out.println("Deleting contains relationship.");
                     }
 
                     // recompute connection set and ConnectsTo information
@@ -1046,11 +1050,6 @@ public class ProofreaderProcedures {
                         computeAndSetConnectionInformation(connectionSet, thresholdMap);
                     }
 
-                }
-
-                // delete synapsesTo relationships (may be multiple)
-                for (Relationship synapsesToRel : synapse.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
-                    synapsesToRel.delete();
                 }
 
                 // remove from meta node counts and roiInfo
@@ -1101,7 +1100,6 @@ public class ProofreaderProcedures {
 
                 }
 
-
             }
 
         } catch (Exception e) {
@@ -1112,6 +1110,8 @@ public class ProofreaderProcedures {
         log.info("proofreader.deleteSynapse: exit");
 
     }
+
+    // TODO: add procedure to orphan synapse but not delete it.
 
     // Left as example showing how to update the data model incrementally.
     // I would use a query like
@@ -1138,9 +1138,10 @@ public class ProofreaderProcedures {
     }
 
     private void computeAndSetConnectionInformation(Node connectionSetNode, Map<String, Double> thresholdMap) {
-        Set<Node> synapsesForConnectionSet = org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet(connectionSetNode);
 
-        int[] results = setConnectionSetRoiInfoAndGetWeightAndWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
+        Set<Node> correctedSynapsesForConnectionSet = removeUnconnectedSynapsesFromConnectionSet(connectionSetNode);
+
+        int[] results = setConnectionSetRoiInfoAndGetWeightAndWeightHP(correctedSynapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
         int weight = results[0];
         int weightHP = results[1];
 
@@ -1149,17 +1150,53 @@ public class ProofreaderProcedures {
 
         // delete connection set if weight is 0
         if (weight == 0) {
+            if (connectionSetNode.hasRelationship(RelationshipType.withName(CONTAINS))) {
+                log.error("Attempting to delete a ConnectionSet that still contains a synapse(s).");
+                throw new RuntimeException("Attempting to delete a ConnectionSet that still contains a synapse(s).");
+            }
             removeAllRelationships(connectionSetNode);
             connectionSetNode.delete();
         }
 
     }
 
+    private Set<Node> removeUnconnectedSynapsesFromConnectionSet(Node connectionSetNode) {
+        Set<Node> synapsesForConnectionSet = org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet(connectionSetNode);
+        Set<Node> correctedSynapsesForConnectionSet = new HashSet<>(synapsesForConnectionSet);
+
+        // remove synapses from connection set that no longer have a SynapsesTo relationship within the ConnectionSet
+        long connectionSetNodeId = connectionSetNode.getId();
+        for (Node synapse : synapsesForConnectionSet) {
+            boolean shouldBeInConnectionSet = false;
+            for (Relationship synapsesToRel : synapse.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
+                Node connectedSynapse = synapsesToRel.getOtherNode(synapse);
+                for (Relationship containsRel : connectedSynapse.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
+                    if (containsRel.getStartNodeId() == connectionSetNodeId) {
+                        shouldBeInConnectionSet = true;
+                        break;
+                    }
+                }
+                if (shouldBeInConnectionSet) {
+                    break;
+                }
+            }
+            if (!shouldBeInConnectionSet) {
+                // delete contains relationship between connection set and synapse
+                for (Relationship containsRel : synapse.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
+                    if (containsRel.getStartNodeId() == connectionSetNodeId) {
+                        containsRel.delete();
+                        correctedSynapsesForConnectionSet.remove(synapse);
+                    }
+                }
+            }
+        }
+
+        return correctedSynapsesForConnectionSet;
+    }
+
     private Set<Node> getConnectionSetsAffectedBySynapse(final Node synapse, final String dataset) {
         // get all connection sets that this synapse is involved in
         List<Node> connectionSets = getConnectionSetsForSynapse(synapse);
-
-        connectionSets.forEach(x -> System.out.println(x.getAllProperties()));
 
         for (Node connectionSet : connectionSets) {
             long preBodyId;
@@ -1189,34 +1226,6 @@ public class ProofreaderProcedures {
 
         return new HashSet<>(connectionSets);
 
-//        // for each connection set, decrement weight and weightHP on appropriate ConnectsTo (getting rid of a SynapsesTo relationship, so doesn't matter if the synapse is pre or post, weight will decrease by 1)
-//        for (Node connectionSet : connectionSets) {
-//            Long preBodyId;
-//            Long postBodyId;
-//            try {
-//                String datasetBodyIds = (String) connectionSet.getProperty(DATASET_BODY_IDs);
-//                String[] splitDatasetBodyIds = datasetBodyIds.split(":");
-//                preBodyId = Long.parseLong(splitDatasetBodyIds[1]);
-//                postBodyId = Long.parseLong(splitDatasetBodyIds[2]);
-//            } catch (Exception e) {
-//                log.error("Error retrieving pre and post synaptic body IDs from connection set " + connectionSet.getAllProperties() + ": " + e);
-//                throw new RuntimeException("Error retrieving pre and post synaptic body IDs from connection set " + connectionSet.getAllProperties() + ": " + e);
-//            }
-//            Relationship connectsToRel = getConnectsToRelationshipBetweenSegments(dbService, preBodyId, postBodyId, dataset);
-//            if (connectsToRel == null) {
-//                log.error("Could not retrieve ConnectsTo relationship for connection set: " + connectionSet.getAllProperties());
-//                throw new RuntimeException("Could not retrieve ConnectsTo relationship for connection set: " + connectionSet.getAllProperties());
-//            }
-//
-//            System.out.println(connectsToRel);
-//
-//            decrementConnectsToWeight(connectsToRel);
-//
-//            // deal with weightHP later.
-//
-//
-//
-//        }
     }
 
     private void incrementMetaNodeTotalPreCount(Node metaNode) {
