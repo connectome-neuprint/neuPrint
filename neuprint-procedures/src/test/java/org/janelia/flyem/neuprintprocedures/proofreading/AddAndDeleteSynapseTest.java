@@ -481,4 +481,48 @@ public class AddAndDeleteSynapseTest {
 
     }
 
+    @Test
+    public void shouldOrphanButNotDeleteSynapse() {
+
+        Session session = driver.session();
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.orphanSynapse($x,$y,$z,$dataset)", parameters("x", 9, "y", 9, "z", 9, "dataset", "test")));
+
+        int synapseCount = session.readTransaction(tx -> tx.run("WITH point({ x:9, y:9, z:9 }) AS loc MATCH (n:`test-Synapse`:Synapse:PreSyn{location:loc}) RETURN count(n)")).single().get(0).asInt();
+        // synapse should still exist
+        Assert.assertEquals(1, synapseCount);
+
+        int connectedSynapseCount = session.readTransaction(tx -> tx.run("WITH point({ x:9, y:9, z:9 }) AS loc MATCH (n:`test-Synapse`:Synapse:PreSyn{location:loc})-[:SynapsesTo]->(m) RETURN count(m)")).single().get(0).asInt();
+        // synapse should still have SynapsesTo relationships
+        Assert.assertEquals(2, connectedSynapseCount);
+
+        int containsCount = session.readTransaction(tx -> tx.run("WITH point({ x:9, y:9, z:9 }) AS loc MATCH (n:`test-Synapse`:Synapse:PreSyn{location:loc})<-[:Contains]-(c) RETURN count(c)")).single().get(0).asInt();
+        // synapse should not be contained by any SynapseSet or ConnectionSet
+        Assert.assertEquals(0, containsCount);
+
+        // connection sets and connects to should be updated
+        int connectionSetCount = session.readTransaction(tx -> tx.run("MATCH (n:ConnectionSet{datasetBodyIds:\"test:2:26311\"}) RETURN count(n)")).single().get(0).asInt();
+        Assert.assertEquals(0, connectionSetCount);
+        int connectsToCount = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:2})-[c:ConnectsTo]->(m{bodyId:26311}) RETURN count(c)")).single().get(0).asInt();
+        Assert.assertEquals(0, connectsToCount);
+
+        // containing neuron should be updated
+        Node neuron = session.readTransaction(tx -> tx.run("MATCH (m:Segment:`test-Segment`{bodyId:2}) RETURN m")).single().get(0).asNode();
+        // check properties
+        Map<String, Object> neuronMap = neuron.asMap();
+        Assert.assertEquals(0L, neuronMap.get("pre"));
+
+        String roiInfoString = (String) neuronMap.get("roiInfo");
+        Gson gson = new Gson();
+        Map<String, SynapseCounter> roiInfo = gson.fromJson(roiInfoString, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+        Assert.assertEquals(1, roiInfo.keySet().size());
+        Assert.assertTrue(roiInfo.containsKey("roiB"));
+
+        // should do nothing if already orphaned
+        session.writeTransaction(tx -> tx.run("CALL proofreader.orphanSynapse($x,$y,$z,$dataset)", parameters("x", 9, "y", 9, "z", 9, "dataset", "test")));
+
+
+    }
+
 }

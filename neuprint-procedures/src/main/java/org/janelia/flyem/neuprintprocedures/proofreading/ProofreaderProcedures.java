@@ -1026,30 +1026,17 @@ public class ProofreaderProcedures {
                     throw new RuntimeException("proofreader.deleteSynapse: Synapse must have type property equal to \"pre\" or \"post\".");
                 }
 
-                // if orphan continue, otherwise update neuron info
+                // if orphan continue, otherwise update synapse set, connection set info and relationships
                 Node containingSegment = getSegmentThatContainsSynapse(synapse);
+
+                if (containingSegment != null) {
+                    orphanSynapse(synapse, dataset, thresholdMap);
+                }
 
                 // delete synapsesTo relationships (may be multiple)
                 for (Relationship synapsesToRel : synapse.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
                     // get list of pre
                     synapsesToRel.delete();
-                }
-
-                if (containingSegment != null) {
-
-                    // get list of affected connection sets
-                    Set<Node> affectedConnectionSets = getConnectionSetsAffectedBySynapse(synapse, dataset);
-
-                    // delete relationships to synapse set and connection set
-                    for (Relationship containsRel : synapse.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
-                        containsRel.delete();
-                    }
-
-                    // recompute connection set and ConnectsTo information
-                    for (Node connectionSet : affectedConnectionSets) {
-                        computeAndSetConnectionInformation(connectionSet, thresholdMap);
-                    }
-
                 }
 
                 // remove from meta node counts and roiInfo
@@ -1069,35 +1056,7 @@ public class ProofreaderProcedures {
 
                 // recompute information on containing segment
                 if (containingSegment != null) {
-                    // set pre and post count
-                    if (synapseType.equals(PRE)) {
-                        decrementSegmentPreCount(containingSegment);
-                    } else {
-                        decrementSegmentPostCount(containingSegment);
-                    }
-
-                    // set roiInfo
-                    String roiInfoString = (String) containingSegment.getProperty(ROI_INFO, "{}");
-
-                    for (String roi : synapseRois) {
-                        roiInfoString = removeSynapseFromRoiInfo(roiInfoString, roi, synapseType);
-                    }
-
-                    containingSegment.setProperty(ROI_INFO, roiInfoString);
-
-                    // set rois by comparing keys in roiInfo to rois on segment
-                    Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
-                    Set<String> currentSegmentRois = getSegmentRois(containingSegment);
-                    currentSegmentRois.removeAll(roiInfoMap.keySet());
-                    for (String roiToRemove : currentSegmentRois) {
-                        containingSegment.removeProperty(roiToRemove);
-                    }
-
-                    // check if should still be a neuron
-                    if (shouldNotBeLabeledNeuron(containingSegment)) {
-                        removeNeuronDesignationFromNode(containingSegment, dataset);
-                    }
-
+                    recomputeSegmentPropertiesFollowingSynapseRemoval(synapseRois, synapseType, containingSegment, dataset);
                 }
 
             }
@@ -1111,7 +1070,66 @@ public class ProofreaderProcedures {
 
     }
 
-    // TODO: add procedure to orphan synapse but not delete it.
+    @Procedure(value = "proofreader.orphanSynapse", mode = Mode.WRITE)
+    @Description("proofreader.orphanSynapse(x, y, z, dataset) : Orphan (but do not delete) a synapse node specified by the 3D location provided.")
+    public void orphanSynapse(@Name("x") final Double x, @Name("y") final Double y, @Name("z") final Double z, @Name("dataset") final String dataset) {
+
+        log.info("proofreader.orphanSynapse: entry");
+
+        try {
+
+            if (x == null || y == null || z == null || dataset == null) {
+                log.error("proofreader.orphanSynapse: Missing input arguments.");
+                throw new RuntimeException("proofreader.orphanSynapse: Missing input arguments.");
+            }
+
+            // acquire the synapse node
+            Node synapse = getSynapse(dbService, x, y, z, dataset);
+
+            // acquire meta node for updating
+            Node metaNode = getMetaNode(dbService, dataset);
+            acquireWriteLockForNode(metaNode);
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
+
+            // warn if it doesn't exist
+            if (synapse == null) {
+                log.warn(String.format("proofreader.orphanSynapse: No synapse found at location [%f,%f,%f]. Aborting orphan procedure. ", x, y, z));
+            } else {
+
+                acquireWriteLockForNode(synapse);
+
+                String synapseType = (String) synapse.getProperty(TYPE);
+                if (synapseType == null || !(synapseType.equals(PRE) || synapseType.equals(POST))) {
+                    log.error("proofreader.orphanSynapse: Synapse must have type property equal to \"pre\" or \"post\".");
+                    throw new RuntimeException("proofreader.orphanSynapse: Synapse must have type property equal to \"pre\" or \"post\".");
+                }
+
+                Node containingSegment = getSegmentThatContainsSynapse(synapse);
+
+                // if orphan already, do nothing
+                if (containingSegment == null) {
+                    log.warn(String.format("proofreader.orphanSynapse: Synapse at location [%f,%f,%f] is already orphaned. Aborting orphan procedure. ", x, y, z));
+                } else {
+
+                    orphanSynapse(synapse, dataset, thresholdMap);
+
+                    Set<String> synapseRois = getSynapseRois(synapse);
+
+                    // recompute information on containing segment
+                    recomputeSegmentPropertiesFollowingSynapseRemoval(synapseRois, synapseType, containingSegment, dataset);
+
+                }
+
+            }
+
+        } catch (Exception e) {
+            log.error("proofreader.orphanSynapse: " + e);
+            throw new RuntimeException("proofreader.orphanSynapse: " + e);
+        }
+
+        log.info("proofreader.orphanSynapse: exit");
+
+    }
 
     // Left as example showing how to update the data model incrementally.
     // I would use a query like
@@ -1127,6 +1145,7 @@ public class ProofreaderProcedures {
 
             Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(datasetLabel);
 
+            // TODO: remove unnecessary checks
             computeAndSetConnectionInformation(connectionSetNode, thresholdMap);
 
         } catch (Exception e) {
@@ -1135,6 +1154,54 @@ public class ProofreaderProcedures {
         }
 
         log.info("temp.updateConnectionSetsAndWeightHP: exit");
+    }
+
+    private void recomputeSegmentPropertiesFollowingSynapseRemoval(Set<String> synapseRois, String synapseType, Node containingSegment, String dataset) {
+
+        // set pre and post count
+        if (synapseType.equals(PRE)) {
+            decrementSegmentPreCount(containingSegment);
+        } else {
+            decrementSegmentPostCount(containingSegment);
+        }
+
+        // set roiInfo
+        String roiInfoString = (String) containingSegment.getProperty(ROI_INFO, "{}");
+
+        for (String roi : synapseRois) {
+            roiInfoString = removeSynapseFromRoiInfo(roiInfoString, roi, synapseType);
+        }
+
+        containingSegment.setProperty(ROI_INFO, roiInfoString);
+
+        // set rois by comparing keys in roiInfo to rois on segment
+        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
+        Set<String> currentSegmentRois = getSegmentRois(containingSegment);
+        currentSegmentRois.removeAll(roiInfoMap.keySet());
+        for (String roiToRemove : currentSegmentRois) {
+            containingSegment.removeProperty(roiToRemove);
+        }
+
+        // check if should still be a neuron
+        if (shouldNotBeLabeledNeuron(containingSegment)) {
+            removeNeuronDesignationFromNode(containingSegment, dataset);
+        }
+
+    }
+
+    private void orphanSynapse(Node synapse, String dataset, Map<String, Double> thresholdMap) {
+        // get list of affected connection sets
+        Set<Node> affectedConnectionSets = getConnectionSetsAffectedBySynapse(synapse, dataset);
+
+        // delete relationships to synapse set and connection set
+        for (Relationship containsRel : synapse.getRelationships(RelationshipType.withName(CONTAINS), Direction.INCOMING)) {
+            containsRel.delete();
+        }
+
+        // recompute connection set and ConnectsTo information
+        for (Node connectionSet : affectedConnectionSets) {
+            computeAndSetConnectionInformation(connectionSet, thresholdMap);
+        }
     }
 
     private void computeAndSetConnectionInformation(Node connectionSetNode, Map<String, Double> thresholdMap) {
