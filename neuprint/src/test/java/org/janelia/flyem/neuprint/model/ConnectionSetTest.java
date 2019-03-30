@@ -16,7 +16,7 @@ public class ConnectionSetTest {
         ConnectionSet connectionSet3 = new ConnectionSet(1, 2);
 
         //reflexive
-        Assert.assertTrue(connectionSet1.equals(connectionSet1));
+        Assert.assertEquals(connectionSet1, connectionSet1);
         //symmetric
         Assert.assertTrue(connectionSet1.equals(connectionSet3) && connectionSet3.equals(connectionSet1));
         //transitive
@@ -24,10 +24,10 @@ public class ConnectionSetTest {
         //consistent
         Assert.assertTrue(connectionSet2.equals(connectionSet1) && connectionSet2.equals(connectionSet1));
         //not equal to null
-        Assert.assertTrue(!connectionSet1.equals(null));
+        Assert.assertNotNull(connectionSet1);
 
         Assert.assertNotSame(connectionSet1, connectionSet2);
-        Assert.assertTrue(connectionSet1.hashCode() == connectionSet2.hashCode());
+        Assert.assertEquals(connectionSet1.hashCode(), connectionSet2.hashCode());
 
     }
 

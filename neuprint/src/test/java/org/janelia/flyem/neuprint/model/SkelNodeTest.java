@@ -18,13 +18,13 @@ public class SkelNodeTest {
         location1.add(0);
         location1.add(1);
         location1.add(5);
-        SkelNode skelNode1 = new SkelNode(10L, location1, 3.0f, 2, new SkelNode(), 1);
+        SkelNode skelNode1 = new SkelNode(10L, location1, 3.0D, 2, new SkelNode(), 1);
         List<Integer> location2 = new ArrayList<>();
         location2.add(0);
         location2.add(1);
         location2.add(5);
-        SkelNode skelNode2 = new SkelNode(13L, location2, 34.0f, 1, new SkelNode(), 1);
-        SkelNode skelNode3 = new SkelNode(13L, location2, 34.0f, 1, new SkelNode(), 1);
+        SkelNode skelNode2 = new SkelNode(13L, location2, 34.0D, 1, new SkelNode(), 1);
+        SkelNode skelNode3 = new SkelNode(13L, location2, 34.0D, 1, new SkelNode(), 1);
 
         //reflexive
         Assert.assertEquals(skelNode1, skelNode1);
@@ -49,13 +49,13 @@ public class SkelNodeTest {
         location1.add(0);
         location1.add(1);
         location1.add(5);
-        SkelNode skelNode1 = new SkelNode(10L, location1, 3.0f, 2, new SkelNode(), 1);
+        SkelNode skelNode1 = new SkelNode(10L, location1, 3.0D, 2, new SkelNode(), 1);
         List<Integer> location2 = new ArrayList<>();
         location2.add(0);
         location2.add(1);
         location2.add(5);
-        SkelNode skelNode2 = new SkelNode(13L, location2, 34.0f, 1, new SkelNode(), 2);
-        SkelNode skelNode3 = new SkelNode(13L, location2, 34.0f, 1, new SkelNode(), 3);
+        SkelNode skelNode2 = new SkelNode(13L, location2, 34.0D, 1, new SkelNode(), 2);
+        SkelNode skelNode3 = new SkelNode(13L, location2, 34.0D, 1, new SkelNode(), 3);
 
         skelNode1.addChild(skelNode2);
         skelNode1.addChild(skelNode3);

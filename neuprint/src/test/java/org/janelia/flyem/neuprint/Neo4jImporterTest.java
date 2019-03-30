@@ -481,7 +481,7 @@ public class Neo4jImporterTest {
         Assert.assertEquals(3L, metaNode.asMap().get("totalPreCount"));
         Assert.assertEquals(6L, metaNode.asMap().get("totalPostCount"));
 
-        List<String> superLevelRois = (List) metaNode.asMap().get("superLevelRois");
+        List superLevelRois = (List) metaNode.asMap().get("superLevelRois");
         Assert.assertTrue(superLevelRois.contains("roiA") && superLevelRois.contains("roiB") && superLevelRois.contains("roi1"));
 
         String metaSynapseCountPerRoi = (String) metaNode.asMap().get("roiInfo");

@@ -52,45 +52,4 @@ public class SynapseMapperTest {
 
     }
 
-    private static final String BODY_LIST_JSON =
-            "[\n" +
-                    "  {\n" +
-                    "    \"BodyId\": 8426959,\n" +
-                    "    \"SynapseSet\": [\n" +
-                    "      {\n" +
-                    "        \"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\", \"testroi\" ],\n" +
-                    "        \"ConnectsTo\": [\n" +
-                    "          [ 4298, 2294, 1542 ], [ 4301, 2276, 1535 ], [ 4292, 2261, 1542 ]\n" +
-                    "        ]\n" +
-                    "      },\n" +
-                    "      { \"Type\": \"post\", \"Location\": [ 4222, 2402, 1678 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4236, 2394, 1700 ] ]  }\n" +
-                    "    ]\n" +
-                    "  },\n" +
-                    "  {\n" +
-                    "    \"BodyId\": 26311,\n" +
-                    "    \"SynapseSet\": [\n" +
-                    "      { \"Type\": \"post\", \"Location\": [ 4301, 2276, 1535 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4287, 2277, 1542 ] ] },\n" +
-                    "        { \"Type\": \"post\", \"Location\": [ 4222, 2402, 1688 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4236, 2394, 1700 ] ]  }\n" +
-                    "    ]\n" +
-                    "  },\n" +
-                    "  {\n" +
-                    "    \"BodyId\": 2589725,\n" +
-                    "    \"SynapseSet\": [\n" +
-                    "      { \"Type\": \"pre\", \"Location\": [ 4298, 2294, 1542 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4287, 2277, 1542 ] ] },\n" +
-                    "       {\n" +
-                    "        \"Type\": \"pre\", \"Location\": [ 4287, 2277, 1542 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ],\n" +
-                    "        \"ConnectsTo\": [\n" +
-                    "          [ 4298, 2294, 1542 ], [ 4301, 2276, 1535 ], [ 4292, 2261, 1542 ]\n" +
-                    "        ]\n" +
-                    "      }\n" +
-                    "    ]\n" +
-                    "  },\n" +
-                    "  {\n" +
-                    "    \"BodyId\": 831744,\n" +
-                    "    \"SynapseSet\": [\n" +
-                    "      { \"Type\": \"post\", \"Location\": [ 4292, 2261, 1542 ], \"Confidence\": 1.0, \"rois\": [ \"seven_column_roi\" ], \"ConnectsFrom\": [ [ 4287, 2277, 1542 ] ] }\n" +
-                    "    ]\n" +
-                    "  }\n" +
-                    "]";
-
 }

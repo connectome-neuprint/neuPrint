@@ -30,7 +30,7 @@ public class Synapse {
     private List<Integer> location;
 
     @SerializedName("Confidence")
-    private float confidence;
+    private double confidence;
 
     @SerializedName("rois")
     public List<String> rois;
@@ -49,7 +49,7 @@ public class Synapse {
      * @param location    3D location of density
      * @param connections set of connections (connections to if pre, connections from if post)
      */
-    public Synapse(String type, float confidence, List<Integer> location, Set<List<Integer>> connections) {
+    public Synapse(String type, double confidence, List<Integer> location, Set<List<Integer>> connections) {
         this.type = type;
         this.confidence = confidence;
         this.location = location;
@@ -71,7 +71,7 @@ public class Synapse {
      */
     public Synapse(String type, Integer x, Integer y, Integer z, List<String> roiSet) {
         this.type = type;
-        this.confidence = 0.0F;
+        this.confidence = 0.0D;
         List<Integer> location = new ArrayList<>();
         location.add(x);
         location.add(y);
@@ -197,7 +197,7 @@ public class Synapse {
     /**
      * @return confidence of prediction
      */
-    public float getConfidence() {
+    public double getConfidence() {
         return this.confidence;
     }
 

@@ -255,7 +255,7 @@ public class AnalysisProcedures {
         Node neuron = acquireSegmentFromDatabase(bodyId, datasetLabel);
         List<Node> nodeList = getSkelNodesForSkeleton(neuron);
         List<SkelNode> skelNodeList = nodeList.stream()
-                .map((node) -> new SkelNode(bodyId, getNeo4jPointLocationAsLocationList((Point) node.getProperty("location")), (float) ((double) node.getProperty("radius")), (int) ((long) node.getProperty("rowNumber"))))
+                .map((node) -> new SkelNode(bodyId, getNeo4jPointLocationAsLocationList((Point) node.getProperty("location")), (double) node.getProperty("radius"), (int) ((long) node.getProperty("rowNumber"))))
                 .collect(Collectors.toList());
         String skeletonJson = SkelNode.getSkelNodeListJson(skelNodeList);
 

@@ -149,6 +149,21 @@ public class AddAndRemoveRoiTest {
     }
 
     @Test
+    public void shouldAddRoiToOrphanSynapse() {
+        Session session = driver.session();
+
+        String synapseJson = "{ \"Type\": \"post\", \"Location\": [ 5,22,99 ], \"Confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson, "dataset", "test")));
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addRoiToSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 5, "y", 22, "z", 99, "roiName", "roiXX", "dataset", "test")));
+
+        boolean roiXX = session.readTransaction(tx-> tx.run("MATCH (n:`test-Synapse`) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN exists(n.roiXX)", parameters("x", 5,"y", 22, "z", 99 ))).single().get(0).asBoolean();
+
+        Assert.assertTrue(roiXX);
+
+    }
+
+    @Test
     public void shouldRemoveRoiFromSynapse() {
 
         Session session = driver.session();
@@ -206,6 +221,21 @@ public class AddAndRemoveRoiTest {
         Map<String, SynapseCounter> neuronRoiInfoMap2 = gson.fromJson(roiInfo2, ROI_INFO_TYPE);
         Assert.assertFalse(neuronRoiInfoMap2.containsKey("roiA"));
 
+
+    }
+
+    @Test
+    public void shouldRemoveRoiFromOrphanSynapse() {
+        Session session = driver.session();
+
+        String synapseJson = "{ \"Type\": \"post\", \"Location\": [ 50,22,99 ], \"Confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson, "dataset", "test")));
+        session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 50, "y", 22, "z", 99, "roiName", "test2", "dataset", "test")));
+
+        boolean test2 = session.readTransaction(tx-> tx.run("MATCH (n:`test-Synapse`) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN exists(n.test2)", parameters("x", 50,"y", 22, "z", 99 ))).single().get(0).asBoolean();
+
+        Assert.assertFalse(test2);
 
     }
 

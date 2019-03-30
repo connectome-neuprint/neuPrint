@@ -163,7 +163,7 @@ public class Neuron {
     /**
      * @return radius of {@link Soma}
      */
-    public Float getSomaRadius() {
+    public Double getSomaRadius() {
         if (soma != null) {
             return soma.getRadius();
         } else {

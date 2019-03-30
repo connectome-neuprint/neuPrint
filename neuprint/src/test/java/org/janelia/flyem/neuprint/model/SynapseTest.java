@@ -65,7 +65,7 @@ public class SynapseTest {
         Synapse synapse3 = new Synapse(z.getType(), z.getConfidence(), x.getLocation(), z.getConnectionLocations());
 
         //reflexive
-        Assert.assertTrue(synapse1.equals(synapse1));
+        Assert.assertEquals(synapse1, synapse1);
         //symmetric
         Assert.assertTrue(synapse1.equals(synapse2) && synapse2.equals(synapse1));
         //transitive
@@ -73,10 +73,10 @@ public class SynapseTest {
         //consistent
         Assert.assertTrue(synapse2.equals(synapse1) && synapse2.equals(synapse1));
         //not equal to null
-        Assert.assertTrue(!synapse2.equals(null));
+        Assert.assertNotNull(synapse2);
 
         Assert.assertNotSame(synapse1, synapse2);
-        Assert.assertTrue(synapse1.hashCode() == synapse2.hashCode());
+        Assert.assertEquals(synapse1.hashCode(), synapse2.hashCode());
 
     }
 

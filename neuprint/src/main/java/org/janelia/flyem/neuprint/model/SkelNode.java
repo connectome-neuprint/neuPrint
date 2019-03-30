@@ -16,7 +16,7 @@ import java.util.List;
 public class SkelNode {
 
     private List<Integer> location;
-    private float radius;
+    private Double radius;
     private Long associatedBodyId;
     private int type;
     private transient SkelNode parent; // only root doesn't have a parent
@@ -33,7 +33,7 @@ public class SkelNode {
      * @param parent           parent of SkelNode
      * @param rowNumber        row number of SkelNode within the swc file
      */
-    public SkelNode(Long associatedBodyId, List<Integer> location, float radius, int type, SkelNode parent, int rowNumber) {
+    public SkelNode(Long associatedBodyId, List<Integer> location, Double radius, int type, SkelNode parent, int rowNumber) {
         this.associatedBodyId = associatedBodyId;
         this.location = location;
         this.radius = radius;
@@ -50,7 +50,7 @@ public class SkelNode {
      * @param radius           radius of SkelNode
      * @param rowNumber        row number of SkelNode within the swc file
      */
-    public SkelNode(Long associatedBodyId, List<Integer> location, float radius, int rowNumber) {
+    public SkelNode(Long associatedBodyId, List<Integer> location, Double radius, int rowNumber) {
         this.associatedBodyId = associatedBodyId;
         this.location = location;
         this.radius = radius;
@@ -188,7 +188,7 @@ public class SkelNode {
     /**
      * @return radius of SkelNode
      */
-    public float getRadius() {
+    public Double getRadius() {
         return this.radius;
     }
 

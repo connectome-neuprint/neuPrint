@@ -38,12 +38,12 @@ public class NeuronTest {
         Neuron y = parsedList.get(1);
         Neuron z = parsedList.get(2);
 
-        Neuron neuron1 = new Neuron(new Long(85), x.getStatus(), x.getName(), x.getNeuronType(), x.getSize(), x.getRois(), x.getSoma());
-        Neuron neuron2 = new Neuron(new Long(85), y.getStatus(), y.getName(), y.getNeuronType(), y.getSize(), y.getRois(), y.getSoma());
-        Neuron neuron3 = new Neuron(new Long(85), z.getStatus(), z.getName(), z.getNeuronType(), z.getSize(), z.getRois(), z.getSoma());
+        Neuron neuron1 = new Neuron(85L, x.getStatus(), x.getName(), x.getNeuronType(), x.getSize(), x.getRois(), x.getSoma());
+        Neuron neuron2 = new Neuron(85L, y.getStatus(), y.getName(), y.getNeuronType(), y.getSize(), y.getRois(), y.getSoma());
+        Neuron neuron3 = new Neuron(85L, z.getStatus(), z.getName(), z.getNeuronType(), z.getSize(), z.getRois(), z.getSoma());
 
         //reflexive
-        Assert.assertTrue(neuron1.equals(neuron1));
+        Assert.assertEquals(neuron1, neuron1);
         //symmetric
         Assert.assertTrue(neuron1.equals(neuron2) && neuron2.equals(neuron1));
         //transitive
@@ -51,10 +51,10 @@ public class NeuronTest {
         //consistent
         Assert.assertTrue(neuron2.equals(neuron1) && neuron2.equals(neuron1));
         //not equal to null
-        Assert.assertTrue(!neuron2.equals(null));
+        Assert.assertNotNull(neuron2);
 
         Assert.assertNotSame(neuron1, neuron2);
-        Assert.assertTrue(neuron1.hashCode() == neuron2.hashCode());
+        Assert.assertEquals(neuron1.hashCode(), neuron2.hashCode());
 
     }
 

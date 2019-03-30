@@ -100,7 +100,7 @@ public class Skeleton {
         String swcLine;
         List<SkelNode> skelNodeList = new ArrayList<>();
         List<Integer> location;
-        float radius;
+        Double radius;
         int type;
         SkelNode parent;
 
@@ -121,7 +121,7 @@ public class Skeleton {
                     location.add(coordinate);
                 }
 
-                radius = Float.parseFloat(lineComponents[5]);
+                radius = Double.parseDouble(lineComponents[5]);
 
                 type = Integer.parseInt(lineComponents[1]);
 

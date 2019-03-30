@@ -13,7 +13,7 @@ public class NeuronAddition {
     private Long bodyId;
 
     @SerializedName("Size")
-    private long size;
+    private Long size;
 
     @SerializedName("MutationUUID")
     private String mutationUuid;
@@ -37,7 +37,7 @@ public class NeuronAddition {
         return bodyId;
     }
 
-    public long getSize() {
+    public Long getSize() {
         return size;
     }
 

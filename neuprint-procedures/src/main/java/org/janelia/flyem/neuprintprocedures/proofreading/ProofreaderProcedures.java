@@ -674,9 +674,13 @@ public class ProofreaderProcedures {
             Node synapse = getSynapse(dbService, x, y, z, dataset);
 
             Node neuron = getSegmentThatContainsSynapse(synapse);
-            acquireWriteLockForSegmentSubgraph(neuron);
+            if (neuron != null) {
+                acquireWriteLockForSegmentSubgraph(neuron);
+            }
             Node metaNode = getMetaNode(dbService, dataset);
-            acquireWriteLockForNode(metaNode);
+            if (metaNode != null) {
+                acquireWriteLockForNode(metaNode);
+            }
 
             if (synapse == null) {
                 log.error("proofreader.addRoiToSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
@@ -767,9 +771,13 @@ public class ProofreaderProcedures {
             Node synapse = getSynapse(dbService, x, y, z, dataset);
 
             Node neuron = getSegmentThatContainsSynapse(synapse);
-            acquireWriteLockForSegmentSubgraph(neuron);
+            if (neuron != null) {
+                acquireWriteLockForSegmentSubgraph(neuron);
+            }
             Node metaNode = getMetaNode(dbService, dataset);
-            acquireWriteLockForNode(metaNode);
+            if (metaNode != null) {
+                acquireWriteLockForNode(metaNode);
+            }
 
             if (synapse == null) {
                 log.error("proofreader.removeRoiFromSynapse: No synapse found at location: [" + x + "," + y + "," + z + "]");
@@ -868,7 +876,9 @@ public class ProofreaderProcedures {
 
             // get the meta node for updating
             Node metaNode = getMetaNode(dbService, dataset);
-            acquireWriteLockForNode(metaNode);
+            if (metaNode != null) {
+                acquireWriteLockForNode(metaNode);
+            }
 
             Gson gson = new Gson();
             Synapse synapse = gson.fromJson(synapseJson, Synapse.class);
@@ -946,9 +956,6 @@ public class ProofreaderProcedures {
             Node preSynapse = getSynapse(dbService, preX, preY, preZ, dataset);
             Node postSynapse = getSynapse(dbService, postX, postY, postZ, dataset);
 
-            acquireWriteLockForNode(preSynapse);
-            acquireWriteLockForNode(postSynapse);
-
             // error if synapses are not found
             if (preSynapse == null) {
                 log.error(String.format("proofreader.addConnectionBetweenSynapseNodes: No synapse with location [%f,%f,%f] in dataset %s.", preX, preY, preZ, dataset));
@@ -958,6 +965,9 @@ public class ProofreaderProcedures {
                 log.error(String.format("proofreader.addConnectionBetweenSynapseNodes: No synapse with location [%f,%f,%f] in dataset %s.", postX, postY, postZ, dataset));
                 throw new RuntimeException(String.format("proofreader.addConnectionBetweenSynapseNodes: No synapse with location [%f,%f,%f] in dataset %s.", postX, postY, postZ, dataset));
             }
+
+            acquireWriteLockForNode(preSynapse);
+            acquireWriteLockForNode(postSynapse);
 
             // error if 1st location not pre or 2nd location not post
             if (!preSynapse.hasLabel(Label.label(PRE_SYN))) {
@@ -992,6 +1002,15 @@ public class ProofreaderProcedures {
 
     }
 
+    @Procedure(value = "proofreader.addSynapseToSegment", mode = Mode.WRITE)
+    @Description("proofreader.addSynapseToSegment(x, y, z, bodyId, dataset) : Add an orphaned Synapse node to a Neuron/Segment. Synapse and Neuron/Segment must exist in the dataset.")
+    public void addSynapseToSegment(@Name("x") final Double x, @Name("y") final Double y, @Name("z") final Double z, @Name("bodyId") Long bodyId, @Name("dataset") final String dataset) {
+
+        log.error("proofreader.addSynapseToSegment: Not yet implemented.");
+        throw new RuntimeException("proofreader.addSynapseToSegment: Not yet implemented.");
+
+    }
+
     @Procedure(value = "proofreader.deleteSynapse", mode = Mode.WRITE)
     @Description("proofreader.deleteSynapse(x, y, z, dataset) : Remove a synapse node specified by the 3D location provided.")
     public void deleteSynapse(@Name("x") final Double x, @Name("y") final Double y, @Name("z") final Double z, @Name("dataset") final String dataset) {
@@ -1010,7 +1029,9 @@ public class ProofreaderProcedures {
 
             // acquire meta node for updating
             Node metaNode = getMetaNode(dbService, dataset);
-            acquireWriteLockForNode(metaNode);
+            if (metaNode != null) {
+                acquireWriteLockForNode(metaNode);
+            }
             Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
 
             // warn if it doesn't exist
@@ -1088,7 +1109,9 @@ public class ProofreaderProcedures {
 
             // acquire meta node for updating
             Node metaNode = getMetaNode(dbService, dataset);
-            acquireWriteLockForNode(metaNode);
+            if (metaNode != null) {
+                acquireWriteLockForNode(metaNode);
+            }
             Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
 
             // warn if it doesn't exist
@@ -1205,7 +1228,7 @@ public class ProofreaderProcedures {
         }
     }
 
-    private int[] setConnectionSetRoiInfoWeightAndWeightHP(Set<Node> synapsesForConnectionSet, Node connectionSetNode, Map<String,Double> thresholdMap) {
+    private int[] setConnectionSetRoiInfoWeightAndWeightHP(Set<Node> synapsesForConnectionSet, Node connectionSetNode, Map<String, Double> thresholdMap) {
         int[] results = setConnectionSetRoiInfoAndGetWeightAndWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
         int weight = results[0];
         int weightHP = results[1];
@@ -1680,12 +1703,12 @@ public class ProofreaderProcedures {
     private Map<String, Double> getPreAndPostHPThresholdFromMetaNode(String datasetLabel) {
         Node metaNode = getMetaNode(dbService, datasetLabel);
         Map<String, Double> thresholdMap = new HashMap<>();
-        if (metaNode.hasProperty(PRE_HP_THRESHOLD)) {
+        if (metaNode != null && metaNode.hasProperty(PRE_HP_THRESHOLD)) {
             thresholdMap.put(PRE_HP_THRESHOLD, (Double) metaNode.getProperty(PRE_HP_THRESHOLD));
         } else {
             thresholdMap.put(PRE_HP_THRESHOLD, 0.0);
         }
-        if (metaNode.hasProperty(POST_HP_THRESHOLD)) {
+        if (metaNode != null && metaNode.hasProperty(POST_HP_THRESHOLD)) {
             thresholdMap.put(POST_HP_THRESHOLD, (Double) metaNode.getProperty(POST_HP_THRESHOLD));
         } else {
             thresholdMap.put(POST_HP_THRESHOLD, 0.0);
@@ -1781,46 +1804,48 @@ public class ProofreaderProcedures {
 
     private void acquireWriteLockForSegmentSubgraph(Node segment) {
         // neuron
-        acquireWriteLockForNode(segment);
-        // connects to relationships and 1-degree connections
-        for (Relationship connectsToRelationship : segment.getRelationships(RelationshipType.withName(CONNECTS_TO))) {
-            acquireWriteLockForRelationship(connectsToRelationship);
-            acquireWriteLockForNode(connectsToRelationship.getOtherNode(segment));
-        }
-        // skeleton and synapse set
-        for (Relationship containsRelationship : segment.getRelationships(RelationshipType.withName(CONTAINS))) {
-            acquireWriteLockForRelationship(containsRelationship);
-            Node skeletonOrSynapseSetNode = containsRelationship.getEndNode();
-            acquireWriteLockForNode(skeletonOrSynapseSetNode);
-            // skel nodes and synapses
-            for (Relationship skelNodeOrSynapseRelationship : skeletonOrSynapseSetNode.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
-                acquireWriteLockForRelationship(skelNodeOrSynapseRelationship);
-                Node skelNodeOrSynapseNode = skelNodeOrSynapseRelationship.getEndNode();
-                acquireWriteLockForNode(skelNodeOrSynapseNode);
-                // first degree relationships to synapses
-                for (Relationship synapsesToRelationship : skelNodeOrSynapseNode.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
-                    acquireWriteLockForRelationship(synapsesToRelationship);
-                    acquireWriteLockForNode(synapsesToRelationship.getOtherNode(skelNodeOrSynapseNode));
-                }
-                // links to relationships for skel nodes
-                for (Relationship linksToRelationship : skelNodeOrSynapseNode.getRelationships(RelationshipType.withName(LINKS_TO), Direction.OUTGOING)) {
-                    acquireWriteLockForRelationship(linksToRelationship);
+        if (segment != null) {
+            acquireWriteLockForNode(segment);
+            // connects to relationships and 1-degree connections
+            for (Relationship connectsToRelationship : segment.getRelationships(RelationshipType.withName(CONNECTS_TO))) {
+                acquireWriteLockForRelationship(connectsToRelationship);
+                acquireWriteLockForNode(connectsToRelationship.getOtherNode(segment));
+            }
+            // skeleton and synapse set
+            for (Relationship containsRelationship : segment.getRelationships(RelationshipType.withName(CONTAINS))) {
+                acquireWriteLockForRelationship(containsRelationship);
+                Node skeletonOrSynapseSetNode = containsRelationship.getEndNode();
+                acquireWriteLockForNode(skeletonOrSynapseSetNode);
+                // skel nodes and synapses
+                for (Relationship skelNodeOrSynapseRelationship : skeletonOrSynapseSetNode.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+                    acquireWriteLockForRelationship(skelNodeOrSynapseRelationship);
+                    Node skelNodeOrSynapseNode = skelNodeOrSynapseRelationship.getEndNode();
+                    acquireWriteLockForNode(skelNodeOrSynapseNode);
+                    // first degree relationships to synapses
+                    for (Relationship synapsesToRelationship : skelNodeOrSynapseNode.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
+                        acquireWriteLockForRelationship(synapsesToRelationship);
+                        acquireWriteLockForNode(synapsesToRelationship.getOtherNode(skelNodeOrSynapseNode));
+                    }
+                    // links to relationships for skel nodes
+                    for (Relationship linksToRelationship : skelNodeOrSynapseNode.getRelationships(RelationshipType.withName(LINKS_TO), Direction.OUTGOING)) {
+                        acquireWriteLockForRelationship(linksToRelationship);
+                    }
                 }
             }
-        }
-        // connection sets
-        for (Relationship toRelationship : segment.getRelationships(RelationshipType.withName(TO))) {
-            acquireWriteLockForRelationship(toRelationship);
-            Node connectionSetNode = toRelationship.getStartNode();
-            acquireWriteLockForNode(connectionSetNode);
-            Relationship fromRelationship = connectionSetNode.getSingleRelationship(RelationshipType.withName(FROM), Direction.OUTGOING);
-            acquireWriteLockForRelationship(fromRelationship);
-        }
-        for (Relationship fromRelationship : segment.getRelationships(RelationshipType.withName(FROM))) {
-            acquireWriteLockForRelationship(fromRelationship);
-            Node connectionSetNode = fromRelationship.getStartNode();
-            Relationship toRelationship = connectionSetNode.getSingleRelationship(RelationshipType.withName(TO), Direction.OUTGOING);
-            acquireWriteLockForRelationship(toRelationship);
+            // connection sets
+            for (Relationship toRelationship : segment.getRelationships(RelationshipType.withName(TO))) {
+                acquireWriteLockForRelationship(toRelationship);
+                Node connectionSetNode = toRelationship.getStartNode();
+                acquireWriteLockForNode(connectionSetNode);
+                Relationship fromRelationship = connectionSetNode.getSingleRelationship(RelationshipType.withName(FROM), Direction.OUTGOING);
+                acquireWriteLockForRelationship(fromRelationship);
+            }
+            for (Relationship fromRelationship : segment.getRelationships(RelationshipType.withName(FROM))) {
+                acquireWriteLockForRelationship(fromRelationship);
+                Node connectionSetNode = fromRelationship.getStartNode();
+                Relationship toRelationship = connectionSetNode.getSingleRelationship(RelationshipType.withName(TO), Direction.OUTGOING);
+                acquireWriteLockForRelationship(toRelationship);
+            }
         }
     }
 

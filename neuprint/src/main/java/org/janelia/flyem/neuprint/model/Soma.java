@@ -16,7 +16,7 @@ public class Soma {
     private final List<Integer> location;
 
     @SerializedName("Radius")
-    private final Float radius;
+    private final Double radius;
 
     /**
      * Class constructor.
@@ -24,7 +24,7 @@ public class Soma {
      * @param location 3D location of soma
      * @param radius soma's radius
      */
-    public Soma(List<Integer> location, float radius) {
+    public Soma(List<Integer> location, Double radius) {
         this.location = location;
         this.radius = radius;
     }
@@ -33,7 +33,7 @@ public class Soma {
      *
      * @return radius of soma
      */
-    public Float getRadius() {
+    public Double getRadius() {
         return radius;
     }
 
