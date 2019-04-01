@@ -136,6 +136,24 @@ public class GraphTraversalTools {
         return desiredConnectsToRelationship;
     }
 
+    public static Relationship getConnectsToRelationshipBetweenSegments(final Node preSegment, final Node postSegment, final String dataset) {
+
+        Relationship desiredConnectsToRelationship = null;
+        if (preSegment != null && postSegment != null && dataset != null) {
+            for (Relationship connectsToRel : preSegment.getRelationships(RelationshipType.withName(CONNECTS_TO), Direction.OUTGOING)) {
+                long retrievedSegmentId = connectsToRel.getEndNode().getId();
+                if (retrievedSegmentId == postSegment.getId()) {
+                    desiredConnectsToRelationship = connectsToRel;
+                    break;
+                }
+            }
+        } else {
+            throw new RuntimeException(String.format("preBody and postBody must be non-null. Were %s and %s.", preSegment, postSegment));
+        }
+
+        return desiredConnectsToRelationship;
+    }
+
     public static Node getSynapseSetForNeuron(final Node neuron) {
         for (final Relationship containsRel : neuron.getRelationships(RelationshipType.withName(CONTAINS))) {
             final Node containedNode = containsRel.getEndNode();

@@ -522,6 +522,111 @@ public class AddAndDeleteSynapseTest {
         // should do nothing if already orphaned
         session.writeTransaction(tx -> tx.run("CALL proofreader.orphanSynapse($x,$y,$z,$dataset)", parameters("x", 9, "y", 9, "z", 9, "dataset", "test")));
 
+    }
+
+    @Test
+    public void shouldAddOrphanSynapseToSegment() {
+
+        Session session = driver.session();
+
+        Node beforeNeuronNode = session.readTransaction(tx -> tx.run("MATCH (m:Segment:`test-Segment`{bodyId:831744}) RETURN m")).single().get(0).asNode();
+        Map<String, Object> beforeNeuronNodeMap = beforeNeuronNode.asMap();
+        String beforeRoiInfoString = (String) beforeNeuronNodeMap.get("roiInfo");
+        Gson gson = new Gson();
+        Map<String, SynapseCounter> beforeRoiInfo = gson.fromJson(beforeRoiInfoString, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+
+        String postSynapseJson = "{ \"Type\": \"pre\", \"Location\": [ 876,876,876 ], \"Confidence\": .88, \"rois\": [ \"test3\", \"test4\" ] }";
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", postSynapseJson, "dataset", "test")));
+
+        String postSynapseJson2 = "{ \"Type\": \"post\", \"Location\": [ 792,792,792 ], \"Confidence\": .88, \"rois\": [ \"test5\", \"test3\" ] }";
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", postSynapseJson2, "dataset", "test")));
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addConnectionBetweenSynapseNodes(876,876,876,792,792,792,\"test\")"));
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapseToSegment($x,$y,$z,$bodyId,$dataset)", parameters("x", 876, "y", 876, "z", 876, "bodyId", 831744, "dataset", "test")));
+
+        int synapseOnSynapseSetCount = session.readTransaction(tx -> tx.run("WITH point({ x:876, y:876, z:876 }) AS loc MATCH (m:Segment:`test-Segment`{bodyId:831744})-[:Contains]->(:SynapseSet)-[:Contains]->(p:PreSyn{location:loc}) RETURN count(p)")).single().get(0).asInt();
+        Assert.assertEquals(1, synapseOnSynapseSetCount);
+
+        Node neuronNode = session.readTransaction(tx -> tx.run("MATCH (m:Segment:`test-Segment`{bodyId:831744}) RETURN m")).single().get(0).asNode();
+        Assert.assertTrue(neuronNode.hasLabel("Neuron"));
+        Map<String, Object> neuronNodeMap = neuronNode.asMap();
+        // has correct rois
+        Assert.assertTrue(neuronNodeMap.containsKey("test3"));
+        Assert.assertTrue(neuronNodeMap.containsKey("test4"));
+        // has correct pre, post, roiInfo
+        Assert.assertEquals((Long) beforeNeuronNodeMap.get("pre") + 1L, neuronNodeMap.get("pre"));
+        Assert.assertEquals(beforeNeuronNodeMap.get("post"), neuronNodeMap.get("post"));
+        String roiInfoString = (String) neuronNodeMap.get("roiInfo");
+        Map<String, SynapseCounter> roiInfo = gson.fromJson(roiInfoString, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+        Assert.assertEquals(beforeRoiInfo.keySet().size() + 2, roiInfo.keySet().size());
+        Assert.assertEquals(1, roiInfo.get("test3").getPre());
+        Assert.assertEquals(1, roiInfo.get("test4").getPre());
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapseToSegment($x,$y,$z,$bodyId,$dataset)", parameters("x", 792, "y", 792, "z", 792, "bodyId", 100569, "dataset", "test")));
+
+        int synapseOnSynapseSetCount2 = session.readTransaction(tx -> tx.run("WITH point({ x:792, y:792, z:792 }) AS loc MATCH (m:Segment:`test-Segment`{bodyId:100569})-[:Contains]->(:SynapseSet:`test-SynapseSet`:test)-[:Contains]->(p:PostSyn{location:loc}) RETURN count(p)")).single().get(0).asInt();
+        Assert.assertEquals(1, synapseOnSynapseSetCount2);
+
+        Node neuronNode2 = session.readTransaction(tx -> tx.run("MATCH (m:Segment:`test-Segment`{bodyId:100569}) RETURN m")).single().get(0).asNode();
+        Assert.assertTrue(neuronNode2.hasLabel("Neuron"));
+        Map<String, Object> neuronNodeMap2 = neuronNode2.asMap();
+        // has correct rois
+        Assert.assertTrue(neuronNodeMap2.containsKey("test3"));
+        Assert.assertTrue(neuronNodeMap2.containsKey("test5"));
+        // has correct pre, post, roiInfo
+        Assert.assertEquals(1L, neuronNodeMap2.get("post"));
+        String roiInfoString2 = (String) neuronNodeMap2.get("roiInfo");
+        Map<String, SynapseCounter> roiInfo2 = gson.fromJson(roiInfoString2, new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+        Assert.assertEquals(2, roiInfo2.keySet().size());
+        Assert.assertEquals(1, roiInfo2.get("test3").getPost());
+        Assert.assertEquals(1, roiInfo2.get("test5").getPost());
+
+        // check connections and connection sets
+        Map<String, Object> resultMap = session.readTransaction(tx -> tx.run("MATCH (m:Segment{bodyId:100569})<-[c:ConnectsTo]-(n:Segment{bodyId:831744}) RETURN c.weight, c.weightHP")).single().asMap();
+        Assert.assertEquals(1L, resultMap.get("c.weight"));
+        Assert.assertEquals(1L, resultMap.get("c.weightHP"));
+
+        Node connectionSetNode = session.readTransaction(tx -> tx.run("MATCH (m:Segment{bodyId:100569})<-[:To]-(cs:ConnectionSet:`test-ConnectionSet`:test{datasetBodyIds:'test:831744:100569'})-[:From]->(n:Segment{bodyId:831744}) RETURN cs")).single().get(0).asNode();
+        Map<String, Object> connectionSetMap = connectionSetNode.asMap();
+        String csRoiInfoString = (String) connectionSetMap.get("roiInfo");
+        Map<String, SynapseCounterWithHighPrecisionCounts> csRoiInfo = gson.fromJson(csRoiInfoString, new TypeToken<Map<String, SynapseCounterWithHighPrecisionCounts>>() {
+        }.getType());
+
+        Assert.assertEquals(3, csRoiInfo.size());
+        Assert.assertEquals(1, csRoiInfo.get("test3").getPre());
+        Assert.assertEquals(1, csRoiInfo.get("test3").getPreHP());
+        Assert.assertEquals(1, csRoiInfo.get("test3").getPost());
+        Assert.assertEquals(1, csRoiInfo.get("test3").getPostHP());
+
+        Assert.assertEquals(1, csRoiInfo.get("test4").getPre());
+        Assert.assertEquals(1, csRoiInfo.get("test4").getPreHP());
+        Assert.assertEquals(0, csRoiInfo.get("test4").getPost());
+        Assert.assertEquals(0, csRoiInfo.get("test4").getPostHP());
+
+        Assert.assertEquals(0, csRoiInfo.get("test5").getPre());
+        Assert.assertEquals(0, csRoiInfo.get("test5").getPreHP());
+        Assert.assertEquals(1, csRoiInfo.get("test5").getPost());
+        Assert.assertEquals(1, csRoiInfo.get("test5").getPostHP());
+
+    }
+
+    @Test(expected = org.neo4j.driver.v1.exceptions.ClientException.class)
+    public void shouldErrorIfNonexistentSynapseAddedToSegment() {
+        Session session = driver.session();
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapseToSegment($x,$y,$z,$bodyId,$dataset)", parameters("x", 909, "y", 909, "z", 909, "bodyId", 8426959, "dataset", "test")));
+
+    }
+
+    @Test(expected = org.neo4j.driver.v1.exceptions.ClientException.class)
+    public void shouldErrorIfSegmentDoesNotExist() {
+        Session session = driver.session();
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapseToSegment($x,$y,$z,$bodyId,$dataset)", parameters("x", 9, "y", 9, "z", 9, "bodyId", 800800, "dataset", "test")));
 
     }
 
