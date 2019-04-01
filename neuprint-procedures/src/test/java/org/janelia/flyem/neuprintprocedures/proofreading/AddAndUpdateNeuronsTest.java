@@ -607,7 +607,6 @@ public class AddAndUpdateNeuronsTest {
 
         Assert.assertEquals("testType", neuronNode3.asMap().get("type"));
 
-
     }
 
     @Test
@@ -709,6 +708,58 @@ public class AddAndUpdateNeuronsTest {
         }
 
         Assert.assertFalse(ranSuccessfully);
+
+    }
+
+    @Test
+    public void shouldBeAbleToAssignOrphanSynapsesToNeuron() {
+
+        Session session = driver.session();
+
+        // tests synapses created that may have had float confidence values (instead of double)
+        String updateJson =
+                "{" +
+                        "\"Id\": 1010102," +
+                        "\"Size\": 12," +
+                        "\"MutationUUID\": \"30\"," +
+                        "\"MutationID\": 31," +
+                        "\"Status\": \"updated\"," +
+                        "\"SynapseSources\": []," +
+                        "\"CurrentSynapses\": " +
+                        "[" +
+                        "{" +
+                        "\"Location\": [5, 22, 99]," +
+                        "\"Type\": \"post\"" +
+                        "}" +
+                        "]" +
+                        "}";
+
+        String updateJson2 =
+                "{" +
+                        "\"Id\": 1012," +
+                        "\"Size\": 12," +
+                        "\"MutationUUID\": \"30\"," +
+                        "\"MutationID\": 31," +
+                        "\"Status\": \"updated\"," +
+                        "\"SynapseSources\": []," +
+                        "\"CurrentSynapses\": " +
+                        "[" +
+                        "{" +
+                        "\"Location\": [5, 22, 9]," +
+                        "\"Type\": \"pre\"" +
+                        "}" +
+                        "]" +
+                        "}";
+
+        String synapseJson = "{ \"Type\": \"post\", \"Location\": [ 5,22,99 ], \"Confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
+        String synapseJson2 = "{ \"Type\": \"pre\", \"Location\": [ 5,22,9 ], \"Confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson, "dataset", "test")));
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson2, "dataset", "test")));
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addConnectionBetweenSynapseNodes(5,22,9,5,22,99,\"test\")"));
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson2, "dataset", "test")));
 
     }
 

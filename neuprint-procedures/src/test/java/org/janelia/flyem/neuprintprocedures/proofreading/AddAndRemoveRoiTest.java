@@ -161,6 +161,9 @@ public class AddAndRemoveRoiTest {
 
         Assert.assertTrue(roiXX);
 
+        double confidence = session.readTransaction(tx-> tx.run("MATCH (n:`test-Synapse`) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN n.confidence", parameters("x", 5,"y", 22, "z", 99 ))).single().get(0).asDouble();
+        Assert.assertEquals(.88, confidence, .0001);
+
     }
 
     @Test

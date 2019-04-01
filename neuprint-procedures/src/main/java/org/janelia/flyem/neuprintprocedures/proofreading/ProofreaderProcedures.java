@@ -698,7 +698,16 @@ public class ProofreaderProcedures {
                 if (synapseType == null) {
                     log.warn("proofreader.addRoiToSynapse: No type value found on synapse: " + synapse.getAllProperties());
                 }
-                Double synapseConfidence = (Double) synapse.getProperty(CONFIDENCE);
+                Double synapseConfidence;
+                try {
+                    synapseConfidence = (Double) synapse.getProperty(CONFIDENCE);
+                } catch (ClassCastException cce) {
+                    log.warn("Found float confidence value. Converting to double...");
+                    float floatConfidence = (Float) synapse.getProperty(CONFIDENCE);
+                    synapseConfidence = (double) floatConfidence;
+                    // fix the issue
+                    synapse.setProperty(CONFIDENCE, synapseConfidence);
+                }
                 if (synapseConfidence == null) {
                     log.warn("proofreader.addRoiToSynapse: No confidence value found on synapse: " + synapse.getAllProperties());
                 }
@@ -795,7 +804,16 @@ public class ProofreaderProcedures {
                 if (synapseType == null) {
                     log.warn("proofreader.removeRoiFromSynapse: No type value found on synapse: " + synapse.getAllProperties());
                 }
-                Double synapseConfidence = (Double) synapse.getProperty(CONFIDENCE);
+                Double synapseConfidence;
+                try {
+                    synapseConfidence = (Double) synapse.getProperty(CONFIDENCE);
+                } catch (ClassCastException cce) {
+                    log.warn("Found float confidence value. Converting to double...");
+                    float floatConfidence = (Float) synapse.getProperty(CONFIDENCE);
+                    synapseConfidence = (double) floatConfidence;
+                    // fix the issue
+                    synapse.setProperty(CONFIDENCE, synapseConfidence);
+                }
                 if (synapseConfidence == null) {
                     log.warn("proofreader.removeRoiFromSynapse: No confidence value found on synapse: " + synapse.getAllProperties());
                 }

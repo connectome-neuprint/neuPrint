@@ -139,7 +139,14 @@ public class LoadingProcedures {
                 break;
             }
             if (synapse.hasProperty(CONFIDENCE)) {
-                confidence = (Double) synapse.getProperty(CONFIDENCE);
+                try {
+                    confidence = (Double) synapse.getProperty(CONFIDENCE);
+                } catch (ClassCastException cce) {
+                    float floatConfidence = (Float) synapse.getProperty(CONFIDENCE);
+                    confidence = (double) floatConfidence;
+                    // fix the issue
+                    synapse.setProperty(CONFIDENCE, confidence);
+                }
             } else {
                 confidence = null;
             }
