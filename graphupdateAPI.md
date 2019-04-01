@@ -5,7 +5,7 @@ This document describes available procedures for updating a neuPrint graph. Thes
 * **proofreader.deleteSoma(\<int64\> bodyId, \<string\> dataset)**: Delete soma (radius and location) from Neuron/Segment node.
 * **proofreader.deleteName(\<int64\> bodyId,  \<string\> dataset)**: Delete name from Neuron/Segment node.
 * **proofreader.deleteStatus(\<int64\> bodyId,  \<string\> dataset)**: Delete status from Neuron/Segment node.
-* (Coming soon) **proofreader.deleteType**
+* **proofreader.deleteType(\<int64\> bodyId,  \<string\> dataset)**: Delete type from Neuron/Segment node.
 
 ## Adding and removing Neurons/Segments
 * **proofreader.addNeuron(\<string\> neuronAdditionJsonObject, \<string\> dataset)**: add a Neuron/Segment with properties, synapses, and connections specified by an input JSON:
