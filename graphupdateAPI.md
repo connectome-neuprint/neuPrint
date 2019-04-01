@@ -52,4 +52,4 @@ These procedures will update ROI information for the Neuron/Segment containing t
 * **proofreader.addConnectionBetweenSynapseNodes(\<double\> preX,\<double\> preY,\<double\> preZ,\<double\> postX,\<double\> postY,\<double\> postZ,\<string\> dataset)**: Add a SynapsesTo relationship between two Synapse nodes. Both nodes must exist in the dataset, and neither can be currently owned by a Neuron/Segment.
 * **proofreader.deleteSynapse(\<double\> x,\<double\> y,\<double\> z,\<string\> dataset)**: Remove Synapse node with provided location. This procedure will orphan a Synapse prior to deleting it if necessary.
 * **proofreader.orphanSynapse(\<double\> x,\<double\> y,\<double\> z,\<string\> dataset)**: Orphan (but do not delete) Synapse node with provided location.
-* (Coming soon) **proofreader.addSynapseToSegment**
+* **proofreader.addSynapseToSegment(<double\> x,<double\> y,<double\> z,\<int64\> bodyId,\<string\> dataset)**: Add an orphaned Synapse node to a Neuron/Segment. Synapse and Neuron/Segment must exist in the dataset.
