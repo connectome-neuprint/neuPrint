@@ -5,7 +5,7 @@ This document describes available procedures for updating a neuPrint graph. Thes
 * **proofreader.deleteSoma(\<int64\> bodyId, \<string\> dataset)**: Delete soma (radius and location) from Neuron/Segment node.
 * **proofreader.deleteName(\<int64\> bodyId,  \<string\> dataset)**: Delete name from Neuron/Segment node.
 * **proofreader.deleteStatus(\<int64\> bodyId,  \<string\> dataset)**: Delete status from Neuron/Segment node.
-* (Coming soon) **proofreader.deleteType**
+* **proofreader.deleteType(\<int64\> bodyId,  \<string\> dataset)**: Delete type from Neuron/Segment node.
 
 ## Adding and removing Neurons/Segments
 * **proofreader.addNeuron(\<string\> neuronAdditionJsonObject, \<string\> dataset)**: add a Neuron/Segment with properties, synapses, and connections specified by an input JSON:
@@ -52,4 +52,4 @@ These procedures will update ROI information for the Neuron/Segment containing t
 * **proofreader.addConnectionBetweenSynapseNodes(\<double\> preX,\<double\> preY,\<double\> preZ,\<double\> postX,\<double\> postY,\<double\> postZ,\<string\> dataset)**: Add a SynapsesTo relationship between two Synapse nodes. Both nodes must exist in the dataset, and neither can be currently owned by a Neuron/Segment.
 * **proofreader.deleteSynapse(\<double\> x,\<double\> y,\<double\> z,\<string\> dataset)**: Remove Synapse node with provided location. This procedure will orphan a Synapse prior to deleting it if necessary.
 * **proofreader.orphanSynapse(\<double\> x,\<double\> y,\<double\> z,\<string\> dataset)**: Orphan (but do not delete) Synapse node with provided location.
-* (Coming soon) **proofreader.addSynapseToSegment**
+* **proofreader.addSynapseToSegment(<double\> x,<double\> y,<double\> z,\<int64\> bodyId,\<string\> dataset)**: Add an orphaned Synapse node to a Neuron/Segment. Synapse and Neuron/Segment must exist in the dataset.
