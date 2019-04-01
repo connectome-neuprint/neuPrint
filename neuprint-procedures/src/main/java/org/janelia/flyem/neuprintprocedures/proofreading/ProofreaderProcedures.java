@@ -312,6 +312,42 @@ public class ProofreaderProcedures {
         log.info("proofreader.deleteStatus: exit");
     }
 
+    @Procedure(value = "proofreader.deleteType", mode = Mode.WRITE)
+    @Description("proofreader.deleteType(bodyId, datasetLabel): Delete type from Neuron/Segment node.")
+    public void deleteType(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.deleteType: entry");
+
+        try {
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteType: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteType: Missing input arguments.");
+            }
+
+            // get the neuron node
+            Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
+
+            if (neuronNode == null) {
+                log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of type.");
+            } else {
+
+                acquireWriteLockForNode(neuronNode);
+
+                // delete type
+                neuronNode.removeProperty(TYPE);
+
+                log.info("Successfully deleted type information from " + bodyId);
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteType: " + e);
+            throw new RuntimeException("Error running proofreader.deleteTypes: " + e);
+        }
+
+        log.info("proofreader.deleteType: exit");
+    }
+
     @Procedure(value = "proofreader.addNeuron", mode = Mode.WRITE)
     @Description("proofreader.addNeuron(neuronAdditionJsonObject, datasetLabel): add a Neuron/Segment with properties, synapses, and connections specified by an input JSON (see https://github.com/connectome-neuprint/neuPrint/blob/master/graphupdateAPI.md) ")
     public void addNeuron(@Name("neuronAdditionJson") String neuronAdditionJson, @Name("datasetLabel") String datasetLabel) {

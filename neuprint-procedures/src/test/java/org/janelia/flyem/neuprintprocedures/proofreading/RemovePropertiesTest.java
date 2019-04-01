@@ -167,4 +167,24 @@ public class RemovePropertiesTest {
         session.writeTransaction(tx -> tx.run("CALL proofreader.deleteStatus($bodyId,$datasetLabel)", parameters("bodyId",  100541, "datasetLabel", "test")));
 
     }
+
+    @Test
+    public void shouldRemoveType() {
+        Session session = driver.session();
+
+        // get neuron and add Neuron label since has status
+        Map<String, Object> neuronAsMap = session.readTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=8426959 RETURN n")).single().get(0).asMap();
+
+        Assert.assertTrue(neuronAsMap.containsKey("type"));
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteType($bodyId,$datasetLabel)", parameters("bodyId", 8426959, "datasetLabel", "test")));
+
+        Map<String, Object> neuronAsMapAfterDelete = session.readTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=8426959 RETURN n")).single().get(0).asMap();
+
+        Assert.assertFalse(neuronAsMapAfterDelete.containsKey("type"));
+
+        // should skip deletion of type quietly if type doesn't exist
+        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteStatus($bodyId,$datasetLabel)", parameters("bodyId",  8426959, "datasetLabel", "test")));
+
+    }
 }
