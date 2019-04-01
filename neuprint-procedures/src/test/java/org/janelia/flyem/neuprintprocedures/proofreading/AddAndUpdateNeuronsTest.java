@@ -25,7 +25,6 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Values;
-import org.neo4j.driver.v1.exceptions.ClientException;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.driver.v1.types.Point;
 import org.neo4j.harness.junit.Neo4jRule;
@@ -356,7 +355,7 @@ public class AddAndUpdateNeuronsTest {
         Assert.assertEquals(1, neuronCount);
     }
 
-    @Test
+    @Test(expected = org.neo4j.driver.v1.exceptions.ClientException.class)
     public void shouldNotBeAbleToAddSameMutationTwice() {
 
         Session session = driver.session();
@@ -410,16 +409,7 @@ public class AddAndUpdateNeuronsTest {
                         "]" +
                         "}";
 
-        boolean duplicateUpdate;
-        try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
-            duplicateUpdate = true;
-        } catch (ClientException ce) {
-            // passed test
-            duplicateUpdate = false;
-        }
-
-        Assert.assertFalse(duplicateUpdate);
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
 
     }
 
@@ -445,20 +435,11 @@ public class AddAndUpdateNeuronsTest {
                         "]" +
                         "}";
 
-        boolean attemptedUpdate;
-        try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
-            attemptedUpdate = true;
-        } catch (ClientException ce) {
-            ce.printStackTrace();
-            attemptedUpdate = false;
-        }
-
-        Assert.assertTrue(attemptedUpdate);
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
 
     }
 
-    @Test
+    @Test(expected = org.neo4j.driver.v1.exceptions.ClientException.class)
     public void shouldErrorIfSynapseNotFound() {
 
         Session session = driver.session();
@@ -484,19 +465,11 @@ public class AddAndUpdateNeuronsTest {
                         "]" +
                         "}";
 
-        boolean attemptedUpdate;
-        try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
-            attemptedUpdate = true;
-        } catch (ClientException ce) {
-            attemptedUpdate = false;
-        }
-
-        Assert.assertFalse(attemptedUpdate);
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
 
     }
 
-    @Test
+    @Test(expected = org.neo4j.driver.v1.exceptions.ClientException.class)
     public void shouldErrorIfBodyIdAlreadyExists() {
 
         Session session = driver.session();
@@ -518,15 +491,7 @@ public class AddAndUpdateNeuronsTest {
                         "]" +
                         "}";
 
-        boolean attemptedUpdate;
-        try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
-            attemptedUpdate = true;
-        } catch (ClientException ce) {
-            attemptedUpdate = false;
-        }
-
-        Assert.assertFalse(attemptedUpdate);
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
 
     }
 
@@ -676,7 +641,7 @@ public class AddAndUpdateNeuronsTest {
 
     }
 
-    @Test
+    @Test(expected = org.neo4j.driver.v1.exceptions.ClientException.class)
     public void synapseShouldNotComeFromAnExistingBody() {
 
         Session session = driver.session();
@@ -698,16 +663,7 @@ public class AddAndUpdateNeuronsTest {
                         "]" +
                         "}";
 
-        boolean ranSuccessfully;
-
-        try {
-            session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
-            ranSuccessfully = true;
-        } catch (RuntimeException re) {
-            ranSuccessfully = false;
-        }
-
-        Assert.assertFalse(ranSuccessfully);
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson,$dataset)", parameters("updateJson", updateJson, "dataset", "test")));
 
     }
 
@@ -716,7 +672,7 @@ public class AddAndUpdateNeuronsTest {
 
         Session session = driver.session();
 
-        // tests synapses created that may have had float confidence values (instead of double)
+        // tests that synapses created through the addSynapse/addConnection procedures can be added to new neurons
         String updateJson =
                 "{" +
                         "\"Id\": 1010102," +
