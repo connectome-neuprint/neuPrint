@@ -11,7 +11,7 @@ Synapses.json
         "type": <string> "pre" OR "post", (required)
 	"confidence": <double> in range [0.0-1.0], (optional, default is 0.0)
 	"location": [<int64> x, <int> y, <int> z], (required; unique per type (pre/post) per dataset)
-	"rois": [<string> roi1, <string> roi2 …] (optional)
+	"rois": [<string> roi1, <string> roi2 …] (optional; first listed will be considered a "super" level ROI)
 	},
   ...
 ]
