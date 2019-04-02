@@ -8,9 +8,9 @@ Synapses.json
 ```console
 [
 	{
-        "type": <string> "pre" OR "post",
-	"confidence": <double> in range [0.0-1.0],
-	"location": [<int64> x, <int> y, <int> z], // unique per type (pre/post) per dataset
+        "type": <string> "pre" OR "post", (required)
+	"confidence": <double> in range [0.0-1.0], (default is 0.0)
+	"location": [<int64> x, <int> y, <int> z], (required; unique per type (pre/post) per dataset)
 	"rois": [<string> roi1, <string> roi2 …]
 	},
   ...
