@@ -9,9 +9,9 @@ Synapses.json
 [
 	{
         "type": <string> "pre" OR "post", (required)
-	"confidence": <double> in range [0.0-1.0], (default is 0.0)
+	"confidence": <double> in range [0.0-1.0], (optional, default is 0.0)
 	"location": [<int64> x, <int> y, <int> z], (required; unique per type (pre/post) per dataset)
-	"rois": [<string> roi1, <string> roi2 …]
+	"rois": [<string> roi1, <string> roi2 …] (optional)
 	},
   ...
 ]
@@ -24,8 +24,8 @@ Connections.json
 ```console
 [
     {
-        "pre": [<int64> x, <int64> y, <int64> z],  
-        "post": [<int64> x, <int64> y, <int64> z]  
+        "pre": [<int64> x, <int64> y, <int64> z], (required) 
+        "post": [<int64> x, <int64> y, <int64> z] (required)
     },
     ...
 ]
