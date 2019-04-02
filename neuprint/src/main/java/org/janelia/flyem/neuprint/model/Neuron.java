@@ -8,7 +8,6 @@ import org.neo4j.driver.v1.types.Point;
 
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -35,7 +34,7 @@ public class Neuron {
     @SerializedName("type")
     private final String type;
 
-    @SerializedName("instance")
+    @SerializedName("type")
     private final String instance;
 
     @SerializedName("size")
@@ -133,13 +132,15 @@ public class Neuron {
 
     // TODO: remove these ROIs from input data and test data and remove this filter
     static Set<String> removeUnwantedRois(Set<String> rois) {
-        Set<String> newRoiSet = new LinkedHashSet<>();
+        Set<String> newRoiSet;
         if (rois != null) {
             newRoiSet = rois.stream()
                     .filter(r -> !(r.equals("seven_column_roi") || r.equals("kc_alpha_roi")))
                     .collect(Collectors.toSet());
+            return newRoiSet;
+        } else {
+            return null;
         }
-        return newRoiSet;
     }
 
     /**

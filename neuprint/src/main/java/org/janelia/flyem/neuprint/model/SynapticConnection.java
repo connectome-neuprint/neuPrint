@@ -1,12 +1,6 @@
 package org.janelia.flyem.neuprint.model;
 
 import com.google.gson.annotations.SerializedName;
-import com.google.gson.reflect.TypeToken;
-import org.janelia.flyem.neuprint.json.JsonUtils;
-
-import java.io.BufferedReader;
-import java.lang.reflect.Type;
-import java.util.List;
 
 public class SynapticConnection {
 
@@ -53,40 +47,4 @@ public class SynapticConnection {
         result = 31 * result + this.postLocation.hashCode();
         return result;
     }
-
-    /**
-     * Returns a list of {@link SynapticConnection} objects deserialized from a connections JSON string.
-     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">connections JSON format</a>.
-     *
-     * @param jsonString string containing connections JSON
-     * @return list of {@link SynapticConnection} objects
-     */
-    public static List<SynapticConnection> fromJson(final String jsonString) {
-        return JsonUtils.GSON.fromJson(jsonString, CONNECTION_LIST_TYPE);
-    }
-
-    /**
-     * Returns a list of {@link SynapticConnection} objects deserialized from a {@link BufferedReader} reading from a connections JSON file.
-     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">connections JSON format</a>.
-     *
-     * @param reader {@link BufferedReader}
-     * @return list of {@link SynapticConnection} objects
-     */
-    public static List<SynapticConnection> fromJson(final BufferedReader reader) {
-        return JsonUtils.GSON.fromJson(reader, CONNECTION_LIST_TYPE);
-    }
-
-    /**
-     * Returns a list of {@link SynapticConnection} objects as read from a JSON.
-     * Used for testing.
-     *
-     * @param jsonString JSON string describing connections
-     * @return list of {@link SynapticConnection} objects
-     */
-    static List<SynapticConnection> fromJsonArray(final String jsonString) {
-        return JsonUtils.GSON.fromJson(jsonString, CONNECTION_LIST_TYPE);
-    }
-
-    private static final Type CONNECTION_LIST_TYPE = new TypeToken<List<SynapticConnection>>() {
-    }.getType();
 }
