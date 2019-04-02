@@ -64,6 +64,6 @@ Neurons.json
 # Skeletons (optional)
 Skeletons of the neurons can be loaded from SWC files, which contains skeleton node connectivity, locations for each skeleton node, and the size of the skeleton node.
 
-<body id>.swc
+\<body id\>.swc
 
 The SWC file also has a field for skeleton node type.  By default, this information will be ignored unless a file describing the encoding is provided.
