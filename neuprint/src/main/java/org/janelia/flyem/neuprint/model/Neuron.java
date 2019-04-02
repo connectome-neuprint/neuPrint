@@ -9,65 +9,76 @@ import org.neo4j.driver.v1.types.Point;
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * A class representing a neuron, as read from a
- * <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.
- * Each neuron has an id, size, name, and status,
- * but no synapse information. (cf. the {@link org.janelia.flyem.neuprint.model.BodyWithSynapses} class
- * that represents bodies with synapses)
+ * <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspec.md" target="_blank">neuron JSON file</a>.
+ * Each neuron must have a unique ID. Optionally, a neuron can have size, name, type, instance, status, ROIs, a soma, and
+ * a set of synaptic locations that belong to it.
  */
 public class Neuron {
 
     //TODO: figure out how to add optional properties
 
-    @SerializedName("Id")
+    @SerializedName("id")
     private final Long id;
 
-    @SerializedName("Status")
+    @SerializedName("status")
     private final String status;
 
-    @SerializedName("Size")
-    private final Long size;
-
-    @SerializedName("Name")
+    @SerializedName("name")
     private final String name;
 
-    @SerializedName("NeuronType")
-    private final String neuronType;
+    @SerializedName("type")
+    private final String type;
+
+    @SerializedName("type")
+    private final String instance;
+
+    @SerializedName("size")
+    private final Long size;
 
     @SerializedName("rois")
-    private final List<String> rois;
+    private final Set<String> rois;
 
-    @SerializedName("Soma")
+    @SerializedName("soma")
     private final Soma soma;
+
+    @SerializedName("synapseSet")
+    private final Set<Location> synapseLocationSet;
 
     /**
      * Class constructor.
      *
-     * @param id         bodyId
-     * @param status     status
-     * @param name       name
-     * @param neuronType neuron type
-     * @param size       size (in voxels)
-     * @param rois       rois associated with this neuron
-     * @param soma       soma for this neuron
+     * @param id                 bodyId
+     * @param status             status
+     * @param name               name
+     * @param type               neuron type
+     * @param size               size (in voxels)
+     * @param rois               rois associated with this neuron
+     * @param soma               soma for this neuron
+     * @param synapseLocationSet set of synaptic locations on this neuron
      */
     public Neuron(final Long id,
                   final String status,
                   final String name,
-                  final String neuronType,
+                  final String type,
+                  final String instance,
                   final Long size,
-                  final List<String> rois,
-                  final Soma soma) {
+                  final Set<String> rois,
+                  final Soma soma,
+                  final Set<Location> synapseLocationSet) {
         this.id = id;
         this.status = status;
         this.name = name;
-        this.neuronType = neuronType;
+        this.type = type;
+        this.instance = instance;
         this.size = size;
         this.rois = rois;
         this.soma = soma;
+        this.synapseLocationSet = synapseLocationSet;
     }
 
     /**
@@ -75,6 +86,13 @@ public class Neuron {
      */
     public Long getId() {
         return id;
+    }
+
+    /**
+     * @return status
+     */
+    public String getStatus() {
+        return status;
     }
 
     /**
@@ -87,15 +105,15 @@ public class Neuron {
     /**
      * @return type of neuron
      */
-    public String getNeuronType() {
-        return neuronType;
+    public String getType() {
+        return type;
     }
 
     /**
-     * @return status
+     * @return instance of neuron
      */
-    public String getStatus() {
-        return status;
+    public String getInstance() {
+        return instance;
     }
 
     /**
@@ -108,18 +126,18 @@ public class Neuron {
     /**
      * @return rois (without "-lm" suffix if present)
      */
-    public List<String> getRois() {
+    public Set<String> getRois() {
         return removeUnwantedRois(this.rois);
     }
 
     // TODO: remove these ROIs from input data and test data and remove this filter
-    static List<String> removeUnwantedRois(List<String> rois) {
-        List<String> newRoiList;
+    static Set<String> removeUnwantedRois(Set<String> rois) {
+        Set<String> newRoiSet;
         if (rois != null) {
-            newRoiList = rois.stream()
+            newRoiSet = rois.stream()
                     .filter(r -> !(r.equals("seven_column_roi") || r.equals("kc_alpha_roi")))
-                    .collect(Collectors.toList());
-            return newRoiList;
+                    .collect(Collectors.toSet());
+            return newRoiSet;
         } else {
             return null;
         }
@@ -132,8 +150,8 @@ public class Neuron {
      * @param dataset the dataset in which this neuron exists
      * @return set of rois and rois prefixed with "dataset-"
      */
-    public List<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
-        List<String> rois = getRois();
+    public Set<String> getRoisWithAndWithoutDatasetPrefix(String dataset) {
+        Set<String> rois = getRois();
         if (rois != null) {
             rois.addAll(rois.stream().map(r -> dataset + "-" + r).collect(Collectors.toSet()));
             return rois;
@@ -171,6 +189,13 @@ public class Neuron {
         }
     }
 
+    /**
+     * @return set of synaptic locations on this neuron
+     */
+    public Set<Location> getSynapseLocationSet() {
+        return synapseLocationSet;
+    }
+
     @Override
     public boolean equals(Object o) {
         boolean isEqual = false;
@@ -192,11 +217,15 @@ public class Neuron {
 
     @Override
     public String toString() {
-        return "Neuron { " + "bodyid= " + id +
-                ", status= " + status +
-                ", name= " + name +
-                ", neuronType= " + neuronType +
-                ", size= " + size
+        return "Neuron { " + "bodyId=" + id +
+                ", status=" + status +
+                ", name=" + name +
+                ", type=" + type +
+                ", instance=" + instance +
+                ", size=" + size +
+                ", rois=" + rois +
+                ", soma=" + soma +
+                ", synapseSet=" + synapseLocationSet
                 + " }";
     }
 

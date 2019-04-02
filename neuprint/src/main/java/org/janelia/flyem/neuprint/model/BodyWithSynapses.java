@@ -196,65 +196,65 @@ public class BodyWithSynapses {
      *
      * @param postToBody map of postsynaptic locations to bodyIds
      */
-    public void setConnectsTo(SynapseLocationToBodyIdMap postToBody) {
-        this.connectsTo = new HashMap<>();
-        // weight is the number of postsynaptic densities
-        this.synapseSet
-                .stream()
-                .filter(synapse -> synapse.getType().equals(PRE))
-                .collect(Collectors.toSet())
-                .forEach(preSynapse -> {
+//    public void setConnectsTo(SynapseLocationToBodyIdMap postToBody) {
+//        this.connectsTo = new HashMap<>();
+//        // weight is the number of postsynaptic densities
+//        this.synapseSet
+//                .stream()
+//                .filter(synapse -> synapse.getType().equals(PRE))
+//                .collect(Collectors.toSet())
+//                .forEach(preSynapse -> {
+//
+//                    // get list of body ids that connect to this presynaptic density for counting post per connection
+//                    List<Long> postSynapticBodyIdsForSynapse = getPostSynapticBodyIdsForSynapse(preSynapse, postToBody);
+//                    // get set of body ids that connect to this presynaptic density for counting pre per connection
+//                    Set<Long> postSynapticBodyIdsForSynapseSet = new HashSet<>(postSynapticBodyIdsForSynapse);
+//
+//                    for (Long partnerId : postSynapticBodyIdsForSynapse) {
+//                        if (partnerId != null) {
+//                            SynapseCounter synapseCounter = this.connectsTo.getOrDefault(partnerId, new SynapseCounter());
+//                            synapseCounter.incrementPost();
+//                            this.connectsTo.put(partnerId, synapseCounter);
+//                        } else {
+//                            LOG.warning(preSynapse.getLocationString() + " on " + this.bodyId + " has no bodyId for postsynaptic partner.");
+//                        }
+//                    }
+//
+//                    for (Long partnerId : postSynapticBodyIdsForSynapseSet) {
+//                        if (partnerId != null) {
+//                            this.connectsTo.get(partnerId).incrementPre();
+//                        }
+//                    }
+//                });
+//    }
 
-                    // get list of body ids that connect to this presynaptic density for counting post per connection
-                    List<Long> postSynapticBodyIdsForSynapse = getPostSynapticBodyIdsForSynapse(preSynapse, postToBody);
-                    // get set of body ids that connect to this presynaptic density for counting pre per connection
-                    Set<Long> postSynapticBodyIdsForSynapseSet = new HashSet<>(postSynapticBodyIdsForSynapse);
-
-                    for (Long partnerId : postSynapticBodyIdsForSynapse) {
-                        if (partnerId != null) {
-                            SynapseCounter synapseCounter = this.connectsTo.getOrDefault(partnerId, new SynapseCounter());
-                            synapseCounter.incrementPost();
-                            this.connectsTo.put(partnerId, synapseCounter);
-                        } else {
-                            LOG.warning(preSynapse.getLocationString() + " on " + this.bodyId + " has no bodyId for postsynaptic partner.");
-                        }
-                    }
-
-                    for (Long partnerId : postSynapticBodyIdsForSynapseSet) {
-                        if (partnerId != null) {
-                            this.connectsTo.get(partnerId).incrementPre();
-                        }
-                    }
-                });
-    }
-
-    /**
-     * Adds synapses in this body's synapse set to the provided preToPost map, which
-     * maps presynaptic locations to postsynaptic locations. The preToPost map is used
-     * to generate SynapsesTo relationships between Synapse nodes in the neo4j database.
-     *
-     * @param preToPost map of presynaptic locations to postsynaptic locations
-     */
-    public void addSynapsesToPreToPostMap(HashMap<String, Set<String>> preToPost) {
-        this.synapseSet
-                .stream()
-                .filter(synapse -> synapse.getType().equals(PRE))
-                .collect(Collectors.toSet())
-                .forEach(preSynapse -> preToPost.put(preSynapse.getLocationString(), preSynapse.getConnectionLocationStrings()));
-    }
-
-    private List<Long> getPostSynapticBodyIdsForSynapse(Synapse synapse, SynapseLocationToBodyIdMap postToBody) {
-        return synapse
-                .getConnectionLocationStrings()
-                .stream()
-                .map(s -> {
-                    if (postToBody.getBodyId(s) == null) {
-                        LOG.warning(s + " not in postToBody.");
-                    }
-                    return postToBody.getBodyId(s);
-                })
-                .collect(Collectors.toList());
-    }
+//    /**
+//     * Adds synapses in this body's synapse set to the provided preToPost map, which
+//     * maps presynaptic locations to postsynaptic locations. The preToPost map is used
+//     * to generate SynapsesTo relationships between Synapse nodes in the neo4j database.
+//     *
+//     * @param preToPost map of presynaptic locations to postsynaptic locations
+//     */
+//    public void addSynapsesToPreToPostMap(HashMap<String, Set<String>> preToPost) {
+//        this.synapseSet
+//                .stream()
+//                .filter(synapse -> synapse.getType().equals(PRE))
+//                .collect(Collectors.toSet())
+//                .forEach(preSynapse -> preToPost.put(preSynapse.getLocationString(), preSynapse.getConnectionLocationStrings()));
+//    }
+//
+//    private List<Long> getPostSynapticBodyIdsForSynapse(Synapse synapse, SynapseLocationToBodyIdMap postToBody) {
+//        return synapse
+//                .getConnectionLocationStrings()
+//                .stream()
+//                .map(s -> {
+//                    if (postToBody.getBodyId(s) == null) {
+//                        LOG.warning(s + " not in postToBody.");
+//                    }
+//                    return postToBody.getBodyId(s);
+//                })
+//                .collect(Collectors.toList());
+//    }
 
     /**
      * Sets the {@link #roiInfo} attribute using this body's synapse set.
