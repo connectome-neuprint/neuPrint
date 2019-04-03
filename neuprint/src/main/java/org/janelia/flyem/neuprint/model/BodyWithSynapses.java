@@ -7,10 +7,9 @@ import org.janelia.flyem.neuprint.json.JsonUtils;
 
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -266,9 +265,9 @@ public class BodyWithSynapses {
     public static RoiInfo getSynapseCountersPerRoiFromSynapseSet(Set<Synapse> synapseSet) {
         RoiInfo roiInfo = new RoiInfo();
         synapseSet.forEach(synapse -> {
-            List<String> rois = synapse.getRois();
+            Set<String> rois = synapse.getRois();
             if (rois == null) {
-                rois = new ArrayList<>();
+                rois = new LinkedHashSet<>();
             }
             if (synapse.getType().equals(PRE)) {
                 rois.forEach(roiInfo::incrementPreForRoi);

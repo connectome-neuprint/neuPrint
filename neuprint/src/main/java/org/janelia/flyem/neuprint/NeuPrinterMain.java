@@ -18,8 +18,6 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -56,6 +54,72 @@ public class NeuPrinterMain {
         String connectionsJson;
 
         @Parameter(
+                names = "--loadNeurons",
+                description = "Indicates that data from neurons JSON should be loaded to database (omit to skip)",
+                arity = 0)
+        boolean loadNeurons;
+
+        @Parameter(
+                names = "--loadSynapses",
+                description = "Indicates that data from synapses JSON should be loaded to database (omit to skip)",
+                arity = 0)
+        boolean loadSynapses;
+
+        @Parameter(
+                names = "--startFromSynapseLoad",
+                description = "Indicates that load should start from the synapses JSON.",
+                arity = 0)
+        boolean startFromSynapsesLoad;
+
+        @Parameter(
+                names = "--addNeuronsAndSynapses",
+                description = "Indicates that both neurons and synapses JSONs should be loaded and all database features added",
+                arity = 0)
+        boolean addNeuronsAndSynapses;
+
+        @Parameter(
+                names = "--prepDatabase",
+                description = "Indicates that database constraints and indexes should be setup (omit to skip)",
+                arity = 0)
+        public boolean prepDatabase;
+
+        @Parameter(
+                names = "--addConnectsTo",
+                description = "Indicates that ConnectsTo relations should be added (omit to skip)",
+                arity = 0)
+        public boolean addConnectsTo;
+
+        @Parameter(
+                names = "--addSynapses",
+                description = "Indicates that synapse nodes should be added (omit to skip)",
+                arity = 0)
+        public boolean addSynapses;
+
+        @Parameter(
+                names = "--addSynapsesTo",
+                description = "Indicates that SynapsesTo relations should be added (omit to skip)",
+                arity = 0)
+        public boolean addSynapsesTo;
+
+        @Parameter(
+                names = "--addSegmentRois",
+                description = "Indicates that neuron ROI labels should be added (omit to skip)",
+                arity = 0)
+        public boolean addNeuronRois;
+
+        @Parameter(
+                names = "--addConnectionSets",
+                description = "Indicates that connection set nodes should be added (omit to skip)",
+                arity = 0)
+        public boolean addConnectionSets;
+
+        @Parameter(
+                names = "--addSkeletons",
+                description = "Indicates that skeleton nodes should be added (omit to skip)",
+                arity = 0)
+        boolean addSkeletons;
+
+        @Parameter(
                 names = "--neuronJson",
                 description = "JSON file containing neuron data to import")
         String neuronJson;
@@ -73,12 +137,12 @@ public class NeuPrinterMain {
 
         @Parameter(
                 names = "--preHPThreshold",
-                description = "Confidence threshold to distinguish high-precision presynaptic densities (default is 0.0)")
+                description = "Confidence threshold to distinguish high-precision presynaptic densities (required)")
         float preHPThreshold;
 
         @Parameter(
                 names = "--postHPThreshold",
-                description = "Confidence threshold to distinguish high-precision postsynaptic densities (default is 0.0)")
+                description = "Confidence threshold to distinguish high-precision postsynaptic densities (required)")
         float postHPThreshold;
 
         @Parameter(
@@ -100,6 +164,32 @@ public class NeuPrinterMain {
         String metaInfoJson;
 
         @Parameter(
+                names = "--editMode",
+                description = "Indicates that neuprint is being used in edit mode to alter data in an existing database (omit to skip).",
+                arity = 0)
+        boolean editMode;
+
+        @Parameter(
+                names = "--addMetaNodeOnly",
+                description = "Indicates that only the Meta Node should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. (omit to skip)",
+                arity = 0)
+        boolean addMetaNodeOnly;
+
+        @Parameter(
+                names = "--indexBooleanRoiPropertiesOnly",
+                description = "Indicates that only boolean roi properties should be indexed. Requires the existing dataset to be completely loaded into neo4j. (omit to skip)",
+                arity = 0)
+        boolean indexBooleanRoiPropertiesOnly;
+
+        @Parameter(
+                names = "--addAutoNamesOnly",
+                description = "Indicates that only the autoNames should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. Names are only generated for neurons that have greater than the number of synapses" +
+                        "indicated by neuronThreshold (omit to skip)",
+                arity = 0
+        )
+        boolean addAutoNamesOnly;
+
+        @Parameter(
                 names = "--addAutoNames",
                 description = "Indicates that automatically generated names should be added for this dataset. Auto-names are in the format " +
                         "ROIA-ROIB_8 where ROIA is the roi in which a given neuron has the most inputs (postsynaptic densities) " +
@@ -115,6 +205,24 @@ public class NeuPrinterMain {
                         "the label of :Neuron (all have the :Segment label by default) and an auto-name. To add auto-names, must have" +
                         " --addAutoName OR --addAutoNamesOnly enabled.")
         Integer neuronThreshold = 10;
+
+        @Parameter(
+                names = "--getSuperLevelRoisFromSynapses",
+                description = "Indicates that super level rois should be computed from synapses JSON and added to the Meta node.",
+                arity = 0)
+        boolean getSuperLevelRoisFromSynapses;
+
+        @Parameter(
+                names = "--uuid",
+                description = "DVID UUID to be added to Meta node."
+        )
+        String dvidUuid;
+
+        @Parameter(
+                names = "--server",
+                description = "DVID server to be added to Meta node."
+        )
+        String dvidServer;
 
         @Parameter(
                 names = "--addClusterNames",
@@ -217,7 +325,7 @@ public class NeuPrinterMain {
         return connectionList;
     }
 
-    public static MetaInfo readMetaInfoJson(String filepath) {
+    private static MetaInfo readMetaInfoJson(String filepath) {
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             MetaInfo metaInfo = MetaInfo.fromJson(reader);
             LOG.info(String.format("Loaded meta info for dataset: %s", metaInfo));
@@ -268,22 +376,6 @@ public class NeuPrinterMain {
 
     }
 
-    public static void initializeDatabase(Neo4jImporter neo4jImporter,
-                                           String dataset,
-                                           float dataModelVersion,
-                                           double preHPThreshold,
-                                           double postHPThreshold,
-                                           boolean addConnectionSetRoiInfoAndWeightHP,
-                                           boolean addClusterNames,
-                                           LocalDateTime timeStamp) {
-        neo4jImporter.prepDatabase(dataset);
-        neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold, addConnectionSetRoiInfoAndWeightHP, timeStamp);
-        if (addClusterNames) {
-            neo4jImporter.prepDatabaseForClusterNames(dataset);
-        }
-
-    }
-
     public static void main(String[] args) {
 
         final NeuPrinterParameters parameters = new NeuPrinterParameters();
@@ -312,9 +404,8 @@ public class NeuPrinterMain {
         final float dataModelVersion = parameters.dataModelVersion;
         final float preHPThreshold = parameters.preHPThreshold;
         final float postHPThreshold = parameters.postHPThreshold;
-        final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
-        boolean databaseInitialized = false;
+        boolean databasePrepped = false;
 
         LOG.info("Dataset is: " + dataset);
 
@@ -331,14 +422,12 @@ public class NeuPrinterMain {
 
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-                    initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
-                    databaseInitialized = true;
+                    neo4jImporter.prepDatabase(dataset);
+                    databasePrepped = true;
                     timer.start();
-                    neo4jImporter.addSynapsesWithRois(dataset, synapseList, timeStamp);
+                    neo4jImporter.addSynapsesWithRois(dataset, synapseList);
                     LOG.info(String.format("Loading all synapses took: %s", timer.stop()));
                     timer.reset();
-
-                    neo4jImporter.indexBooleanRoiProperties(dataset);
 
                 }
             }
@@ -353,103 +442,221 @@ public class NeuPrinterMain {
 
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
 
-                    if (!databaseInitialized) {
-                        initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
+                    if (!databasePrepped) {
+                        neo4jImporter.prepDatabase(dataset);
                     }
                     timer.start();
-                    neo4jImporter.addSynapsesTo(dataset, connectionsList, timeStamp);
+                    neo4jImporter.addSynapsesTo(dataset, connectionsList);
                     LOG.info(String.format("Loading all synaptic connections took: %s", timer.stop()));
                     timer.reset();
 
                 }
             }
-
-            if (parameters.neuronJson != null) {
-
-                // TODO: add batching option here
-                timer.start();
-                List<Neuron> neuronList = readNeuronsJson(parameters.neuronJson);
-                LOG.info(String.format("Reading in neurons JSON took: %s", timer.stop()));
-                timer.reset();
-
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                    if (!databaseInitialized) {
-                        initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
-                    }
-                    timer.start();
-                    neo4jImporter.addSegments(dataset, neuronList, parameters.addConnectionSetRoiInfoAndWeightHP, preHPThreshold, postHPThreshold, parameters.neuronThreshold, timeStamp);
-                    LOG.info(String.format("Loading all neurons took: %s", timer.stop()));
-                    timer.reset();
-
-                    neo4jImporter.indexBooleanRoiProperties(dataset);
-
-                }
-            }
-
-            if (parameters.addAutoNames) {
-
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                    if (!databaseInitialized) {
-                        initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
-                    }
-                    timer.start();
-                    neo4jImporter.addAutoNames(dataset, timeStamp);
-                    LOG.info(String.format("Adding all auto names took: %s", timer.stop()));
-                    timer.reset();
-
-                }
-
-
-            }
-
-            if (parameters.skeletonDirectory != null) {
-
-                final File folder = new File(parameters.skeletonDirectory);
-                final File[] arrayOfSwcFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".swc"));
-
-                assert arrayOfSwcFiles != null : "No swc files found.";
-                LOG.info("Reading in " + arrayOfSwcFiles.length + " swc files.");
-
-                final List<Skeleton> skeletonList = createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
-
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                    if (!databaseInitialized) {
-                        initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
-                    }
-
-                    timer.start();
-                    neo4jImporter.addSkeletonNodes(dataset, skeletonList, timeStamp);
-                    LOG.info("Loading all Skeleton nodes took: " + timer.stop());
-                    timer.reset();
-                }
-
-            }
-
-            if (parameters.metaInfoJson != null) {
-
-                // read meta info data
-                MetaInfo metaInfo = readMetaInfoJson(parameters.metaInfoJson);
-                if (metaInfo != null) {
-                    try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-                        if (!databaseInitialized) {
-                            initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
-                        }
-                        neo4jImporter.addMetaInfo(dataset, metaInfo, timeStamp);
-                        LOG.info("Finished adding meta info.");
-                    }
-                }
-
-            }
-
         } catch (Exception e) {
-            LOG.error("Error loading data: " + e);
-            System.exit(1);
-        }
 
+        }
     }
+//
+////                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+////
+////                    if (parameters.startFromSynapsesLoad || (parameters.prepDatabase && !(parameters.loadNeurons || parameters.addNeuronsAndSynapses))) {
+////                        neo4jImporter.prepDatabase(dataset);
+////                    }
+////
+////                    if (parameters.startFromSynapsesLoad || parameters.addConnectsTo || parameters.addNeuronsAndSynapses) {
+////
+////                        timer.start();
+////                        neo4jImporter.addConnectsTo(dataset, bodyList);
+////                        LOG.info("Loading all ConnectsTo took: " + timer.stop());
+////                        timer.reset();
+////
+////                    }
+////
+////                    if (parameters.startFromSynapsesLoad || parameters.addSynapses || parameters.addNeuronsAndSynapses) {
+////                        timer.start();
+////                        neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+////                        LOG.info("Loading all Synapses took: " + timer.stop());
+////                        timer.reset();
+////                    }
+////
+////                    if (parameters.startFromSynapsesLoad || parameters.addSynapsesTo || parameters.addNeuronsAndSynapses) {
+////                        timer.start();
+////                        neo4jImporter.addSynapsesTo(dataset, preToPost);
+////                        LOG.info("Loading all SynapsesTo took: " + timer.stop());
+////                        timer.reset();
+////                    }
+////
+////                    if (parameters.startFromSynapsesLoad || parameters.addNeuronRois || parameters.addNeuronsAndSynapses) {
+////                        timer.start();
+////                        neo4jImporter.addSegmentRois(dataset, bodyList);
+////                        LOG.info("Loading all Segment ROI labels took: " + timer.stop());
+////                        timer.reset();
+////                    }
+////
+////                    if (parameters.startFromSynapsesLoad || parameters.addConnectionSets || parameters.addNeuronsAndSynapses) {
+////                        timer.start();
+////                        neo4jImporter.addConnectionSets(dataset, bodyList, synapseLocationToBodyIdMap, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
+////                        LOG.info("Loading ConnectionSets took: " + timer.stop());
+////                        timer.reset();
+////
+////                        timer.start();
+////                        neo4jImporter.addSynapseSets(dataset, bodyList);
+////                        LOG.info("Loading SynapseSets took: " + timer.stop());
+////                        timer.reset();
+////                    }
+////
+////                    if (parameters.addAutoNames) {
+////                        timer.start();
+////                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
+////                        LOG.info("Adding autoNames and :Neuron labels took: " + timer.stop());
+////                        timer.reset();
+////                    } else {
+////                        timer.start();
+////                        neo4jImporter.addNeuronLabels(dataset, parameters.neuronThreshold);
+////                        LOG.info("Adding :Neuron labels took: " + timer.stop());
+////                        timer.reset();
+////                    }
+////
+////                    timer.start();
+////                    neo4jImporter.indexBooleanRoiProperties(dataset);
+////                    LOG.info("Adding indices on boolean roi properties took: " + timer.stop());
+////                    timer.reset();
+////
+////                    timer.start();
+////                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
+////                    LOG.info("Adding :Meta node took: " + timer.stop());
+////                    timer.reset();
+////
+////                    if (parameters.dvidUuid != null) {
+////                        neo4jImporter.addDvidUuid(dataset, parameters.dvidUuid);
+////                    }
+////
+////                    if (parameters.dvidServer != null) {
+////                        neo4jImporter.addDvidServer(dataset, parameters.dvidServer);
+////                    }
+////
+////                    if (parameters.addClusterNames) {
+////                        neo4jImporter.addClusterNames(dataset, .1F);
+////                    }
+////
+////                }
+//        }
+//
+//        //            if (parameters.loadNeurons || parameters.addNeuronsAndSynapses) {
+////
+////                // read in the neurons data
+////                Stopwatch timer = Stopwatch.createStarted();
+////                neuronList = readNeuronsJson(parameters.neuronJson);
+////                LOG.info("Reading in neurons JSON took: " + timer.stop());
+////                timer.reset();
+////                //write it to the database
+////                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+////
+////                    if (parameters.prepDatabase || parameters.addNeuronsAndSynapses) {
+////                        neo4jImporter.prepDatabase(dataset);
+////                    }
+////
+////                    timer.start();
+////                    neo4jImporter.addSegments(dataset, neuronList);
+////                    LOG.info("Loading all Segment nodes took: " + timer.stop());
+////                    timer.reset();
+////                }
+////            }
+//
+//        if (parameters.addSkeletons) {
+//
+//            final File folder = new File(parameters.skeletonDirectory);
+//            final File[] arrayOfSwcFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".swc"));
+//
+//            assert arrayOfSwcFiles != null : "No swc files found.";
+//            LOG.info("Reading in " + arrayOfSwcFiles.length + " swc files.");
+//
+//            final List<Skeleton> skeletonList = createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
+//
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//
+//                if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.addNeuronsAndSynapses || parameters.loadSynapses)) {
+//                    neo4jImporter.prepDatabase(dataset);
+//                }
+//
+//                Stopwatch timer = Stopwatch.createStarted();
+//                neo4jImporter.addSkeletonNodes(dataset, skeletonList);
+//                LOG.info("Loading all Skeleton nodes took: " + timer.stop());
+//                timer.reset();
+//            }
+//
+//        }
+//
+//        if (parameters.metaInfoJson != null) {
+//
+//            // read meta info data
+//            MetaInfo metaInfo = readMetaInfoJson(parameters.metaInfoJson);
+//            if (metaInfo != null) {
+//                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                    neo4jImporter.addMetaInfo(dataset, metaInfo);
+//                    LOG.info("Finished adding meta info.");
+//                }
+//            }
+//
+//        }
+//
+//        if (parameters.indexBooleanRoiPropertiesOnly) {
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                neo4jImporter.prepDatabase(dataset);
+//                neo4jImporter.indexBooleanRoiProperties(dataset);
+//            }
+//        }
+//
+//        if (parameters.addMetaNodeOnly) {
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                neo4jImporter.prepDatabase(dataset);
+//                neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
+//            }
+//        }
+//
+//        if (parameters.getSuperLevelRoisFromSynapses) {
+//
+//            Stopwatch timer = Stopwatch.createStarted();
+//            final SynapseMapper mapper = new SynapseMapper();
+//            bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
+//            LOG.info("Number of bodies with synapses: " + bodyList.size());
+//            LOG.info("Reading in synapse JSON took: " + timer.stop());
+//            timer.reset();
+//
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                neo4jImporter.setSuperLevelRois(dataset, bodyList);
+//            }
+//        }
+//
+//        if (parameters.addAutoNamesOnly) {
+//
+//            Stopwatch timer = Stopwatch.createStarted();
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                neo4jImporter.prepDatabase(dataset);
+//                if (parameters.neuronThreshold != null) {
+//                    neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
+//                } else {
+//                    neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 10);
+//                }
+//                LOG.info("Adding autoNames took: " + timer.stop());
+//                timer.reset();
+//            }
+//
+//        }
+//    } catch(
+//    Exception e)
+//
+//    {
+//        LOG.error("An error occurred: ", e);
+//    }
+//
+//        if(parameters.editMode)
+//
+//    {
+//
+//    }
+//
+//}
 
     private static final Logger LOG = LoggerFactory.getLogger(NeuPrinterMain.class);
 
