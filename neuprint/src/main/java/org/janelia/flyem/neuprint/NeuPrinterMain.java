@@ -7,11 +7,11 @@ import com.beust.jcommander.Parameters;
 import com.google.common.base.Stopwatch;
 import org.janelia.flyem.neuprint.db.DbConfig;
 import org.janelia.flyem.neuprint.json.JsonUtils;
-import org.janelia.flyem.neuprint.model.BodyWithSynapses;
 import org.janelia.flyem.neuprint.model.MetaInfo;
 import org.janelia.flyem.neuprint.model.Neuron;
 import org.janelia.flyem.neuprint.model.Skeleton;
-import org.janelia.flyem.neuprint.model.SynapseLocationToBodyIdMap;
+import org.janelia.flyem.neuprint.model.Synapse;
+import org.janelia.flyem.neuprint.model.SynapticConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,9 +19,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,6 +42,16 @@ public class NeuPrinterMain {
                 description = "Properties file containing database information (required)",
                 required = true)
         String dbProperties;
+
+        @Parameter(
+                names = "--synapseJson",
+                description = "JSON file containing body synapse data to import")
+        String synapseJson;
+
+        @Parameter(
+                names = "--connectionsJson",
+                description = "Path to JSON file containing synaptic connections.")
+        String connectionsJson;
 
         @Parameter(
                 names = "--loadNeurons",
@@ -145,11 +153,6 @@ public class NeuPrinterMain {
         boolean addConnectionSetRoiInfoAndWeightHP = true;
 
         @Parameter(
-                names = "--synapseJson",
-                description = "JSON file containing body synapse data to import")
-        String synapseJson;
-
-        @Parameter(
                 names = "--skeletonDirectory",
                 description = "Path to directory containing skeleton files for this dataset")
         String skeletonDirectory;
@@ -247,9 +250,6 @@ public class NeuPrinterMain {
         }
     }
 
-    private static List<Neuron> neuronList;
-    private static List<BodyWithSynapses> bodyList;
-
     /**
      * Returns a list of {@link Neuron} objects read from a JSON file
      * at the provided file path.
@@ -258,14 +258,12 @@ public class NeuPrinterMain {
      * @return list of Neurons
      */
     public static List<Neuron> readNeuronsJson(String filepath) {
-
+        List<Neuron> neuronList = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             neuronList = Neuron.fromJson(reader);
-            LOG.info("Number of neurons/segments: " + neuronList.size());
+            LOG.info(String.format("Loaded %d neurons/segments from JSON.", neuronList.size()));
         } catch (Exception e) {
-            neuronList = new ArrayList<>();
-            LOG.error("Error reading neurons json.");
-            e.printStackTrace();
+            LOG.error("Error reading neurons JSON: " + e);
             System.exit(1);
         }
 
@@ -290,55 +288,53 @@ public class NeuPrinterMain {
     }
 
     /**
-     * Returns a list of {@link BodyWithSynapses} objects read from a JSON file
+     * Returns a list of {@link Synapse} objects read from a JSON file
      * at the provided file path.
      *
      * @param filepath path to synapses JSON file
-     * @return list of BodyWithSynapses
+     * @return list of {@link Synapse} objects
      */
-    private static List<BodyWithSynapses> readSynapsesJson(String filepath) {
-
+    public static List<Synapse> readSynapsesJson(String filepath) {
+        List<Synapse> synapseList = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
-            bodyList = BodyWithSynapses.fromJson(reader);
-            LOG.info("Number of bodies with synapses: " + bodyList.size());
+            synapseList = Synapse.fromJson(reader);
+            LOG.info(String.format("Loaded %d synapses from JSON.", synapseList.size()));
         } catch (Exception e) {
-            bodyList = new ArrayList<>();
-            e.printStackTrace();
+            LOG.error("Error reading synapse JSON: " + e);
+            System.exit(1);
         }
-
-//        try (JsonReader reader = new JsonReader(new FileReader(filepath)) ) {
-//            Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.UPPER_CAMEL_CASE).create();
-//            bodyList = new ArrayList<>();
-//            reader.beginArray();
-//            int i = 0;
-//            //Stopwatch timer_bws = Stopwatch.createStarted();
-//            while (reader.hasNext() && i < 2400000) {
-//
-//                BodyWithSynapses bws = gson.fromJson(reader, BodyWithSynapses.class);
-//                //System.out.println("added neuron " + neuron.getId());
-//
-//                bodyList.add(bws);
-//                i++;
-//                //System.out.println(timer_bws);
-//
-//            }
-//
-//
-//        }
-        return bodyList;
+        return synapseList;
     }
 
-    public static MetaInfo readMetaInfoJson(String filepath) {
+    /**
+     * Returns a list of {@link SynapticConnection} objects read from a JSON file
+     * at the provided file path.
+     *
+     * @param filepath path to connections JSON file
+     * @return list of {@link SynapticConnection} objects
+     */
+    public static List<SynapticConnection> readConnectionsJson(String filepath) {
+        List<SynapticConnection> connectionList = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
+            connectionList = SynapticConnection.fromJson(reader);
+            LOG.info(String.format("Loaded %d synaptic connections from JSON.", connectionList.size()));
+        } catch (Exception e) {
+            LOG.error("Error reading connections JSON: " + e);
+            System.exit(1);
+        }
+        return connectionList;
+    }
+
+    private static MetaInfo readMetaInfoJson(String filepath) {
         try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
             MetaInfo metaInfo = MetaInfo.fromJson(reader);
-            LOG.info("Meta info for dataset: " + metaInfo);
+            LOG.info(String.format("Loaded meta info for dataset: %s", metaInfo));
             return metaInfo;
         } catch (Exception e) {
-            LOG.error("Error reading meta info json.");
-            e.printStackTrace();
+            LOG.error("Error reading meta info json: " + e);
             System.exit(1);
-            return null;
         }
+        return null;
     }
 
     /**
@@ -409,216 +405,258 @@ public class NeuPrinterMain {
         final float preHPThreshold = parameters.preHPThreshold;
         final float postHPThreshold = parameters.postHPThreshold;
 
+        boolean databasePrepped = false;
+
         LOG.info("Dataset is: " + dataset);
 
         try {
 
-            if (parameters.loadNeurons || parameters.addNeuronsAndSynapses) {
+            Stopwatch timer = Stopwatch.createStarted();
 
-                // read in the neurons data
-                Stopwatch timer2 = Stopwatch.createStarted();
-                neuronList = readNeuronsJson(parameters.neuronJson);
-                LOG.info("Reading in neurons JSON took: " + timer2.stop());
-                timer2.reset();
-                //write it to the database
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+            if (parameters.synapseJson != null) {
 
-                    if (parameters.prepDatabase || parameters.addNeuronsAndSynapses) {
-                        neo4jImporter.prepDatabase(dataset);
-                    }
-
-                    Stopwatch timer = Stopwatch.createStarted();
-                    neo4jImporter.addSegments(dataset, neuronList);
-                    LOG.info("Loading all Segment nodes took: " + timer.stop());
-                    timer.reset();
-                }
-            }
-
-            if (parameters.loadSynapses || parameters.addNeuronsAndSynapses || parameters.startFromSynapsesLoad) {
-
-                Stopwatch timer = Stopwatch.createStarted();
-                SynapseMapper mapper = new SynapseMapper();
-                bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
-                LOG.info("Number of bodies with synapses: " + bodyList.size());
-                LOG.info("Reading in synapse JSON took: " + timer.stop());
-                timer.reset();
-
-                final HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
-                final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap = mapper.getSynapseLocationToBodyIdMap();
-
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                    if (parameters.startFromSynapsesLoad || (parameters.prepDatabase && !(parameters.loadNeurons || parameters.addNeuronsAndSynapses))) {
-                        neo4jImporter.prepDatabase(dataset);
-                    }
-
-                    if (parameters.startFromSynapsesLoad || parameters.addConnectsTo || parameters.addNeuronsAndSynapses) {
-
-                        timer.start();
-                        neo4jImporter.addConnectsTo(dataset, bodyList);
-                        LOG.info("Loading all ConnectsTo took: " + timer.stop());
-                        timer.reset();
-
-                    }
-
-                    if (parameters.startFromSynapsesLoad || parameters.addSynapses || parameters.addNeuronsAndSynapses) {
-                        timer.start();
-                        neo4jImporter.addSynapsesWithRois(dataset, bodyList);
-                        LOG.info("Loading all Synapses took: " + timer.stop());
-                        timer.reset();
-                    }
-
-                    if (parameters.startFromSynapsesLoad || parameters.addSynapsesTo || parameters.addNeuronsAndSynapses) {
-                        timer.start();
-                        neo4jImporter.addSynapsesTo(dataset, preToPost);
-                        LOG.info("Loading all SynapsesTo took: " + timer.stop());
-                        timer.reset();
-                    }
-
-                    if (parameters.startFromSynapsesLoad || parameters.addNeuronRois || parameters.addNeuronsAndSynapses) {
-                        timer.start();
-                        neo4jImporter.addSegmentRois(dataset, bodyList);
-                        LOG.info("Loading all Segment ROI labels took: " + timer.stop());
-                        timer.reset();
-                    }
-
-                    if (parameters.startFromSynapsesLoad || parameters.addConnectionSets || parameters.addNeuronsAndSynapses) {
-                        timer.start();
-                        neo4jImporter.addConnectionSets(dataset, bodyList, synapseLocationToBodyIdMap, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
-                        LOG.info("Loading ConnectionSets took: " + timer.stop());
-                        timer.reset();
-
-                        timer.start();
-                        neo4jImporter.addSynapseSets(dataset, bodyList);
-                        LOG.info("Loading SynapseSets took: " + timer.stop());
-                        timer.reset();
-                    }
-
-                    if (parameters.addAutoNames) {
-                        timer.start();
-                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
-                        LOG.info("Adding autoNames and :Neuron labels took: " + timer.stop());
-                        timer.reset();
-                    } else {
-                        timer.start();
-                        neo4jImporter.addNeuronLabels(dataset, parameters.neuronThreshold);
-                        LOG.info("Adding :Neuron labels took: " + timer.stop());
-                        timer.reset();
-                    }
-
-                    timer.start();
-                    neo4jImporter.indexBooleanRoiProperties(dataset);
-                    LOG.info("Adding indices on boolean roi properties took: " + timer.stop());
-                    timer.reset();
-
-                    timer.start();
-                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
-                    LOG.info("Adding :Meta node took: " + timer.stop());
-                    timer.reset();
-
-                    if (parameters.dvidUuid != null) {
-                        neo4jImporter.addDvidUuid(dataset, parameters.dvidUuid);
-                    }
-
-                    if (parameters.dvidServer != null) {
-                        neo4jImporter.addDvidServer(dataset, parameters.dvidServer);
-                    }
-
-                    if (parameters.addClusterNames) {
-                        neo4jImporter.addClusterNames(dataset, .1F);
-                    }
-
-                }
-            }
-
-            if (parameters.addSkeletons) {
-
-                final File folder = new File(parameters.skeletonDirectory);
-                final File[] arrayOfSwcFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".swc"));
-
-                assert arrayOfSwcFiles != null : "No swc files found.";
-                LOG.info("Reading in " + arrayOfSwcFiles.length + " swc files.");
-
-                final List<Skeleton> skeletonList = createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
-
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                    if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.addNeuronsAndSynapses || parameters.loadSynapses)) {
-                        neo4jImporter.prepDatabase(dataset);
-                    }
-
-                    Stopwatch timer = Stopwatch.createStarted();
-                    neo4jImporter.addSkeletonNodes(dataset, skeletonList);
-                    LOG.info("Loading all Skeleton nodes took: " + timer.stop());
-                    timer.reset();
-                }
-
-            }
-
-            if (parameters.metaInfoJson != null) {
-
-                // read meta info data
-                MetaInfo metaInfo = readMetaInfoJson(parameters.metaInfoJson);
-                if (metaInfo != null) {
-                    try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-                        neo4jImporter.addMetaInfo(dataset, metaInfo);
-                        LOG.info("Finished adding meta info.");
-                    }
-                }
-
-            }
-
-            if (parameters.indexBooleanRoiPropertiesOnly) {
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-                    neo4jImporter.prepDatabase(dataset);
-                    neo4jImporter.indexBooleanRoiProperties(dataset);
-                }
-            }
-
-            if (parameters.addMetaNodeOnly) {
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-                    neo4jImporter.prepDatabase(dataset);
-                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
-                }
-            }
-
-            if (parameters.getSuperLevelRoisFromSynapses) {
-
-                Stopwatch timer = Stopwatch.createStarted();
-                final SynapseMapper mapper = new SynapseMapper();
-                bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
-                LOG.info("Number of bodies with synapses: " + bodyList.size());
-                LOG.info("Reading in synapse JSON took: " + timer.stop());
+                // TODO: add batching option here
+                List<Synapse> synapseList = readSynapsesJson(parameters.synapseJson);
+                LOG.info(String.format("Reading in synapse JSON took: %s", timer.stop()));
                 timer.reset();
 
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-                    neo4jImporter.setSuperLevelRois(dataset, bodyList);
+
+                    neo4jImporter.prepDatabase(dataset);
+                    databasePrepped = true;
+                    timer.start();
+                    neo4jImporter.addSynapsesWithRois(dataset, synapseList);
+                    LOG.info(String.format("Loading all synapses took: %s", timer.stop()));
+                    timer.reset();
+
                 }
             }
 
-            if (parameters.addAutoNamesOnly) {
+            if (parameters.connectionsJson != null) {
 
-                Stopwatch timer = Stopwatch.createStarted();
+                // TODO: add batching option here
+                timer.start();
+                List<SynapticConnection> connectionsList = readConnectionsJson(parameters.connectionsJson);
+                LOG.info(String.format("Reading in synaptic connections JSON took: %s", timer.stop()));
+                timer.reset();
+
                 try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-                    neo4jImporter.prepDatabase(dataset);
-                    if (parameters.neuronThreshold != null) {
-                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
-                    } else {
-                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 10);
-                    }
-                    LOG.info("Adding autoNames took: " + timer.stop());
-                    timer.reset();
-                }
 
+                    if (!databasePrepped) {
+                        neo4jImporter.prepDatabase(dataset);
+                    }
+                    timer.start();
+                    neo4jImporter.addSynapsesTo(dataset, connectionsList);
+                    LOG.info(String.format("Loading all synaptic connections took: %s", timer.stop()));
+                    timer.reset();
+
+                }
             }
         } catch (Exception e) {
-            LOG.error("An error occurred: ", e);
-        }
-
-        if (parameters.editMode) {
 
         }
     }
+//
+////                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+////
+////                    if (parameters.startFromSynapsesLoad || (parameters.prepDatabase && !(parameters.loadNeurons || parameters.addNeuronsAndSynapses))) {
+////                        neo4jImporter.prepDatabase(dataset);
+////                    }
+////
+////                    if (parameters.startFromSynapsesLoad || parameters.addConnectsTo || parameters.addNeuronsAndSynapses) {
+////
+////                        timer.start();
+////                        neo4jImporter.addConnectsTo(dataset, bodyList);
+////                        LOG.info("Loading all ConnectsTo took: " + timer.stop());
+////                        timer.reset();
+////
+////                    }
+////
+////                    if (parameters.startFromSynapsesLoad || parameters.addSynapses || parameters.addNeuronsAndSynapses) {
+////                        timer.start();
+////                        neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+////                        LOG.info("Loading all Synapses took: " + timer.stop());
+////                        timer.reset();
+////                    }
+////
+////                    if (parameters.startFromSynapsesLoad || parameters.addSynapsesTo || parameters.addNeuronsAndSynapses) {
+////                        timer.start();
+////                        neo4jImporter.addSynapsesTo(dataset, preToPost);
+////                        LOG.info("Loading all SynapsesTo took: " + timer.stop());
+////                        timer.reset();
+////                    }
+////
+////                    if (parameters.startFromSynapsesLoad || parameters.addNeuronRois || parameters.addNeuronsAndSynapses) {
+////                        timer.start();
+////                        neo4jImporter.addSegmentRois(dataset, bodyList);
+////                        LOG.info("Loading all Segment ROI labels took: " + timer.stop());
+////                        timer.reset();
+////                    }
+////
+////                    if (parameters.startFromSynapsesLoad || parameters.addConnectionSets || parameters.addNeuronsAndSynapses) {
+////                        timer.start();
+////                        neo4jImporter.addConnectionSets(dataset, bodyList, synapseLocationToBodyIdMap, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
+////                        LOG.info("Loading ConnectionSets took: " + timer.stop());
+////                        timer.reset();
+////
+////                        timer.start();
+////                        neo4jImporter.addSynapseSets(dataset, bodyList);
+////                        LOG.info("Loading SynapseSets took: " + timer.stop());
+////                        timer.reset();
+////                    }
+////
+////                    if (parameters.addAutoNames) {
+////                        timer.start();
+////                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
+////                        LOG.info("Adding autoNames and :Neuron labels took: " + timer.stop());
+////                        timer.reset();
+////                    } else {
+////                        timer.start();
+////                        neo4jImporter.addNeuronLabels(dataset, parameters.neuronThreshold);
+////                        LOG.info("Adding :Neuron labels took: " + timer.stop());
+////                        timer.reset();
+////                    }
+////
+////                    timer.start();
+////                    neo4jImporter.indexBooleanRoiProperties(dataset);
+////                    LOG.info("Adding indices on boolean roi properties took: " + timer.stop());
+////                    timer.reset();
+////
+////                    timer.start();
+////                    neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
+////                    LOG.info("Adding :Meta node took: " + timer.stop());
+////                    timer.reset();
+////
+////                    if (parameters.dvidUuid != null) {
+////                        neo4jImporter.addDvidUuid(dataset, parameters.dvidUuid);
+////                    }
+////
+////                    if (parameters.dvidServer != null) {
+////                        neo4jImporter.addDvidServer(dataset, parameters.dvidServer);
+////                    }
+////
+////                    if (parameters.addClusterNames) {
+////                        neo4jImporter.addClusterNames(dataset, .1F);
+////                    }
+////
+////                }
+//        }
+//
+//        //            if (parameters.loadNeurons || parameters.addNeuronsAndSynapses) {
+////
+////                // read in the neurons data
+////                Stopwatch timer = Stopwatch.createStarted();
+////                neuronList = readNeuronsJson(parameters.neuronJson);
+////                LOG.info("Reading in neurons JSON took: " + timer.stop());
+////                timer.reset();
+////                //write it to the database
+////                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+////
+////                    if (parameters.prepDatabase || parameters.addNeuronsAndSynapses) {
+////                        neo4jImporter.prepDatabase(dataset);
+////                    }
+////
+////                    timer.start();
+////                    neo4jImporter.addSegments(dataset, neuronList);
+////                    LOG.info("Loading all Segment nodes took: " + timer.stop());
+////                    timer.reset();
+////                }
+////            }
+//
+//        if (parameters.addSkeletons) {
+//
+//            final File folder = new File(parameters.skeletonDirectory);
+//            final File[] arrayOfSwcFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".swc"));
+//
+//            assert arrayOfSwcFiles != null : "No swc files found.";
+//            LOG.info("Reading in " + arrayOfSwcFiles.length + " swc files.");
+//
+//            final List<Skeleton> skeletonList = createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
+//
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//
+//                if (parameters.prepDatabase && !(parameters.loadNeurons || parameters.addNeuronsAndSynapses || parameters.loadSynapses)) {
+//                    neo4jImporter.prepDatabase(dataset);
+//                }
+//
+//                Stopwatch timer = Stopwatch.createStarted();
+//                neo4jImporter.addSkeletonNodes(dataset, skeletonList);
+//                LOG.info("Loading all Skeleton nodes took: " + timer.stop());
+//                timer.reset();
+//            }
+//
+//        }
+//
+//        if (parameters.metaInfoJson != null) {
+//
+//            // read meta info data
+//            MetaInfo metaInfo = readMetaInfoJson(parameters.metaInfoJson);
+//            if (metaInfo != null) {
+//                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                    neo4jImporter.addMetaInfo(dataset, metaInfo);
+//                    LOG.info("Finished adding meta info.");
+//                }
+//            }
+//
+//        }
+//
+//        if (parameters.indexBooleanRoiPropertiesOnly) {
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                neo4jImporter.prepDatabase(dataset);
+//                neo4jImporter.indexBooleanRoiProperties(dataset);
+//            }
+//        }
+//
+//        if (parameters.addMetaNodeOnly) {
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                neo4jImporter.prepDatabase(dataset);
+//                neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP);
+//            }
+//        }
+//
+//        if (parameters.getSuperLevelRoisFromSynapses) {
+//
+//            Stopwatch timer = Stopwatch.createStarted();
+//            final SynapseMapper mapper = new SynapseMapper();
+//            bodyList = mapper.loadAndMapBodies(parameters.synapseJson);
+//            LOG.info("Number of bodies with synapses: " + bodyList.size());
+//            LOG.info("Reading in synapse JSON took: " + timer.stop());
+//            timer.reset();
+//
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                neo4jImporter.setSuperLevelRois(dataset, bodyList);
+//            }
+//        }
+//
+//        if (parameters.addAutoNamesOnly) {
+//
+//            Stopwatch timer = Stopwatch.createStarted();
+//            try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+//                neo4jImporter.prepDatabase(dataset);
+//                if (parameters.neuronThreshold != null) {
+//                    neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
+//                } else {
+//                    neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 10);
+//                }
+//                LOG.info("Adding autoNames took: " + timer.stop());
+//                timer.reset();
+//            }
+//
+//        }
+//    } catch(
+//    Exception e)
+//
+//    {
+//        LOG.error("An error occurred: ", e);
+//    }
+//
+//        if(parameters.editMode)
+//
+//    {
+//
+//    }
+//
+//}
 
     private static final Logger LOG = LoggerFactory.getLogger(NeuPrinterMain.class);
 

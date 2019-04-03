@@ -2,12 +2,15 @@ package org.janelia.flyem.neuprint.model;
 
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
 import org.janelia.flyem.neuprint.json.JsonUtils;
 import org.neo4j.driver.v1.Values;
 import org.neo4j.driver.v1.types.Point;
 
+import java.io.BufferedReader;
 import java.lang.reflect.Type;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -61,6 +64,20 @@ public class Synapse {
         this.confidence = 0.0D;
         this.location = new Location(x, y, z);
         this.rois = roiSet;
+    }
+
+    public Synapse(String type, double confidence, Location location) {
+        this.type = type;
+        this.confidence = confidence;
+        this.location = location;
+        this.rois = new LinkedHashSet<>();
+    }
+
+    public Synapse(String type, Long x, Long y, Long z) {
+        this.type = type;
+        this.confidence = 0.0D;
+        this.location = new Location(x, y, z);
+        this.rois = new LinkedHashSet<>();
     }
 
     /**
@@ -192,11 +209,33 @@ public class Synapse {
     }
 
     /**
+     * Returns a list of {@link Synapse} objects deserialized from a synapses JSON string.
+     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON format</a>.
+     *
+     * @param jsonString string containing synapses JSON
+     * @return list of {@link Synapse} objects
+     */
+    public static List<Synapse> fromJson(final String jsonString) {
+        return JsonUtils.GSON.fromJson(jsonString, SYNAPSE_LIST_TYPE);
+    }
+
+    /**
+     * Returns a list of {@link Synapse} objects deserialized from a {@link BufferedReader} reading from a synapse JSON file.
+     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapse JSON format</a>.
+     *
+     * @param reader {@link BufferedReader}
+     * @return list of {@link Synapse} objects
+     */
+    public static List<Synapse> fromJson(final BufferedReader reader) {
+        return JsonUtils.GSON.fromJson(reader, SYNAPSE_LIST_TYPE);
+    }
+
+    /**
      * Returns a list of {@link Synapse} objects as read from a JSON.
      * Used for testing.
      *
      * @param jsonString JSON string describing synapses
-     * @return list of Synapses
+     * @return list of {@link Synapse} objects
      */
     static List<Synapse> fromJsonArray(final String jsonString) {
         return JsonUtils.GSON.fromJson(jsonString, SYNAPSE_LIST_TYPE);

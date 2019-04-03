@@ -1,5 +1,8 @@
 package org.janelia.flyem.neuprint.model;
 
+import org.neo4j.driver.v1.Values;
+import org.neo4j.driver.v1.types.Point;
+
 public class Location {
     private Long[] location;
 
@@ -28,6 +31,10 @@ public class Location {
 
     public Long[] getLocation() {
         return location;
+    }
+
+    public Point getAsPoint() {
+        return Values.point(9157, location[0], location[1], location[2]).asPoint();
     }
 
     @Override

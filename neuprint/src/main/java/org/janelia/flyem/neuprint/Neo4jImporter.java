@@ -1,189 +1,290 @@
-//package org.janelia.flyem.neuprint;
-//
-//import com.google.gson.Gson;
-//import com.google.gson.reflect.TypeToken;
-//import org.janelia.flyem.neuprint.db.DbConfig;
-//import org.janelia.flyem.neuprint.db.DbTransactionBatch;
-//import org.janelia.flyem.neuprint.db.StdOutTransactionBatch;
-//import org.janelia.flyem.neuprint.db.TransactionBatch;
-//import org.janelia.flyem.neuprint.model.AutoName;
-//import org.janelia.flyem.neuprint.model.BodyWithSynapses;
-//import org.janelia.flyem.neuprint.model.ConnectionSet;
-//import org.janelia.flyem.neuprint.model.ConnectionSetMap;
-//import org.janelia.flyem.neuprint.model.MetaInfo;
-//import org.janelia.flyem.neuprint.model.Neuron;
-//import org.janelia.flyem.neuprint.model.RoiInfo;
-//import org.janelia.flyem.neuprint.model.SkelNode;
-//import org.janelia.flyem.neuprint.model.Skeleton;
-//import org.janelia.flyem.neuprint.model.Synapse;
-//import org.janelia.flyem.neuprint.model.SynapseCounter;
-//import org.janelia.flyem.neuprint.model.SynapseLocationToBodyIdMap;
-//import org.neo4j.driver.v1.AuthTokens;
-//import org.neo4j.driver.v1.Driver;
-//import org.neo4j.driver.v1.GraphDatabase;
-//import org.neo4j.driver.v1.Session;
-//import org.neo4j.driver.v1.Statement;
-//import org.neo4j.driver.v1.StatementResult;
-//import org.neo4j.driver.v1.Transaction;
-//import org.neo4j.driver.v1.types.Node;
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
-//
-//import java.time.LocalDateTime;
-//import java.time.temporal.ChronoUnit;
-//import java.util.ArrayList;
-//import java.util.Comparator;
-//import java.util.HashMap;
-//import java.util.HashSet;
-//import java.util.List;
-//import java.util.Map;
-//import java.util.NoSuchElementException;
-//import java.util.Set;
-//import java.util.SortedSet;
-//import java.util.TreeSet;
-//import java.util.stream.Collectors;
-//
-//import static org.neo4j.driver.v1.Values.parameters;
-//
-///**
-// * A class for importing neuron and synapse information into a neuprint neo4j database.
-// */
-//public class Neo4jImporter implements AutoCloseable {
-//
-//    private final Driver driver;
-//    private final int statementsPerTransaction;
-//    private final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-//    private final Set<String> rootRois = new HashSet<>();
-//
-//    /**
-//     * Class constructor.
-//     *
-//     * @param dbConfig {@link DbConfig} object containing the database configuration
-//     */
-//    public Neo4jImporter(final DbConfig dbConfig) {
-//
-//        if (dbConfig == null) {
-//
-//            this.driver = null;
-//            this.statementsPerTransaction = 1;
-//
-//        } else {
-//
-//            this.driver = GraphDatabase.driver(dbConfig.getUri(),
-//                    AuthTokens.basic(dbConfig.getUser(),
-//                            dbConfig.getPassword()));
-//            this.statementsPerTransaction = dbConfig.getStatementsPerTransaction();
-//
-//        }
-//
-//    }
-//
-//    /**
-//     * Class constructor for testing.
-//     *
-//     * @param driver neo4j bolt driver
-//     */
-//    public Neo4jImporter(final Driver driver) {
-//        this.driver = driver;
-//        this.statementsPerTransaction = 20;
-//    }
-//
-//    /**
-//     * Closes driver.
-//     */
-//    @Override
-//    public void close() {
-//        driver.close();
-//        LOG.info("Driver closed.");
-//    }
-//
-//    /**
-//     * Acquires a database transaction batch.
-//     *
-//     * @return {@link TransactionBatch} object for storing and writing transactions
-//     */
-//    private TransactionBatch getBatch() {
-//        final TransactionBatch batch;
-//        if (driver == null) {
-//            batch = new StdOutTransactionBatch();
-//        } else {
-//            batch = new DbTransactionBatch(driver.session(), statementsPerTransaction);
-//        }
-//        return batch;
-//    }
-//
-//    /**
-//     * Adds uniqueness constraints and indices to database.
-//     *
-//     * @param dataset dataset name
-//     */
-//    public void prepDatabase(final String dataset) {
-//
-//        LOG.info("prepDatabase: entry");
-//
-//        final String[] prepTextArray = {
-//                "CREATE CONSTRAINT ON (n:`" + dataset + "-Neuron`) ASSERT n.bodyId IS UNIQUE",
-//                "CREATE CONSTRAINT ON (n:`" + dataset + "-Segment`) ASSERT n.bodyId IS UNIQUE",
-//                "CREATE CONSTRAINT ON (s:`" + dataset + "-ConnectionSet`) ASSERT s.datasetBodyIds IS UNIQUE",
-//                "CREATE CONSTRAINT ON (s:`" + dataset + "-SynapseSet`) ASSERT s.datasetBodyId IS UNIQUE",
-//                "CREATE CONSTRAINT ON (s:`" + dataset + "-Synapse`) ASSERT s.location IS UNIQUE",
-//                "CREATE CONSTRAINT ON (s:`" + dataset + "-SkelNode`) ASSERT s.skelNodeId IS UNIQUE",
-//                "CREATE CONSTRAINT ON (s:`" + dataset + "-Skeleton`) ASSERT s.skeletonId IS UNIQUE",
-//                "CREATE CONSTRAINT ON (m:Meta) ASSERT m.dataset IS UNIQUE",
-//                "CREATE CONSTRAINT ON (d:DataModel) ASSERT d.dataModelVersion IS UNIQUE",
-//                "CREATE INDEX ON :`" + dataset + "-Neuron`(status)",
-//                "CREATE INDEX ON :`" + dataset + "-Neuron`(somaLocation)",
-//                "CREATE INDEX ON :`" + dataset + "-Neuron`(name)",
-//                "CREATE INDEX ON :`" + dataset + "-SkelNode`(location)",
-//                "CREATE INDEX ON :`" + dataset + "-Neuron`(pre)",
-//                "CREATE INDEX ON :`" + dataset + "-Neuron`(post)",
-//                "CREATE INDEX ON :Neuron(name)",
-//                "CREATE INDEX ON :`" + dataset + "-Segment`(pre)",
-//                "CREATE INDEX ON :`" + dataset + "-Segment`(post)",
-//                "CREATE CONSTRAINT ON (n:`" + dataset + "-Segment`) ASSERT n.mutationUuidAndId IS UNIQUE" //used for live updates
-//        };
-//
-//        for (final String prepText : prepTextArray) {
-//            try (final TransactionBatch batch = getBatch()) {
-//                batch.addStatement(new Statement(prepText));
-//                batch.writeTransaction();
-//            }
-//        }
-//
-//        LOG.info("prepDatabase: exit");
-//
-//    }
-//
-//    public void prepDatabaseForAutoNames(final String dataset) {
-//
-//        LOG.info("prepDatabaseForAutoNames: entry");
-//
-//        final String prepText = "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.autoName is UNIQUE";
-//
-//        try (final TransactionBatch batch = getBatch()) {
-//            batch.addStatement(new Statement(prepText));
-//            batch.writeTransaction();
-//        }
-//
-//        LOG.info("prepDatabaseForAutoNames: exit");
-//
-//    }
-//
-//    public void prepDatabaseForClusterNames(final String dataset) {
-//
-//        LOG.info("prepDatabaseForClusterNames: entry");
-//
-//        final String prepText = "CREATE INDEX ON :`" + dataset + "-Neuron`(clusterName)";
-//
-//        try (final TransactionBatch batch = getBatch()) {
-//            batch.addStatement(new Statement(prepText));
-//            batch.writeTransaction();
-//        }
-//
-//        LOG.info("prepDatabaseForClusterNames: exit");
-//    }
-//
-//    /**
+package org.janelia.flyem.neuprint;
+
+import org.janelia.flyem.neuprint.db.DbConfig;
+import org.janelia.flyem.neuprint.db.DbTransactionBatch;
+import org.janelia.flyem.neuprint.db.StdOutTransactionBatch;
+import org.janelia.flyem.neuprint.db.TransactionBatch;
+import org.janelia.flyem.neuprint.model.Synapse;
+import org.janelia.flyem.neuprint.model.SynapticConnection;
+import org.neo4j.driver.v1.AuthTokens;
+import org.neo4j.driver.v1.Driver;
+import org.neo4j.driver.v1.GraphDatabase;
+import org.neo4j.driver.v1.Statement;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import static org.neo4j.driver.v1.Values.parameters;
+
+/**
+ * A class for importing neuron and synapse information into a neuprint neo4j database.
+ */
+public class Neo4jImporter implements AutoCloseable {
+
+    private final Driver driver;
+    private final int statementsPerTransaction;
+    private final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+    private final Set<String> rootRois = new HashSet<>();
+
+    /**
+     * Class constructor.
+     *
+     * @param dbConfig {@link DbConfig} object containing the database configuration
+     */
+    public Neo4jImporter(final DbConfig dbConfig) {
+
+        if (dbConfig == null) {
+
+            this.driver = null;
+            this.statementsPerTransaction = 1;
+
+        } else {
+
+            this.driver = GraphDatabase.driver(dbConfig.getUri(),
+                    AuthTokens.basic(dbConfig.getUser(),
+                            dbConfig.getPassword()));
+            this.statementsPerTransaction = dbConfig.getStatementsPerTransaction();
+
+        }
+
+    }
+
+    /**
+     * Class constructor for testing.
+     *
+     * @param driver neo4j bolt driver
+     */
+    public Neo4jImporter(final Driver driver) {
+        this.driver = driver;
+        this.statementsPerTransaction = 20;
+    }
+
+    /**
+     * Closes driver.
+     */
+    @Override
+    public void close() {
+        driver.close();
+        LOG.info("Driver closed.");
+    }
+
+    /**
+     * Acquires a database transaction batch.
+     *
+     * @return {@link TransactionBatch} object for storing and writing transactions
+     */
+    private TransactionBatch getBatch() {
+        final TransactionBatch batch;
+        if (driver == null) {
+            batch = new StdOutTransactionBatch();
+        } else {
+            batch = new DbTransactionBatch(driver.session(), statementsPerTransaction);
+        }
+        return batch;
+    }
+
+    /**
+     * Adds uniqueness constraints and indices to database.
+     *
+     * @param dataset dataset name
+     */
+    public void prepDatabase(final String dataset) {
+
+        LOG.info("prepDatabase: entry");
+
+        final String[] prepTextArray = {
+                "CREATE CONSTRAINT ON (n:`" + dataset + "-Neuron`) ASSERT n.bodyId IS UNIQUE",
+                "CREATE CONSTRAINT ON (n:`" + dataset + "-Segment`) ASSERT n.bodyId IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-ConnectionSet`) ASSERT s.datasetBodyIds IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-SynapseSet`) ASSERT s.datasetBodyId IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-PreSyn`) ASSERT s.location IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-PostSyn`) ASSERT s.location IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-SkelNode`) ASSERT s.skelNodeId IS UNIQUE",
+                "CREATE CONSTRAINT ON (s:`" + dataset + "-Skeleton`) ASSERT s.skeletonId IS UNIQUE",
+                "CREATE CONSTRAINT ON (m:Meta) ASSERT m.dataset IS UNIQUE",
+                "CREATE CONSTRAINT ON (d:DataModel) ASSERT d.dataModelVersion IS UNIQUE",
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(status)",
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(somaLocation)",
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(name)",
+                "CREATE INDEX ON :`" + dataset + "-SkelNode`(location)",
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(pre)",
+                "CREATE INDEX ON :`" + dataset + "-Neuron`(post)",
+                "CREATE INDEX ON :Neuron(name)",
+                "CREATE INDEX ON :`" + dataset + "-Segment`(pre)",
+                "CREATE INDEX ON :`" + dataset + "-Segment`(post)",
+                "CREATE INDEX ON :`" + dataset + "-Synapse`(location)",
+                "CREATE CONSTRAINT ON (n:`" + dataset + "-Segment`) ASSERT n.mutationUuidAndId IS UNIQUE" //used for live updates
+        };
+
+        for (final String prepText : prepTextArray) {
+            try (final TransactionBatch batch = getBatch()) {
+                batch.addStatement(new Statement(prepText));
+                batch.writeTransaction();
+            }
+        }
+
+        LOG.info("prepDatabase: exit");
+
+    }
+
+    public void prepDatabaseForAutoNames(final String dataset) {
+
+        LOG.info("prepDatabaseForAutoNames: entry");
+
+        final String prepText = "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.autoName is UNIQUE";
+
+        try (final TransactionBatch batch = getBatch()) {
+            batch.addStatement(new Statement(prepText));
+            batch.writeTransaction();
+        }
+
+        LOG.info("prepDatabaseForAutoNames: exit");
+
+    }
+
+    public void prepDatabaseForClusterNames(final String dataset) {
+
+        LOG.info("prepDatabaseForClusterNames: entry");
+
+        final String prepText = "CREATE INDEX ON :`" + dataset + "-Neuron`(clusterName)";
+
+        try (final TransactionBatch batch = getBatch()) {
+            batch.addStatement(new Statement(prepText));
+            batch.writeTransaction();
+        }
+
+        LOG.info("prepDatabaseForClusterNames: exit");
+    }
+
+    /**
+     * Adds Synapse nodes to database as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
+     *
+     * @param dataset     dataset
+     * @param synapseList list of {@link Synapse} objects
+     */
+    public void addSynapsesWithRois(final String dataset, final List<Synapse> synapseList) {
+
+        LOG.info("addSynapses: entry");
+
+        String roiPropertyBaseString = " s.`%s` = TRUE,";
+
+        final String preSynapseText =
+                "MERGE (s:`" + dataset + "-Synapse`{location:$location}) " +
+                        " ON CREATE SET s.location=$location, " +
+                        "s:`" + dataset + "-PreSyn`," +
+                        "s:Synapse," +
+                        "s:PreSyn," +
+                        "s:" + dataset + "," +
+                        " s.confidence=$confidence, " +
+                        " s.type=$type, " +
+                        "%s" + //placeholder for roi properties
+                        " s.timeStamp=$timeStamp";
+
+        final String postSynapseText =
+                "MERGE (s:`" + dataset + "-Synapse`{location:$location}) " +
+                        " ON CREATE SET s.location=$location, " +
+                        "s:`" + dataset + "-PostSyn`," +
+                        "s:Synapse," +
+                        "s:PostSyn," +
+                        "s:" + dataset + "," +
+                        " s.confidence=$confidence, " +
+                        " s.type=$type, " +
+                        "%s" + //placeholder for roi properties
+                        " s.timeStamp=$timeStamp";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (final Synapse synapse : synapseList) {
+
+                StringBuilder roiProperties = new StringBuilder();
+                Set<String> roiSet = synapse.getRois();
+                if (roiSet != null && roiSet.size() > 0) {
+                    rootRois.add(roiSet.iterator().next()); // first listed roi will be a "super" roi
+                    for (String roi : roiSet) roiProperties.append(String.format(roiPropertyBaseString, roi));
+                }
+
+                if (synapse.getType().equals("pre")) {
+
+                    String preSynapseTextWithRois = String.format(preSynapseText, roiProperties.toString());
+                    batch.addStatement(new Statement(
+                            preSynapseTextWithRois,
+                            parameters("location", synapse.getLocationAsPoint(),
+                                    "datasetLocation", dataset + ":" + synapse.getLocationString(),
+                                    "confidence", synapse.getConfidence(),
+                                    "type", synapse.getType(),
+                                    "timeStamp", timeStamp))
+                    );
+                } else if (synapse.getType().equals("post")) {
+
+                    String postSynapseTextWithRois = String.format(postSynapseText, roiProperties.toString());
+                    batch.addStatement(new Statement(
+                            postSynapseTextWithRois,
+                            parameters("location", synapse.getLocationAsPoint(),
+                                    "datasetLocation", dataset + ":" + synapse.getLocationString(),
+                                    "confidence", synapse.getConfidence(),
+                                    "type", synapse.getType(),
+                                    "timeStamp", timeStamp))
+                    );
+
+                }
+
+            }
+            batch.writeTransaction();
+        }
+        LOG.info("addSynapses: exit");
+    }
+
+    /**
+     * Adds SynapsesTo relationship between Synapse nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">connections JSON file</a>.
+     *
+     * @param dataset                dataset name
+     * @param synapticConnectionList list of {@link SynapticConnection} objects
+     */
+    public void addSynapsesTo(final String dataset, List<SynapticConnection> synapticConnectionList) {
+
+        LOG.info("addSynapsesTo: entry");
+
+        // for some reason, both merge...on create set queries in the same statement results in one of them not executing properly.
+        // separating each statement to properly create synapses that may not have been previously added in addSynapses
+        final String preSynapseMergeText = "MERGE (s:`" + dataset + "-PreSyn`{location:$prelocation}) ON CREATE SET s.location = $prelocation, s.type=\"pre\", s.confidence=0.0, s.timeStamp=$timeStamp, s:Synapse, s:" + dataset + ", s:PreSyn, s:`" + dataset + "-PreSyn`, s:`" + dataset + "-Synapse`";
+        final String postSynapseMergeText = "MERGE (t:`" + dataset + "-PostSyn`{location:$postlocation}) ON CREATE SET t.location = $postlocation, t.timeStamp=$timeStamp, t.type=\"post\", t.confidence=0.0, t:Synapse, t:" + dataset + ", t:PostSyn, t:`" + dataset + "-PostSyn`, t:`" + dataset + "-Synapse`";
+
+        final String synapseRelationsText = "MERGE (s:`" + dataset + "-PreSyn`{location:$prelocation}) SET s.timeStep=$timeStamp \n" +
+                "MERGE (t:`" + dataset + "-PostSyn`{location:$postlocation}) SET t.timeStep=$timeStamp \n" +
+                "MERGE (s)-[:SynapsesTo]->(t)";
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (SynapticConnection connection : synapticConnectionList) {
+                batch.addStatement(new Statement(preSynapseMergeText,
+                        parameters(
+                                "prelocation", connection.getPreLocation().getAsPoint(),
+                                "timeStamp", timeStamp
+                        )
+                ));
+                batch.addStatement(new Statement(postSynapseMergeText,
+                        parameters(
+                                "postlocation", connection.getPostLocation().getAsPoint(),
+                                "timeStamp", timeStamp
+                        )
+                ));
+                batch.addStatement(new Statement(synapseRelationsText,
+                        parameters(
+                                "prelocation", connection.getPreLocation().getAsPoint(),
+                                "timeStamp", timeStamp,
+                                "postlocation", connection.getPostLocation().getAsPoint()
+                        )
+                ));
+            }
+            batch.writeTransaction();
+        }
+        LOG.info("addSynapsesTo: exit");
+    }
+
+    //    /**
 //     * Adds Segment nodes with properties specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.
 //     *
 //     * @param dataset    dataset name
@@ -202,6 +303,7 @@
 //                " n:" + dataset + "," +
 //                " n.name = $name," +
 //                " n.type = $type," +
+//                " n.instance = $instance," +
 //                " n.status = $status," +
 //                " n.size = $size," +
 //                " n.somaLocation = $somaLocation," +
@@ -319,121 +421,6 @@
 //        LOG.info("addPreCountToConnectsToRelationships: exit");
 //    }
 //
-//    /**
-//     * Adds Synapse nodes to database as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
-//     *
-//     * @param dataset  dataset
-//     * @param bodyList list of {@link BodyWithSynapses} objects
-//     */
-//    public void addSynapsesWithRois(final String dataset, final List<BodyWithSynapses> bodyList) {
-//
-//        LOG.info("addSynapses: entry");
-//
-//        String roiPropertyBaseString = " s.`%s` = TRUE,";
-//
-//        final String preSynapseText =
-//                "MERGE (s:`" + dataset + "-Synapse`{location:$location}) " +
-//                        " ON CREATE SET s.location=$location, " +
-//                        "s:`" + dataset + "-PreSyn`," +
-//                        "s:Synapse," +
-//                        "s:PreSyn," +
-//                        "s:" + dataset + "," +
-//                        " s.confidence=$confidence, " +
-//                        " s.type=$type, " +
-//                        "%s" + //placeholder for roi properties
-//                        " s.timeStamp=$timeStamp";
-//
-//        final String postSynapseText =
-//                "MERGE (s:`" + dataset + "-Synapse`{location:$location}) " +
-//                        " ON CREATE SET s.location=$location, " +
-//                        "s:`" + dataset + "-PostSyn`," +
-//                        "s:Synapse," +
-//                        "s:PostSyn," +
-//                        "s:" + dataset + "," +
-//                        " s.confidence=$confidence, " +
-//                        " s.type=$type, " +
-//                        "%s" + //placeholder for roi properties
-//                        " s.timeStamp=$timeStamp";
-//
-//        try (final TransactionBatch batch = getBatch()) {
-//            for (final BodyWithSynapses bws : bodyList) {
-//
-//                for (final Synapse synapse : bws.getSynapseSet()) {
-//
-//                    StringBuilder roiProperties = new StringBuilder();
-//                    Set<String> roiSet = synapse.getRois();
-//                    if (roiSet != null && roiSet.size() > 0) {
-//                        rootRois.add(roiSet.iterator().next()); // first listed roi will be a "super" roi
-//                        for (String roi : roiSet) roiProperties.append(String.format(roiPropertyBaseString, roi));
-//                    } else {
-//                        LOG.warn("No ROI found on synapse " + synapse);
-//                    }
-//
-//                    if (synapse.getType().equals("pre")) {
-//
-//                        String preSynapseTextWithRois = String.format(preSynapseText, roiProperties.toString());
-//
-//                        batch.addStatement(new Statement(
-//                                preSynapseTextWithRois,
-//                                parameters("location", synapse.getLocationAsPoint(),
-//                                        "datasetLocation", dataset + ":" + synapse.getLocationString(),
-//                                        "confidence", synapse.getConfidence(),
-//                                        "type", synapse.getType(),
-//                                        "timeStamp", timeStamp))
-//                        );
-//                    } else if (synapse.getType().equals("post")) {
-//
-//                        String postSynapseTextWithRois = String.format(postSynapseText, roiProperties.toString());
-//
-//                        batch.addStatement(new Statement(
-//                                postSynapseTextWithRois,
-//                                parameters("location", synapse.getLocationAsPoint(),
-//                                        "datasetLocation", dataset + ":" + synapse.getLocationString(),
-//                                        "confidence", synapse.getConfidence(),
-//                                        "type", synapse.getType(),
-//                                        "timeStamp", timeStamp))
-//                        );
-//
-//                    }
-//                }
-//
-//            }
-//            batch.writeTransaction();
-//        }
-//        LOG.info("addSynapses: exit");
-//    }
-//
-//    /**
-//     * Adds SynapsesTo relationship between Synapse nodes as specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapses JSON file</a>.
-//     * Uses a map of presynaptic density locations to postsynaptic density locations.
-//     *
-//     * @param dataset   dataset name
-//     * @param preToPost map of presynaptic density locations to postsynaptic density locations
-//     * @see SynapseMapper#getPreToPostMap()
-//     */
-//    public void addSynapsesTo(final String dataset, HashMap<String, Set<String>> preToPost) {
-//
-//        LOG.info("addSynapsesTo: entry");
-//
-//        final String synapseRelationsText = "MERGE (s:`" + dataset + "-Synapse`{location:$prelocation}) ON CREATE SET s.location = $prelocation, s:createdforsynapsesto, s.type=\"pre\", s.timeStamp=$timeStamp, s:Synapse, s:" + dataset + ", s:PreSyn, s:`" + dataset + "-PreSyn` \n" +
-//                "MERGE (t:`" + dataset + "-Synapse`{location:$postlocation}) ON CREATE SET t.location = $postlocation, t:createdforsynapsesto, t.timeStamp=$timeStamp, s.type=\"post\", t:Synapse, t:" + dataset + ", s:PostSyn, s:`" + dataset + "-PostSyn` \n" +
-//                "MERGE (s)-[:SynapsesTo]->(t)";
-//
-//        try (final TransactionBatch batch = getBatch()) {
-//            for (String preLoc : preToPost.keySet()) {
-//                for (String postLoc : preToPost.get(preLoc)) {
-//                    batch.addStatement(new Statement(synapseRelationsText,
-//                            parameters("prelocation", Synapse.convertLocationStringToPoint(preLoc),
-//                                    "timeStamp", timeStamp,
-//                                    "postlocation", Synapse.convertLocationStringToPoint(postLoc)))
-//                    );
-//                }
-//            }
-//            batch.writeTransaction();
-//        }
-//
-//        LOG.info("addSynapsesTo: exit");
-//    }
 //
 //    /**
 //     * Adds roi labels to Segment nodes.
@@ -1184,5 +1171,5 @@
 //        return inputs + "-" + outputs;
 //    }
 //
-//    private static final Logger LOG = LoggerFactory.getLogger(Neo4jImporter.class);
-//}
+    private static final Logger LOG = LoggerFactory.getLogger(Neo4jImporter.class);
+}
