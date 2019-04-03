@@ -8,10 +8,10 @@ Synapses.json
 ```console
 [
 	{
-        "type": "<pre or post>",
-	"confidence": <confidence value>,
-	"location": [x,y,z],
-	"rois": ["<roi1>", "<roi2>", …]
+        "type": <string> "pre" OR "post", (required)
+	"confidence": <double> in range [0.0-1.0], (optional, default is 0.0)
+	"location": [<int64> x, <int> y, <int> z], (required; unique per type (pre/post) per dataset)
+	"rois": [<string> roi1, <string> roi2 …] (optional)
 	},
   ...
 ]
@@ -24,8 +24,8 @@ Connections.json
 ```console
 [
     {
-        "pre": [x,y,z],  
-        "post": [x,y,z]  
+        "pre": [<int64> x, <int64> y, <int64> z], (required) 
+        "post": [<int64> x, <int64> y, <int64> z] (required)
     },
     ...
 ]
@@ -40,16 +40,23 @@ Neurons.json
 ```console
 [
 	{
-    "id": <unique int64 indentifier>,
-    "status": "<status of neuron>",
-    "name": "<neuron name>",                 // Naming scheme to be discussed 
-    "type": "<neuron type name>",
-    "instance": "<neuron instance name>",
-    "size": <num voxels in body> ,
-    "rois": ["<roi1>", "<roi2>", …],            // (optional) we use rois from synapses to add rois to neurons
-    "soma": { "location":[x,y,z],"radius":<float>}
-    "synapseSet": [[x1,y1,z1],[x2,y2,z2],...]       // can use the index on location to find these synapse nodes in the database, other properties (e.g. ConnectsTo relationships, roiInfo) can be derived from database after all synapses are added.
-    },
+	"id": <int64> unique indentifier per dataset, (required)
+	"status": <string> status of neuron, (optional)
+	"name": <string> name of neuron, (optional)
+	"type": <string> type of neuron, (optional)
+	"instance": <string> instance of neuron, (optional)
+	"size": <int64> num voxels in body, (optional)
+	"rois": [<string> roi1, <string> roi2 …], (optional; we use rois from synapses to add rois to neurons)
+	"soma": { (optional)
+		"location": [<int64> x, <int64> y, <int64> z], (required if soma present)
+		"radius":<double> (required if soma present)
+		},
+	"synapseSet": [ (optional)
+    		[<int64> x1, <int64> y1, <int64> z1], 
+		[<int64> x2, <int64> y2, <int64> z2],
+		...
+		]
+	},
 	...
 ]
 ```
