@@ -1,8 +1,7 @@
 To be loaded in order: Synapses.json, Connections.json, Neurons.json
 
 # Synapses
-An array of synapses in the dataset. All synapses must have a unique x,y,z location. To provide the most flexible format, we may want to only require locations to be unique within the same type (pre or post).
-
+An array of synapses in the dataset. All synapses must have a unique x,y,z location.
 
 Synapses.json
 ```console
