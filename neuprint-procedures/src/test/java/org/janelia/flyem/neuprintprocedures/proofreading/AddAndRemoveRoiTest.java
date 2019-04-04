@@ -6,10 +6,10 @@ import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import org.janelia.flyem.neuprint.Neo4jImporter;
 import org.janelia.flyem.neuprint.NeuPrinterMain;
+import org.janelia.flyem.neuprint.SynapseMapper;
+import org.janelia.flyem.neuprint.model.BodyWithSynapses;
 import org.janelia.flyem.neuprint.model.Neuron;
 import org.janelia.flyem.neuprint.model.Skeleton;
-import org.janelia.flyem.neuprint.model.Synapse;
-import org.janelia.flyem.neuprint.model.SynapticConnection;
 import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter;
 import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
@@ -28,10 +28,10 @@ import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
 import java.lang.reflect.Type;
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -59,30 +59,30 @@ public class AddAndRemoveRoiTest {
 
         List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
-        final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-
-        String neuronsJsonPath = "src/test/resources/neuronList.json";
-        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
-
-        String synapseJsonPath = "src/test/resources/synapseList.json";
-        List<Synapse> synapseList = NeuPrinterMain.readSynapsesJson(synapseJsonPath);
-
-        String connectionsJsonPath = "src/test/resources/connectionsList.json";
-        List<SynapticConnection> connectionsList = NeuPrinterMain.readConnectionsJson(connectionsJsonPath);
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
-        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-
         String dataset = "test";
 
-        NeuPrinterMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
-        neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
-        neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
-        neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
-        neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
-        neo4jImporter.indexBooleanRoiProperties(dataset);
-        neo4jImporter.addAutoNames("test", timeStamp);
+        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+        neo4jImporter.prepDatabase(dataset);
+
+        neo4jImporter.addSegments(dataset, neuronList);
+
+        neo4jImporter.addConnectsTo(dataset, bodyList);
+        neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+
+        neo4jImporter.addSynapsesTo(dataset, preToPost);
+        neo4jImporter.addSegmentRois(dataset, bodyList);
+        neo4jImporter.addConnectionSets(dataset, bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F, true);
+        neo4jImporter.addSynapseSets(dataset, bodyList);
+        neo4jImporter.addSkeletonNodes(dataset, skeletonList);
+        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F, true);
+        neo4jImporter.addAutoNames(dataset, 1);
 
     }
 
@@ -130,6 +130,7 @@ public class AddAndRemoveRoiTest {
         Assert.assertEquals(1, roiInfoMap.get("roiX").getPre());
         Assert.assertEquals(0, roiInfoMap.get("roiX").getPost());
 
+
         // should not be able to add twice
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.addRoiToSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4287, "y", 2277, "z", 1542, "roiName", "roiX", "dataset", "test")));
@@ -156,11 +157,11 @@ public class AddAndRemoveRoiTest {
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson, "dataset", "test")));
         session.writeTransaction(tx -> tx.run("CALL proofreader.addRoiToSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 5, "y", 22, "z", 99, "roiName", "roiXX", "dataset", "test")));
 
-        boolean roiXX = session.readTransaction(tx -> tx.run("MATCH (n:`test-Synapse`) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN exists(n.roiXX)", parameters("x", 5, "y", 22, "z", 99))).single().get(0).asBoolean();
+        boolean roiXX = session.readTransaction(tx-> tx.run("MATCH (n:`test-Synapse`) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN exists(n.roiXX)", parameters("x", 5,"y", 22, "z", 99 ))).single().get(0).asBoolean();
 
         Assert.assertTrue(roiXX);
 
-        double confidence = session.readTransaction(tx -> tx.run("MATCH (n:`test-Synapse`) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN n.confidence", parameters("x", 5, "y", 22, "z", 99))).single().get(0).asDouble();
+        double confidence = session.readTransaction(tx-> tx.run("MATCH (n:`test-Synapse`) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN n.confidence", parameters("x", 5,"y", 22, "z", 99 ))).single().get(0).asDouble();
         Assert.assertEquals(.88, confidence, .0001);
 
     }
@@ -214,13 +215,15 @@ public class AddAndRemoveRoiTest {
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4287, "y", 2277, "z", 1502, "roiName", "roiA", "dataset", "test")));
         session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4222, "y", 2402, "z", 1688, "roiName", "roiA", "dataset", "test")));
-        session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 8000, "y", 7000, "z", 6000, "roiName", "roiA", "dataset", "test")));
-        session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4000, "y", 5000, "z", 6000, "roiName", "roiA", "dataset", "test")));
+        session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 8000,"y", 7000,"z", 6000, "roiName", "roiA", "dataset", "test")));
+        session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4000,"y", 5000,"z", 6000, "roiName", "roiA", "dataset", "test")));
+
 
         String roiInfo2 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Synapse`)<-[:Contains]-(:SynapseSet)<-[:Contains]-(s:Segment) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN s.roiInfo", parameters("x", 4287, "y", 2277, "z", 1502))).single().get(0).asString();
 
         Map<String, SynapseCounter> neuronRoiInfoMap2 = gson.fromJson(roiInfo2, ROI_INFO_TYPE);
         Assert.assertFalse(neuronRoiInfoMap2.containsKey("roiA"));
+
 
     }
 
@@ -233,7 +236,7 @@ public class AddAndRemoveRoiTest {
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson, "dataset", "test")));
         session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 50, "y", 22, "z", 99, "roiName", "test2", "dataset", "test")));
 
-        boolean test2 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Synapse`) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN exists(n.test2)", parameters("x", 50, "y", 22, "z", 99))).single().get(0).asBoolean();
+        boolean test2 = session.readTransaction(tx-> tx.run("MATCH (n:`test-Synapse`) WHERE n.location=point({x:$x,y:$y,z:$z, srid:9157}) RETURN exists(n.test2)", parameters("x", 50,"y", 22, "z", 99 ))).single().get(0).asBoolean();
 
         Assert.assertFalse(test2);
 

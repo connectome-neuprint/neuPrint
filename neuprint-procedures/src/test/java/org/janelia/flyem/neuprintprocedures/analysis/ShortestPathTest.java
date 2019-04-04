@@ -5,11 +5,9 @@ import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
 import org.janelia.flyem.neuprint.Neo4jImporter;
 import org.janelia.flyem.neuprint.NeuPrinterMain;
-import org.janelia.flyem.neuprint.model.MetaInfo;
+import org.janelia.flyem.neuprint.SynapseMapper;
+import org.janelia.flyem.neuprint.model.BodyWithSynapses;
 import org.janelia.flyem.neuprint.model.Neuron;
-import org.janelia.flyem.neuprint.model.Synapse;
-import org.janelia.flyem.neuprint.model.SynapticConnection;
-import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,9 +21,9 @@ import org.neo4j.driver.v1.types.Path;
 import org.neo4j.driver.v1.types.Relationship;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Set;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -34,7 +32,6 @@ public class ShortestPathTest {
     @Rule
     public Neo4jRule neo4j = new Neo4jRule()
             .withProcedure(AnalysisProcedures.class)
-            .withProcedure(LoadingProcedures.class)
             .withProcedure(GraphRefactoring.class)
             .withFunction(Json.class)
             .withProcedure(Create.class);
@@ -42,30 +39,28 @@ public class ShortestPathTest {
     @Test
     public void shouldGetShortestPathThatMeetsMinWeightThreshold() {
 
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
+        SynapseMapper mapper = new SynapseMapper();
+        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRoisForShortestPath.json");
+        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
+
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
             Session session = driver.session();
-            final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-
-            String neuronsJsonPath = "src/test/resources/shortestPathNeuronList.json";
-            List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
-
-            String synapseJsonPath = "src/test/resources/shortestPathSynapseList.json";
-            List<Synapse> synapseList = NeuPrinterMain.readSynapsesJson(synapseJsonPath);
-
-            String connectionsJsonPath = "src/test/resources/shortestPathConnectionsList.json";
-            List<SynapticConnection> connectionsList = NeuPrinterMain.readConnectionsJson(connectionsJsonPath);
-
-            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-
             String dataset = "test";
 
-            NeuPrinterMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
-            neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
-            neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
-            neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
-            neo4jImporter.indexBooleanRoiProperties(dataset);
-            neo4jImporter.addAutoNames("test", timeStamp);
+            Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+            neo4jImporter.prepDatabase(dataset);
+
+            neo4jImporter.addSegments(dataset, neuronList);
+
+            neo4jImporter.addConnectsTo(dataset, bodyList);
+            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
+            neo4jImporter.addSynapsesTo(dataset, preToPost);
+            neo4jImporter.addSegmentRois(dataset, bodyList);
+            neo4jImporter.addSynapseSets(dataset, bodyList);
+            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F, true);
+            neo4jImporter.addAutoNames(dataset, 0);
 
             Path segments = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:8426959}), (m{bodyId:26311}) CALL analysis.getShortestPathWithMinWeight" +
                     "(n,m," +
