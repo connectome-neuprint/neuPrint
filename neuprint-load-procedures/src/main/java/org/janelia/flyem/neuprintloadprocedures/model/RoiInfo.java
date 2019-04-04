@@ -1,7 +1,9 @@
-package org.janelia.flyem.neuprint.model;
+package org.janelia.flyem.neuprintloadprocedures.model;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -68,15 +70,19 @@ public class RoiInfo {
         return this.synapseCountsPerRoi.get(roi);
     }
 
+    public void addRoi(String roi) {
+        if (!this.synapseCountsPerRoi.containsKey(roi)) {
+            addSynapseCountsForRoi(roi);
+        }
+    }
+
     /**
      * Increments the presynaptic density count for the provided ROI by 1.
      *
      * @param roi ROI name
      */
     public void incrementPreForRoi(String roi) {
-        if (!this.synapseCountsPerRoi.containsKey(roi)) {
-            addSynapseCountsForRoi(roi);
-        }
+        addRoi(roi);
         this.synapseCountsPerRoi.get(roi).incrementPre();
     }
 
@@ -86,9 +92,7 @@ public class RoiInfo {
      * @param roi ROI name
      */
     public void incrementPostForRoi(String roi) {
-        if (!this.synapseCountsPerRoi.containsKey(roi)) {
-            addSynapseCountsForRoi(roi);
-        }
+        addRoi(roi);
         this.synapseCountsPerRoi.get(roi).incrementPost();
     }
 
@@ -136,8 +140,21 @@ public class RoiInfo {
         return gson.toJson(this.synapseCountsPerRoi);
     }
 
+    public SynapseCounter get(String roi) {
+        return synapseCountsPerRoi.get(roi);
+    }
+
     @Override
     public String toString() {
         return this.synapseCountsPerRoi.toString();
     }
+
+    public static RoiInfo getRoiInfoFromString(String roiInfo) {
+        Gson gson = new Gson();
+        Map<String, SynapseCounter> roiInfoMap = gson.fromJson(roiInfo, ROI_INFO_TYPE);
+        return new RoiInfo(roiInfoMap);
+    }
+
+    public static final Type ROI_INFO_TYPE = new TypeToken<Map<String, SynapseCounter>>() {
+    }.getType();
 }

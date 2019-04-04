@@ -1,6 +1,6 @@
 package org.janelia.flyem.neuprintprocedures.triggers;
 
-import org.janelia.flyem.neuprint.model.RoiInfo;
+import org.janelia.flyem.neuprintloadprocedures.model.RoiInfo;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;

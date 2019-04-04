@@ -76,7 +76,7 @@ public class RemovePropertiesTest {
         neo4jImporter.addSynapseSets(dataset, bodyList);
         neo4jImporter.addSkeletonNodes(dataset, skeletonList);
         neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F, true);
-        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
+        neo4jImporter.addAutoNames(dataset, 0);
 
     }
 

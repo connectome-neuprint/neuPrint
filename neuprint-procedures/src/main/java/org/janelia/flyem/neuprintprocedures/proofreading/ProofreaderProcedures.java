@@ -2,16 +2,14 @@ package org.janelia.flyem.neuprintprocedures.proofreading;
 
 import com.google.common.base.Stopwatch;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import org.janelia.flyem.neuprint.Neo4jImporter;
 import org.janelia.flyem.neuprint.model.Neuron;
-import org.janelia.flyem.neuprint.model.RoiInfo;
 import org.janelia.flyem.neuprint.model.SkelNode;
 import org.janelia.flyem.neuprint.model.Skeleton;
 import org.janelia.flyem.neuprint.model.Synapse;
-import org.janelia.flyem.neuprint.model.SynapseCounter;
 import org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools;
 import org.janelia.flyem.neuprintloadprocedures.Location;
+import org.janelia.flyem.neuprintloadprocedures.model.RoiInfo;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -30,11 +28,8 @@ import org.neo4j.procedure.Procedure;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -75,7 +70,6 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKEL_
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_LOCATION;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_RADIUS;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.STATUS;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SUPER_LEVEL_ROIS;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSES_TO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE_SET;
@@ -95,15 +89,22 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSy
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseSetForNeuron;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addConnectsToRelationship;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToRoiInfo;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToRoiInfoWithHP;
-import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addWeightAndWeightHPToConnectsTo;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToSynapseSet;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.convertSegmentToNeuron;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.getMetaNodeRoiSet;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.getPreAndPostHPThresholdFromMetaNode;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.getRoiInfoAsMap;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.incrementSegmentPostCount;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.incrementSegmentPreCount;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.removeSynapseFromRoiInfoWithHP;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.setConnectionSetRoiInfoAndGetWeightAndWeightHP;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.setConnectionSetRoiInfoWeightAndWeightHP;
 
 public class ProofreaderProcedures {
 
-    public static final Type ROI_INFO_TYPE = new TypeToken<Map<String, SynapseCounter>>() {
-    }.getType();
     @Context
     public GraphDatabaseService dbService;
     @Context
@@ -156,8 +157,8 @@ public class ProofreaderProcedures {
                 }
 
                 if (neuron.getSoma() != null) {
-                    List<Integer> somaLocationList = neuron.getSoma().getLocation();
-                    Point somaLocationPoint = new Location((long) somaLocationList.get(0), (long) somaLocationList.get(1), (long) somaLocationList.get(2));
+                    org.janelia.flyem.neuprint.model.Location somaLocation = neuron.getSoma().getLocation();
+                    Point somaLocationPoint = new Location(somaLocation.getX(), somaLocation.getY(), somaLocation.getZ());
                     neuronNode.setProperty(SOMA_LOCATION, somaLocationPoint);
                     neuronNode.setProperty(SOMA_RADIUS, neuron.getSoma().getRadius());
                     log.info("Updated soma for neuron " + neuron.getId() + ".");
@@ -166,13 +167,13 @@ public class ProofreaderProcedures {
                     isNeuron = true;
                 }
 
-                if (neuron.getNeuronType() != null) {
-                    neuronNode.setProperty(TYPE, neuron.getNeuronType());
+                if (neuron.getType() != null) {
+                    neuronNode.setProperty(TYPE, neuron.getType());
                     log.info("Updated type for neuron " + neuron.getId() + ".");
                 }
 
                 if (isNeuron) {
-                    convertSegmentToNeuron(neuronNode, datasetLabel, neuron.getId());
+                    convertSegmentToNeuron(neuronNode, datasetLabel, neuronNode);
                 }
             }
 
@@ -395,6 +396,14 @@ public class ProofreaderProcedures {
                 throw new RuntimeException("Body id " + newNeuronBodyId + " already exists in database. Aborting addition for mutation with id : " + mutationKey);
             }
 
+            Node metaNode = GraphTraversalTools.getMetaNode(dbService, datasetLabel);
+            if (metaNode == null) {
+                log.error("Meta node not found for dataset: " + datasetLabel);
+                throw new RuntimeException("Meta node not found for dataset: " + datasetLabel);
+            }
+            acquireWriteLockForNode(metaNode);
+            Set<String> metaNodeRoiSet = getMetaNodeRoiSet(metaNode);
+
             final Node newSynapseSet = createSynapseSetForSegment(newNeuron, datasetLabel);
 
             // add appropriate synapses via synapse sets; add each synapse to the new body's synapseset
@@ -415,8 +424,8 @@ public class ProofreaderProcedures {
                 for (Synapse synapse : currentSynapses) {
 
                     // get the synapse by location
-                    List<Integer> synapseLocation = synapse.getLocation();
-                    Point synapseLocationPoint = new Location((long) synapseLocation.get(0), (long) synapseLocation.get(1), (long) synapseLocation.get(2));
+                    org.janelia.flyem.neuprint.model.Location synapseLocation = synapse.getLocation();
+                    Point synapseLocationPoint = new Location(synapseLocation.getX(), synapseLocation.getY(), synapseLocation.getZ());
                     Node synapseNode = getSynapse(dbService, synapseLocationPoint, datasetLabel);
 
                     if (synapseNode == null) {
@@ -448,12 +457,12 @@ public class ProofreaderProcedures {
                     if (synapseNode.hasProperty(TYPE)) {
                         synapseType = (String) synapseNode.getProperty(TYPE);
                     } else {
-                        log.error(String.format("Synapse at location [%d,%d,%d] does not have type property.", synapseLocation.get(0), synapseLocation.get(1), synapseLocation.get(2)));
-                        throw new RuntimeException(String.format("Synapse at location [%d,%d,%d] does not have type property.", synapseLocation.get(0), synapseLocation.get(1), synapseLocation.get(2)));
+                        log.error(String.format("Synapse at location [%d,%d,%d] does not have type property.", synapseLocation.getX(), synapseLocation.getY(), synapseLocation.getZ()));
+                        throw new RuntimeException(String.format("Synapse at location [%d,%d,%d] does not have type property.", synapseLocation.getX(), synapseLocation.getY(), synapseLocation.getZ()));
                     }
 
                     // get synapse rois for adding to the body and roiInfo
-                    final Set<String> synapseRois = getSynapseRois(synapseNode);
+                    final Set<String> synapseRois = getSynapseRois(synapseNode, metaNodeRoiSet);
 
                     if (synapseType.equals(PRE)) {
                         for (String roi : synapseRois) {
@@ -466,8 +475,8 @@ public class ProofreaderProcedures {
                         }
                         postCount++;
                     } else {
-                        log.error(String.format("Synapse at location [%d,%d,%d] does not have type property equal to 'pre' or 'post'.", synapseLocation.get(0), synapseLocation.get(1), synapseLocation.get(2)));
-                        throw new RuntimeException(String.format("Synapse at location [%d,%d,%d] does not have type property equal to 'pre' or 'post'.", synapseLocation.get(0), synapseLocation.get(1), synapseLocation.get(2)));
+                        log.error(String.format("Synapse at location [%d,%d,%d] does not have type property equal to 'pre' or 'post'.", synapseLocation.getX(), synapseLocation.getY(), synapseLocation.getZ()));
+                        throw new RuntimeException(String.format("Synapse at location [%d,%d,%d] does not have type property equal to 'pre' or 'post'.", synapseLocation.getX(), synapseLocation.getY(), synapseLocation.getZ()));
                     }
 
                     if (synapseNode.hasRelationship(RelationshipType.withName(SYNAPSES_TO))) {
@@ -497,7 +506,7 @@ public class ProofreaderProcedures {
                 log.info("Completed making map of ConnectsTo relationships.");
 
                 // add synapse and synaptic partners to connection set; set connectsto relationships
-                createConnectionSetsAndConnectsToRelationships(connectsToRelationshipMap, datasetLabel);
+                createConnectionSetsAndConnectsToRelationships(connectsToRelationshipMap, datasetLabel, metaNode, metaNodeRoiSet);
                 log.info("Completed creating ConnectionSets and ConnectsTo relationships.");
 
                 // add roi boolean properties and roi info
@@ -525,8 +534,8 @@ public class ProofreaderProcedures {
 
             if (neuronAddition.getSoma() != null) {
                 newNeuron.setProperty(SOMA_RADIUS, neuronAddition.getSoma().getRadius());
-                List<Integer> somaLocation = neuronAddition.getSoma().getLocation();
-                Point somaLocationPoint = new Location((long) somaLocation.get(0), (long) somaLocation.get(1), (long) somaLocation.get(2));
+                org.janelia.flyem.neuprint.model.Location somaLocation = neuronAddition.getSoma().getLocation();
+                Point somaLocationPoint = new Location(somaLocation.getX(), somaLocation.getY(), somaLocation.getZ());
                 newNeuron.setProperty(SOMA_LOCATION, somaLocationPoint);
                 isNeuron = true;
             }
@@ -536,11 +545,10 @@ public class ProofreaderProcedures {
             }
 
             if (isNeuron) {
-                convertSegmentToNeuron(newNeuron, datasetLabel, newNeuronBodyId);
+                convertSegmentToNeuron(newNeuron, datasetLabel, newNeuron);
             }
 
             // update meta node
-            Node metaNode = GraphTraversalTools.getMetaNode(dbService, datasetLabel);
             metaNode.setProperty("latestMutationId", neuronAddition.getMutationId());
             metaNode.setProperty("uuid", neuronAddition.getMutationUuid());
 
@@ -780,7 +788,7 @@ public class ProofreaderProcedures {
                 // update connection set counts (no need to update roiInfos if synapse is not pre or post)
                 // get the connection sets that it's part of
                 List<Node> connectionSetList = getConnectionSetsForSynapse(synapse);
-                Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
+                Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(metaNode);
                 // change roiInfo for each connection set
                 for (Node connectionSetNode : connectionSetList) {
 
@@ -885,7 +893,7 @@ public class ProofreaderProcedures {
                 // update connection set counts (no need to update roiInfos if synapse is not pre or post)
                 // get the connection sets that it's part of
                 List<Node> connectionSetList = getConnectionSetsForSynapse(synapse);
-                Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
+                Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(metaNode);
                 // change roiInfo for each connection set
                 for (Node connectionSetNode : connectionSetList) {
 
@@ -960,8 +968,8 @@ public class ProofreaderProcedures {
                     Label.label(dataset + "-" + SYNAPSE));
 
             // add location
-            List<Integer> synapseLocationList = synapse.getLocation();
-            Point synapseLocationPoint = new Location((long) synapseLocationList.get(0), (long) synapseLocationList.get(1), (long) synapseLocationList.get(2));
+            org.janelia.flyem.neuprint.model.Location synapseLocationList = synapse.getLocation();
+            Point synapseLocationPoint = new Location(synapseLocationList.getX(), synapseLocationList.getY(), synapseLocationList.getZ());
 
             try {
                 newSynapseNode.setProperty(LOCATION, synapseLocationPoint);
@@ -1115,10 +1123,13 @@ public class ProofreaderProcedures {
 
             // acquire meta node for updating
             Node metaNode = getMetaNode(dbService, dataset);
-            if (metaNode != null) {
-                acquireWriteLockForNode(metaNode);
+            if (metaNode == null) {
+                log.error("Meta node not found for dataset: " + dataset);
+                throw new RuntimeException("Meta node not found for dataset: " + dataset);
             }
-            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
+            acquireWriteLockForNode(metaNode);
+            Set<String> metaNodeRoiSet = getMetaNodeRoiSet(metaNode);
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(metaNode);
 
             // add synapse to synapse set
             Node synapseSet = getSynapseSetForNeuron(segment);
@@ -1153,13 +1164,13 @@ public class ProofreaderProcedures {
 
                     Set<Node> synapseForConnectionSet = getSynapsesForConnectionSet(connectionSet);
                     // recompute roiInfo on connection sets and set weight and weightHP
-                    setConnectionSetRoiInfoWeightAndWeightHP(synapseForConnectionSet, connectionSet, thresholdMap);
+                    setConnectionSetRoiInfoWeightAndWeightHP(synapseForConnectionSet, connectionSet, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD), metaNodeRoiSet);
                 }
             }
 
             // update neuron pre/post, roiInfo, rois
             // recompute information on containing segment
-            Set<String> synapseRois = getSynapseRois(synapse);
+            Set<String> synapseRois = getSynapseRois(synapse, metaNodeRoiSet);
             recomputeSegmentPropertiesFollowingSynapseAddition(synapseRois, synapseType, segment, bodyId, dataset);
 
         } catch (Exception e) {
@@ -1189,10 +1200,13 @@ public class ProofreaderProcedures {
 
             // acquire meta node for updating
             Node metaNode = getMetaNode(dbService, dataset);
-            if (metaNode != null) {
-                acquireWriteLockForNode(metaNode);
+            if (metaNode == null) {
+                log.error("Meta node not found for dataset: " + dataset);
+                throw new RuntimeException("Meta node not found for dataset: " + dataset);
             }
-            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
+            acquireWriteLockForNode(metaNode);
+            Set<String> metaNodeRoiSet = getMetaNodeRoiSet(metaNode);
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(metaNode);
 
             // warn if it doesn't exist
             if (synapse == null) {
@@ -1217,7 +1231,7 @@ public class ProofreaderProcedures {
                 Node containingSegment = getSegmentThatContainsSynapse(synapse);
 
                 if (containingSegment != null) {
-                    orphanSynapse(synapse, dataset, thresholdMap);
+                    orphanSynapse(synapse, dataset, thresholdMap, metaNodeRoiSet);
                 }
 
                 // delete synapsesTo relationships (may be multiple)
@@ -1226,7 +1240,7 @@ public class ProofreaderProcedures {
                 }
 
                 // remove from meta node counts and roiInfo
-                Set<String> synapseRois = getSynapseRois(synapse);
+                Set<String> synapseRois = getSynapseRois(synapse, metaNodeRoiSet);
                 if (synapseType.equals(PRE)) {
                     decrementMetaNodeTotalPreCount(metaNode);
                 } else {
@@ -1242,7 +1256,7 @@ public class ProofreaderProcedures {
 
                 // recompute information on containing segment
                 if (containingSegment != null) {
-                    recomputeSegmentPropertiesFollowingSynapseRemoval(synapseRois, synapseType, containingSegment, dataset);
+                    recomputeSegmentPropertiesFollowingSynapseRemoval(synapseRois, synapseType, containingSegment, dataset, metaNodeRoiSet);
                 }
 
             }
@@ -1274,10 +1288,13 @@ public class ProofreaderProcedures {
 
             // acquire meta node for updating
             Node metaNode = getMetaNode(dbService, dataset);
-            if (metaNode != null) {
-                acquireWriteLockForNode(metaNode);
+            if (metaNode == null) {
+                log.error("Meta node not found for dataset: " + dataset);
+                throw new RuntimeException("Meta node not found for dataset: " + dataset);
             }
-            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(dataset);
+            acquireWriteLockForNode(metaNode);
+            Set<String> metaNodeRoiSet = getMetaNodeRoiSet(metaNode);
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(metaNode);
 
             // warn if it doesn't exist
             if (synapse == null) {
@@ -1305,12 +1322,12 @@ public class ProofreaderProcedures {
                     log.warn(String.format("proofreader.orphanSynapse: Synapse at location [%f,%f,%f] is already orphaned. Aborting orphan procedure. ", x, y, z));
                 } else {
 
-                    orphanSynapse(synapse, dataset, thresholdMap);
+                    orphanSynapse(synapse, dataset, thresholdMap, metaNodeRoiSet);
 
-                    Set<String> synapseRois = getSynapseRois(synapse);
+                    Set<String> synapseRois = getSynapseRois(synapse, metaNodeRoiSet);
 
                     // recompute information on containing segment
-                    recomputeSegmentPropertiesFollowingSynapseRemoval(synapseRois, synapseType, containingSegment, dataset);
+                    recomputeSegmentPropertiesFollowingSynapseRemoval(synapseRois, synapseType, containingSegment, dataset, metaNodeRoiSet);
 
                 }
 
@@ -1337,11 +1354,18 @@ public class ProofreaderProcedures {
 
         try {
 
-            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(datasetLabel);
+            Node metaNode = getMetaNode(dbService, datasetLabel);
+            if (metaNode == null) {
+                log.error("Meta node not found for dataset: " + datasetLabel);
+                throw new RuntimeException("Meta node not found for dataset: " + datasetLabel);
+            }
+            acquireWriteLockForNode(metaNode);
+            Set<String> metaNodeRoiSet = getMetaNodeRoiSet(metaNode);
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(metaNode);
 
             Set<Node> synapsesForConnectionSet = org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet(connectionSetNode);
 
-            setConnectionSetRoiInfoWeightAndWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap);
+            setConnectionSetRoiInfoWeightAndWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD), metaNodeRoiSet);
 
         } catch (Exception e) {
             log.error("temp.updateConnectionSetsAndWeightHP: " + e);
@@ -1351,7 +1375,7 @@ public class ProofreaderProcedures {
         log.info("temp.updateConnectionSetsAndWeightHP: exit");
     }
 
-    private void recomputeSegmentPropertiesFollowingSynapseRemoval(Set<String> synapseRois, String synapseType, Node containingSegment, String dataset) {
+    private void recomputeSegmentPropertiesFollowingSynapseRemoval(Set<String> synapseRois, String synapseType, Node containingSegment, String dataset, Set<String> metaNodeRoiSet) {
 
         // set pre and post count
         if (synapseType.equals(PRE)) {
@@ -1370,8 +1394,8 @@ public class ProofreaderProcedures {
         containingSegment.setProperty(ROI_INFO, roiInfoString);
 
         // set rois by comparing keys in roiInfo to rois on segment
-        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
-        Set<String> currentSegmentRois = getSegmentRois(containingSegment);
+        Map<String, org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
+        Set<String> currentSegmentRois = getSegmentRois(containingSegment, metaNodeRoiSet);
         currentSegmentRois.removeAll(roiInfoMap.keySet());
         for (String roiToRemove : currentSegmentRois) {
             containingSegment.removeProperty(roiToRemove);
@@ -1392,6 +1416,13 @@ public class ProofreaderProcedures {
             incrementSegmentPostCount(containingSegment);
         }
 
+        // make sure segment has both pre and post if it has one
+        if (containingSegment.hasProperty(PRE) && !containingSegment.hasProperty(POST)) {
+            containingSegment.setProperty(POST, 0L);
+        } else if (containingSegment.hasProperty(POST) && !containingSegment.hasProperty(PRE)) {
+            containingSegment.setProperty(PRE, 0L);
+        }
+
         // set roiInfo and rois
         String roiInfoString = (String) containingSegment.getProperty(ROI_INFO, "{}");
         for (String roi : synapseRois) {
@@ -1406,12 +1437,12 @@ public class ProofreaderProcedures {
 
         // check if should be a neuron
         if (!shouldNotBeLabeledNeuron(containingSegment)) {
-            convertSegmentToNeuron(containingSegment, dataset, bodyId);
+            convertSegmentToNeuron(containingSegment, dataset, containingSegment);
         }
 
     }
 
-    private void orphanSynapse(Node synapse, String dataset, Map<String, Double> thresholdMap) {
+    private void orphanSynapse(Node synapse, String dataset, Map<String, Double> thresholdMap, Set<String> metaNodeRoiSet) {
         // get list of affected connection sets
         Set<Node> affectedConnectionSets = getConnectionSetsAffectedBySynapse(synapse, dataset);
 
@@ -1422,7 +1453,7 @@ public class ProofreaderProcedures {
 
         // recompute connection set and ConnectsTo information
         for (Node connectionSet : affectedConnectionSets) {
-            computeAndSetConnectionInformation(connectionSet, thresholdMap);
+            computeAndSetConnectionInformation(connectionSet, thresholdMap, metaNodeRoiSet);
         }
     }
 
@@ -1445,22 +1476,11 @@ public class ProofreaderProcedures {
         return connectionSet;
     }
 
-    private int[] setConnectionSetRoiInfoWeightAndWeightHP(Set<Node> synapsesForConnectionSet, Node connectionSetNode, Map<String, Double> thresholdMap) {
-        int[] results = setConnectionSetRoiInfoAndGetWeightAndWeightHP(synapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD));
-        int weight = results[0];
-        int weightHP = results[1];
-
-        // add weight info to ConnectsTo (will delete ConnectsTo relationship if weight is == 0)
-        addWeightAndWeightHPToConnectsTo(connectionSetNode, weight, weightHP);
-
-        return results;
-    }
-
-    private void computeAndSetConnectionInformation(Node connectionSetNode, Map<String, Double> thresholdMap) {
+    private void computeAndSetConnectionInformation(Node connectionSetNode, Map<String, Double> thresholdMap, Set<String> metaNodeRoiSet) {
 
         Set<Node> correctedSynapsesForConnectionSet = removeUnconnectedSynapsesFromConnectionSet(connectionSetNode);
 
-        int[] results = setConnectionSetRoiInfoWeightAndWeightHP(correctedSynapsesForConnectionSet, connectionSetNode, thresholdMap);
+        int[] results = setConnectionSetRoiInfoWeightAndWeightHP(correctedSynapsesForConnectionSet, connectionSetNode, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD), metaNodeRoiSet);
         int weight = results[0];
 
         // delete connection set if weight is 0
@@ -1639,40 +1659,6 @@ public class ProofreaderProcedures {
         }
     }
 
-    private void incrementSegmentPreCount(Node segment) {
-        if (segment.hasProperty(PRE)) {
-            Long currentTotalPreCount = (Long) segment.getProperty(PRE);
-            segment.setProperty(PRE, ++currentTotalPreCount);
-        } else {
-            log.warn("Segment pre count is absent. Will create it and set it to 1: " + segment.getAllProperties());
-            segment.setProperty(PRE, 1L);
-        }
-    }
-
-    private void incrementSegmentPostCount(Node segment) {
-        if (segment.hasProperty(POST)) {
-            Long currentTotalPostCount = (Long) segment.getProperty(POST);
-            segment.setProperty(POST, ++currentTotalPostCount);
-        } else {
-            log.warn("Segment post count is absent. Will create it and set it to 1: " + segment.getAllProperties());
-            segment.setProperty(POST, 1L);
-        }
-    }
-
-    private String addSynapseToRoiInfo(String roiInfoString, String roiName, String synapseType) {
-        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
-        RoiInfo roiInfo = new RoiInfo(roiInfoMap);
-
-        if (synapseType.equals(PRE)) {
-            roiInfo.incrementPreForRoi(roiName);
-        } else if (synapseType.equals(POST)) {
-            roiInfo.incrementPostForRoi(roiName);
-        }
-
-        return roiInfo.getAsJsonString();
-
-    }
-
     private void addSynapseToMetaRoiInfo(Node metaNode, String roiName, String synapseType) {
         if (metaNode != null) {
             if (metaNode.hasProperty(ROI_INFO)) {
@@ -1716,13 +1702,8 @@ public class ProofreaderProcedures {
     }
 
     private boolean roiInfoContainsRoi(String roiInfoString, String queriedRoi) {
-        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
+        Map<String, org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfoString);
         return roiInfoMap.containsKey(queriedRoi);
-    }
-
-    public static Map<String, SynapseCounter> getRoiInfoAsMap(String roiInfo) {
-        Gson gson = new Gson();
-        return gson.fromJson(roiInfo, ROI_INFO_TYPE);
     }
 
     private boolean shouldNotBeLabeledNeuron(Node neuronNode) {
@@ -1745,57 +1726,6 @@ public class ProofreaderProcedures {
         neuronNode.removeLabel(Label.label(datasetLabel + "-" + NEURON));
         // remove cluster name
         neuronNode.removeProperty(CLUSTER_NAME);
-    }
-
-    private void convertSegmentToNeuron(final Node segment, final String datasetLabel, final Long bodyId) {
-
-        segment.addLabel(Label.label(NEURON));
-        segment.addLabel(Label.label(datasetLabel + "-" + NEURON));
-
-        //generate cluster name
-        Map<String, SynapseCounter> roiInfoObject = new HashMap<>();
-        long totalPre = 0;
-        long totalPost = 0;
-        boolean setClusterName = true;
-        try {
-            roiInfoObject = getRoiInfoAsMap((String) segment.getProperty(ROI_INFO));
-        } catch (Exception e) {
-            log.warn("Error retrieving roiInfo from body id " + bodyId + " in " + datasetLabel + ". No cluster name added.");
-            setClusterName = false;
-        }
-
-        try {
-            totalPre = (long) segment.getProperty(PRE);
-        } catch (Exception e) {
-            log.warn("Error retrieving pre from body id " + bodyId + " in " + datasetLabel + ". No cluster name added.");
-            setClusterName = false;
-        }
-
-        try {
-            totalPost = (long) segment.getProperty(POST);
-        } catch (Exception e) {
-            log.warn("Error retrieving post from body id " + bodyId + " in " + datasetLabel + ". No cluster name added.");
-            setClusterName = false;
-        }
-
-        if (setClusterName) {
-            Node metaNode = GraphTraversalTools.getMetaNode(dbService, datasetLabel);
-            if (metaNode != null) {
-                String[] metaNodeSuperLevelRois;
-                try {
-                    metaNodeSuperLevelRois = (String[]) metaNode.getProperty(SUPER_LEVEL_ROIS);
-                } catch (Exception e) {
-                    log.error("Error retrieving " + SUPER_LEVEL_ROIS + " from Meta node for " + datasetLabel + ":" + e);
-                    throw new RuntimeException("Error retrieving " + SUPER_LEVEL_ROIS + " from Meta node for " + datasetLabel + ":" + e);
-                }
-                final Set<String> roiSet = new HashSet<>(Arrays.asList(metaNodeSuperLevelRois));
-                segment.setProperty("clusterName", Neo4jImporter.generateClusterName(roiInfoObject, totalPre, totalPost, 0.10, roiSet));
-            } else {
-                log.error("Meta node not found for dataset " + datasetLabel);
-                throw new RuntimeException("Meta node not found for dataset " + datasetLabel);
-            }
-        }
-
     }
 
     private void deleteSegment(long bodyId, String datasetLabel) {
@@ -1889,10 +1819,6 @@ public class ProofreaderProcedures {
         return newSynapseSet;
     }
 
-    private void addSynapseToSynapseSet(final Node synapseSet, final Node synapse) {
-        synapseSet.createRelationshipTo(synapse, RelationshipType.withName(CONTAINS));
-    }
-
     private Node getSegmentThatContainsSynapse(Node synapseNode) {
         Node connectedSegment = GraphTraversalTools.getSegmentThatContainsSynapse(synapseNode);
         if (connectedSegment == null) {
@@ -1901,7 +1827,7 @@ public class ProofreaderProcedures {
         return connectedSegment;
     }
 
-    private void createConnectionSetsAndConnectsToRelationships(ConnectsToRelationshipMap connectsToRelationshipMap, String datasetLabel) {
+    private void createConnectionSetsAndConnectsToRelationships(ConnectsToRelationshipMap connectsToRelationshipMap, String datasetLabel, Node metaNode, Set<String> metaNodeRoiSet) {
 
         for (String connectionKey : connectsToRelationshipMap.getSetOfConnectionKeys()) {
             final ConnectsToRelationship connectsToRelationship = connectsToRelationshipMap.getConnectsToRelationshipByKey(connectionKey);
@@ -1923,9 +1849,9 @@ public class ProofreaderProcedures {
 
             // add roi info to connection sets and weight hp to connections
             // get pre and post thresholds from meta node (if not present use 0.0)
-            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(datasetLabel);
+            Map<String, Double> thresholdMap = getPreAndPostHPThresholdFromMetaNode(metaNode);
 
-            int postHPCount = setConnectionSetRoiInfoAndGetWeightAndWeightHP(synapsesForConnectionSet, connectionSet, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD))[1];
+            int postHPCount = setConnectionSetRoiInfoAndGetWeightAndWeightHP(synapsesForConnectionSet, connectionSet, thresholdMap.get(PRE_HP_THRESHOLD), thresholdMap.get(POST_HP_THRESHOLD), metaNodeRoiSet)[1];
             connectsToRel.setProperty(WEIGHT_HP, postHPCount);
 
         }
@@ -1962,30 +1888,6 @@ public class ProofreaderProcedures {
         for (String roi : roiInfo.getSetOfRois()) {
             segment.setProperty(roi, true);
         }
-    }
-
-    private Relationship addConnectsToRelationship(Node startNode, Node endNode, long weight) {
-        // create a ConnectsTo relationship
-        Relationship relationship = startNode.createRelationshipTo(endNode, RelationshipType.withName(CONNECTS_TO));
-        relationship.setProperty(WEIGHT, weight);
-        return relationship;
-    }
-
-    private Map<String, Double> getPreAndPostHPThresholdFromMetaNode(String datasetLabel) {
-        Node metaNode = getMetaNode(dbService, datasetLabel);
-        Map<String, Double> thresholdMap = new HashMap<>();
-        if (metaNode != null && metaNode.hasProperty(PRE_HP_THRESHOLD)) {
-            thresholdMap.put(PRE_HP_THRESHOLD, (Double) metaNode.getProperty(PRE_HP_THRESHOLD));
-        } else {
-            thresholdMap.put(PRE_HP_THRESHOLD, 0.0);
-        }
-        if (metaNode != null && metaNode.hasProperty(POST_HP_THRESHOLD)) {
-            thresholdMap.put(POST_HP_THRESHOLD, (Double) metaNode.getProperty(POST_HP_THRESHOLD));
-        } else {
-            thresholdMap.put(POST_HP_THRESHOLD, 0.0);
-        }
-
-        return thresholdMap;
     }
 
     private Node addSkeletonNodes(final String dataset, final Skeleton skeleton, final Node segmentNode) {

@@ -179,7 +179,7 @@
 //            neo4jImporter.addSegmentRois(dataset, bodyList);
 //            neo4jImporter.addSynapseSets(dataset, bodyList);
 //            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
-//            neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
+//            neo4jImporter.addAutoNames(dataset, 0);
 //            neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 //
 //            Gson gson = new Gson();
@@ -402,7 +402,7 @@
 //            neo4jImporter.addSegmentRois(dataset, bodyList);
 //            neo4jImporter.addSynapseSets(dataset, bodyList);
 //            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
-//            neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
+//            neo4jImporter.addAutoNames(dataset, 0);
 //            neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 //
 //            Gson gson = new Gson();
@@ -470,7 +470,7 @@
 //            neo4jImporter.addSegmentRois(dataset, bodyList);
 //            neo4jImporter.addSynapseSets(dataset, bodyList);
 //            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
-//            neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
+//            neo4jImporter.addAutoNames(dataset, 0);
 //            neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 //
 //            Gson gson = new Gson();

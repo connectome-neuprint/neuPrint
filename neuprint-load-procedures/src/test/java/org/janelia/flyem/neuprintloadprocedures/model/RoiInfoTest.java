@@ -1,4 +1,4 @@
-package org.janelia.flyem.neuprint.model;
+package org.janelia.flyem.neuprintloadprocedures.model;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;

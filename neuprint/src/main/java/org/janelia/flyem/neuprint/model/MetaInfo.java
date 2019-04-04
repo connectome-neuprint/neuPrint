@@ -52,6 +52,15 @@ public class MetaInfo {
         return uuid;
     }
 
+    public String toJson() {
+        return JsonUtils.GSON.toJson(this,META_INFO_TYPE);
+    }
+
+    @Override
+    public String toString() {
+        return this.toJson();
+    }
+
     public static MetaInfo fromJson(final BufferedReader reader) {
         return JsonUtils.GSON.fromJson(reader, META_INFO_TYPE);
     }

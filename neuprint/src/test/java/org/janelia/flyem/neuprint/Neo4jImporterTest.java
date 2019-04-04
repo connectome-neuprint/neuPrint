@@ -4,10 +4,12 @@ import apoc.convert.Json;
 import apoc.create.Create;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import org.janelia.flyem.neuprint.model.MetaInfo;
+import org.janelia.flyem.neuprint.model.Neuron;
 import org.janelia.flyem.neuprint.model.Skeleton;
 import org.janelia.flyem.neuprint.model.Synapse;
-import org.janelia.flyem.neuprint.model.SynapseCounter;
 import org.janelia.flyem.neuprint.model.SynapticConnection;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter;
 import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.junit.AfterClass;
@@ -26,6 +28,8 @@ import org.neo4j.driver.v1.types.Point;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -53,6 +57,9 @@ public class Neo4jImporterTest {
 
     @BeforeClass
     public static void before() {
+
+        final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
         File swcFile1 = new File("src/test/resources/101.swc");
         File swcFile2 = new File("src/test/resources/102.swc");
         File swcFile3 = new File("src/test/resources/831744.swc");
@@ -61,9 +68,8 @@ public class Neo4jImporterTest {
 
         List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
-//        String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
-//
-//        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+        String neuronsJsonPath = "src/test/resources/neuronList.json";
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
 
         String synapseJsonPath = "src/test/resources/synapseList.json";
         List<Synapse> synapseList = NeuPrinterMain.readSynapsesJson(synapseJsonPath);
@@ -71,25 +77,22 @@ public class Neo4jImporterTest {
         String connectionsJsonPath = "src/test/resources/connectionsList.json";
         List<SynapticConnection> connectionsList = NeuPrinterMain.readConnectionsJson(connectionsJsonPath);
 
-//        MetaInfo metaInfo = NeuPrinterMain.readMetaInfoJson("src/test/resources/testMetaInfo.json");
+        MetaInfo metaInfo = NeuPrinterMain.readMetaInfoJson("src/test/resources/testMetaInfo.json");
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
         Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
 
-        neo4jImporter.prepDatabase("test");
-        neo4jImporter.addSynapsesWithRois("test", synapseList);
-        neo4jImporter.addSynapsesTo("test", connectionsList);
-        //        neo4jImporter.addSegments("test", neuronList);
-//        neo4jImporter.addConnectsTo("test", bodyList);
-//        neo4jImporter.addSegmentRois("test", bodyList);
-//        neo4jImporter.addConnectionSets("test", bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F, true);
-//        neo4jImporter.addSynapseSets("test", bodyList);
-//        neo4jImporter.addSkeletonNodes("test", skeletonList);
-//        neo4jImporter.createMetaNodeWithDataModelNode("test", 1.0F, .20F, .80F, true);
-//        neo4jImporter.addAutoNamesAndNeuronLabels("test", 5);
-//        neo4jImporter.addClusterNames("test", .1F);
-//        neo4jImporter.addMetaInfo("test", metaInfo);
+        String dataset = "test";
+
+        NeuPrinterMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
+        neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
+        neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
+        neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
+        neo4jImporter.indexBooleanRoiProperties(dataset);
+        neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
+        neo4jImporter.addAutoNames("test", timeStamp);
+        neo4jImporter.addMetaInfo("test", metaInfo, timeStamp);
 
     }
 
@@ -175,6 +178,283 @@ public class Neo4jImporterTest {
 
         int totalSynapsesToCount = session.run("MATCH (s:Synapse)-[st:SynapsesTo]->(t:Synapse) RETURN count(st)").single().get(0).asInt();
         Assert.assertEquals(7, totalSynapsesToCount);
+
+    }
+
+    @Test
+    public void allBodiesShouldHaveRequiredProperties() {
+
+        Session session = driver.session();
+
+        int numberOfSegments = session.run("MATCH (n:Segment:test:`test-Segment`) RETURN count(n)").single().get(0).asInt();
+        // 10 from neurons json + 2 from skeletons
+        Assert.assertEquals(12, numberOfSegments);
+
+        int numberOfSegmentsMissingProperties = session.run("MATCH (n:Segment) WHERE " +
+                "(NOT n:test OR" +
+                " NOT n:`test-Segment` OR" +
+                " NOT exists(n.timeStamp) OR" +
+                " NOT exists(n.bodyId) OR" +
+                " NOT ((exists(n.somaLocation) AND exists(n.somaRadius)) OR (NOT exists(n.somaLocation) AND NOT exists(n.somaRadius))))" +
+                " RETURN count(n)").single().get(0).asInt();
+        Assert.assertEquals(0, numberOfSegmentsMissingProperties);
+    }
+
+    @Test
+    public void shouldNotBeAbleToAddDuplicateSegmentsDueToUniquenessConstraint() {
+
+        Session session = driver.session();
+
+        LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
+        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+
+        // test uniqueness constraint by trying to add again
+        String neuronsJsonPath = "src/test/resources/neuronList.json";
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+        neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
+
+        int numberOfSegments2 = session.run("MATCH (n:Segment:test:`test-Segment`) RETURN count(n)").single().get(0).asInt();
+
+        // 10 from neurons json + 2 from skeletons
+        Assert.assertEquals(12, numberOfSegments2);
+    }
+
+
+    @Test
+    public void segmentPropertiesShouldMatchInputJson() {
+
+        Session session = driver.session();
+
+        Node bodyId100569 = session.run("MATCH (n:Segment:`test-Segment`:test{bodyId:100569}) RETURN n").single().get(0).asNode();
+
+        Assert.assertEquals("final", bodyId100569.asMap().get("status"));
+        Assert.assertEquals(1031L, bodyId100569.asMap().get("size"));
+        Assert.assertEquals("KC-5", bodyId100569.asMap().get("name"));
+        Assert.assertEquals("KC", bodyId100569.asMap().get("type"));
+
+        Assert.assertEquals(Values.point(9157, 1.0, 2.0, 3.0).asPoint(), bodyId100569.asMap().get("somaLocation"));
+        Assert.assertEquals(5.0, bodyId100569.asMap().get("somaRadius"));
+
+        Assert.assertTrue(bodyId100569.asMap().containsKey("roi1"));
+        Assert.assertEquals(true, bodyId100569.asMap().get("roi1"));
+        Assert.assertTrue(bodyId100569.asMap().containsKey("roi1"));
+        Assert.assertTrue(bodyId100569.asMap().containsKey("roi2"));
+
+        int labelCount = 0;
+        Iterable<String> bodyLabels = bodyId100569.labels();
+
+        for (String ignored : bodyLabels) labelCount++;
+        Assert.assertEquals(3, labelCount);
+    }
+
+    @Test
+    public void allSegmentsShouldHaveAStatusWhenListedInJson() {
+
+        Session session = driver.session();
+
+        //bodyId 100541 has no status listed in the json, 2 skeleton bodies have no status, and 2 bodies from smallBodyListWithExtraRois have no status = 5
+        int noStatusCount = session.run("MATCH (n:Segment) WHERE NOT exists(n.status) RETURN count(n)").single().get(0).asInt();
+        Assert.assertEquals(5, noStatusCount);
+
+    }
+
+    @Test
+    public void allSegmentsShouldHaveANameWhenListedInJson() {
+
+        Session session = driver.session();
+
+        // number of neurons with no name : 2 from swcs, 5 from smallNeuronList, 2 from smallBodyListWithExtraRois
+
+        int noNameCount = session.run("MATCH (n:Segment) WHERE NOT exists(n.name) RETURN count(n)").single().get(0).asInt();
+        Assert.assertEquals(9, noNameCount);
+
+    }
+
+    @Test
+    public void allSegmentsWithConnectionsShouldHaveRoiInfoPropertyAndPrePostCounts() {
+
+        Session session = driver.session();
+
+        int roiInfoCount = session.run("MATCH (n:Segment:test:`test-Segment`) WHERE exists(n.roiInfo) RETURN count(n)").single().get(0).asInt();
+
+        Assert.assertEquals(4, roiInfoCount);
+
+        int preCount = session.run("MATCH (n:Segment:test:`test-Segment`) WHERE exists(n.pre) RETURN count(n)").single().get(0).asInt();
+
+        Assert.assertEquals(4, preCount);
+
+        int postCount = session.run("MATCH (n:Segment:test:`test-Segment`) WHERE exists(n.post) RETURN count(n)").single().get(0).asInt();
+
+        Assert.assertEquals(4, postCount);
+    }
+
+    @Test
+    public void segmentsShouldHaveCorrectPreAndPostCountsAndRoiInfo() {
+
+        Gson gson = new Gson();
+
+        Session session = driver.session();
+
+        Node bodyId8426959 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN s").single().get(0).asNode();
+
+        Assert.assertEquals(8426959L, bodyId8426959.asMap().get("bodyId"));
+
+        Assert.assertEquals(3L, bodyId8426959.asMap().get("post"));
+        Assert.assertEquals(2L, bodyId8426959.asMap().get("pre"));
+        Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson((String) bodyId8426959.asMap().get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
+        }.getType());
+
+        //should be in lexicographic order
+        Set<String> roiSet = new TreeSet<>();
+        roiSet.add("roiA");
+        roiSet.add("roiB");
+
+        Assert.assertEquals(roiSet, synapseCountPerRoi.keySet());
+
+        Assert.assertEquals(2, synapseCountPerRoi.keySet().size());
+        Assert.assertEquals(2, synapseCountPerRoi.get("roiA").getPre());
+        Assert.assertEquals(3, synapseCountPerRoi.get("roiA").getPost());
+        Assert.assertEquals(1, synapseCountPerRoi.get("roiB").getPost());
+        Assert.assertEquals(0, synapseCountPerRoi.get("roiB").getPre());
+
+    }
+
+    @Test
+    public void segmentsShouldHaveRoisAsBooleanProperties() {
+
+        Session session = driver.session();
+
+        Node segmentNode = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959}) RETURN n").single().get(0).asNode();
+
+        Assert.assertTrue(segmentNode.asMap().containsKey("roiA"));
+        Assert.assertTrue(segmentNode.asMap().containsKey("roiB"));
+
+    }
+
+    @Test
+    public void shouldHaveCorrectConnectsToWeights() {
+
+        Session session = driver.session();
+
+        // weight is equal to number of psds (can have a 1 pre to many post or 1 pre to 1 post connection, but no many pre to 1 post)
+        int weight_8426959To2589725 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:2589725})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
+
+        Assert.assertEquals(1, weight_8426959To2589725);
+
+        int weight_8426959To26311 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
+
+        Assert.assertEquals(1, weight_8426959To26311);
+
+        int weight_8426959To831744 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:831744})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
+
+        Assert.assertEquals(1, weight_8426959To831744);
+
+        int weight_26311To8426959 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311})-[r:ConnectsTo]->(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
+
+        Assert.assertEquals(2, weight_26311To8426959);
+
+        int weight_8426959To8426959 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959})-[r:ConnectsTo]->(n) RETURN r.weight").single().get(0).asInt();
+
+        Assert.assertEquals(1, weight_8426959To8426959);
+
+    }
+
+    @Test
+    public void connectionSetShouldContainAllSynapsesForConnection() {
+
+        Session session = driver.session();
+
+        List<Record> synapseCS_8426959_2589725 = session.run("MATCH (t:ConnectionSet:test:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:2589725\"})-[:Contains]->(s) RETURN s").list();
+        Assert.assertEquals(2, synapseCS_8426959_2589725.size());
+        Node node1 = (Node) synapseCS_8426959_2589725.get(0).asMap().get("s");
+        Node node2 = (Node) synapseCS_8426959_2589725.get(1).asMap().get("s");
+
+        Point synapseLocation1 = (Point) node1.asMap().get("location");
+        Point synapseLocation2 = (Point) node2.asMap().get("location");
+
+        Point location1 = Values.point(9157, 4287, 2277, 1542).asPoint();
+        Point location2 = Values.point(9157, 4298, 2294, 1542).asPoint();
+
+        Assert.assertTrue(synapseLocation1.equals(location1) || synapseLocation2.equals(location1));
+        Assert.assertTrue(synapseLocation1.equals(location2) || synapseLocation2.equals(location2));
+
+        int connectionSetPreCount = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})<-[:From]-(c:ConnectionSet) RETURN count(c)").single().get(0).asInt();
+
+        Assert.assertEquals(4, connectionSetPreCount);
+
+        int connectionSetPostCount = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})<-[:To]-(c:ConnectionSet) RETURN count(c)").single().get(0).asInt();
+
+        Assert.assertEquals(2, connectionSetPostCount);
+
+        // weight should be equal to the number of psds per connection (assuming no many pre to one post connections)
+        List<Record> connections = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PostSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.weight, cs.datasetBodyIds, count(s)").list();
+        for (Record record : connections) {
+            Assert.assertEquals(record.asMap().get("c.weight"), record.asMap().get("count(s)"));
+        }
+
+        // weightHP should be equal to the number of high-precision psds per connection (assuming no many pre to one post connections)
+        List<Record> connectionsHP = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (n)<-[:From]-(cs:ConnectionSet)-[:To]->(m), (cs)-[:Contains]->(s:PostSyn) WHERE s.confidence>.81 RETURN n.bodyId, m.bodyId, c.weightHP, count(s)").list();
+        for (Record record : connectionsHP) {
+            Assert.assertSame(record.asMap().get("c.weightHP"), record.asMap().get("count(s)"));
+        }
+
+//        // pre weight should be equal to the number of pre per connection
+//        List<Record> connectionsPre = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PreSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.pre, cs.datasetBodyIds, count(s)").list();
+//        for (Record record : connectionsPre) {
+//            Assert.assertEquals(record.asMap().get("c.pre"), record.asMap().get("count(s)"));
+//        }
+
+    }
+
+    @Test
+    public void connectionSetsShouldHaveRoiInfoProperty() {
+        Session session = driver.session();
+
+        int countOfConnectionSetsWithoutRoiInfo = session.run("MATCH (t:ConnectionSet) WHERE NOT exists(t.roiInfo) RETURN count(t)").single().get("count(t)").asInt();
+
+        Assert.assertEquals(0, countOfConnectionSetsWithoutRoiInfo);
+
+        String roiInfoString = session.readTransaction(tx -> tx.run("MATCH (n:`test-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) RETURN n.roiInfo", parameters("datasetBodyIds", "test:8426959:26311"))).single().get("n.roiInfo").asString();
+
+        Assert.assertNotNull(roiInfoString);
+
+        Gson gson = new Gson();
+        Map<String, SynapseCounterWithHighPrecisionCounts> roiInfo = gson.fromJson(roiInfoString, new TypeToken<Map<String, SynapseCounterWithHighPrecisionCounts>>() {
+        }.getType());
+
+        Assert.assertEquals(1, roiInfo.size());
+
+        Assert.assertEquals(1, roiInfo.get("roiA").getPre());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPreHP());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPost());
+        Assert.assertEquals(0, roiInfo.get("roiA").getPostHP());
+
+    }
+
+    @Test
+    public void shouldHaveCorrectNumberOfSynapseSets() {
+        Session session = driver.session();
+
+        List<Record> synapseSets = session.run("MATCH (ss:SynapseSet:`test-SynapseSet`) RETURN ss").list();
+        Assert.assertEquals(4, synapseSets.size());
+
+    }
+
+    @Test
+    public void shouldHaveCorrectNumberOfConnectionSets() {
+        Session session = driver.session();
+
+        List<Record> connectionSets = session.run("MATCH (cs:ConnectionSet:`test-ConnectionSet`) RETURN cs").list();
+        Assert.assertEquals(5, connectionSets.size());
+    }
+
+    @Test
+    public void synapseSetShouldContainAllSynapsesForNeuron() {
+        Session session = driver.session();
+
+        List<Record> synapseSS_8426959 = session.run("MATCH (n:`test-Segment`{bodyId:8426959})-[:Contains]->(ss:SynapseSet)-[:Contains]->(s) RETURN s").list();
+        Assert.assertEquals(5, synapseSS_8426959.size());
 
     }
 
@@ -273,250 +553,6 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void allBodiesShouldBeLabeledAsSegment() {
-
-        Session session = driver.session();
-
-        //4 from smallBodyListWithExtraRois, 2 from skeletons, 6 additional from smallBodyList = 12
-
-        int numberOfSegments = session.run("MATCH (n:Segment:test:`test-Segment`) RETURN count(n)").single().get(0).asInt();
-
-        Assert.assertEquals(12, numberOfSegments);
-
-    }
-
-//    @Test
-//    public void shouldNotBeAbleToAddDuplicateSegmentsDueToUniquenessConstraint() {
-//
-//        Session session = driver.session();
-//
-//        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-//
-//        // test uniqueness constraint by trying to add again
-//        String neuronsJsonPath = "src/test/resources/smallNeuronList.json";
-//        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
-//        neo4jImporter.addSegments("test", neuronList);
-//
-//        int numberOfSegments2 = session.run("MATCH (n:Segment:test:`test-Segment`) RETURN count(n)").single().get(0).asInt();
-//
-//        Assert.assertEquals(12, numberOfSegments2);
-//
-//    }
-
-    @Test
-    public void segmentPropertiesShouldMatchInputJson() {
-
-        Session session = driver.session();
-
-        Node bodyId100569 = session.run("MATCH (n:Segment:`test-Segment`:test{bodyId:100569}) RETURN n").single().get(0).asNode();
-
-        Assert.assertEquals("final", bodyId100569.asMap().get("status"));
-        Assert.assertEquals(1031L, bodyId100569.asMap().get("size"));
-        Assert.assertEquals("KC-5", bodyId100569.asMap().get("name"));
-        Assert.assertEquals("KC", bodyId100569.asMap().get("type"));
-
-        Assert.assertEquals(Values.point(9157, 1.0, 2.0, 3.0).asPoint(), bodyId100569.asMap().get("somaLocation"));
-        Assert.assertEquals(5.0, bodyId100569.asMap().get("somaRadius"));
-
-        Assert.assertTrue(bodyId100569.asMap().containsKey("roi1"));
-        Assert.assertEquals(true, bodyId100569.asMap().get("roi1"));
-        Assert.assertTrue(bodyId100569.asMap().containsKey("roi1"));
-        Assert.assertTrue(bodyId100569.asMap().containsKey("roi2"));
-
-        int labelCount = 0;
-        Iterable<String> bodyLabels = bodyId100569.labels();
-
-        for (String ignored : bodyLabels) labelCount++;
-        Assert.assertEquals(3, labelCount);
-    }
-
-    @Test
-    public void allSegmentsShouldHaveAStatusWhenListedInJson() {
-
-        Session session = driver.session();
-
-        //bodyId 100541 has no status listed in the json, 2 skeleton bodies have no status, and 2 bodies from smallBodyListWithExtraRois have no status = 5
-        int noStatusCount = session.run("MATCH (n:Segment) WHERE NOT exists(n.status) RETURN count(n)").single().get(0).asInt();
-        Assert.assertEquals(5, noStatusCount);
-
-    }
-
-    @Test
-    public void allSegmentsShouldHaveANameWhenListedInJson() {
-
-        Session session = driver.session();
-
-        // number of neurons with no name : 2 from swcs, 5 from smallNeuronList, 2 from smallBodyListWithExtraRois
-
-        int noNameCount = session.run("MATCH (n:Segment) WHERE NOT exists(n.name) RETURN count(n)").single().get(0).asInt();
-        Assert.assertEquals(9, noNameCount);
-
-    }
-
-    @Test
-    public void allSegmentsWithConnectionsShouldHaveRoiInfoProperty() {
-
-        Session session = driver.session();
-
-        int roiInfoCount = session.run("MATCH (n:Segment:test:`test-Segment`) WHERE exists(n.roiInfo) RETURN count(n)").single().get(0).asInt();
-
-        Assert.assertEquals(4, roiInfoCount);
-    }
-
-    @Test
-    public void segmentsShouldHaveCorrectPreAndPostCountsAndRoiInfo() {
-
-        Gson gson = new Gson();
-
-        Session session = driver.session();
-
-        Node bodyId8426959 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN s").single().get(0).asNode();
-
-        Assert.assertEquals(8426959L, bodyId8426959.asMap().get("bodyId"));
-
-        Assert.assertEquals(3L, bodyId8426959.asMap().get("post"));
-        Assert.assertEquals(2L, bodyId8426959.asMap().get("pre"));
-        Map<String, SynapseCounter> synapseCountPerRoi = gson.fromJson((String) bodyId8426959.asMap().get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
-        }.getType());
-
-        //should be in lexicographic order
-        Set<String> roiSet = new TreeSet<>();
-        roiSet.add("roiA");
-        roiSet.add("roiB");
-
-        Assert.assertEquals(roiSet, synapseCountPerRoi.keySet());
-
-        Assert.assertEquals(2, synapseCountPerRoi.keySet().size());
-        Assert.assertEquals(2, synapseCountPerRoi.get("roiA").getPre());
-        Assert.assertEquals(3, synapseCountPerRoi.get("roiA").getPost());
-        Assert.assertEquals(1, synapseCountPerRoi.get("roiB").getPost());
-        Assert.assertEquals(0, synapseCountPerRoi.get("roiB").getPre());
-
-    }
-
-    @Test
-    public void segmentsShouldHaveRoisAsBooleanProperties() {
-
-        Session session = driver.session();
-
-        Node segmentNode = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959}) RETURN n").single().get(0).asNode();
-
-        Assert.assertTrue(segmentNode.asMap().containsKey("roiA"));
-        Assert.assertTrue(segmentNode.asMap().containsKey("roiB"));
-
-    }
-
-    @Test
-    public void shouldHaveCorrectConnectsToWeights() {
-
-        Session session = driver.session();
-
-        // weight is equal to number of psds (can have a 1 pre to many post or 1 pre to 1 post connection, but no many pre to 1 post)
-        int weight_8426959To2589725 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:2589725})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
-
-        Assert.assertEquals(1, weight_8426959To2589725);
-
-        int weight_8426959To26311 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
-
-        Assert.assertEquals(1, weight_8426959To26311);
-
-        int weight_8426959To831744 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:831744})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
-
-        Assert.assertEquals(1, weight_8426959To831744);
-
-        int weight_26311To8426959 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311})-[r:ConnectsTo]->(s{bodyId:8426959}) RETURN r.weight").single().get(0).asInt();
-
-        Assert.assertEquals(2, weight_26311To8426959);
-
-        int weight_8426959To8426959 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959})-[r:ConnectsTo]->(n) RETURN r.weight").single().get(0).asInt();
-
-        Assert.assertEquals(1, weight_8426959To8426959);
-
-    }
-
-
-
-    @Test
-    public void connectionSetShouldContainAllSynapsesForConnection() {
-
-        Session session = driver.session();
-
-        List<Record> synapseCS_8426959_2589725 = session.run("MATCH (t:ConnectionSet:test:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:2589725\"})-[:Contains]->(s) RETURN s").list();
-        Assert.assertEquals(2, synapseCS_8426959_2589725.size());
-        Node node1 = (Node) synapseCS_8426959_2589725.get(0).asMap().get("s");
-        Node node2 = (Node) synapseCS_8426959_2589725.get(1).asMap().get("s");
-
-        Point synapseLocation1 = (Point) node1.asMap().get("location");
-        Point synapseLocation2 = (Point) node2.asMap().get("location");
-
-        Point location1 = Values.point(9157, 4287, 2277, 1542).asPoint();
-        Point location2 = Values.point(9157, 4298, 2294, 1542).asPoint();
-
-        Assert.assertTrue(synapseLocation1.equals(location1) || synapseLocation2.equals(location1));
-        Assert.assertTrue(synapseLocation1.equals(location2) || synapseLocation2.equals(location2));
-
-        int connectionSetPreCount = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})<-[:From]-(c:ConnectionSet) RETURN count(c)").single().get(0).asInt();
-
-        Assert.assertEquals(4, connectionSetPreCount);
-
-        int connectionSetPostCount = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959})<-[:To]-(c:ConnectionSet) RETURN count(c)").single().get(0).asInt();
-
-        Assert.assertEquals(2, connectionSetPostCount);
-
-        // weight should be equal to the number of psds per connection (assuming no many pre to one post connections)
-        List<Record> connections = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PostSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.weight, cs.datasetBodyIds, count(s)").list();
-        for (Record record : connections) {
-            Assert.assertEquals(record.asMap().get("c.weight"), record.asMap().get("count(s)"));
-        }
-
-        // weightHP should be equal to the number of high-precision psds per connection (assuming no many pre to one post connections)
-        List<Record> connectionsHP = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (n)<-[:From]-(cs:ConnectionSet)-[:To]->(m), (cs)-[:Contains]->(s:PostSyn) WHERE s.confidence>.81 RETURN n.bodyId, m.bodyId, c.weightHP, count(s)").list();
-        for (Record record : connectionsHP) {
-            Assert.assertSame(record.asMap().get("c.weightHP"), record.asMap().get("count(s)"));
-        }
-
-//        // pre weight should be equal to the number of pre per connection
-//        List<Record> connectionsPre = session.run("MATCH (n:`test-Neuron`)-[c:ConnectsTo]->(m), (cs:ConnectionSet)-[:Contains]->(s:PreSyn) WHERE cs.datasetBodyIds=\"test:\" + n.bodyId + \":\" + m.bodyId RETURN n.bodyId, m.bodyId, c.pre, cs.datasetBodyIds, count(s)").list();
-//        for (Record record : connectionsPre) {
-//            Assert.assertEquals(record.asMap().get("c.pre"), record.asMap().get("count(s)"));
-//        }
-
-    }
-
-    @Test
-    public void connectionSetsShouldHaveRoiInfoProperty() {
-        Session session = driver.session();
-
-        int countOfConnectionSetsWithoutRoiInfo = session.run("MATCH (t:ConnectionSet) WHERE NOT exists(t.roiInfo) RETURN count(t)").single().get("count(t)").asInt();
-
-        Assert.assertEquals(0, countOfConnectionSetsWithoutRoiInfo);
-
-        String roiInfoString = session.readTransaction(tx -> tx.run("MATCH (n:`test-ConnectionSet`{datasetBodyIds:$datasetBodyIds}) RETURN n.roiInfo", parameters("datasetBodyIds", "test:8426959:26311"))).single().get("n.roiInfo").asString();
-
-        Assert.assertNotNull(roiInfoString);
-
-        Gson gson = new Gson();
-        Map<String, SynapseCounterWithHighPrecisionCounts> roiInfo = gson.fromJson(roiInfoString, new TypeToken<Map<String, SynapseCounterWithHighPrecisionCounts>>() {
-        }.getType());
-
-        Assert.assertEquals(1, roiInfo.size());
-
-        Assert.assertEquals(1, roiInfo.get("roiA").getPre());
-        Assert.assertEquals(1, roiInfo.get("roiA").getPreHP());
-        Assert.assertEquals(1, roiInfo.get("roiA").getPost());
-        Assert.assertEquals(0, roiInfo.get("roiA").getPostHP());
-
-    }
-
-    @Test
-    public void synapseSetShouldContainAllSynapsesForNeuron() {
-        Session session = driver.session();
-
-        List<Record> synapseSS_8426959 = session.run("MATCH (n:`test-Segment`{bodyId:8426959})-[:Contains]->(ss:SynapseSet)-[:Contains]->(s) RETURN s").list();
-        Assert.assertEquals(5, synapseSS_8426959.size());
-    }
-
-    @Test
     public void metaNodeShouldHaveCorrectSynapseCountsAndSuperLevelRois() {
 
         Session session = driver.session();
@@ -561,12 +597,12 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        float preHPThreshold = session.run("MATCH (n:Meta) RETURN n.preHPThreshold").single().get(0).asFloat();
-        float postHPThreshold = session.run("MATCH (n:Meta) RETURN n.postHPThreshold").single().get(0).asFloat();
+        double preHPThreshold = session.run("MATCH (n:Meta) RETURN n.preHPThreshold").single().get(0).asDouble();
+        double postHPThreshold = session.run("MATCH (n:Meta) RETURN n.postHPThreshold").single().get(0).asDouble();
 
         // test that pre and post HP thresholds are on Meta node
-        Assert.assertEquals(.2F, preHPThreshold, .0001);
-        Assert.assertEquals(.8F, postHPThreshold, .0001);
+        Assert.assertEquals(.2D, preHPThreshold, .0001);
+        Assert.assertEquals(.8D, postHPThreshold, .0001);
 
     }
 
@@ -611,7 +647,6 @@ public class Neo4jImporterTest {
         int nodeWithoutTimeStamp = session.run("MATCH (n) WHERE NOT exists(n.timeStamp) RETURN count(n)").single().get(0).asInt();
         // Meta node does not have timeStamp
         Assert.assertEquals(1, nodeWithoutTimeStamp);
-
     }
 
     @Test

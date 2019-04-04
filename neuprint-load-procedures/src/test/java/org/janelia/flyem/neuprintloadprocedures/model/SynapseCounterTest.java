@@ -1,4 +1,4 @@
-package org.janelia.flyem.neuprint.model;
+package org.janelia.flyem.neuprintloadprocedures.model;
 
 import org.junit.Assert;
 import org.junit.Test;

@@ -73,7 +73,7 @@
 //
 //            neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 //            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
-//            neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
+//            neo4jImporter.addAutoNames(dataset, 0);
 //
 //            session.writeTransaction(tx -> tx.run("MATCH (n:Segment) SET n.timeStamp=$timeStamp", parameters("timeStamp", LocalDateTime.of(2000, 1, 1,1,1))));
 //            session.writeTransaction(tx -> tx.run("MATCH (n:Meta) SET n.lastDatabaseEdit=$timeStamp", parameters("timeStamp", LocalDateTime.of(2000, 1, 1,1,1))));

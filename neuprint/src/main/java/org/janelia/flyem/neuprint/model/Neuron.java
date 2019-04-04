@@ -35,7 +35,7 @@ public class Neuron {
     @SerializedName("type")
     private final String type;
 
-    @SerializedName("type")
+    @SerializedName("instance")
     private final String instance;
 
     @SerializedName("size")

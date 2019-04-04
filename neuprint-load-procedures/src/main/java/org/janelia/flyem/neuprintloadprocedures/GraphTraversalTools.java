@@ -213,36 +213,17 @@ public class GraphTraversalTools {
         return connectedSegment;
     }
 
-    public static Set<String> getSynapseRois(final Node synapse) {
+    public static Set<String> getSynapseRois(final Node synapse, final Set<String> metaNodeRoiSet) {
         Map<String, Object> synapseNodeProperties = synapse.getAllProperties();
         return synapseNodeProperties.keySet().stream()
-                .filter(p -> (
-                        !p.equals(TIME_STAMP) &&
-                                !p.equals(LOCATION) &&
-                                !p.equals(TYPE) &&
-                                !p.equals(CONFIDENCE))
-                )
+                .filter(metaNodeRoiSet::contains)
                 .collect(Collectors.toSet());
     }
 
-    public static Set<String> getSegmentRois(final Node segment) {
+    public static Set<String> getSegmentRois(final Node segment, final Set<String> metaNodeRoiSet) {
         Map<String, Object> segmentNodeProperties = segment.getAllProperties();
         return segmentNodeProperties.keySet().stream()
-                .filter(p -> (
-                        !p.equals(TIME_STAMP) &&
-                                !p.equals(CLUSTER_NAME) &&
-                                !p.equals(AUTO_NAME) &&
-                                !p.equals(SOMA_LOCATION) &&
-                                !p.equals(SOMA_RADIUS) &&
-                                !p.equals(STATUS) &&
-                                !p.equals(ROI_INFO) &&
-                                !p.equals(TYPE) &&
-                                !p.equals(NAME) &&
-                                !p.equals(SIZE) &&
-                                !p.equals(POST) &&
-                                !p.equals(PRE) &&
-                                !p.equals(BODY_ID))
-                )
+                .filter(metaNodeRoiSet::contains)
                 .collect(Collectors.toSet());
 
     }

@@ -125,7 +125,7 @@
 //            neo4jImporter.addSegmentRois(dataset, bodyList);
 //            neo4jImporter.addSynapseSets(dataset, bodyList);
 //            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F);
-//            neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 0);
+//            neo4jImporter.addAutoNames(dataset, 0);
 //            neo4jImporter.addSkeletonNodes("test", skeletonList);
 //
 //            Map<String, Object> jsonData = session.writeTransaction(tx -> tx.run("CALL analysis.getLineGraphForNeuron(8426959,\"test\",0) YIELD value AS dataJson RETURN dataJson").single().get(0).asMap());
