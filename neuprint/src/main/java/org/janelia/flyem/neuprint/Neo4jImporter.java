@@ -177,7 +177,7 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("prepDatabaseForClusterNames: exit");
     }
 
-    void indexBooleanRoiProperties(String dataset) {
+    public void indexBooleanRoiProperties(String dataset) {
 
         LOG.info("indexBooleanRoiProperties: entry");
 

@@ -1,7 +1,7 @@
 package org.janelia.flyem.neuprintprocedures.proofreading;
 
 import com.google.common.base.Stopwatch;
-import com.google.gson.Gson;
+import org.janelia.flyem.neuprint.json.JsonUtils;
 import org.janelia.flyem.neuprint.model.Neuron;
 import org.janelia.flyem.neuprint.model.SkelNode;
 import org.janelia.flyem.neuprint.model.Skeleton;
@@ -123,11 +123,16 @@ public class ProofreaderProcedures {
                 throw new RuntimeException("proofreader.updateProperties: Missing input arguments.");
             }
 
-            Gson gson = new Gson();
-
-            Neuron neuron = gson.fromJson(neuronJsonObject, Neuron.class);
+            Neuron neuron = JsonUtils.GSON.fromJson(neuronJsonObject, Neuron.class);
 
             Node neuronNode = getSegment(dbService, neuron.getId(), datasetLabel);
+
+            Node metaNode = getMetaNode(dbService, datasetLabel);
+            if (metaNode == null) {
+                log.error("Meta node not found for dataset: " + datasetLabel);
+                throw new RuntimeException("Meta node not found for dataset: " + datasetLabel);
+            }
+            acquireWriteLockForNode(metaNode);
 
             if (neuronNode == null) {
                 log.warn("Neuron with id " + neuron.getId() + " not found in database. Aborting update.");
@@ -173,7 +178,7 @@ public class ProofreaderProcedures {
                 }
 
                 if (isNeuron) {
-                    convertSegmentToNeuron(neuronNode, datasetLabel, neuronNode);
+                    convertSegmentToNeuron(neuronNode, datasetLabel, metaNode);
                 }
             }
 
@@ -362,8 +367,7 @@ public class ProofreaderProcedures {
                 throw new RuntimeException("proofreader.addNeuron: Missing input arguments.");
             }
 
-            Gson gson = new Gson();
-            NeuronAddition neuronAddition = gson.fromJson(neuronAdditionJson, NeuronAddition.class);
+            NeuronAddition neuronAddition = JsonUtils.GSON.fromJson(neuronAdditionJson, NeuronAddition.class);
 
             if (neuronAddition.getMutationUuid() == null || neuronAddition.getBodyId() == null) {
                 log.error("proofreader.addNeuron: body id and uuid are required fields in the neuron addition json.");
@@ -545,7 +549,7 @@ public class ProofreaderProcedures {
             }
 
             if (isNeuron) {
-                convertSegmentToNeuron(newNeuron, datasetLabel, newNeuron);
+                convertSegmentToNeuron(newNeuron, datasetLabel, metaNode);
             }
 
             // update meta node
@@ -958,8 +962,7 @@ public class ProofreaderProcedures {
                 acquireWriteLockForNode(metaNode);
             }
 
-            Gson gson = new Gson();
-            Synapse synapse = gson.fromJson(synapseJson, Synapse.class);
+            Synapse synapse = JsonUtils.GSON.fromJson(synapseJson, Synapse.class);
 
             // add basic synapse labels
             final Node newSynapseNode = dbService.createNode(
@@ -1171,7 +1174,7 @@ public class ProofreaderProcedures {
             // update neuron pre/post, roiInfo, rois
             // recompute information on containing segment
             Set<String> synapseRois = getSynapseRois(synapse, metaNodeRoiSet);
-            recomputeSegmentPropertiesFollowingSynapseAddition(synapseRois, synapseType, segment, bodyId, dataset);
+            recomputeSegmentPropertiesFollowingSynapseAddition(synapseRois, synapseType, segment, dataset, metaNode);
 
         } catch (Exception e) {
             log.error("Error running proofreader.addSynapseToSegment: " + e);
@@ -1408,7 +1411,7 @@ public class ProofreaderProcedures {
 
     }
 
-    private void recomputeSegmentPropertiesFollowingSynapseAddition(Set<String> synapseRois, String synapseType, Node containingSegment, Long bodyId, String dataset) {
+    private void recomputeSegmentPropertiesFollowingSynapseAddition(Set<String> synapseRois, String synapseType, Node containingSegment,String dataset, Node metaNode) {
         // set pre and post count
         if (synapseType.equals(PRE)) {
             incrementSegmentPreCount(containingSegment);
@@ -1437,7 +1440,7 @@ public class ProofreaderProcedures {
 
         // check if should be a neuron
         if (!shouldNotBeLabeledNeuron(containingSegment)) {
-            convertSegmentToNeuron(containingSegment, dataset, containingSegment);
+            convertSegmentToNeuron(containingSegment, dataset, metaNode);
         }
 
     }
