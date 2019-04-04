@@ -16,6 +16,8 @@ import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class SkeletonDistanceTest {
@@ -33,13 +35,15 @@ public class SkeletonDistanceTest {
 
         List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1, swcFile2});
 
+        final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
             Session session = driver.session();
 
             Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
 
-            neo4jImporter.addSkeletonNodes("test", skeletonList);
+            neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
 
             Long distance = session.readTransaction(tx -> tx.run("MATCH (n:SkelNode{skelNodeId:\"test:101:5464:9385:1248:1\"}), (m:SkelNode{skelNodeId:\"test:101:5328:9385:1368:5\"}) WITH n,m CALL analysis.calculateSkeletonDistance(\"test\",n,m) YIELD value RETURN value").single().get(0).asLong());
 

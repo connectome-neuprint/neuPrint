@@ -1,8 +1,11 @@
 package org.janelia.flyem.neuprintprocedures.functions;
 
 import org.janelia.flyem.neuprint.Neo4jImporter;
-import org.janelia.flyem.neuprint.SynapseMapper;
-import org.janelia.flyem.neuprint.model.BodyWithSynapses;
+import org.janelia.flyem.neuprint.NeuPrinterMain;
+import org.janelia.flyem.neuprint.model.Neuron;
+import org.janelia.flyem.neuprint.model.Synapse;
+import org.janelia.flyem.neuprint.model.SynapticConnection;
+import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -14,9 +17,9 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Set;
 
 public class GetNeuronCentroidTest {
 
@@ -26,28 +29,36 @@ public class GetNeuronCentroidTest {
 
     static {
         neo4j = new Neo4jRule()
+                .withProcedure(LoadingProcedures.class)
                 .withFunction(NeuPrintUserFunctions.class);
     }
 
     @BeforeClass
     public static void before() {
 
-        SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
+        final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
+        String neuronsJsonPath = "src/test/resources/neuronList.json";
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+
+        String synapseJsonPath = "src/test/resources/synapseList.json";
+        List<Synapse> synapseList = NeuPrinterMain.readSynapsesJson(synapseJsonPath);
+
+        String connectionsJsonPath = "src/test/resources/connectionsList.json";
+        List<SynapticConnection> connectionsList = NeuPrinterMain.readConnectionsJson(connectionsJsonPath);
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
+        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+
         String dataset = "test";
 
-        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-        neo4jImporter.prepDatabase(dataset);
-
-        neo4jImporter.addConnectsTo(dataset, bodyList);
-        neo4jImporter.addSynapsesWithRois(dataset, bodyList);
-        neo4jImporter.addSynapsesTo(dataset, preToPost);
-        neo4jImporter.addSegmentRois(dataset, bodyList);
-        neo4jImporter.addSynapseSets(dataset, bodyList);
+        NeuPrinterMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
+        neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
+        neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
+        neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
+        neo4jImporter.indexBooleanRoiProperties(dataset);
+        neo4jImporter.addAutoNames("test", timeStamp);
 
     }
 

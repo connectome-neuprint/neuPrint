@@ -4,10 +4,10 @@ import apoc.convert.Json;
 import apoc.create.Create;
 import org.janelia.flyem.neuprint.Neo4jImporter;
 import org.janelia.flyem.neuprint.NeuPrinterMain;
-import org.janelia.flyem.neuprint.SynapseMapper;
-import org.janelia.flyem.neuprint.model.BodyWithSynapses;
 import org.janelia.flyem.neuprint.model.Neuron;
 import org.janelia.flyem.neuprint.model.Skeleton;
+import org.janelia.flyem.neuprint.model.Synapse;
+import org.janelia.flyem.neuprint.model.SynapticConnection;
 import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.janelia.flyem.neuprintprocedures.functions.NeuPrintUserFunctions;
 import org.junit.AfterClass;
@@ -22,9 +22,9 @@ import org.neo4j.driver.v1.Session;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
-import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Set;
 
 public class GraphTraversalToolsTest {
 
@@ -43,37 +43,38 @@ public class GraphTraversalToolsTest {
     @BeforeClass
     public static void before() {
 
-        File swcFile1 = new File("src/test/resources/8426959.swc");
-        File swcFile2 = new File("src/test/resources/831744.swc");
-        File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2};
+        final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
+        File swcFile1 = new File("src/test/resources/101.swc");
+        File swcFile2 = new File("src/test/resources/102.swc");
+        File swcFile3 = new File("src/test/resources/831744.swc");
+
+        File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2, swcFile3};
 
         List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
-        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
-        SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
+        String neuronsJsonPath = "src/test/resources/neuronList.json";
+        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+
+        String synapseJsonPath = "src/test/resources/synapseList.json";
+        List<Synapse> synapseList = NeuPrinterMain.readSynapsesJson(synapseJsonPath);
+
+        String connectionsJsonPath = "src/test/resources/connectionsList.json";
+        List<SynapticConnection> connectionsList = NeuPrinterMain.readConnectionsJson(connectionsJsonPath);
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
+        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+
         String dataset = "test";
 
-        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-        neo4jImporter.prepDatabase(dataset);
-
-        neo4jImporter.addSegments(dataset, neuronList);
-
-        neo4jImporter.addConnectsTo(dataset, bodyList);
-        neo4jImporter.addSynapsesWithRois(dataset, bodyList);
-
-        neo4jImporter.addSynapsesTo(dataset, preToPost);
-        neo4jImporter.addSegmentRois(dataset, bodyList);
-        neo4jImporter.addConnectionSets(dataset, bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F, true);
-        neo4jImporter.addSynapseSets(dataset, bodyList);
-        neo4jImporter.addSkeletonNodes(dataset, skeletonList);
-        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F, true);
-        neo4jImporter.addAutoNames(dataset, 1);
-
+        NeuPrinterMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
+        neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
+        neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
+        neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 1, timeStamp);
+        neo4jImporter.indexBooleanRoiProperties(dataset);
+        neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
+        neo4jImporter.addAutoNames("test", timeStamp);
     }
 
     @AfterClass
@@ -107,7 +108,7 @@ public class GraphTraversalToolsTest {
         Assert.assertTrue(segmentRois.contains("roiB"));
         Assert.assertTrue(segmentRois.contains("roi'C"));
 
-        List<Object> segment2Rois = session.readTransaction(tx -> tx.run("WITH neuprint.getSegmentRois(100569,'test') AS roiList RETURN roiList")).single().get(0).asList();
+        List<Object> segment2Rois = session.readTransaction(tx -> tx.run("WITH neuprint.getSegmentRois(100554,'test') AS roiList RETURN roiList")).single().get(0).asList();
 
         Assert.assertEquals(0, segment2Rois.size());
 
