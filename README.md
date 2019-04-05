@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/connectome-neuprint/neuPrint.svg?branch=master)](https://travis-ci.org/connectome-neuprint/neuPrint) 
-[![GitHub issues by-label](https://img.shields.io/github/issues/connectome-neuprint/neuPrint/label.svg)](https://GitHub.com/connectome-neuprint/neuPrint/issues/label/)
+[![GitHub issues by-label](https://img.shields.io/github/issues/connectome-neuprint/neuPrint.svg)](https://GitHub.com/connectome-neuprint/neuPrint/issues/)
 
 
 # neuPrint
