@@ -1,7 +1,7 @@
 {
-  "neuroglancerInfo": "{'segmentation':{'host':'http://35.221.42.152','uuid':'see meta node','dataType':'groundtruth'},'grayscale':{'host':'http://emdata.janelia.org','uuid':'ee78982c87b14d008bb3f93e9e546c10','dataType':'grayscalejpeg'}}",
+  "neuroglancerInfo": "{'segmentation':{'host':'https://flyem.dvid.io','uuid':'see meta node','dataType':'groundtruth'},'grayscale':{'host':'http://emdata.janelia.org','uuid':'ee78982c87b14d008bb3f93e9e546c10','dataType':'grayscalejpeg'}}",
   "uuid": "babdf6dbc23e44a69953a66e2260ff0a",
-  "dvidServer": "emdata1:8500",
+  "dvidServer": "flyem.dvid.io",
   "meshHost": "",
   "statusDefinitions": "{'finalized':'has been fully traced or reconstructed','hard to trace':'proofreaders were not able to trace the body further; reconstruction incomplete','partially traced':'body is traced except for regions of the body that leave the volume','orphan':'the body cannot be traced to a larger parent cell','traced':''}"
 }
