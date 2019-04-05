@@ -2,7 +2,6 @@ org/janelia/flyem/neuprint/json/ConnectionsAdapter.class
 org/janelia/flyem/neuprint/model/Location.class
 org/janelia/flyem/neuprint/json/JsonUtils.class
 org/janelia/flyem/neuprint/model/SynapticConnection.class
-org/janelia/flyem/neuprint/model/AutoName.class
 org/janelia/flyem/neuprint/model/Skeleton.class
 org/janelia/flyem/neuprint/json/NeuronAdapter.class
 org/janelia/flyem/neuprint/model/SkelNode.class

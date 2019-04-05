@@ -6,7 +6,6 @@ import org.janelia.flyem.neuprint.db.DbConfig;
 import org.janelia.flyem.neuprint.db.DbTransactionBatch;
 import org.janelia.flyem.neuprint.db.StdOutTransactionBatch;
 import org.janelia.flyem.neuprint.db.TransactionBatch;
-import org.janelia.flyem.neuprint.model.AutoName;
 import org.janelia.flyem.neuprint.model.Location;
 import org.janelia.flyem.neuprint.model.MetaInfo;
 import org.janelia.flyem.neuprint.model.Neuron;
@@ -145,21 +144,6 @@ public class Neo4jImporter implements AutoCloseable {
         }
 
         LOG.info("prepDatabase: exit");
-
-    }
-
-    public void prepDatabaseForAutoNames(final String dataset) {
-
-        LOG.info("prepDatabaseForAutoNames: entry");
-
-        final String prepText = "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.autoName is UNIQUE";
-
-        try (final TransactionBatch batch = getBatch()) {
-            batch.addStatement(new Statement(prepText));
-            batch.writeTransaction();
-        }
-
-        LOG.info("prepDatabaseForAutoNames: exit");
 
     }
 
@@ -613,64 +597,6 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     /**
-     * Adds automatically generated names (autoNames) Neuron nodes that exist during load. If Neuron node does
-     * not have a name, the name property is also set to autoName* (the * marks it as automatically generated).
-     *
-     * @param dataset         dataset name
-     * @see AutoName
-     */
-    public void addAutoNames(final String dataset, final LocalDateTime timeStamp) {
-
-        LOG.info("addAutoNames: entry");
-
-        prepDatabaseForAutoNames(dataset);
-
-        List<AutoName> autoNameList = new ArrayList<>();
-        List<Long> bodyIdsWithoutNames;
-        final String autoNameText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId}) SET n.autoName=$autoName, n.timeStamp=$timeStamp";
-        final String autoNameToNameText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId}) SET n.autoName=$autoName, n.name=$autoNamePlusAsterisk, n.timeStamp=$timeStamp";
-
-        try (Session session = driver.session()) {
-
-            // get body ids for generating auto-name
-            List<Long> bodyIdList = session.readTransaction(tx -> getAllNeuronBodyIds(tx, dataset));
-            for (Long bodyId : bodyIdList) {
-                String maxPostRoiName = session.readTransaction(tx -> getMaxInputRoi(tx, dataset, bodyId));
-                String maxPreRoiName = session.readTransaction(tx -> getMaxOutputRoi(tx, dataset, bodyId));
-                AutoName autoName = new AutoName(maxPostRoiName, maxPreRoiName, bodyId);
-                autoNameList.add(autoName);
-            }
-            // get body ids above threshold without names
-            bodyIdsWithoutNames = session.readTransaction(tx -> getAllNeuronBodyIdsWithoutNames(tx, dataset));
-        }
-
-        try (final TransactionBatch batch = getBatch()) {
-            for (AutoName autoName : autoNameList) {
-                Long bodyId = autoName.getBodyId();
-                if (bodyIdsWithoutNames.contains(bodyId)) {
-                    batch.addStatement(new Statement(autoNameToNameText,
-                            parameters(
-                                    "bodyId", autoName.getBodyId(),
-                                    "autoName", autoName.getAutoName(),
-                                    "autoNamePlusAsterisk", autoName.getAutoName() + "*",
-                                    "timeStamp", timeStamp
-                            )));
-                } else {
-                    batch.addStatement(new Statement(autoNameText,
-                            parameters(
-                                    "bodyId", autoName.getBodyId(),
-                                    "autoName", autoName.getAutoName(),
-                                    "timeStamp", timeStamp
-                            )));
-                }
-            }
-            batch.writeTransaction();
-        }
-
-        LOG.info("addAutoNames: exit");
-    }
-
-    /**
      * Adds Skeleton and SkelNode nodes to database. Segments are connected to Skeletons via Contains relationships.
      * Skeletons are connected to SkelNodes via Contains relationships. SkelNodes point to their children with LinksTo
      * relationships.
@@ -774,94 +700,6 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addMetaInfo: exit");
     }
 
-//
-//
-//    void setSuperLevelRois(String dataset, List<BodyWithSynapses> bodyList) {
-//
-//        Set<String> superLevelRoisFromSynapses = getSuperLevelRoisFromSynapses(bodyList);
-//
-//        try (final TransactionBatch batch = getBatch()) {
-//
-//            String metaNodeRoiString = "MATCH (m:Meta{dataset:$dataset}) SET m.superLevelRois=$superLevelRois ";
-//
-//            batch.addStatement(new Statement(metaNodeRoiString,
-//                    parameters("dataset", dataset,
-//                            "superLevelRois", superLevelRoisFromSynapses
-//                    )));
-//
-//            batch.writeTransaction();
-//
-//        }
-//    }
-//
-//    public void addClusterNames(final String dataset, final float threshold) {
-//
-//        prepDatabaseForClusterNames(dataset);
-//
-//        List<Node> neuronNodeList;
-//        Set<String> roiSet;
-//        try (Session session = driver.session()) {
-//            roiSet = new HashSet<>(session.readTransaction(tx -> getSuperLevelRoisFromMetaNode(tx, dataset)));
-//            neuronNodeList = session.readTransaction(tx -> getAllNeuronNodes(tx, dataset));
-//        }
-//
-//        Gson gson = new Gson();
-//
-//        String addClusterNameString = "MATCH (n:`" + dataset + "-Neuron`{bodyId:$bodyId}) SET n.clusterName=$clusterName";
-//
-//        try (final TransactionBatch batch = getBatch()) {
-//
-//            for (Node neuron : neuronNodeList) {
-//
-//                Map<String, SynapseCounter> roiInfoMap = gson.fromJson((String) neuron.asMap().get("roiInfo"), new TypeToken<Map<String, SynapseCounter>>() {
-//                }.getType());
-//                long totalPre = (long) neuron.asMap().get("pre");
-//                long totalPost = (long) neuron.asMap().get("post");
-//
-//                String clusterName = generateClusterName(roiInfoMap, totalPre, totalPost, threshold, roiSet);
-//
-//                batch.addStatement(new Statement(addClusterNameString,
-//                        parameters("bodyId", neuron.asMap().get("bodyId"),
-//                                "clusterName", clusterName
-//                        )));
-//
-//            }
-//
-//            batch.writeTransaction();
-//        }
-//
-//    }
-//
-//
-//    private static long getTotalPreCount(final Transaction tx, final String dataset) {
-//        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) RETURN sum(n.pre)");
-//        return result.single().get(0).asLong();
-//    }
-//
-//    private static long getTotalPostCount(final Transaction tx, final String dataset) {
-//        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) RETURN sum(n.post)");
-//        return result.single().get(0).asLong();
-//    }
-//
-//    private static int getRoiPreCount(final Transaction tx, final String dataset, String roi) {
-//        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`{`" + roi + "`:true}) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.pre AS pre RETURN sum(pre)");
-//        return result.single().get(0).asInt();
-//    }
-//
-//    private static int getRoiPostCount(final Transaction tx, final String dataset, String roi) {
-//        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`{`" + roi + "`:true}) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.post AS post RETURN sum(post)");
-//        return result.single().get(0).asInt();
-//    }
-//
-//    private static Set<String> getAllProperties(final Transaction tx, final String dataset) {
-//        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) WITH keys(n) AS props UNWIND props AS prop WITH DISTINCT prop ORDER BY prop RETURN prop");
-//        Set<String> roiSet = new HashSet<>();
-//        while (result.hasNext()) {
-//            roiSet.add(result.next().asMap().get("prop").toString());
-//        }
-//        return roiSet;
-//    }
-//
     private static String getMaxInputRoi(final Transaction tx, final String dataset, Long bodyId) {
 
         Gson gson = new Gson();
@@ -914,26 +752,7 @@ public class Neo4jImporter implements AutoCloseable {
         }
         return bodyIdList;
     }
-//
-//    private static List<Node> getAllNeuronNodes(final Transaction tx, final String dataset) {
-//        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Neuron`) RETURN n");
-//        List<Node> neuronList = new ArrayList<>();
-//        while (result.hasNext()) {
-//            neuronList.add((Node) result.next().asMap().get("n"));
-//        }
-//        return neuronList;
-//    }
-//
-//    private static List<String> getRoisFromMetaNode(final Transaction tx, final String dataset) {
-//        StatementResult result = tx.run("MATCH (m:Meta{dataset:\"" + dataset + "\"}) WITH keys(apoc.convert.fromJsonMap(m.roiInfo)) AS rois RETURN rois");
-//        List<?> resultList = (List<?>) result.next().asMap().get("rois");
-//        List<String> roiList = new ArrayList<>();
-//        for (Object aResult : resultList) {
-//            roiList.add((String) aResult);
-//        }
-//        return roiList;
-//    }
-//
+
     private static Set<String> getMetaNodeSuperLevelRois(final Transaction tx, final String dataset) {
         StatementResult result = tx.run("MATCH (m:Meta{dataset:\"" + dataset + "\"}) WITH m.superLevelRois AS rois RETURN rois");
         List<?> resultList = (List<?>) result.next().asMap().get("rois");

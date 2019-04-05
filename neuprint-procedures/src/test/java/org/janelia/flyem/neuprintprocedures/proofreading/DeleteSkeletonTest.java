@@ -67,7 +67,6 @@ public class DeleteSkeletonTest {
             neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
             neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
             neo4jImporter.indexBooleanRoiProperties(dataset);
-            neo4jImporter.addAutoNames("test", timeStamp);
 
             Session session = driver.session();
 

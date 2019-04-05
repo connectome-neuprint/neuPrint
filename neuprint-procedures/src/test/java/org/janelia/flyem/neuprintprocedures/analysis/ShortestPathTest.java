@@ -64,7 +64,6 @@ public class ShortestPathTest {
             neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
             neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
             neo4jImporter.indexBooleanRoiProperties(dataset);
-            neo4jImporter.addAutoNames("test", timeStamp);
 
             Path segments = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:8426959}), (m{bodyId:26311}) CALL analysis.getShortestPathWithMinWeight" +
                     "(n,m," +

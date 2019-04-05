@@ -58,7 +58,6 @@ public class GetNeuronCentroidTest {
         neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
         neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
         neo4jImporter.indexBooleanRoiProperties(dataset);
-        neo4jImporter.addAutoNames("test", timeStamp);
 
     }
 

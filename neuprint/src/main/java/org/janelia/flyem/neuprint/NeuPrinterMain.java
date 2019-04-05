@@ -100,20 +100,10 @@ public class NeuPrinterMain {
         String metaInfoJson;
 
         @Parameter(
-                names = "--addAutoNames",
-                description = "Indicates that automatically generated names should be added for this dataset. Auto-names are in the format " +
-                        "ROIA-ROIB_8 where ROIA is the roi in which a given neuron has the most inputs (postsynaptic densities) " +
-                        "and ROIB is the roi in which a neuron has the most outputs (presynaptic densities). The final number renders " +
-                        "this name unique per dataset. Names are only generated for neurons that have greater than the number of synapses " +
-                        "indicated by neuronThreshold. If neurons do not already have a name, the auto-name is added to the name property. (skip to omit)",
-                arity = 0)
-        public boolean addAutoNames;
-
-        @Parameter(
                 names = "--neuronThreshold",
                 description = "Integer indicating the number of synaptic densities (>=neuronThreshold/5 pre OR >=neuronThreshold post) a neuron should have to be given " +
-                        "the label of :Neuron (all have the :Segment label by default) and an auto-name. To add auto-names, must have" +
-                        " --addAutoName OR --addAutoNamesOnly enabled.")
+                        "the label of :Neuron (all have the :Segment label by default). "
+        )
         Integer neuronThreshold = 10;
 
         @Parameter(
@@ -269,13 +259,13 @@ public class NeuPrinterMain {
     }
 
     public static void initializeDatabase(Neo4jImporter neo4jImporter,
-                                           String dataset,
-                                           float dataModelVersion,
-                                           double preHPThreshold,
-                                           double postHPThreshold,
-                                           boolean addConnectionSetRoiInfoAndWeightHP,
-                                           boolean addClusterNames,
-                                           LocalDateTime timeStamp) {
+                                          String dataset,
+                                          float dataModelVersion,
+                                          double preHPThreshold,
+                                          double postHPThreshold,
+                                          boolean addConnectionSetRoiInfoAndWeightHP,
+                                          boolean addClusterNames,
+                                          LocalDateTime timeStamp) {
         neo4jImporter.prepDatabase(dataset);
         neo4jImporter.createMetaNodeWithDataModelNode(dataset, dataModelVersion, preHPThreshold, postHPThreshold, addConnectionSetRoiInfoAndWeightHP, timeStamp);
         if (addClusterNames) {
@@ -385,23 +375,6 @@ public class NeuPrinterMain {
                     neo4jImporter.indexBooleanRoiProperties(dataset);
 
                 }
-            }
-
-            if (parameters.addAutoNames) {
-
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                    if (!databaseInitialized) {
-                        initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
-                    }
-                    timer.start();
-                    neo4jImporter.addAutoNames(dataset, timeStamp);
-                    LOG.info(String.format("Adding all auto names took: %s", timer.stop()));
-                    timer.reset();
-
-                }
-
-
             }
 
             if (parameters.skeletonDirectory != null) {

@@ -4,7 +4,6 @@
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/db/DbConfig.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/json/ConnectionsAdapter.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/json/JsonUtils.java
-/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/AutoName.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/json/NeuronAdapter.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/db/TransactionBatch.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/Skeleton.java

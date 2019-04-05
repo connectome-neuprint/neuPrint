@@ -91,7 +91,6 @@ public class Neo4jImporterTest {
         neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
         neo4jImporter.indexBooleanRoiProperties(dataset);
         neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
-        neo4jImporter.addAutoNames("test", timeStamp);
         neo4jImporter.addMetaInfo("test", metaInfo, timeStamp);
 
     }
@@ -264,10 +263,8 @@ public class Neo4jImporterTest {
 
         Session session = driver.session();
 
-        // number of neurons with no name : 2 from swcs, 5 from smallNeuronList, 2 from smallBodyListWithExtraRois
-
         int noNameCount = session.run("MATCH (n:Segment) WHERE NOT exists(n.name) RETURN count(n)").single().get(0).asInt();
-        Assert.assertEquals(9, noNameCount);
+        Assert.assertEquals(10, noNameCount);
 
     }
 
@@ -607,36 +604,6 @@ public class Neo4jImporterTest {
     }
 
     @Test
-    public void neuronsShouldHaveAutoNamesAndNamesShouldReplaceAutoNamesWhenNull() {
-
-        Session session = driver.session();
-
-        String segmentName = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.name").single().get(0).asString();
-        String segmentAutoName = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:8426959}) RETURN n.autoName").single().get(0).asString();
-
-        Assert.assertTrue(segmentName.startsWith("roiA-roiA_") && segmentName.endsWith("*"));
-        Assert.assertEquals(segmentName.replace("*", ""), segmentAutoName);
-
-        String segmentName2 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN n.name").single().get(0).asString();
-        String segmentAutoName2 = session.run("MATCH (n:Neuron:test:`test-Neuron`{bodyId:26311}) RETURN n.autoName").single().get(0).asString();
-
-        Assert.assertEquals("Dm12-4", segmentName2);
-        Assert.assertTrue(segmentAutoName2.startsWith("roiA-roiA_") && !segmentAutoName2.endsWith("*"));
-
-    }
-
-    @Test
-    public void allNeuronsShouldHaveAutoNamesAndAllSegmentsWithAutoNamesShouldBeLabeledNeuron() {
-        Session session = driver.session();
-
-        int neuronWithoutAutoNameCount = session.run("MATCH (n:Neuron:`test-Neuron`:test) WHERE NOT exists(n.autoName) RETURN count(n)").single().get(0).asInt();
-        Assert.assertEquals(0, neuronWithoutAutoNameCount);
-        int autoNamesWithoutNeuronCount = session.run("MATCH (n:Segment:`test-Segment`:test) WHERE exists(n.autoName) AND NOT n:Neuron RETURN count(n)").single().get(0).asInt();
-        Assert.assertEquals(0, autoNamesWithoutNeuronCount);
-
-    }
-
-    @Test
     public void allNodesShouldHaveDatasetLabelAndTimeStamp() {
 
         Session session = driver.session();
@@ -647,17 +614,6 @@ public class Neo4jImporterTest {
         int nodeWithoutTimeStamp = session.run("MATCH (n) WHERE NOT exists(n.timeStamp) RETURN count(n)").single().get(0).asInt();
         // Meta node does not have timeStamp
         Assert.assertEquals(1, nodeWithoutTimeStamp);
-    }
-
-    @Test
-    public void testThatAutoNamesAreAddedToAboveThresholdNeurons() {
-
-        Session session = driver.session();
-
-        int belowThresholdAutoNameCount = session.run("MATCH (n:Segment) WHERE (n.pre>=1 OR n.post>=5) AND NOT exists(n.autoName) RETURN count(n)").single().get(0).asInt();
-
-        Assert.assertEquals(0, belowThresholdAutoNameCount);
-
     }
 
     @Test
