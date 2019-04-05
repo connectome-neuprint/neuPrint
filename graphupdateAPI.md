@@ -11,17 +11,17 @@ This document describes available procedures for updating a neuPrint graph. Thes
 * **proofreader.addNeuron(\<string\> neuronAdditionJsonObject, \<string\> dataset)**: add a Neuron/Segment with properties, synapses, and connections specified by an input JSON:
 ```
 {
-    "Id": <int64>,
-    "Size": <int64>,
-    "MutationUUID": <string> (from DVID),
-    "MutationID": <int64> (from DVID),
-    "Status": <string>,
-    "Soma": {
+    "id": <int64>,
+    "size": <int64>,
+    "mutationUUID": <string> (from DVID),
+    "mutationID": <int64> (from DVID),
+    "status": <string>,
+    "soma": {
         "location": [<int>,<int>,<int>],
         "radius": <double>
         },
-    "Name": <string>,
-    "CurrentSynapses": [
+    "name": <string>,
+    "currentSynapses": [
         { 
             "location": [<int>,<int>,<int>],
             "type": <string> (pre or post)

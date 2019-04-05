@@ -93,17 +93,17 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 8426959," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
-                        "\"MutationID\": 1000057479," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
+                        "\"id\": 8426959," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
+                        "\"mutationID\": 1000057479," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
                         "\"location\": [14067, 10777, 15040]," +
                         "\"radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
+                        "\"name\": \"new name\", " +
                         "\"SynapseSources\": [831744,2589725]," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
                         "\"location\": [4287, 2277, 1542]," +
@@ -367,17 +367,16 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 8426959," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
-                        "\"MutationID\": 1000057479," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
+                        "\"id\": 8426959," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
+                        "\"mutationID\": 1000057479," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
                         "\"location\": [14067, 10777, 15040]," +
                         "\"radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
-                        "\"SynapseSources\": [831744,2589725]," +
-                        "\"CurrentSynapses\": " +
+                        "\"name\": \"new name\", " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
                         "\"location\": [4287, 2277, 1542]," +
@@ -425,17 +424,16 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 1," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"4\"," +
-                        "\"MutationID\": 4," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
+                        "\"id\": 1," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"4\"," +
+                        "\"mutationID\": 4," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
                         "\"location\": [14067, 10777, 15040]," +
                         "\"radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
-                        "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
+                        "\"name\": \"new name\", " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "]" +
                         "}";
@@ -451,17 +449,17 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 2," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"6\"," +
-                        "\"MutationID\": 6," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
+                        "\"id\": 2," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"6\"," +
+                        "\"mutationID\": 6," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
                         "\"location\": [14067, 10777, 15040]," +
                         "\"radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
+                        "\"name\": \"new name\", " +
                         "\"SynapseSources\": [8426959]," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
                         "\"location\": [4,5,6]," +
@@ -481,17 +479,17 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 8426959," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"67\"," +
-                        "\"MutationID\": 67," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
+                        "\"id\": 8426959," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"67\"," +
+                        "\"mutationID\": 67," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
                         "\"location\": [14067, 10777, 15040]," +
                         "\"radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
+                        "\"name\": \"new name\", " +
                         "\"SynapseSources\": [8426959]," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "]" +
                         "}";
@@ -507,13 +505,13 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 234," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"20\"," +
-                        "\"MutationID\": 21," +
-                        "\"Status\": \"updated\"," +
+                        "\"id\": 234," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"20\"," +
+                        "\"mutationID\": 21," +
+                        "\"status\": \"updated\"," +
                         "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "]" +
                         "}";
@@ -597,14 +595,14 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 999," +
-                        "\"Size\": 120," +
-                        "\"MutationUUID\": \"auniqueid\"," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
+                        "\"id\": 999," +
+                        "\"size\": 120," +
+                        "\"mutationUUID\": \"auniqueid\"," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
                         "\"location\": [14067, 10777, 15040]," +
                         "\"radius\": 15040.0 }," +
-                        "\"Name\": \"new name\" " +
+                        "\"name\": \"new name\" " +
                         "}";
 
         NeuronAddition neuronAddition = JsonUtils.GSON.fromJson(updateJson, NeuronAddition.class);
@@ -652,13 +650,13 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 678," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"30\"," +
-                        "\"MutationID\": 31," +
-                        "\"Status\": \"updated\"," +
+                        "\"id\": 678," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"30\"," +
+                        "\"mutationID\": 31," +
+                        "\"status\": \"updated\"," +
                         "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
                         "\"location\": [1000, 2000, 3000]," +
@@ -679,13 +677,13 @@ public class AddAndUpdateNeuronsTest {
         // tests that synapses created through the addSynapse/addConnection procedures can be added to new neurons
         String updateJson =
                 "{" +
-                        "\"Id\": 1010102," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"30\"," +
-                        "\"MutationID\": 31," +
-                        "\"Status\": \"updated\"," +
+                        "\"id\": 1010102," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"30\"," +
+                        "\"mutationID\": 31," +
+                        "\"status\": \"updated\"," +
                         "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
                         "\"location\": [5, 22, 99]," +
@@ -696,13 +694,13 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson2 =
                 "{" +
-                        "\"Id\": 1012," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"30\"," +
-                        "\"MutationID\": 31," +
-                        "\"Status\": \"updated\"," +
+                        "\"id\": 1012," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"30\"," +
+                        "\"mutationID\": 31," +
+                        "\"status\": \"updated\"," +
                         "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
                         "\"location\": [5, 22, 9]," +
