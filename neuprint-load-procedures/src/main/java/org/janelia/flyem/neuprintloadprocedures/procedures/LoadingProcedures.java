@@ -20,7 +20,6 @@ import org.neo4j.procedure.Mode;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
@@ -51,7 +50,6 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TYPE;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getConnectionSetNode;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getConnectsToRelationshipBetweenSegments;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getMetaNode;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegmentThatContainsSynapse;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
@@ -295,7 +293,6 @@ public class LoadingProcedures {
 
         if (shouldBeLabeledNeuron(containingSegment, neuronThreshold)) {
             convertSegmentToNeuron(containingSegment, dataset, metaNode);
-            // TODO: add auto name?
         }
 
     }
@@ -555,13 +552,28 @@ public class LoadingProcedures {
             connectionSet = createConnectionSetNode(dataset, preBody, postBody, timeStamp);
             // create connects to between neurons
             addConnectsToRelationship(preBody, postBody, 1); // 1 since there is one known post for this connection
-        } else {
-            // get connects to relationship
-            getConnectsToRelationshipBetweenSegments(preBody, postBody, dataset);
         }
         // add synapses to connection set
-        connectionSet.createRelationshipTo(preSynapse, RelationshipType.withName(CONTAINS));
-        connectionSet.createRelationshipTo(postSynapse, RelationshipType.withName(CONTAINS));
+        boolean hasPreRel = false;
+        boolean hasPostRel = false;
+        long preId = preSynapse.getId();
+        long postId = postSynapse.getId();
+
+        for (Relationship containsRel : connectionSet.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+            Node containedSynapse = containsRel.getEndNode();
+            if (containedSynapse.getId() == preId) {
+                hasPreRel = true;
+            } else if (containedSynapse.getId() == postId) {
+                hasPostRel = true;
+            }
+        }
+
+        if (!hasPreRel) {
+            connectionSet.createRelationshipTo(preSynapse, RelationshipType.withName(CONTAINS));
+        }
+        if (!hasPostRel) {
+            connectionSet.createRelationshipTo(postSynapse, RelationshipType.withName(CONTAINS));
+        }
 
         return connectionSet;
     }

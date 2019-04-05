@@ -25,6 +25,7 @@ import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Values;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.driver.v1.types.Point;
+import org.neo4j.driver.v1.types.Relationship;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
@@ -295,7 +296,17 @@ public class Neo4jImporterTest {
 
         Node bodyId8426959 = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:2589725})<-[r:ConnectsTo]-(s) RETURN s").single().get(0).asNode();
 
+        List<Record> records = session.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959})-[:Contains]->(:SynapseSet)-[:Contains]->(s) RETURN s").list();
+
+        for (Record r : records) {
+            Node s = (Node) r.asMap().get("s");
+            System.out.println(s.asMap());
+        }
+
+
         Assert.assertEquals(8426959L, bodyId8426959.asMap().get("bodyId"));
+
+        System.out.println(bodyId8426959.asMap());
 
         Assert.assertEquals(3L, bodyId8426959.asMap().get("post"));
         Assert.assertEquals(2L, bodyId8426959.asMap().get("pre"));
@@ -363,6 +374,11 @@ public class Neo4jImporterTest {
         Session session = driver.session();
 
         List<Record> synapseCS_8426959_2589725 = session.run("MATCH (t:ConnectionSet:test:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:2589725\"})-[:Contains]->(s) RETURN s").list();
+
+        for (Record r: synapseCS_8426959_2589725) {
+            Node s = (Node) r.asMap().get("s");
+            System.out.println(s.asMap());
+        }
         Assert.assertEquals(2, synapseCS_8426959_2589725.size());
         Node node1 = (Node) synapseCS_8426959_2589725.get(0).asMap().get("s");
         Node node2 = (Node) synapseCS_8426959_2589725.get(1).asMap().get("s");

@@ -10,11 +10,11 @@
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/SkelNode.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/json/LocationAdapter.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/Neo4jImporter.java
-/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/NeuPrinterMain.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/Synapse.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/db/StdOutTransactionBatch.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/Soma.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/json/SomaAdapter.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/MetaInfo.java
+/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/NeuPrintMain.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/db/DbTransactionBatch.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/Location.java

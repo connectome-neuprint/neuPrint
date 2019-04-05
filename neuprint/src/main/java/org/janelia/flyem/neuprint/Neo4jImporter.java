@@ -545,17 +545,6 @@ public class Neo4jImporter implements AutoCloseable {
                                         "datasetBodyId", dataset + ":" + neuron.getId()
                                 )));
 
-                        batch.addStatement(new Statement(addSynapseToSegment,
-                                parameters(
-                                        "bodyId", neuron.getId(),
-                                        "location", synapseLocation.getAsPoint(),
-                                        "datasetBodyId", dataset + ":" + neuron.getId(),
-                                        "dataset", dataset,
-                                        "preHPThreshold", preHPThreshold,
-                                        "postHPThreshold", postHPThreshold,
-                                        "neuronThreshold", neuronThreshold,
-                                        "addCSRoiInfoAndWeightHP", addConnectionSetRoiInfoAndWeightHP
-                                )));
                     }
                 }
 
@@ -573,6 +562,26 @@ public class Neo4jImporter implements AutoCloseable {
             ));
 
             batch.writeTransaction();
+        }
+
+        try (final TransactionBatch batch = getBatch()) {
+            for (final Neuron neuron : neuronList) {
+                for (Location synapseLocation : neuron.getSynapseLocationSet()) {
+
+                    batch.addStatement(new Statement(addSynapseToSegment,
+                            parameters(
+                                    "bodyId", neuron.getId(),
+                                    "location", synapseLocation.getAsPoint(),
+                                    "datasetBodyId", dataset + ":" + neuron.getId(),
+                                    "dataset", dataset,
+                                    "preHPThreshold", preHPThreshold,
+                                    "postHPThreshold", postHPThreshold,
+                                    "neuronThreshold", neuronThreshold,
+                                    "addCSRoiInfoAndWeightHP", addConnectionSetRoiInfoAndWeightHP
+                            )));
+                }
+                batch.writeTransaction();
+            }
         }
 
         LOG.info("addSegments: exit");
