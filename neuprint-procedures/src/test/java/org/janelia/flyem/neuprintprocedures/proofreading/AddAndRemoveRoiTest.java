@@ -110,7 +110,7 @@ public class AddAndRemoveRoiTest {
             String roiInfo = record.get(0).asString();
             Map<String, SynapseCounterWithHighPrecisionCounts> roiInfoMap = gson.fromJson(roiInfo, ROI_INFO_TYPE);
             Assert.assertEquals(1, roiInfoMap.get("roiX").getPre());
-            Assert.assertEquals(0, roiInfoMap.get("roiX").getPreHP());
+            Assert.assertEquals(1, roiInfoMap.get("roiX").getPreHP());
             Assert.assertEquals(0, roiInfoMap.get("roiX").getPost());
             Assert.assertEquals(0, roiInfoMap.get("roiX").getPostHP());
         }
@@ -140,7 +140,7 @@ public class AddAndRemoveRoiTest {
             String roiInfo2 = record.get(0).asString();
             Map<String, SynapseCounterWithHighPrecisionCounts> roiInfoMap2 = gson.fromJson(roiInfo2, ROI_INFO_TYPE);
             Assert.assertEquals(1, roiInfoMap2.get("roiX").getPre());
-            Assert.assertEquals(0, roiInfoMap2.get("roiX").getPreHP());
+            Assert.assertEquals(1, roiInfoMap2.get("roiX").getPreHP());
             Assert.assertEquals(0, roiInfoMap2.get("roiX").getPost());
             Assert.assertEquals(0, roiInfoMap2.get("roiX").getPostHP());
         }
@@ -151,7 +151,7 @@ public class AddAndRemoveRoiTest {
     public void shouldAddRoiToOrphanSynapse() {
         Session session = driver.session();
 
-        String synapseJson = "{ \"Type\": \"post\", \"Location\": [ 5,22,99 ], \"Confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
+        String synapseJson = "{ \"type\": \"post\", \"location\": [ 5,22,99 ], \"confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson, "dataset", "test")));
         session.writeTransaction(tx -> tx.run("CALL proofreader.addRoiToSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 5, "y", 22, "z", 99, "roiName", "roiXX", "dataset", "test")));
@@ -203,14 +203,14 @@ public class AddAndRemoveRoiTest {
 
         Map<String, SynapseCounter> roiInfoMap = gson.fromJson(metaRoiInfo, ROI_INFO_TYPE);
         Assert.assertEquals(3, roiInfoMap.get("roiA").getPre());
-        Assert.assertEquals(6, roiInfoMap.get("roiA").getPost());
+        Assert.assertEquals(5, roiInfoMap.get("roiA").getPost());
 
         // should not be able to delete twice
         session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4287, "y", 2277, "z", 1542, "roiName", "roiA", "dataset", "test")));
         String metaRoiInfo2 = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test) RETURN n.roiInfo").single().get(0).asString());
         Map<String, SynapseCounter> roiInfoMap2 = gson.fromJson(metaRoiInfo2, ROI_INFO_TYPE);
         Assert.assertEquals(3, roiInfoMap2.get("roiA").getPre());
-        Assert.assertEquals(6, roiInfoMap2.get("roiA").getPost());
+        Assert.assertEquals(5, roiInfoMap2.get("roiA").getPost());
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4287, "y", 2277, "z", 1502, "roiName", "roiA", "dataset", "test")));
         session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 4222, "y", 2402, "z", 1688, "roiName", "roiA", "dataset", "test")));
@@ -228,7 +228,7 @@ public class AddAndRemoveRoiTest {
     public void shouldRemoveRoiFromOrphanSynapse() {
         Session session = driver.session();
 
-        String synapseJson = "{ \"Type\": \"post\", \"Location\": [ 50,22,99 ], \"Confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
+        String synapseJson = "{ \"type\": \"post\", \"location\": [ 50,22,99 ], \"confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson, "dataset", "test")));
         session.writeTransaction(tx -> tx.run("CALL proofreader.removeRoiFromSynapse($x,$y,$z,$roiName,$dataset)", parameters("x", 50, "y", 22, "z", 99, "roiName", "test2", "dataset", "test")));

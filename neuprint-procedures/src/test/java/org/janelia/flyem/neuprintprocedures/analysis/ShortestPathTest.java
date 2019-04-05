@@ -5,7 +5,6 @@ import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
 import org.janelia.flyem.neuprint.Neo4jImporter;
 import org.janelia.flyem.neuprint.NeuPrinterMain;
-import org.janelia.flyem.neuprint.model.MetaInfo;
 import org.janelia.flyem.neuprint.model.Neuron;
 import org.janelia.flyem.neuprint.model.Synapse;
 import org.janelia.flyem.neuprint.model.SynapticConnection;

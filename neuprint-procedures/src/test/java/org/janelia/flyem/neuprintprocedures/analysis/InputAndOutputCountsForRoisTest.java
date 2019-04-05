@@ -89,10 +89,13 @@ public class InputAndOutputCountsForRoisTest {
 
             ClusteringFeatureVector[] clusteringFeatureVectors = gson.fromJson(featureVectorJson, ClusteringFeatureVector[].class);
 
-            long[] expectedInputVector = {0, 3, 1};
-            Assert.assertEquals(expectedInputVector[0], clusteringFeatureVectors[2].getInputFeatureVector()[0]);
-            Assert.assertEquals(expectedInputVector[1], clusteringFeatureVectors[2].getInputFeatureVector()[1]);
-            Assert.assertEquals(expectedInputVector[2], clusteringFeatureVectors[2].getInputFeatureVector()[2]);
+            long[] expectedInputVector = {0, 0, 0, 3, 1};
+            Assert.assertEquals(expectedInputVector[0], clusteringFeatureVectors[1].getInputFeatureVector()[0]);
+            Assert.assertEquals(expectedInputVector[1], clusteringFeatureVectors[1].getInputFeatureVector()[1]);
+            Assert.assertEquals(expectedInputVector[2], clusteringFeatureVectors[1].getInputFeatureVector()[2]);
+            Assert.assertEquals(expectedInputVector[3], clusteringFeatureVectors[1].getInputFeatureVector()[3]);
+            Assert.assertEquals(expectedInputVector[4], clusteringFeatureVectors[1].getInputFeatureVector()[4]);
+
         }
     }
 }

@@ -113,13 +113,11 @@ public class RoiInfoNameTest {
         }
 
         Assert.assertEquals(3, sumPre);
-        Assert.assertEquals(4, sumPost);
+        Assert.assertEquals(2, sumPost);
 
-        Assert.assertEquals(3, resultObject.get("roiA").getPost());
-        Assert.assertEquals(1, resultObject.get("roiB").getPost());
+        Assert.assertEquals(2, resultObject.get("roiA").getPost());
 
         Assert.assertEquals(3, resultObject.get("roiA").getPre());
-        Assert.assertEquals(0, resultObject.get("roiB").getPre());
 
         // should error if body id doesn't exist
 

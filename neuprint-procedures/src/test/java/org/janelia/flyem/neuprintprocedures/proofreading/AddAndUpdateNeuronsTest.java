@@ -151,9 +151,10 @@ public class AddAndUpdateNeuronsTest {
         for (int i = 0; i < bodyIdsToDelete.length; i++) {
             int finalI = i;
             session.writeTransaction(tx -> tx.run("CALL proofreader.deleteNeuron($bodyId, $dataset)", parameters("bodyId", bodyIdsToDelete[finalI], "dataset", "test")));
+            TimeUnit.SECONDS.sleep(1);
         }
 
-        TimeUnit.SECONDS.sleep(5);
+        TimeUnit.SECONDS.sleep(1);
 
         NeuronAddition neuronAddition = JsonUtils.GSON.fromJson(updateJson, NeuronAddition.class);
         String neuronUpdateJson = JsonUtils.GSON.toJson(neuronAddition);
@@ -212,6 +213,7 @@ public class AddAndUpdateNeuronsTest {
         locationPointSet.add(Values.point(9157, 4298, 2294, 1542).asPoint());
         locationPointSet.add(Values.point(9157, 4292, 2261, 1542).asPoint());
         locationPointSet.add(Values.point(9157, 1000, 2000, 3000).asPoint());
+        locationPointSet.add(Values.point(9157, 9000, 8000, 7000).asPoint());
 
         for (Record synapse : newSynapses) {
             Point synapseLocation = (Point) synapse.get("p").asMap().get("location");
@@ -240,7 +242,7 @@ public class AddAndUpdateNeuronsTest {
         Assert.assertEquals(4, weight_8426959To8426959);
 
         int weight_8426959To26311 = session.readTransaction(tx -> tx.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight")).single().get(0).asInt();
-        Assert.assertEquals(2, weight_8426959To26311);
+        Assert.assertEquals(1, weight_8426959To26311);
 
         int weight_26311To8426959 = session.readTransaction(tx -> tx.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311})-[r:ConnectsTo]->(s{bodyId:8426959}) RETURN r.weight")).single().get(0).asInt();
         Assert.assertEquals(2, weight_26311To8426959);
@@ -266,14 +268,12 @@ public class AddAndUpdateNeuronsTest {
         // should have appropriate connectionsets
 
         List<Record> synapseCS_8426959_26311 = session.readTransaction(tx -> tx.run("MATCH (t:ConnectionSet:test:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:26311\"})-[:Contains]->(s) RETURN s")).list();
-        Assert.assertEquals(4, synapseCS_8426959_26311.size());
+        Assert.assertEquals(2, synapseCS_8426959_26311.size());
         Set<Node> connectionSet = synapseCS_8426959_26311.stream().map(Record::asMap).map(m -> (Node) m.get("s")).collect(Collectors.toSet());
         Set<Point> locationSet = connectionSet.stream().map(Node::asMap).map(m -> (Point) m.get("location")).collect(Collectors.toSet());
         Set<Point> expectedLocationSet = new HashSet<>();
         expectedLocationSet.add(Values.point(9157, 4287, 2277, 1542).asPoint());
         expectedLocationSet.add(Values.point(9157, 4301, 2276, 1535).asPoint());
-        expectedLocationSet.add(Values.point(9157, 9000, 8000, 7000).asPoint());
-        expectedLocationSet.add(Values.point(9157, 1000, 2000, 3000).asPoint());
 
         Assert.assertEquals(locationSet, expectedLocationSet);
 
@@ -300,10 +300,10 @@ public class AddAndUpdateNeuronsTest {
 
         Assert.assertEquals(1, roiInfo.size());
 
-        Assert.assertEquals(2, roiInfo.get("roiA").getPre());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPre());
         Assert.assertEquals(1, roiInfo.get("roiA").getPreHP());
-        Assert.assertEquals(2, roiInfo.get("roiA").getPost());
-        Assert.assertEquals(1, roiInfo.get("roiA").getPostHP());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPost());
+        Assert.assertEquals(0, roiInfo.get("roiA").getPostHP());
 
     }
 
@@ -341,7 +341,7 @@ public class AddAndUpdateNeuronsTest {
 
         // should have appropriate pre post counts and other props
         Assert.assertEquals(3L, newNeuron.asMap().get("pre"));
-        Assert.assertEquals(5L, newNeuron.asMap().get("post"));
+        Assert.assertEquals(6L, newNeuron.asMap().get("post"));
         Assert.assertEquals(12L, newNeuron.asMap().get("size"));
         Assert.assertEquals("28841c8277e044a7b187dda03e18da13:1000057479:8426959", newNeuron.asMap().get("mutationUuidAndId"));
         Assert.assertEquals("updated", newNeuron.asMap().get("status"));
