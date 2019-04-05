@@ -81,7 +81,6 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGH
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getConnectionSetNode;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getConnectionSetsForSynapse;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getConnectsToRelationshipBetweenSegments;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getMetaNode;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegment;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegmentRois;
@@ -1379,6 +1378,35 @@ public class ProofreaderProcedures {
     }
 
     private void recomputeSegmentPropertiesFollowingSynapseRemoval(Set<String> synapseRois, String synapseType, Node containingSegment, String dataset, Set<String> metaNodeRoiSet) {
+    @Procedure(value = "temp.removeDuplicateContainsRelForConnectionSet", mode = Mode.WRITE)
+    @Description("temp.removeDuplicateContainsRelForConnectionSet(connectionSetNode) ")
+    public void removeDuplicateContainsRelForConnectionSet(@Name("connectionSetNode") Node connectionSetNode) {
+
+        log.info("temp.removeDuplicateContainsRelForConnectionSet: entry");
+
+        try {
+
+            Set<Long> synapseIdSet = new HashSet<>();
+
+            for (Relationship containsRel : connectionSetNode.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+                long synapseId = containsRel.getEndNodeId();
+                if (!synapseIdSet.contains(synapseId)) {
+                    synapseIdSet.add(synapseId);
+                } else {
+                    // delete this relationship because it's a duplicate
+                    containsRel.delete();
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("temp.removeDuplicateContainsRelForConnectionSet: " + e);
+            throw new RuntimeException("temp.removeDuplicateContainsRelForConnectionSet: " + e);
+        }
+
+        log.info("temp.removeDuplicateContainsRelForConnectionSet: exit");
+    }
+
+    private void recomputeSegmentPropertiesFollowingSynapseRemoval(Set<String> synapseRois, String synapseType, Node containingSegment, String dataset) {
 
         // set pre and post count
         if (synapseType.equals(PRE)) {
@@ -1468,13 +1496,29 @@ public class ProofreaderProcedures {
             connectionSet = createConnectionSetNode(dataset, preBody, postBody);
             // create connects to between neurons
             addConnectsToRelationship(preBody, postBody, 1); // 1 since there is one known post for this connection
-        } else {
-            // get connects to relationship
-            getConnectsToRelationshipBetweenSegments(preBody, postBody, dataset);
         }
+
         // add synapses to connection set
-        connectionSet.createRelationshipTo(preSynapse, RelationshipType.withName(CONTAINS));
-        connectionSet.createRelationshipTo(postSynapse, RelationshipType.withName(CONTAINS));
+        boolean hasPreRel = false;
+        boolean hasPostRel = false;
+        long preId = preSynapse.getId();
+        long postId = postSynapse.getId();
+
+        for (Relationship containsRel : connectionSet.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING)) {
+            Node containedSynapse = containsRel.getEndNode();
+            if (containedSynapse.getId() == preId) {
+                hasPreRel = true;
+            } else if (containedSynapse.getId() == postId) {
+                hasPostRel = true;
+            }
+        }
+
+        if (!hasPreRel) {
+            connectionSet.createRelationshipTo(preSynapse, RelationshipType.withName(CONTAINS));
+        }
+        if (!hasPostRel) {
+            connectionSet.createRelationshipTo(postSynapse, RelationshipType.withName(CONTAINS));
+        }
 
         return connectionSet;
     }

@@ -543,6 +543,11 @@ public class AddAndDeleteSynapseTest {
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.addConnectionBetweenSynapseNodes(876,876,876,792,792,792,\"test\")"));
 
+        String postSynapseJsonb = "{ \"Type\": \"post\", \"Location\": [ 79,79,79 ], \"Confidence\": .88, \"rois\": [ \"test5\", \"test3\" ] }";
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", postSynapseJsonb, "dataset", "test")));
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addConnectionBetweenSynapseNodes(876,876,876,79,79,79,\"test\")"));
+
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapseToSegment($x,$y,$z,$bodyId,$dataset)", parameters("x", 876, "y", 876, "z", 876, "bodyId", 831744, "dataset", "test")));
 
         int synapseOnSynapseSetCount = session.readTransaction(tx -> tx.run("WITH point({ x:876, y:876, z:876 }) AS loc MATCH (m:Segment:`test-Segment`{bodyId:831744})-[:Contains]->(:SynapseSet)-[:Contains]->(p:PreSyn{location:loc}) RETURN count(p)")).single().get(0).asInt();
@@ -610,6 +615,17 @@ public class AddAndDeleteSynapseTest {
         Assert.assertEquals(0, csRoiInfo.get("test5").getPreHP());
         Assert.assertEquals(1, csRoiInfo.get("test5").getPost());
         Assert.assertEquals(1, csRoiInfo.get("test5").getPostHP());
+
+
+        session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapseToSegment($x,$y,$z,$bodyId,$dataset)", parameters("x", 79, "y", 79, "z", 79, "bodyId", 100569, "dataset", "test")));
+
+        // check for duplicate connection set contains relationships
+        int dupContainsCount = session.readTransaction(tx -> tx.run("MATCH (cs:`test-ConnectionSet`)-[:Contains]->(s:Synapse) WITH cs,s \n" +
+                "MATCH path=(cs)-[:Contains]->(s:Synapse)\n" +
+                "WITH COUNT(path) as cp,cs,s WHERE cp>1 RETURN count(cs)")).single().get(0).asInt();
+        Assert.assertEquals(0, dupContainsCount);
+
+
 
     }
 
