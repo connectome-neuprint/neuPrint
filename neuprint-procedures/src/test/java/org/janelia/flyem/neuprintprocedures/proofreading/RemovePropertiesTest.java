@@ -187,4 +187,28 @@ public class RemovePropertiesTest {
         session.writeTransaction(tx -> tx.run("CALL proofreader.deleteStatus($bodyId,$datasetLabel)", parameters("bodyId",  8426959, "datasetLabel", "test")));
 
     }
+
+    @Test
+    public void deleteDuplicateContainsRelationships(){
+        Session session = driver.session();
+
+        session.writeTransaction(tx -> tx.run("MERGE (cs:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:26311\"}) \n" +
+                "MERGE (s:Synapse{location:point({ x:4301, y:2276, z:1535 })}) \n" +
+                "CREATE (cs)-[:Contains]->(s)" ));
+
+        session.writeTransaction(tx -> tx.run("MERGE (cs:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:26311\"}) \n" +
+                "MERGE (s:Synapse{location:point({ x:4301, y:2276, z:1535 })}) \n" +
+                "CREATE (cs)-[:Contains]->(s)" ));
+
+        int cCount  =session.readTransaction(tx -> tx.run("MATCH (cs:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:26311\"})-[c:Contains]->(s:Synapse{location:point({ x:4301, y:2276, z:1535 })}) RETURN count(c)")).single().get(0).asInt();
+
+        Assert.assertEquals(3, cCount);
+
+        session.writeTransaction(tx -> tx.run("MATCH (cs:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:26311\"}) WITH cs CALL temp.removeDuplicateContainsRelForConnectionSet(cs) RETURN cs.datasetBodyIds" ));
+
+        int cCount2  =session.readTransaction(tx -> tx.run("MATCH (cs:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:26311\"})-[c:Contains]->(s:Synapse{location:point({ x:4301, y:2276, z:1535 })}) RETURN count(c)")).single().get(0).asInt();
+
+        Assert.assertEquals(1, cCount2);
+
+    }
 }
