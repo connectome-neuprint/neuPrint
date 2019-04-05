@@ -14,6 +14,7 @@ Neurons.json
 “Status”: “<status of neuron>” 
 (optional but common properties)
 “Name”: “<neuron name>”
+"Instance": "<neuron instance name>"
 “NeuronType”: “<neuron type name>” 
 “Size”: <num voxels in body> 
 “rois”: [“<roi1>”, “<roi2>”, …]
