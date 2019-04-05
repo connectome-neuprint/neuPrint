@@ -481,10 +481,9 @@ public class Neo4jImporter implements AutoCloseable {
                 "MERGE (t:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) \n" +
                 "MERGE (t)-[:Contains]->(s) \n";
 
-        final String addSynapseToSegment = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId})," +
-                "(s:`" + dataset + "-Synapse`{location:$location})," +
+        final String addConnectionDetailsToSegment = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId})," +
                 "(ss:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId})" +
-                " WITH n,s,ss CALL loader.addSynapseToSegment(s, n, ss, $dataset, $preHPThreshold, $postHPThreshold, $neuronThreshold, $addCSRoiInfoAndWeightHP) RETURN n.bodyId";
+                " WITH n,ss CALL loader.addPropsAndConnectionInfoToSegment(n, ss, $dataset, $preHPThreshold, $postHPThreshold, $neuronThreshold, $addCSRoiInfoAndWeightHP) RETURN n.bodyId";
 
         final String metaNodeString = "MATCH (m:Meta{dataset:$dataset}) SET " +
                 "m.lastDatabaseEdit=$timeStamp," +
@@ -566,12 +565,10 @@ public class Neo4jImporter implements AutoCloseable {
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
-                for (Location synapseLocation : neuron.getSynapseLocationSet()) {
 
-                    batch.addStatement(new Statement(addSynapseToSegment,
+                    batch.addStatement(new Statement(addConnectionDetailsToSegment,
                             parameters(
                                     "bodyId", neuron.getId(),
-                                    "location", synapseLocation.getAsPoint(),
                                     "datasetBodyId", dataset + ":" + neuron.getId(),
                                     "dataset", dataset,
                                     "preHPThreshold", preHPThreshold,
@@ -579,12 +576,41 @@ public class Neo4jImporter implements AutoCloseable {
                                     "neuronThreshold", neuronThreshold,
                                     "addCSRoiInfoAndWeightHP", addConnectionSetRoiInfoAndWeightHP
                             )));
-                }
-                batch.writeTransaction();
+
             }
+            batch.writeTransaction();
         }
 
         LOG.info("addSegments: exit");
+    }
+
+    public void addConnectionInfo(final List<Neuron> neuronList,
+                                  final String dataset,
+                                  final boolean addConnectionSetRoiInfoAndWeightHP,
+                                  final double preHPThreshold,
+                                  final double postHPThreshold,
+                                  final long neuronThreshold) {
+        final String addConnectionDetailsToSegment = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId})," +
+                "(ss:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId})" +
+                " WITH n,ss CALL loader.addPropsAndConnectionInfoToSegment(n, ss, $dataset, $preHPThreshold, $postHPThreshold, $neuronThreshold, $addCSRoiInfoAndWeightHP) RETURN n.bodyId";
+        try (final TransactionBatch batch = getBatch()) {
+            for (final Neuron neuron : neuronList) {
+
+                batch.addStatement(new Statement(addConnectionDetailsToSegment,
+                        parameters(
+                                "bodyId", neuron.getId(),
+                                "datasetBodyId", dataset + ":" + neuron.getId(),
+                                "dataset", dataset,
+                                "preHPThreshold", preHPThreshold,
+                                "postHPThreshold", postHPThreshold,
+                                "neuronThreshold", neuronThreshold,
+                                "addCSRoiInfoAndWeightHP", addConnectionSetRoiInfoAndWeightHP
+                        )));
+
+            }
+            batch.writeTransaction();
+        }
+
     }
 
     StringBuilder updateSuperRoisRoiInfoAndCreateRoiPropertyString(Set<String> datasetSuperLevelRois, RoiInfo datasetRoiInfo, String roiPropertyBaseString, Set<String> synapseOrNeuronRois, String synapseType) {

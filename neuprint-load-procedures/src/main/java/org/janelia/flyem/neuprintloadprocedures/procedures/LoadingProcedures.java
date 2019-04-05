@@ -52,6 +52,7 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGH
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getConnectionSetNode;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getMetaNode;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegmentThatContainsSynapse;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseNodesFromSynapseSet;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet;
 import static org.janelia.flyem.neuprintloadprocedures.model.RoiInfo.getRoiInfoFromString;
@@ -120,46 +121,38 @@ public class LoadingProcedures {
 
     }
 
-    @Procedure(value = "loader.addSynapseToSegment", mode = Mode.WRITE)
-    @Description("loader.addSynapseToSegment(synapseNode, segmentNode, synapseSetNode, dataset, preHPThreshold, postHPThreshold, neuronThreshold, addCSRoiInfoAndWeightHP) : Add an orphaned Synapse node to a Neuron/Segment. Neuron/Segment must exist in the dataset.")
-    public void addSynapseToSegment(@Name("synapse") final Node synapse,
-                                    @Name("segment") Node segment,
-                                    @Name("synapseSet") Node synapseSet,
-                                    @Name("dataset") final String dataset,
-                                    @Name("preHPThreshold") final Double preHPThreshold,
-                                    @Name("postHPThreshold") final Double postHPThreshold,
-                                    @Name("neuronThreshold") final Long neuronThreshold,
-                                    @Name("addCSRoiInfoAndWeightHP") final boolean addCSRoiInfoAndWeightHP) {
+    @Procedure(value = "loader.addPropsAndConnectionInfoToSegment", mode = Mode.WRITE)
+    @Description("loader.addPropsAndConnectionInfoToSegment(segmentNode, synapseSetNode, dataset, preHPThreshold, postHPThreshold, neuronThreshold, addCSRoiInfoAndWeightHP)")
+    public void addPropsAndConnectionInfoToSegment(@Name("segment") final Node segment,
+                                                   @Name("synapseSet") final Node synapseSet,
+                                                   @Name("dataset") final String dataset,
+                                                   @Name("preHPThreshold") final Double preHPThreshold,
+                                                   @Name("postHPThreshold") final Double postHPThreshold,
+                                                   @Name("neuronThreshold") final Long neuronThreshold,
+                                                   @Name("addCSRoiInfoAndWeightHP") final boolean addCSRoiInfoAndWeightHP) {
 
-        log.info("proofreader.addSynapseToSegment: entry");
+        log.info("proofreader.addPropsAndConnectionInfoToSegment: entry");
 
         try {
-            if (synapse == null || segment == null || synapseSet == null || dataset == null || preHPThreshold == null || postHPThreshold == null) {
-                log.error("loader.addSynapseToSegmentt: Missing input arguments.");
-                throw new RuntimeException("loader.addSynapseToSegment: Missing input arguments.");
-            }
-            acquireWriteLockForNode(synapse);
-
-            final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
-
-            String synapseType;
-            if (synapse.hasProperty(TYPE)) {
-                synapseType = (String) synapse.getProperty(TYPE);
-            } else {
-                log.error(String.format("Synapse does not have type property: %s", synapse.getAllProperties()));
-                throw new RuntimeException(String.format("Synapse does not have type property: %s", synapse.getAllProperties()));
-            }
-            if (!synapseType.equals(PRE) && !synapseType.equals(POST)) {
-                log.error(String.format("Synapse does not have type property equal to pre or post: %s", synapse.getAllProperties()));
-                throw new RuntimeException(String.format("Synapse does not have type property equal to pre or post: %s", synapse.getAllProperties()));
+            if (segment == null || synapseSet == null || dataset == null || preHPThreshold == null || postHPThreshold == null) {
+                log.error("loader.addPropsAndConnectionInfoToSegment: Missing input arguments.");
+                throw new RuntimeException("loader.addPropsAndConnectionInfoToSegment: Missing input arguments.");
             }
 
             acquireWriteLockForSegmentSubgraph(segment);
+
             Long bodyId = (Long) segment.getProperty("bodyId");
             if (bodyId == null) {
                 log.error("Segment node is missing a bodyId. Neo4j ID is: " + segment.getId());
                 throw new RuntimeException("Segment node is missing a bodyId. Neo4j ID is: " + segment.getId());
             }
+
+            Set<Node> synapseNodes = getSynapseNodesFromSynapseSet(synapseSet);
+            Long preCount = 0L;
+            Long postCount = 0L;
+            RoiInfo roiInfo = new RoiInfo();
+
+            final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
             // acquire meta node for updating
             Node metaNode = getMetaNode(dbService, dataset);
@@ -170,50 +163,80 @@ public class LoadingProcedures {
             acquireWriteLockForNode(metaNode);
             Set<String> metaNodeRoiSet = getMetaNodeRoiSet(metaNode);
 
-            // for each synapse that the synapse SynapsesTo, create or add to a ConnectionSet and ConnectsTo
-            for (Relationship synapsesToRel : synapse.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
-                Node otherSynapse = synapsesToRel.getOtherNode(synapse);
-                Node otherSegment = getSegmentThatContainsSynapse(otherSynapse);
-                Node connectionSet;
-                if (otherSegment == null) {
-                    log.warn("Synapse does not belong to segment: " + otherSynapse.getAllProperties());
-                } else {
-                    Long otherBodyId;
-                    if (otherSegment.hasProperty(BODY_ID)) {
-                        otherBodyId = (Long) otherSegment.getProperty(BODY_ID);
-                    } else {
-                        log.error("Segment node is missing a bodyId. Neo4j ID is: " + otherSegment.getId());
-                        throw new RuntimeException("Segment node is missing a bodyId. Neo4j ID is: " + otherSegment.getId());
-                    }
-                    if (synapseType.equals(PRE)) {
-                        // look for connection set from original segment to other segment (create ConnectsTo and ConnectionSet if doesn't exist)
-                        connectionSet = getConnectionSetOrCreateConnectionSetAndConnectsToRelFromSynapses(bodyId, otherBodyId, segment, otherSegment, synapse, otherSynapse, dataset, timeStamp);
-                    } else {
-                        // look for connection set from other segment to original segment (create ConnectsTo and ConnectionSet if doesn't exist)
-                        connectionSet = getConnectionSetOrCreateConnectionSetAndConnectsToRelFromSynapses(otherBodyId, bodyId, otherSegment, segment, otherSynapse, synapse, dataset, timeStamp);
-                    }
+            for (Node synapse : synapseNodes) {
 
-                    Set<Node> synapseForConnectionSet = getSynapsesForConnectionSet(connectionSet);
-                    // recompute roiInfo on connection sets and set weight and weightHP
-                    if (addCSRoiInfoAndWeightHP) {
-                        setConnectionSetRoiInfoWeightAndWeightHP(synapseForConnectionSet, connectionSet, preHPThreshold, postHPThreshold, metaNodeRoiSet);
+                acquireWriteLockForNode(synapse);
+
+                String synapseType;
+                if (synapse.hasProperty(TYPE)) {
+                    synapseType = (String) synapse.getProperty(TYPE);
+                } else {
+                    log.error(String.format("Synapse does not have type property: %s", synapse.getAllProperties()));
+                    throw new RuntimeException(String.format("Synapse does not have type property: %s", synapse.getAllProperties()));
+                }
+                if (!synapseType.equals(PRE) && !synapseType.equals(POST)) {
+                    log.error(String.format("Synapse does not have type property equal to pre or post: %s", synapse.getAllProperties()));
+                    throw new RuntimeException(String.format("Synapse does not have type property equal to pre or post: %s", synapse.getAllProperties()));
+                }
+
+                // for each synapse that the synapse SynapsesTo, create or add to a ConnectionSet and ConnectsTo
+                for (Relationship synapsesToRel : synapse.getRelationships(RelationshipType.withName(SYNAPSES_TO))) {
+                    Node otherSynapse = synapsesToRel.getOtherNode(synapse);
+                    Node otherSegment = getSegmentThatContainsSynapse(otherSynapse);
+                    Node connectionSet;
+                    if (otherSegment == null) {
+                        log.warn("Synapse does not belong to segment: " + otherSynapse.getAllProperties());
                     } else {
-                        addWeightToConnectsTo(synapseForConnectionSet, connectionSet, metaNodeRoiSet);
+                        Long otherBodyId;
+                        if (otherSegment.hasProperty(BODY_ID)) {
+                            otherBodyId = (Long) otherSegment.getProperty(BODY_ID);
+                        } else {
+                            log.error("Segment node is missing a bodyId. Neo4j ID is: " + otherSegment.getId());
+                            throw new RuntimeException("Segment node is missing a bodyId. Neo4j ID is: " + otherSegment.getId());
+                        }
+                        if (synapseType.equals(PRE)) {
+                            // look for connection set from original segment to other segment (create ConnectsTo and ConnectionSet if doesn't exist)
+                            connectionSet = getConnectionSetOrCreateConnectionSetAndConnectsToRelFromSynapses(bodyId, otherBodyId, segment, otherSegment, synapse, otherSynapse, dataset, timeStamp);
+                        } else {
+                            // look for connection set from other segment to original segment (create ConnectsTo and ConnectionSet if doesn't exist)
+                            connectionSet = getConnectionSetOrCreateConnectionSetAndConnectsToRelFromSynapses(otherBodyId, bodyId, otherSegment, segment, otherSynapse, synapse, dataset, timeStamp);
+                        }
+
+                        Set<Node> synapseForConnectionSet = getSynapsesForConnectionSet(connectionSet);
+                        // recompute roiInfo on connection sets and set weight and weightHP
+                        if (addCSRoiInfoAndWeightHP) {
+                            setConnectionSetRoiInfoWeightAndWeightHP(synapseForConnectionSet, connectionSet, preHPThreshold, postHPThreshold, metaNodeRoiSet);
+                        } else {
+                            addWeightToConnectsTo(synapseForConnectionSet, connectionSet, metaNodeRoiSet);
+                        }
                     }
                 }
-            }
 
+                // get synapse rois for adding to the body and roiInfo
+                final Set<String> synapseRois = getSynapseRois(synapse, metaNodeRoiSet);
+
+                if (synapseType.equals(PRE)) {
+                    for (String roi : synapseRois) {
+                        roiInfo.incrementPreForRoi(roi);
+                    }
+                    preCount++;
+                } else {
+                    for (String roi : synapseRois) {
+                        roiInfo.incrementPostForRoi(roi);
+                    }
+                    postCount++;
+                }
+            }
             // update neuron pre/post, roiInfo, rois
             // recompute information on containing segment
-            Set<String> synapseRois = getSynapseRois(synapse, metaNodeRoiSet);
-            recomputeSegmentPropertiesFollowingSynapseAddition(synapseRois, synapseType, segment, metaNode, dataset, neuronThreshold);
+            recomputeSegmentPropertiesFollowingSynapsesAddition(preCount, postCount, roiInfo, segment, metaNode, dataset, neuronThreshold);
 
         } catch (Exception e) {
-            log.error("Error running proofreader.addSynapseToSegment: " + e);
-            throw new RuntimeException("Error running proofreader.addSynapseToSegment: " + e);
+            log.error("Error running loader.addPropsAndConnectionInfoToSegment: " + e);
+            throw new RuntimeException("Error running loader.addPropsAndConnectionInfoToSegment: " + e);
         }
 
-        log.info("proofreader.addSynapseToSegment: exit");
+        log.info("loader.addPropsAndConnectionInfoToSegment: exit");
 
     }
 
@@ -264,32 +287,16 @@ public class LoadingProcedures {
         }.getType());
     }
 
-    private void recomputeSegmentPropertiesFollowingSynapseAddition(Set<String> synapseRois, String synapseType, Node containingSegment, Node metaNode, String dataset, Long neuronThreshold) {
-        // set pre and post count
-        if (synapseType.equals(PRE)) {
-            incrementSegmentPreCount(containingSegment);
-        } else {
-            incrementSegmentPostCount(containingSegment);
-        }
-
-        // make sure segment has both pre and post if it has one
-        if (containingSegment.hasProperty(PRE) && !containingSegment.hasProperty(POST)) {
-            containingSegment.setProperty(POST, 0L);
-        } else if (containingSegment.hasProperty(POST) && !containingSegment.hasProperty(PRE)) {
-            containingSegment.setProperty(PRE, 0L);
-        }
-
-        // set roiInfo and rois
-        String roiInfoString = (String) containingSegment.getProperty(ROI_INFO, "{}");
-        for (String roi : synapseRois) {
-            roiInfoString = addSynapseToRoiInfo(roiInfoString, roi, synapseType);
-            // add synapse rois if not present
-            if (!containingSegment.hasProperty(roi)) {
+    private void recomputeSegmentPropertiesFollowingSynapsesAddition(Long preCount, Long postCount, RoiInfo roiInfo, Node containingSegment, Node metaNode, String dataset, Long neuronThreshold) {
+        // set pre and post count, rois, roiInfo
+        if (preCount > 0 || postCount > 0) {
+            containingSegment.setProperty(PRE, preCount);
+            containingSegment.setProperty(POST, postCount);
+            containingSegment.setProperty(ROI_INFO, roiInfo.getAsJsonString());
+            for (String roi : roiInfo.getSetOfRois()) {
                 containingSegment.setProperty(roi, true);
             }
         }
-
-        containingSegment.setProperty(ROI_INFO, roiInfoString);
 
         if (shouldBeLabeledNeuron(containingSegment, neuronThreshold)) {
             convertSegmentToNeuron(containingSegment, dataset, metaNode);

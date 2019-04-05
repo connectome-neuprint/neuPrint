@@ -196,6 +196,18 @@ public class GraphTraversalTools {
         return synapseLocationSet;
     }
 
+    public static Set<Node> getSynapseNodesFromSynapseSet(final Node synapseSet) {
+
+        Set<Node> synapseNodeSet = new HashSet<>();
+        synapseSet.getRelationships(RelationshipType.withName(CONTAINS), Direction.OUTGOING).forEach(relationship -> {
+            final Node synapse = relationship.getEndNode();
+            synapseNodeSet.add(synapse);
+        });
+
+        return synapseNodeSet;
+    }
+
+
     public static Node getSegmentThatContainsSynapse(final Node synapse) {
         Node connectedSegment;
 
