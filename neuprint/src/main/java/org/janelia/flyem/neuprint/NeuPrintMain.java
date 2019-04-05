@@ -310,11 +310,12 @@ public class NeuPrintMain {
 
         try {
 
-            Stopwatch timer = Stopwatch.createStarted();
+            Stopwatch timer = Stopwatch.createUnstarted();
 
             if (parameters.synapseJson != null) {
 
                 // TODO: add batching option here
+                timer.start();
                 List<Synapse> synapseList = readSynapsesJson(parameters.synapseJson);
                 LOG.info(String.format("Reading in synapse JSON took: %s", timer.stop()));
                 timer.reset();
