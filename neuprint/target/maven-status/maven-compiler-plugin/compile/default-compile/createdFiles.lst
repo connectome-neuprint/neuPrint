@@ -16,13 +16,11 @@ org/janelia/flyem/neuprint/model/SynapticConnection$1.class
 org/janelia/flyem/neuprint/Neo4jImporter.class
 org/janelia/flyem/neuprint/json/LocationAdapter.class
 org/janelia/flyem/neuprint/json/SomaAdapter.class
-org/janelia/flyem/neuprint/model/ConnectionSetMap.class
 org/janelia/flyem/neuprint/json/SynapseAdapter.class
 org/janelia/flyem/neuprint/db/DbConfig.class
 org/janelia/flyem/neuprint/Neo4jImporter$1.class
 org/janelia/flyem/neuprint/db/TransactionBatch.class
 org/janelia/flyem/neuprint/model/MetaInfo$1.class
-org/janelia/flyem/neuprint/model/ConnectionSet.class
 org/janelia/flyem/neuprint/db/DbTransactionBatch.class
 org/janelia/flyem/neuprint/model/Neuron$1.class
 org/janelia/flyem/neuprint/model/Synapse$1.class

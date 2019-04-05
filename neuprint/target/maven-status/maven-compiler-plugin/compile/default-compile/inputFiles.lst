@@ -1,4 +1,3 @@
-/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/ConnectionSetMap.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/SynapticConnection.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/json/SynapseAdapter.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/Neuron.java
@@ -15,7 +14,6 @@
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/NeuPrinterMain.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/Synapse.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/db/StdOutTransactionBatch.java
-/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/ConnectionSet.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/Soma.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/json/SomaAdapter.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/main/java/org/janelia/flyem/neuprint/model/MetaInfo.java
