@@ -1377,7 +1377,6 @@ public class ProofreaderProcedures {
         log.info("temp.updateConnectionSetsAndWeightHP: exit");
     }
 
-    private void recomputeSegmentPropertiesFollowingSynapseRemoval(Set<String> synapseRois, String synapseType, Node containingSegment, String dataset, Set<String> metaNodeRoiSet) {
     @Procedure(value = "temp.removeDuplicateContainsRelForConnectionSet", mode = Mode.WRITE)
     @Description("temp.removeDuplicateContainsRelForConnectionSet(connectionSetNode) ")
     public void removeDuplicateContainsRelForConnectionSet(@Name("connectionSetNode") Node connectionSetNode) {
@@ -1406,8 +1405,7 @@ public class ProofreaderProcedures {
         log.info("temp.removeDuplicateContainsRelForConnectionSet: exit");
     }
 
-    private void recomputeSegmentPropertiesFollowingSynapseRemoval(Set<String> synapseRois, String synapseType, Node containingSegment, String dataset) {
-
+    private void recomputeSegmentPropertiesFollowingSynapseRemoval(Set<String> synapseRois, String synapseType, Node containingSegment, String dataset, Set<String> metaNodeRoiSet) {
         // set pre and post count
         if (synapseType.equals(PRE)) {
             decrementSegmentPreCount(containingSegment);
@@ -1439,7 +1437,7 @@ public class ProofreaderProcedures {
 
     }
 
-    private void recomputeSegmentPropertiesFollowingSynapseAddition(Set<String> synapseRois, String synapseType, Node containingSegment,String dataset, Node metaNode) {
+    private void recomputeSegmentPropertiesFollowingSynapseAddition(Set<String> synapseRois, String synapseType, Node containingSegment, String dataset, Node metaNode) {
         // set pre and post count
         if (synapseType.equals(PRE)) {
             incrementSegmentPreCount(containingSegment);
@@ -2086,6 +2084,7 @@ public class ProofreaderProcedures {
             }
         }
     }
+}
 
 //    Left in case there is a desire to switch back to having a "mergeNeurons" API
 //        private void mergeSynapseSets(Node synapseSet1, Node synapseSet2) {
@@ -2108,5 +2107,5 @@ public class ProofreaderProcedures {
 //            newNode.getRelationships(RelationshipType.withName(CONTAINS)).iterator().next().delete();
 //        }
 //    }
-}
+
 

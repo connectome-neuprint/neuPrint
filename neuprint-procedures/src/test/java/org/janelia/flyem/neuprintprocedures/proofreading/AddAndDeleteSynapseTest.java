@@ -223,7 +223,7 @@ public class AddAndDeleteSynapseTest {
 
         Session session = driver.session();
 
-        String postSynapseJson = "{ \"Type\": \"post\", \"location\": [ 87,88,89 ], \"confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
+        String postSynapseJson = "{ \"type\": \"post\", \"location\": [ 87,88,89 ], \"confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", postSynapseJson, "dataset", "test")));
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.addConnectionBetweenSynapseNodes(8,9,8,87,88,89,\"test\")"));
@@ -543,7 +543,7 @@ public class AddAndDeleteSynapseTest {
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.addConnectionBetweenSynapseNodes(876,876,876,792,792,792,\"test\")"));
 
-        String postSynapseJsonb = "{ \"Type\": \"post\", \"Location\": [ 79,79,79 ], \"Confidence\": .88, \"rois\": [ \"test5\", \"test3\" ] }";
+        String postSynapseJsonb = "{ \"type\": \"post\", \"location\": [ 79,79,79 ], \"confidence\": .88, \"rois\": [ \"test5\", \"test3\" ] }";
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", postSynapseJsonb, "dataset", "test")));
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.addConnectionBetweenSynapseNodes(876,876,876,79,79,79,\"test\")"));
