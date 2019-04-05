@@ -11,7 +11,6 @@ Notes:
 
 Features specific to the hemibrain dataset:
 * All **Segment** nodes with >=2 t-bars, >=10 psds, a name, a status, or a soma are labeled **Neuron**.
-* An automatically generated name (autoName) has been given to some **Neuron** nodes (format: \<max input roi\>-\<max output roi\>_\<instance number\>). If the neuron did not have a name during the initial load, this autoName was added to the name property. These automatically generated names can be distinguished from names given by a human by the presence of a terminating asterisk (e.g. the cypher predicate ```WHERE n.name NOT ENDS WITH "*"``` will be true for human-generated names).
 * The **Meta** node has properties preHPThreshold and postHPThreshold, which indicate the threshold at which the synapse classifier acheives high precision (rather than high recall) for presynaptic and postsynaptic densities, respectively. 
 * **ConnectionSet** nodes have an roiInfo property that provides pre and post counts for that connection as well as preHP and postHP counts calculated using the above high-precision thresholds.
 * **ConnectsTo** relationships have a weightHP property that indicates the high-precision weight (number of high-precision postsynaptic densities) for the connection.
@@ -28,7 +27,6 @@ Features specific to the hemibrain dataset:
 * somaRadius: radius of soma
 * roiInfo: string containing json map in format {"roiA":{"pre":1,"post":2},...}
 * \<roi\>: boolean indicating that body is located in a particular roi (if present, always true)
-* (optional) autoName: automatically generated name in format \<max input roi\>-\<max output roi\>_\<instance number\> (unique per dataset)
 * (Neurons only) clusterName: name generated using input and output ROIs for a neuron. If a neuron has greater than 10% of either its presynaptic or postsynaptic densities in an ROI, that ROI is added to the clusterName. ROIs are listed in lexicographic order within the name, and are in the format \<input roi 1\>.\<input roi 2\>...\<input roi n\>-\<output roi 1\>.\<output roi 2\>...\<output roi n\>. For example, roiA.roiB-roiB.roiC.roiD. If there is no input and/or output ROI in which a neuron has greater than 10% of synapses, this part of the name will be "none" (e.g. none-roiA for no input ROI). This property is used to quickly find neurons with similar connectivity patterns. 
 
 ### :Synapse properties
