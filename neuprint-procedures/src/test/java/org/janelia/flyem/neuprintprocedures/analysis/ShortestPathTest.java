@@ -4,7 +4,7 @@ import apoc.convert.Json;
 import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
 import org.janelia.flyem.neuprint.Neo4jImporter;
-import org.janelia.flyem.neuprint.NeuPrinterMain;
+import org.janelia.flyem.neuprint.NeuPrintMain;
 import org.janelia.flyem.neuprint.model.Neuron;
 import org.janelia.flyem.neuprint.model.Synapse;
 import org.janelia.flyem.neuprint.model.SynapticConnection;
@@ -47,19 +47,19 @@ public class ShortestPathTest {
             final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
             String neuronsJsonPath = "src/test/resources/shortestPathNeuronList.json";
-            List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+            List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
 
             String synapseJsonPath = "src/test/resources/shortestPathSynapseList.json";
-            List<Synapse> synapseList = NeuPrinterMain.readSynapsesJson(synapseJsonPath);
+            List<Synapse> synapseList = NeuPrintMain.readSynapsesJson(synapseJsonPath);
 
             String connectionsJsonPath = "src/test/resources/shortestPathConnectionsList.json";
-            List<SynapticConnection> connectionsList = NeuPrinterMain.readConnectionsJson(connectionsJsonPath);
+            List<SynapticConnection> connectionsList = NeuPrintMain.readConnectionsJson(connectionsJsonPath);
 
             Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
 
             String dataset = "test";
 
-            NeuPrinterMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
+            NeuPrintMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
             neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
             neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
             neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);

@@ -37,7 +37,7 @@
 //
 ////        File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2, swcFile3};
 //
-////        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
+////        List<Skeleton> skeletonList = NeuPrintMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 //
 ////
 ////        String bodiesJsonPath = "/Users/neubarthn/Documents/GitHub/neuPrint/mb6_neo4j_inputs/mb6_Synapses.json";
@@ -67,7 +67,7 @@
 //
 //        String neuronsJsonPath = "/Users/neubarthn/Documents/GitHub/neuPrint/mb6_neo4j_inputs/mb6_Neurons_with_nt.json";
 //
-//        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+//        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
 //
 //        String bodiesJsonPath = "/Users/neubarthn/Documents/GitHub/neuPrint/mb6_neo4j_inputs/mb6_Synapses.json";
 //
@@ -97,7 +97,7 @@
 //
 //        String neuronsJsonPath = "/Users/neubarthn/Documents/GitHub/neuPrint/mb6_neo4j_inputs/mb6_Neurons_with_nt.json";
 //
-//        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+//        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
 //
 //        String dataset = "mb6";
 //

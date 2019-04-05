@@ -1,7 +1,7 @@
 package org.janelia.flyem.neuprintprocedures.functions;
 
 import org.janelia.flyem.neuprint.Neo4jImporter;
-import org.janelia.flyem.neuprint.NeuPrinterMain;
+import org.janelia.flyem.neuprint.NeuPrintMain;
 import org.janelia.flyem.neuprint.model.Neuron;
 import org.janelia.flyem.neuprint.model.Synapse;
 import org.janelia.flyem.neuprint.model.SynapticConnection;
@@ -39,13 +39,13 @@ public class GetNeuronCentroidTest {
         final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
         String neuronsJsonPath = "src/test/resources/neuronList.json";
-        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
 
         String synapseJsonPath = "src/test/resources/synapseList.json";
-        List<Synapse> synapseList = NeuPrinterMain.readSynapsesJson(synapseJsonPath);
+        List<Synapse> synapseList = NeuPrintMain.readSynapsesJson(synapseJsonPath);
 
         String connectionsJsonPath = "src/test/resources/connectionsList.json";
-        List<SynapticConnection> connectionsList = NeuPrinterMain.readConnectionsJson(connectionsJsonPath);
+        List<SynapticConnection> connectionsList = NeuPrintMain.readConnectionsJson(connectionsJsonPath);
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
@@ -53,7 +53,7 @@ public class GetNeuronCentroidTest {
 
         String dataset = "test";
 
-        NeuPrinterMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
+        NeuPrintMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
         neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
         neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
         neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);

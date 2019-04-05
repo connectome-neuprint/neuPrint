@@ -1,15 +1,16 @@
 org/janelia/flyem/neuprint/json/ConnectionsAdapter.class
 org/janelia/flyem/neuprint/model/Location.class
 org/janelia/flyem/neuprint/json/JsonUtils.class
+org/janelia/flyem/neuprint/NeuPrintMain.class
 org/janelia/flyem/neuprint/model/SynapticConnection.class
 org/janelia/flyem/neuprint/model/Skeleton.class
 org/janelia/flyem/neuprint/json/NeuronAdapter.class
 org/janelia/flyem/neuprint/model/SkelNode.class
 org/janelia/flyem/neuprint/db/StdOutTransactionBatch.class
-org/janelia/flyem/neuprint/NeuPrinterMain.class
 org/janelia/flyem/neuprint/model/Soma.class
 org/janelia/flyem/neuprint/model/Synapse.class
 org/janelia/flyem/neuprint/model/Neuron.class
+org/janelia/flyem/neuprint/NeuPrintMain$NeuPrinterParameters.class
 org/janelia/flyem/neuprint/Neo4jImporter$2.class
 org/janelia/flyem/neuprint/model/SynapticConnection$1.class
 org/janelia/flyem/neuprint/Neo4jImporter.class
@@ -23,5 +24,4 @@ org/janelia/flyem/neuprint/model/MetaInfo$1.class
 org/janelia/flyem/neuprint/db/DbTransactionBatch.class
 org/janelia/flyem/neuprint/model/Neuron$1.class
 org/janelia/flyem/neuprint/model/Synapse$1.class
-org/janelia/flyem/neuprint/NeuPrinterMain$NeuPrinterParameters.class
 org/janelia/flyem/neuprint/model/MetaInfo.class

@@ -26,12 +26,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * The NeuPrinterMain class implements an application that loads neuron and synapse
+ * The NeuPrintMain class implements an application that loads neuron and synapse
  * data provided by JSON files into a neo4j database.
  *
  * @see <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron and synapse JSON spec</a>
  */
-public class NeuPrinterMain {
+public class NeuPrintMain {
 
     /**
      * Class containing {@link JCommander} parameters.
@@ -424,7 +424,7 @@ public class NeuPrinterMain {
 
     }
 
-    private static final Logger LOG = LoggerFactory.getLogger(NeuPrinterMain.class);
+    private static final Logger LOG = LoggerFactory.getLogger(NeuPrintMain.class);
 
 }
 

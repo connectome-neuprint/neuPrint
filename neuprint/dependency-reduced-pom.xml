@@ -32,7 +32,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>org.janelia.flyem.neuprint.NeuPrinterMain</mainClass>
+                  <mainClass>org.janelia.flyem.neuprint.NeuPrintMain</mainClass>
                 </transformer>
               </transformers>
             </configuration>

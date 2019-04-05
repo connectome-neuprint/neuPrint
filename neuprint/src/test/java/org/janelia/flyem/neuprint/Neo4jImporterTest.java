@@ -66,18 +66,18 @@ public class Neo4jImporterTest {
 
         File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2, swcFile3};
 
-        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
+        List<Skeleton> skeletonList = NeuPrintMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
         String neuronsJsonPath = "src/test/resources/neuronList.json";
-        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
 
         String synapseJsonPath = "src/test/resources/synapseList.json";
-        List<Synapse> synapseList = NeuPrinterMain.readSynapsesJson(synapseJsonPath);
+        List<Synapse> synapseList = NeuPrintMain.readSynapsesJson(synapseJsonPath);
 
         String connectionsJsonPath = "src/test/resources/connectionsList.json";
-        List<SynapticConnection> connectionsList = NeuPrinterMain.readConnectionsJson(connectionsJsonPath);
+        List<SynapticConnection> connectionsList = NeuPrintMain.readConnectionsJson(connectionsJsonPath);
 
-        MetaInfo metaInfo = NeuPrinterMain.readMetaInfoJson("src/test/resources/testMetaInfo.json");
+        MetaInfo metaInfo = NeuPrintMain.readMetaInfoJson("src/test/resources/testMetaInfo.json");
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
@@ -85,7 +85,7 @@ public class Neo4jImporterTest {
 
         String dataset = "test";
 
-        NeuPrinterMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
+        NeuPrintMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
         neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
         neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
         neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
@@ -210,7 +210,7 @@ public class Neo4jImporterTest {
 
         // test uniqueness constraint by trying to add again
         String neuronsJsonPath = "src/test/resources/neuronList.json";
-        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
         neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
 
         int numberOfSegments2 = session.run("MATCH (n:Segment:test:`test-Segment`) RETURN count(n)").single().get(0).asInt();

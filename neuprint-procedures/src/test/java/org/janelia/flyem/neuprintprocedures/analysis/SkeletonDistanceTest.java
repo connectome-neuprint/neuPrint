@@ -3,7 +3,7 @@ package org.janelia.flyem.neuprintprocedures.analysis;
 import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
 import org.janelia.flyem.neuprint.Neo4jImporter;
-import org.janelia.flyem.neuprint.NeuPrinterMain;
+import org.janelia.flyem.neuprint.NeuPrintMain;
 import org.janelia.flyem.neuprint.model.Skeleton;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -33,7 +33,7 @@ public class SkeletonDistanceTest {
         File swcFile1 = new File("src/test/resources/101.swc");
         File swcFile2 = new File("src/test/resources/102.swc");
 
-        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1, swcFile2});
+        List<Skeleton> skeletonList = NeuPrintMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1, swcFile2});
 
         final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 

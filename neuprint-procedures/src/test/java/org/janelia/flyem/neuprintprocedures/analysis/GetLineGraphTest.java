@@ -5,7 +5,7 @@
 //import apoc.refactor.GraphRefactoring;
 //import com.google.gson.Gson;
 //import org.janelia.flyem.neuprint.Neo4jImporter;
-//import org.janelia.flyem.neuprint.NeuPrinterMain;
+//import org.janelia.flyem.neuprint.NeuPrintMain;
 //import org.janelia.flyem.neuprint.SynapseMapper;
 //import org.janelia.flyem.neuprint.model.BodyWithSynapses;
 //import org.janelia.flyem.neuprint.model.Neuron;
@@ -39,7 +39,7 @@
 //    @Test
 //    public void shouldProduceLineGraphForRoi() {
 //
-//        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
+//        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
 //        SynapseMapper mapper = new SynapseMapper();
 //        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
 //        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
@@ -99,7 +99,7 @@
 //    @Test
 //    public void shouldProduceLineGraphForNeuron() {
 //
-//        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
+//        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
 //        SynapseMapper mapper = new SynapseMapper();
 //        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
 //        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
@@ -107,7 +107,7 @@
 //
 //        File swcFile1 = new File("src/test/resources/8426959.swc");
 //
-//        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1});
+//        List<Skeleton> skeletonList = NeuPrintMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1});
 //
 //        try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 //
