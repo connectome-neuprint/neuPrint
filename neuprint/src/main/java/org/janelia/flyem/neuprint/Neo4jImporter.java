@@ -1008,22 +1008,22 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     private static long getTotalPreCount(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) RETURN sum(n.pre)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-PreSyn`) RETURN count(n)");
         return result.single().get(0).asLong();
     }
 
     private static long getTotalPostCount(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`) RETURN sum(n.post)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-PostSyn`) RETURN count(n)");
         return result.single().get(0).asLong();
     }
 
     private static int getRoiPreCount(final Transaction tx, final String dataset, String roi) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`{`" + roi + "`:true}) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.pre AS pre RETURN sum(pre)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-PreSyn`{`" + roi + "`:true}) RETURN count(n)");
         return result.single().get(0).asInt();
     }
 
     private static int getRoiPostCount(final Transaction tx, final String dataset, String roi) {
-        StatementResult result = tx.run("MATCH (n:`" + dataset + "-Segment`{`" + roi + "`:true}) WITH apoc.convert.fromJsonMap(n.roiInfo).`" + roi + "`.post AS post RETURN sum(post)");
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-PostSyn`{`" + roi + "`:true}) RETURN count(n)");
         return result.single().get(0).asInt();
     }
 
