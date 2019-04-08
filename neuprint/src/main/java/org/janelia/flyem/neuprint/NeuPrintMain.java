@@ -274,6 +274,46 @@ public class NeuPrintMain {
 
     }
 
+    public static void runStandardLoad(Neo4jImporter neo4jImporter,
+                                       String dataset,
+                                       List<Synapse> synapseList,
+                                       List<SynapticConnection> connectionsList,
+                                       List<Neuron> neuronList,
+                                       List<Skeleton> skeletonList,
+                                       MetaInfo metaInfo,
+                                       float dataModelVersion,
+                                       double preHPThreshold,
+                                       double postHPThreshold,
+                                       boolean addConnectionSetRoiInfoAndWeightHP,
+                                       boolean addClusterNames,
+                                       LocalDateTime timeStamp) {
+
+        runStandardLoadWithoutMetaInfo(neo4jImporter, dataset, synapseList, connectionsList, neuronList, skeletonList, dataModelVersion, preHPThreshold, postHPThreshold, addConnectionSetRoiInfoAndWeightHP, addClusterNames, timeStamp);
+        neo4jImporter.addMetaInfo("test", metaInfo, timeStamp);
+    }
+
+    public static void runStandardLoadWithoutMetaInfo(Neo4jImporter neo4jImporter,
+                                                      String dataset,
+                                                      List<Synapse> synapseList,
+                                                      List<SynapticConnection> connectionsList,
+                                                      List<Neuron> neuronList,
+                                                      List<Skeleton> skeletonList,
+                                                      float dataModelVersion,
+                                                      double preHPThreshold,
+                                                      double postHPThreshold,
+                                                      boolean addConnectionSetRoiInfoAndWeightHP,
+                                                      boolean addClusterNames,
+                                                      LocalDateTime timeStamp) {
+
+        NeuPrintMain.initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, addConnectionSetRoiInfoAndWeightHP, addClusterNames, timeStamp);
+        neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
+        neo4jImporter.indexBooleanRoiProperties(dataset);
+        neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
+        neo4jImporter.addSegments("test", neuronList, timeStamp);
+        neo4jImporter.addConnectionInfo("test", neuronList, true, .20D, .80D, 5);
+        neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
+    }
+
     public static void main(String[] args) {
 
         final NeuPrinterParameters parameters = new NeuPrinterParameters();
@@ -369,7 +409,7 @@ public class NeuPrintMain {
                         initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
                     }
                     timer.start();
-                    neo4jImporter.addSegments(dataset, neuronList, parameters.addConnectionSetRoiInfoAndWeightHP, preHPThreshold, postHPThreshold, parameters.neuronThreshold, timeStamp);
+                    neo4jImporter.addSegments(dataset, neuronList, timeStamp);
                     LOG.info(String.format("Loading all neurons took: %s", timer.stop()));
                     timer.reset();
 

@@ -25,7 +25,6 @@ import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.Values;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.driver.v1.types.Point;
-import org.neo4j.driver.v1.types.Relationship;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
@@ -86,14 +85,7 @@ public class Neo4jImporterTest {
 
         String dataset = "test";
 
-        NeuPrintMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
-        neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
-        neo4jImporter.indexBooleanRoiProperties(dataset);
-        neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
-        neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
-        neo4jImporter.addConnectionInfo("test", neuronList, true, .20D, .80D, 5);
-        neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
-        neo4jImporter.addMetaInfo("test", metaInfo, timeStamp);
+        NeuPrintMain.runStandardLoad(neo4jImporter, dataset, synapseList, connectionsList, neuronList, skeletonList, metaInfo, 1.0F, .2D, .8D, true, true, timeStamp);
 
     }
 
@@ -213,14 +205,13 @@ public class Neo4jImporterTest {
         // test uniqueness constraint by trying to add again
         String neuronsJsonPath = "src/test/resources/neuronList.json";
         List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
-        neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
+        neo4jImporter.addSegments("test", neuronList, timeStamp);
 
         int numberOfSegments2 = session.run("MATCH (n:Segment:test:`test-Segment`) RETURN count(n)").single().get(0).asInt();
 
         // 10 from neurons json + 2 from skeletons
         Assert.assertEquals(12, numberOfSegments2);
     }
-
 
     @Test
     public void segmentPropertiesShouldMatchInputJson() {
@@ -304,7 +295,6 @@ public class Neo4jImporterTest {
             System.out.println(s.asMap());
         }
 
-
         Assert.assertEquals(8426959L, bodyId8426959.asMap().get("bodyId"));
 
         System.out.println(bodyId8426959.asMap());
@@ -376,7 +366,7 @@ public class Neo4jImporterTest {
 
         List<Record> synapseCS_8426959_2589725 = session.run("MATCH (t:ConnectionSet:test:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:2589725\"})-[:Contains]->(s) RETURN s").list();
 
-        for (Record r: synapseCS_8426959_2589725) {
+        for (Record r : synapseCS_8426959_2589725) {
             Node s = (Node) r.asMap().get("s");
             System.out.println(s.asMap());
         }

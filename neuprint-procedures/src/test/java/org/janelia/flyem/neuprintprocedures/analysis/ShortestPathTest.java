@@ -24,6 +24,7 @@ import org.neo4j.harness.junit.Neo4jRule;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.neo4j.driver.v1.Values.parameters;
@@ -59,12 +60,7 @@ public class ShortestPathTest {
 
             String dataset = "test";
 
-            NeuPrintMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
-            neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
-            neo4jImporter.indexBooleanRoiProperties(dataset);
-            neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
-            neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
-            neo4jImporter.addConnectionInfo("test", neuronList, true, .20D, .80D, 5);
+            NeuPrintMain.runStandardLoadWithoutMetaInfo(neo4jImporter, dataset, synapseList, connectionsList, neuronList, new ArrayList<>(), 1.0F, .2D, .8D, true, true, timeStamp);
 
             Path segments = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:8426959}), (m{bodyId:26311}) CALL analysis.getShortestPathWithMinWeight" +
                     "(n,m," +

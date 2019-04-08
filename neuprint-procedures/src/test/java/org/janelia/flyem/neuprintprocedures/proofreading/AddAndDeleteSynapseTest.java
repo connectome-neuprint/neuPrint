@@ -27,6 +27,7 @@ import org.neo4j.harness.junit.Neo4jRule;
 
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -67,12 +68,7 @@ public class AddAndDeleteSynapseTest {
 
         String dataset = "test";
 
-        NeuPrintMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
-        neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
-        neo4jImporter.indexBooleanRoiProperties(dataset);
-        neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
-        neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
-        neo4jImporter.addConnectionInfo("test", neuronList, true, .20D, .80D, 5);
+        NeuPrintMain.runStandardLoadWithoutMetaInfo(neo4jImporter, dataset, synapseList, connectionsList, neuronList, new ArrayList<>(), 1.0F, .2D, .8D, true, true, timeStamp);
 
     }
 
@@ -617,7 +613,6 @@ public class AddAndDeleteSynapseTest {
         Assert.assertEquals(1, csRoiInfo.get("test5").getPost());
         Assert.assertEquals(1, csRoiInfo.get("test5").getPostHP());
 
-
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapseToSegment($x,$y,$z,$bodyId,$dataset)", parameters("x", 79, "y", 79, "z", 79, "bodyId", 100569, "dataset", "test")));
 
         // check for duplicate connection set contains relationships
@@ -625,8 +620,6 @@ public class AddAndDeleteSynapseTest {
                 "MATCH path=(cs)-[:Contains]->(s:Synapse)\n" +
                 "WITH COUNT(path) as cp,cs,s WHERE cp>1 RETURN count(cs)")).single().get(0).asInt();
         Assert.assertEquals(0, dupContainsCount);
-
-
 
     }
 
