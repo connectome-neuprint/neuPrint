@@ -493,18 +493,10 @@ public class Neo4jImporter implements AutoCloseable {
      *
      * @param dataset                            dataset name
      * @param neuronList                         list of {@link Neuron} objects
-     * @param addConnectionSetRoiInfoAndWeightHP boolean indicating if ConnectionSet nodes should have roiInfo property and weightHP should be added to ConnectsTo relationships
-     * @param preHPThreshold                     high-precision threshold for presynaptic densities
-     * @param postHPThreshold                    high-precision threshold for postsynaptic densities
-     * @param neuronThreshold                    Neuron must have >=neuronThreshold/5 presynaptic densities or >=neuronThreshold postsynaptic densities to be given a :Neuron label
      * @param timeStamp                          time stamp for load
      */
     public void addSegments(final String dataset,
                             final List<Neuron> neuronList,
-                            final boolean addConnectionSetRoiInfoAndWeightHP,
-                            final double preHPThreshold,
-                            final double postHPThreshold,
-                            final long neuronThreshold,
                             final LocalDateTime timeStamp) {
         LOG.info("addSegments: entry");
 
@@ -606,6 +598,16 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSegments: exit");
     }
 
+    /**
+     * Adds connection information (ConnectsTo relationships, ConnectionSets, weight/weightHP, roiInfo and pre/post counts on Segments, :Neuron label) based on synaptic connections.
+     *
+     * @param dataset                            dataset name
+     * @param neuronList                         list of {@link Neuron} objects
+     * @param addConnectionSetRoiInfoAndWeightHP boolean indicating if ConnectionSet nodes should have roiInfo property and weightHP should be added to ConnectsTo relationships
+     * @param preHPThreshold                     high-precision threshold for presynaptic densities
+     * @param postHPThreshold                    high-precision threshold for postsynaptic densities
+     * @param neuronThreshold                    Neuron must have >=neuronThreshold/5 presynaptic densities or >=neuronThreshold postsynaptic densities to be given a :Neuron label
+     */
     public void addConnectionInfo(final String dataset,
                                   final List<Neuron> neuronList,
                                   final boolean addConnectionSetRoiInfoAndWeightHP,
