@@ -35,6 +35,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.concurrent.TimeUnit;
 
 import static org.neo4j.driver.v1.Values.parameters;
 
@@ -357,6 +358,13 @@ public class Neo4jImporter implements AutoCloseable {
             }
 
             batch.writeTransaction();
+        }
+
+        //delay to allow transactions to complete before taking count
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
 
         final String metaNodeString = "MATCH (m:Meta{dataset:$dataset}) SET " +
