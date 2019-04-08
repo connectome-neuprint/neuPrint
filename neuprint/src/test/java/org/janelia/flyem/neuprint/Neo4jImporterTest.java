@@ -572,8 +572,8 @@ public class Neo4jImporterTest {
         Session session = driver.session();
 
         Node metaNode = session.run("MATCH (n:Meta:test) RETURN n").single().get(0).asNode();
-        Assert.assertEquals(3L, metaNode.asMap().get("totalPreCount"));
-        Assert.assertEquals(6L, metaNode.asMap().get("totalPostCount"));
+        Assert.assertEquals(4L, metaNode.asMap().get("totalPreCount")); // note that one pre and one post should have been created by connections json
+        Assert.assertEquals(7L, metaNode.asMap().get("totalPostCount"));
 
         List superLevelRois = (List) metaNode.asMap().get("superLevelRois");
         Assert.assertTrue(superLevelRois.contains("roiA") && superLevelRois.contains("roiB"));

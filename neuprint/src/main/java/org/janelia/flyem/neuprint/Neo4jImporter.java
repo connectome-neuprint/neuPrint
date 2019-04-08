@@ -450,6 +450,41 @@ public class Neo4jImporter implements AutoCloseable {
             }
             batch.writeTransaction();
         }
+
+        //delay to allow transactions to complete before taking count
+        // note pre and post counts may have changed if synapses in the connections file were not listed in the synapses file
+        try {
+            TimeUnit.SECONDS.sleep(2);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        final String metaNodeString = "MATCH (m:Meta{dataset:$dataset}) SET " +
+                "m.lastDatabaseEdit=$timeStamp," +
+                "m.totalPreCount=$totalPreCount, " +
+                "m.totalPostCount=$totalPostCount";
+
+        long totalPreCount;
+        long totalPostCount;
+        try (Session session = driver.session()) {
+            totalPreCount = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
+            totalPostCount = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
+        }
+
+        try (final TransactionBatch batch = getBatch()) {
+            batch.addStatement(new Statement(
+                    metaNodeString,
+                    parameters(
+                            "dataset", dataset,
+                            "timeStamp", timeStamp,
+                            "totalPreCount", totalPreCount,
+                            "totalPostCount", totalPostCount
+                    )
+
+            ));
+            batch.writeTransaction();
+        }
+
         LOG.info("addSynapsesTo: exit");
     }
 
