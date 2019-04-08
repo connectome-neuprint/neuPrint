@@ -362,7 +362,7 @@ public class Neo4jImporter implements AutoCloseable {
 
         //delay to allow transactions to complete before taking count
         try {
-            TimeUnit.SECONDS.sleep(2);
+            TimeUnit.MILLISECONDS.sleep(10);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -454,7 +454,7 @@ public class Neo4jImporter implements AutoCloseable {
         //delay to allow transactions to complete before taking count
         // note pre and post counts may have changed if synapses in the connections file were not listed in the synapses file
         try {
-            TimeUnit.SECONDS.sleep(2);
+            TimeUnit.MILLISECONDS.sleep(10);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -628,7 +628,15 @@ public class Neo4jImporter implements AutoCloseable {
                                 "neuronThreshold", neuronThreshold,
                                 "addCSRoiInfoAndWeightHP", addConnectionSetRoiInfoAndWeightHP
                         )));
+
                 batch.writeTransaction();
+
+                //delay to allow transactions to complete to prevent blocking
+                try {
+                    TimeUnit.MILLISECONDS.sleep(2);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
 
             }
         }
