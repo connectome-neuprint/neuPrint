@@ -88,9 +88,10 @@ public class Neo4jImporterTest {
 
         NeuPrintMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
         neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
+        neo4jImporter.indexBooleanRoiProperties(dataset);
         neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
         neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
-        neo4jImporter.indexBooleanRoiProperties(dataset);
+        neo4jImporter.addConnectionInfo("test", neuronList, true, .20D, .80D, 5);
         neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
         neo4jImporter.addMetaInfo("test", metaInfo, timeStamp);
 
@@ -575,7 +576,7 @@ public class Neo4jImporterTest {
         Assert.assertEquals(6L, metaNode.asMap().get("totalPostCount"));
 
         List superLevelRois = (List) metaNode.asMap().get("superLevelRois");
-        Assert.assertTrue(superLevelRois.contains("roiA") && superLevelRois.contains("roiB") && superLevelRois.contains("roi1"));
+        Assert.assertTrue(superLevelRois.contains("roiA") && superLevelRois.contains("roiB"));
 
         String metaSynapseCountPerRoi = (String) metaNode.asMap().get("roiInfo");
         Gson gson = new Gson();
@@ -591,7 +592,7 @@ public class Neo4jImporterTest {
         Assert.assertEquals(0L, metaSynapseCountPerRoiMap.get("roi'C").getPre());
         Assert.assertEquals(1L, metaSynapseCountPerRoiMap.get("roi'C").getPost());
         // test that all rois are listed in meta
-        Assert.assertEquals(5, metaSynapseCountPerRoiMap.keySet().size());
+        Assert.assertEquals(3, metaSynapseCountPerRoiMap.keySet().size());
     }
 
     @Test

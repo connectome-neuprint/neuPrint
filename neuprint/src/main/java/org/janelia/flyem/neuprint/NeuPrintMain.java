@@ -373,6 +373,11 @@ public class NeuPrintMain {
                     LOG.info(String.format("Loading all neurons took: %s", timer.stop()));
                     timer.reset();
 
+                    timer.start();
+                    neo4jImporter.addConnectionInfo(dataset, neuronList, parameters.addConnectionSetRoiInfoAndWeightHP, preHPThreshold, postHPThreshold, parameters.neuronThreshold);
+                    LOG.info(String.format("Loading all neurons took: %s", timer.stop()));
+                    timer.reset();
+
                     neo4jImporter.indexBooleanRoiProperties(dataset);
 
                 }

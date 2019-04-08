@@ -61,9 +61,10 @@ public class ShortestPathTest {
 
             NeuPrintMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
             neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
+            neo4jImporter.indexBooleanRoiProperties(dataset);
             neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
             neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
-            neo4jImporter.indexBooleanRoiProperties(dataset);
+            neo4jImporter.addConnectionInfo("test", neuronList, true, .20D, .80D, 5);
 
             Path segments = session.readTransaction(tx -> tx.run("MATCH (n{bodyId:8426959}), (m{bodyId:26311}) CALL analysis.getShortestPathWithMinWeight" +
                     "(n,m," +

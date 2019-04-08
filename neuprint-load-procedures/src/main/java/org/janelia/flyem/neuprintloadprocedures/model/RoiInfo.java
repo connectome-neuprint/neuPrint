@@ -58,7 +58,7 @@ public class RoiInfo {
      * @param pre  presynaptic density count
      * @param post postsynaptic density count
      */
-    public void addSynapseCountsForRoi(String roi, int pre, int post) {
+    public void addSynapseCountsForRoi(String roi, long pre, long post) {
         this.synapseCountsPerRoi.put(roi, new SynapseCounter(pre, post));
     }
 

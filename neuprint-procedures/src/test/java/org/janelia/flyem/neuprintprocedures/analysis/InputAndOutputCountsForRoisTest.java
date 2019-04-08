@@ -66,9 +66,10 @@ public class InputAndOutputCountsForRoisTest {
 
             NeuPrintMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
             neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
+            neo4jImporter.indexBooleanRoiProperties(dataset);
             neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
             neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
-            neo4jImporter.indexBooleanRoiProperties(dataset);
+            neo4jImporter.addConnectionInfo("test", neuronList, true, .20D, .80D, 5);
             neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
 
             Session session = driver.session();
@@ -88,12 +89,10 @@ public class InputAndOutputCountsForRoisTest {
 
             ClusteringFeatureVector[] clusteringFeatureVectors = gson.fromJson(featureVectorJson, ClusteringFeatureVector[].class);
 
-            long[] expectedInputVector = {0, 0, 0, 3, 1};
+            long[] expectedInputVector = { 0, 3, 1};
             Assert.assertEquals(expectedInputVector[0], clusteringFeatureVectors[1].getInputFeatureVector()[0]);
             Assert.assertEquals(expectedInputVector[1], clusteringFeatureVectors[1].getInputFeatureVector()[1]);
             Assert.assertEquals(expectedInputVector[2], clusteringFeatureVectors[1].getInputFeatureVector()[2]);
-            Assert.assertEquals(expectedInputVector[3], clusteringFeatureVectors[1].getInputFeatureVector()[3]);
-            Assert.assertEquals(expectedInputVector[4], clusteringFeatureVectors[1].getInputFeatureVector()[4]);
 
         }
     }

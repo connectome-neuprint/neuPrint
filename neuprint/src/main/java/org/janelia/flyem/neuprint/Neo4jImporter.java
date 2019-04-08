@@ -175,12 +175,14 @@ public class Neo4jImporter implements AutoCloseable {
 
         Set<String> roiNameSet = currentRoiInfo.getSetOfRois();
 
-        String[] indexTextArray = new String[roiNameSet.size() * 2];
+        String[] indexTextArray = new String[roiNameSet.size() * 4];
         int i = 0;
         for (String roi : roiNameSet) {
             indexTextArray[i] = "CREATE INDEX ON :`" + dataset + "-Neuron`(`" + roi + "`)";
             indexTextArray[i + 1] = "CREATE INDEX ON :`" + dataset + "-Segment`(`" + roi + "`)";
-            i += 2;
+            indexTextArray[i + 2] = "CREATE INDEX ON :`" + dataset + "-PreSyn`(`" + roi + "`)";
+            indexTextArray[i + 3] = "CREATE INDEX ON :`" + dataset + "-PostSyn`(`" + roi + "`)";
+            i += 4;
         }
 
         for (final String indexText : indexTextArray) {
@@ -311,38 +313,23 @@ public class Neo4jImporter implements AutoCloseable {
                         "%s" + //placeholder for roi properties
                         " s.timeStamp=$timeStamp";
 
-        final String metaNodeString = "MATCH (m:Meta{dataset:$dataset}) SET " +
-                "m.lastDatabaseEdit=$timeStamp," +
-                "m.roiInfo=$roiInfo, " +
-                "m.superLevelRois=$superLevelRois, " +
-                "m.totalPreCount=$totalPreCount, " +
-                "m.totalPostCount=$totalPostCount";
-
         // get existing values from meta node
         Set<String> currentSuperLevelRois;
         RoiInfo currentRoiInfo;
-        long currentTotalPreCount;
-        long currentTotalPostCount;
         try (Session session = driver.session()) {
             currentSuperLevelRois = session.readTransaction(tx -> getMetaNodeSuperLevelRois(tx, dataset));
             currentRoiInfo = session.readTransaction(tx -> getMetaNodeRoiInfo(tx, dataset));
-            currentTotalPreCount = session.readTransaction(tx -> getMetaNodeTotalPreCount(tx, dataset));
-            currentTotalPostCount = session.readTransaction(tx -> getMetaNodeTotalPostCount(tx, dataset));
         }
 
-        long updatedTotalPreCount = currentTotalPreCount;
-        long updatedTotalPostCount = currentTotalPostCount;
-        RoiInfo updatedMetaRoiInfo = currentRoiInfo;
+        RoiInfo updatedRoiInfo = currentRoiInfo;
         Set<String> updatedSuperLevelRois = currentSuperLevelRois;
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Synapse synapse : synapseList) {
                 // accumulates super level rois and roi info data
-                StringBuilder roiProperties = updateSuperRoisRoiInfoAndCreateRoiPropertyString(updatedSuperLevelRois, updatedMetaRoiInfo, roiPropertyBaseString, synapse.getRois(), synapse.getType());
+                StringBuilder roiProperties = updateSuperRoisRoiInfoAndCreateRoiPropertyString(updatedSuperLevelRois, updatedRoiInfo, roiPropertyBaseString, synapse.getRois(), synapse.getType());
 
                 if (synapse.getType().equals("pre")) {
-
-                    updatedTotalPreCount++;
 
                     String preSynapseTextWithRois = String.format(preSynapseText, roiProperties.toString());
                     batch.addStatement(new Statement(
@@ -354,8 +341,6 @@ public class Neo4jImporter implements AutoCloseable {
                                     "timeStamp", timeStamp))
                     );
                 } else if (synapse.getType().equals("post")) {
-
-                    updatedTotalPostCount++;
 
                     String postSynapseTextWithRois = String.format(postSynapseText, roiProperties.toString());
                     batch.addStatement(new Statement(
@@ -371,20 +356,45 @@ public class Neo4jImporter implements AutoCloseable {
 
             }
 
+            batch.writeTransaction();
+        }
+
+        final String metaNodeString = "MATCH (m:Meta{dataset:$dataset}) SET " +
+                "m.lastDatabaseEdit=$timeStamp," +
+                "m.roiInfo=$roiInfo, " +
+                "m.superLevelRois=$superLevelRois, " +
+                "m.totalPreCount=$totalPreCount, " +
+                "m.totalPostCount=$totalPostCount";
+
+        long totalPreCount;
+        long totalPostCount;
+        RoiInfo newRoiInfo = new RoiInfo();
+        try (Session session = driver.session()) {
+            totalPreCount = session.readTransaction(tx -> getTotalPreCount(tx, dataset));
+            totalPostCount = session.readTransaction(tx -> getTotalPostCount(tx, dataset));
+            for (String roi : updatedRoiInfo.getSetOfRois()) {
+                long roiPreCount = session.readTransaction(tx -> getRoiPreCount(tx, dataset, roi));
+                long roiPostCount = session.readTransaction(tx -> getRoiPostCount(tx, dataset, roi));
+                newRoiInfo.addSynapseCountsForRoi(roi, roiPreCount, roiPostCount);
+            }
+        }
+
+        try (final TransactionBatch batch = getBatch()) {
             batch.addStatement(new Statement(
                     metaNodeString,
                     parameters(
                             "dataset", dataset,
                             "timeStamp", timeStamp,
-                            "roiInfo", updatedMetaRoiInfo.getAsJsonString(),
+                            "roiInfo", newRoiInfo.getAsJsonString(),
                             "superLevelRois", updatedSuperLevelRois,
-                            "totalPreCount", updatedTotalPreCount,
-                            "totalPostCount", updatedTotalPostCount
+                            "totalPreCount", totalPreCount,
+                            "totalPostCount", totalPostCount
                     )
 
             ));
             batch.writeTransaction();
         }
+
         LOG.info("addSynapses: exit");
     }
 
@@ -481,31 +491,15 @@ public class Neo4jImporter implements AutoCloseable {
                 "MERGE (t:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId}) \n" +
                 "MERGE (t)-[:Contains]->(s) \n";
 
-        final String addConnectionDetailsToSegment = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId})," +
-                "(ss:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId})" +
-                " WITH n,ss CALL loader.addPropsAndConnectionInfoToSegment(n, ss, $dataset, $preHPThreshold, $postHPThreshold, $neuronThreshold, $addCSRoiInfoAndWeightHP) RETURN n.bodyId";
-
         final String metaNodeString = "MATCH (m:Meta{dataset:$dataset}) SET " +
-                "m.lastDatabaseEdit=$timeStamp," +
-                "m.roiInfo=$roiInfo," +
-                "m.superLevelRois=$superLevelRois";
+                "m.lastDatabaseEdit=$timeStamp";
 
-        // get existing values from meta node
-        Set<String> currentSuperLevelRois;
-        RoiInfo currentRoiInfo;
-        try (Session session = driver.session()) {
-            currentSuperLevelRois = session.readTransaction(tx -> getMetaNodeSuperLevelRois(tx, dataset));
-            currentRoiInfo = session.readTransaction(tx -> getMetaNodeRoiInfo(tx, dataset));
-        }
-
-        RoiInfo updatedMetaRoiInfo = currentRoiInfo;
-        Set<String> updatedSuperLevelRois = currentSuperLevelRois;
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
 
                 // accumulates super level rois
-                StringBuilder roiProperties = updateSuperRoisRoiInfoAndCreateRoiPropertyString(updatedSuperLevelRois, updatedMetaRoiInfo, roiPropertyBaseString, neuron.getRois(), "none");
+                StringBuilder roiProperties = updateSuperRoisRoiInfoAndCreateRoiPropertyString(new HashSet<>(), new RoiInfo(), roiPropertyBaseString, neuron.getRois(), "none");
 
                 String segmentTextWithRois = String.format(segmentText, roiProperties.toString());
 
@@ -549,43 +543,28 @@ public class Neo4jImporter implements AutoCloseable {
 
             }
 
-            batch.addStatement(new Statement(
-                    metaNodeString,
-                    parameters(
-                            "dataset", dataset,
-                            "timeStamp", timeStamp,
-                            "superLevelRois", updatedSuperLevelRois,
-                            "roiInfo", updatedMetaRoiInfo.getAsJsonString()
-                    )
-
-            ));
-
             batch.writeTransaction();
         }
 
         try (final TransactionBatch batch = getBatch()) {
-            for (final Neuron neuron : neuronList) {
 
-                    batch.addStatement(new Statement(addConnectionDetailsToSegment,
-                            parameters(
-                                    "bodyId", neuron.getId(),
-                                    "datasetBodyId", dataset + ":" + neuron.getId(),
-                                    "dataset", dataset,
-                                    "preHPThreshold", preHPThreshold,
-                                    "postHPThreshold", postHPThreshold,
-                                    "neuronThreshold", neuronThreshold,
-                                    "addCSRoiInfoAndWeightHP", addConnectionSetRoiInfoAndWeightHP
-                            )));
+            batch.addStatement(new Statement(
+                    metaNodeString,
+                    parameters(
+                            "dataset", dataset,
+                            "timeStamp", timeStamp
+                    )
 
-            }
+            ));
             batch.writeTransaction();
+
         }
 
         LOG.info("addSegments: exit");
     }
 
-    public void addConnectionInfo(final List<Neuron> neuronList,
-                                  final String dataset,
+    public void addConnectionInfo(final String dataset,
+                                  final List<Neuron> neuronList,
                                   final boolean addConnectionSetRoiInfoAndWeightHP,
                                   final double preHPThreshold,
                                   final double postHPThreshold,
@@ -606,9 +585,9 @@ public class Neo4jImporter implements AutoCloseable {
                                 "neuronThreshold", neuronThreshold,
                                 "addCSRoiInfoAndWeightHP", addConnectionSetRoiInfoAndWeightHP
                         )));
+                batch.writeTransaction();
 
             }
-            batch.writeTransaction();
         }
 
     }
@@ -623,8 +602,6 @@ public class Neo4jImporter implements AutoCloseable {
                     datasetRoiInfo.incrementPreForRoi(roi);
                 } else if (synapseType.equals("post")) {
                     datasetRoiInfo.incrementPostForRoi(roi);
-                } else {
-                    datasetRoiInfo.addRoi(roi);
                 }
             }
         }
@@ -804,14 +781,24 @@ public class Neo4jImporter implements AutoCloseable {
         return RoiInfo.getRoiInfoFromString(roiInfoString);
     }
 
-    private static long getMetaNodeTotalPreCount(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (m:Meta{dataset:\"" + dataset + "\"}) WITH m.totalPreCount AS pre RETURN pre");
-        return (long) result.next().asMap().get("pre");
+    private static long getTotalPreCount(final Transaction tx, final String dataset) {
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-PreSyn`) RETURN count(n)");
+        return (long) result.next().asMap().get("count(n)");
     }
 
-    private static long getMetaNodeTotalPostCount(final Transaction tx, final String dataset) {
-        StatementResult result = tx.run("MATCH (m:Meta{dataset:\"" + dataset + "\"}) WITH m.totalPostCount AS post RETURN post");
-        return (long) result.next().asMap().get("post");
+    private static long getTotalPostCount(final Transaction tx, final String dataset) {
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-PostSyn`) RETURN count(n)");
+        return (long) result.next().asMap().get("count(n)");
+    }
+
+    private static long getRoiPreCount(final Transaction tx, final String dataset, final String roi) {
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-PreSyn`{`" + roi + "`:true}) RETURN count(n)");
+        return (long) result.next().asMap().get("count(n)");
+    }
+
+    private static long getRoiPostCount(final Transaction tx, final String dataset, final String roi) {
+        StatementResult result = tx.run("MATCH (n:`" + dataset + "-PostSyn`{`" + roi + "`:true}) RETURN count(n)");
+        return (long) result.next().asMap().get("count(n)");
     }
 
     private static SortedSet<Map.Entry<String, SynapseCounter>> entriesSortedByComparator(Map<String, SynapseCounter> map, Comparator<Map.Entry<String, SynapseCounter>> comparator) {
@@ -822,13 +809,13 @@ public class Neo4jImporter implements AutoCloseable {
 
     public static SortedSet<Map.Entry<String, SynapseCounter>> sortRoisByPostCount(Map<String, SynapseCounter> roiSynapseCountMap) {
         Comparator<Map.Entry<String, SynapseCounter>> comparator = (e1, e2) ->
-                e1.getValue().getPost() == e2.getValue().getPost() ? e1.getKey().compareTo(e2.getKey()) : e2.getValue().getPost() - e1.getValue().getPost();
+                Math.toIntExact(e1.getValue().getPost() == e2.getValue().getPost() ? e1.getKey().compareTo(e2.getKey()) : e2.getValue().getPost() - e1.getValue().getPost());
         return entriesSortedByComparator(roiSynapseCountMap, comparator);
     }
 
     public static SortedSet<Map.Entry<String, SynapseCounter>> sortRoisByPreCount(Map<String, SynapseCounter> roiSynapseCountMap) {
         Comparator<Map.Entry<String, SynapseCounter>> comparator = (e1, e2) ->
-                e1.getValue().getPre() == e2.getValue().getPre() ? e1.getKey().compareTo(e2.getKey()) : e2.getValue().getPre() - e1.getValue().getPre();
+                Math.toIntExact(e1.getValue().getPre() == e2.getValue().getPre() ? e1.getKey().compareTo(e2.getKey()) : e2.getValue().getPre() - e1.getValue().getPre());
         return entriesSortedByComparator(roiSynapseCountMap, comparator);
     }
 //

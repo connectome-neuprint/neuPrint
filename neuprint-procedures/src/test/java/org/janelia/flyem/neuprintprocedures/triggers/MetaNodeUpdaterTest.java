@@ -64,9 +64,10 @@ public class MetaNodeUpdaterTest {
 
         NeuPrintMain.initializeDatabase(neo4jImporter, dataset, 1.0F, .20D, .80D, true, true, timeStamp);
         neo4jImporter.addSynapsesWithRois("test", synapseList, timeStamp);
+        neo4jImporter.indexBooleanRoiProperties(dataset);
         neo4jImporter.addSynapsesTo("test", connectionsList, timeStamp);
         neo4jImporter.addSegments("test", neuronList, true, .20D, .80D, 5, timeStamp);
-        neo4jImporter.indexBooleanRoiProperties(dataset);
+        neo4jImporter.addConnectionInfo("test", neuronList, true, .20D, .80D, 5);
         neo4jImporter.createMetaNodeWithDataModelNode("otherDataset", 1.0F, .20F, .80F, true, timeStamp);
 
     }
@@ -118,12 +119,10 @@ public class MetaNodeUpdaterTest {
         Assert.assertEquals(6L, metaSynapseCountPerRoiMap.get("roiA").getPre());
         Assert.assertEquals(10L, metaSynapseCountPerRoiMap.get("roiA").getPost());
 
-        Assert.assertEquals(5, metaSynapseCountPerRoiMap.keySet().size());
+        Assert.assertEquals(3, metaSynapseCountPerRoiMap.keySet().size());
         Assert.assertTrue(metaSynapseCountPerRoiMap.containsKey("roiA")
                 && metaSynapseCountPerRoiMap.containsKey("roiB")
                 && metaSynapseCountPerRoiMap.containsKey("roi'C")
-            && metaSynapseCountPerRoiMap.containsKey("roi1")
-                && metaSynapseCountPerRoiMap.containsKey("roi2")
         );
 
         LocalDateTime metaNodeUpdateTimeBefore2 = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n.lastDatabaseEdit").single().get(0).asLocalDateTime());
