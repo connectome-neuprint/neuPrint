@@ -30,7 +30,7 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 
 3. Run the following on the command line:
 ```console
-$ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --datasetLabel=mb6 --synapseJson=mb6_neo4j_inputs/mb6_new_spec_Synapses.json --connectionsJson=mb6_neo4j_inputs/mb6_new_spec_Synaptic_Connections.json --neuronJson=mb6_neo4j_inputs/mb6_new_spec_Neurons.json --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons --metaInfoJson=meta-data/mb6_meta_data.json
+$ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --synapseJson=mb6_neo4j_inputs/mb6_new_spec_Synapses.json --connectionsJson=mb6_neo4j_inputs/mb6_new_spec_Synaptic_Connections.json --neuronJson=mb6_neo4j_inputs/mb6_new_spec_Neurons.json --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons --metaInfoJson=meta-data/mb6_meta_data.json
 ```
 
 ## Load your own connectome data into Neo4j using neuPrint
