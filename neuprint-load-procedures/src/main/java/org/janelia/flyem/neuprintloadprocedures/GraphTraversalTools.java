@@ -29,7 +29,6 @@ public class GraphTraversalTools {
     public static final String POST_SYN = "PostSyn";
     public static final String PRE_SYN = "PreSyn";
     //Property names
-    public static final String AUTO_NAME = "autoName";
     public static final String BODY_ID = "bodyId";
     public static final String CONFIDENCE = "confidence";
     public static final String CLUSTER_NAME = "clusterName";
