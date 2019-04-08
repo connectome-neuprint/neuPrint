@@ -29,7 +29,6 @@ public class GraphTraversalTools {
     public static final String POST_SYN = "PostSyn";
     public static final String PRE_SYN = "PreSyn";
     //Property names
-    public static final String AUTO_NAME = "autoName";
     public static final String BODY_ID = "bodyId";
     public static final String CONFIDENCE = "confidence";
     public static final String CLUSTER_NAME = "clusterName";
@@ -231,7 +230,6 @@ public class GraphTraversalTools {
                 .filter(p -> (
                         !p.equals(TIME_STAMP) &&
                                 !p.equals(CLUSTER_NAME) &&
-                                !p.equals(AUTO_NAME) &&
                                 !p.equals(SOMA_LOCATION) &&
                                 !p.equals(SOMA_RADIUS) &&
                                 !p.equals(STATUS) &&

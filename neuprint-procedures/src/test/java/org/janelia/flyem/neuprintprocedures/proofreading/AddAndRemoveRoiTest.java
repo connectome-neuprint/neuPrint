@@ -82,7 +82,7 @@ public class AddAndRemoveRoiTest {
         neo4jImporter.addSynapseSets(dataset, bodyList);
         neo4jImporter.addSkeletonNodes(dataset, skeletonList);
         neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F, true);
-        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 1);
+        neo4jImporter.addNeuronLabels(dataset, 1);
 
     }
 

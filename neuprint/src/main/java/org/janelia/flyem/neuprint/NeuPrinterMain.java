@@ -179,28 +179,9 @@ public class NeuPrinterMain {
         boolean indexBooleanRoiPropertiesOnly;
 
         @Parameter(
-                names = "--addAutoNamesOnly",
-                description = "Indicates that only the autoNames should be added for this dataset. Requires the existing dataset to be completely loaded into neo4j. Names are only generated for neurons that have greater than the number of synapses" +
-                        "indicated by neuronThreshold (omit to skip)",
-                arity = 0
-        )
-        boolean addAutoNamesOnly;
-
-        @Parameter(
-                names = "--addAutoNames",
-                description = "Indicates that automatically generated names should be added for this dataset. Auto-names are in the format " +
-                        "ROIA-ROIB_8 where ROIA is the roi in which a given neuron has the most inputs (postsynaptic densities) " +
-                        "and ROIB is the roi in which a neuron has the most outputs (presynaptic densities). The final number renders " +
-                        "this name unique per dataset. Names are only generated for neurons that have greater than the number of synapses " +
-                        "indicated by neuronThreshold. If neurons do not already have a name, the auto-name is added to the name property. (skip to omit)",
-                arity = 0)
-        public boolean addAutoNames;
-
-        @Parameter(
                 names = "--neuronThreshold",
                 description = "Integer indicating the number of synaptic densities (>=neuronThreshold/5 pre OR >=neuronThreshold post) a neuron should have to be given " +
-                        "the label of :Neuron (all have the :Segment label by default) and an auto-name. To add auto-names, must have" +
-                        " --addAutoName OR --addAutoNamesOnly enabled.")
+                        "the label of :Neuron (all have the :Segment label by default)")
         Integer neuronThreshold = 10;
 
         @Parameter(
@@ -494,17 +475,10 @@ public class NeuPrinterMain {
                         timer.reset();
                     }
 
-                    if (parameters.addAutoNames) {
-                        timer.start();
-                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
-                        LOG.info("Adding autoNames and :Neuron labels took: " + timer.stop());
-                        timer.reset();
-                    } else {
-                        timer.start();
-                        neo4jImporter.addNeuronLabels(dataset, parameters.neuronThreshold);
-                        LOG.info("Adding :Neuron labels took: " + timer.stop());
-                        timer.reset();
-                    }
+                    timer.start();
+                    neo4jImporter.addNeuronLabels(dataset, parameters.neuronThreshold);
+                    LOG.info("Adding :Neuron labels took: " + timer.stop());
+                    timer.reset();
 
                     timer.start();
                     neo4jImporter.indexBooleanRoiProperties(dataset);
@@ -596,21 +570,6 @@ public class NeuPrinterMain {
                 }
             }
 
-            if (parameters.addAutoNamesOnly) {
-
-                Stopwatch timer = Stopwatch.createStarted();
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-                    neo4jImporter.prepDatabase(dataset);
-                    if (parameters.neuronThreshold != null) {
-                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, parameters.neuronThreshold);
-                    } else {
-                        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 10);
-                    }
-                    LOG.info("Adding autoNames took: " + timer.stop());
-                    timer.reset();
-                }
-
-            }
         } catch (Exception e) {
             LOG.error("An error occurred: ", e);
         }

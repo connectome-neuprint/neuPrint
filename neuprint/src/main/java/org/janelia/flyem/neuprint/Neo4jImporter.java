@@ -6,7 +6,6 @@ import org.janelia.flyem.neuprint.db.DbConfig;
 import org.janelia.flyem.neuprint.db.DbTransactionBatch;
 import org.janelia.flyem.neuprint.db.StdOutTransactionBatch;
 import org.janelia.flyem.neuprint.db.TransactionBatch;
-import org.janelia.flyem.neuprint.model.AutoName;
 import org.janelia.flyem.neuprint.model.BodyWithSynapses;
 import org.janelia.flyem.neuprint.model.ConnectionSet;
 import org.janelia.flyem.neuprint.model.ConnectionSetMap;
@@ -151,21 +150,6 @@ public class Neo4jImporter implements AutoCloseable {
         }
 
         LOG.info("prepDatabase: exit");
-
-    }
-
-    public void prepDatabaseForAutoNames(final String dataset) {
-
-        LOG.info("prepDatabaseForAutoNames: entry");
-
-        final String prepText = "CREATE CONSTRAINT ON (n:" + dataset + ") ASSERT n.autoName is UNIQUE";
-
-        try (final TransactionBatch batch = getBatch()) {
-            batch.addStatement(new Statement(prepText));
-            batch.writeTransaction();
-        }
-
-        LOG.info("prepDatabaseForAutoNames: exit");
 
     }
 
@@ -478,64 +462,10 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     /**
-     * Adds automatically generated names (autoNames) and :Neuron labels to Segment nodes that have greater than
-     * neuronThreshold synaptic densities (>=neuronThreshold/5 pre or >=neuronThreshold post). If Neuron node does
-     * not have a name, the name property is also set to autoName* (the * marks it as automatically generated).
-     *
-     * @param dataset         dataset name
-     * @param neuronThreshold Neuron must have >=neuronThreshold/5 presynaptic densities or >=neuronThreshold postsynaptic densities to be given an autoName and :Neuron label
-     * @see AutoName
-     */
-    public void addAutoNamesAndNeuronLabels(final String dataset, int neuronThreshold) {
-
-        LOG.info("addAutoNamesAndNeuronLabels: entry");
-
-        prepDatabaseForAutoNames(dataset);
-
-        List<AutoName> autoNameList = new ArrayList<>();
-        List<Long> bodyIdsWithoutNames;
-        final String autoNameText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId}) SET n.autoName=$autoName, n:Neuron, n:`" + dataset + "-Neuron`";
-        final String autoNameToNameText = "MATCH (n:`" + dataset + "-Segment`{bodyId:$bodyId}) SET n.autoName=$autoName, n.name=$autoNamePlusAsterisk, n:Neuron, n:`" + dataset + "-Neuron`";
-
-        try (Session session = driver.session()) {
-
-            // get body ids for generating auto-name
-            List<Long> bodyIdList = session.readTransaction(tx -> getAllSegmentBodyIdsWithGreaterThanThresholdSynapses(tx, dataset, neuronThreshold));
-            for (Long bodyId : bodyIdList) {
-                String maxPostRoiName = session.readTransaction(tx -> getMaxInputRoi(tx, dataset, bodyId));
-                String maxPreRoiName = session.readTransaction(tx -> getMaxOutputRoi(tx, dataset, bodyId));
-                AutoName autoName = new AutoName(maxPostRoiName, maxPreRoiName, bodyId);
-                autoNameList.add(autoName);
-            }
-            // get body ids above threshold without names
-            bodyIdsWithoutNames = session.readTransaction(tx -> getAllSegmentBodyIdsWithGreaterThanThresholdSynapsesAndWithoutNames(tx, dataset, neuronThreshold));
-        }
-
-        try (final TransactionBatch batch = getBatch()) {
-            for (AutoName autoName : autoNameList) {
-                Long bodyId = autoName.getBodyId();
-                if (bodyIdsWithoutNames.contains(bodyId)) {
-                    batch.addStatement(new Statement(autoNameToNameText,
-                            parameters("bodyId", autoName.getBodyId(),
-                                    "autoName", autoName.getAutoName(),
-                                    "autoNamePlusAsterisk", autoName.getAutoName() + "*")));
-                } else {
-                    batch.addStatement(new Statement(autoNameText,
-                            parameters("bodyId", autoName.getBodyId(),
-                                    "autoName", autoName.getAutoName())));
-                }
-            }
-            batch.writeTransaction();
-        }
-
-        LOG.info("addAutoNamesAndNeuronLabels: exit");
-    }
-
-    /**
      * Adds :Neuron labels to Segment nodes that have greater than neuronThreshold synaptic densities (>=neuronThreshold/5 pre or >=neuronThreshold post).
      *
      * @param dataset         dataset name
-     * @param neuronThreshold Neuron must have >=neuronThreshold/5 presynaptic densities or >=neuronThreshold postsynaptic densities to be given an autoName and :Neuron label
+     * @param neuronThreshold Neuron must have >=neuronThreshold/5 presynaptic densities or >=neuronThreshold postsynaptic densities to be given :Neuron label
      */
     public void addNeuronLabels(final String dataset, int neuronThreshold) {
 

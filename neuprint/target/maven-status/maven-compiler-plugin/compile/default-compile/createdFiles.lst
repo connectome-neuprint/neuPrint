@@ -1,5 +1,4 @@
 org/janelia/flyem/neuprint/json/JsonUtils.class
-org/janelia/flyem/neuprint/model/AutoName.class
 org/janelia/flyem/neuprint/model/Skeleton.class
 org/janelia/flyem/neuprint/model/SkelNode.class
 org/janelia/flyem/neuprint/db/StdOutTransactionBatch.class
