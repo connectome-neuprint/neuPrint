@@ -63,7 +63,7 @@ public class MetaNodeUpdaterTest {
 
         String dataset = "test";
 
-        NeuPrintMain.runStandardLoadWithoutMetaInfo(neo4jImporter, dataset, synapseList, connectionsList, neuronList, new ArrayList<>(), 1.0F, .2D, .8D, true, true, timeStamp);
+        NeuPrintMain.runStandardLoadWithoutMetaInfo(neo4jImporter, dataset, synapseList, connectionsList, neuronList, new ArrayList<>(), 1.0F, .2D, .8D, 5,true, true, timeStamp);
 
         neo4jImporter.createMetaNodeWithDataModelNode("otherDataset", 1.0F, .20F, .80F, true, timeStamp);
     }

@@ -1,12 +1,13 @@
-/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/model/SkeletonTest.java
-/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/Neo4jImporterTest.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/model/SynapseTest.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/model/SkelNodeTest.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/json/SomaJsonTest.java
-/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/json/ConnectionsJsonTest.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/json/NeuronJsonTest.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/json/SynapseJsonTest.java
-/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/SpeedTest.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/json/LocationJsonTest.java
+/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/model/SkeletonTest.java
+/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/BatchImportTest.java
+/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/Neo4jImporterTest.java
+/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/json/ConnectionsJsonTest.java
+/Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/SpeedTest.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/model/SynapticConnectionTest.java
 /Users/neubarthn/Documents/GitHub/neuPrint/neuprint/src/test/java/org/janelia/flyem/neuprint/model/NeuronTest.java

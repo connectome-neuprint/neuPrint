@@ -2,6 +2,7 @@ package org.janelia.flyem.neuprint.model;
 
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.reflect.TypeToken;
+import com.google.gson.stream.JsonReader;
 import org.janelia.flyem.neuprint.json.JsonUtils;
 
 import java.io.BufferedReader;
@@ -85,6 +86,17 @@ public class SynapticConnection {
      */
     static List<SynapticConnection> fromJsonArray(final String jsonString) {
         return JsonUtils.GSON.fromJson(jsonString, CONNECTION_LIST_TYPE);
+    }
+
+    /**
+     * Returns a SynapticConnection deserialized from a single JSON object from a connection JSON file.
+     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">connection JSON format</a>.
+     *
+     * @param reader {@link JsonReader}
+     * @return SynapticConnection
+     */
+    public static SynapticConnection fromJsonSingleObject(final JsonReader reader) {
+        return JsonUtils.GSON.fromJson(reader, SynapticConnection.class);
     }
 
     private static final Type CONNECTION_LIST_TYPE = new TypeToken<List<SynapticConnection>>() {

@@ -85,7 +85,7 @@ public class Neo4jImporterTest {
 
         String dataset = "test";
 
-        NeuPrintMain.runStandardLoad(neo4jImporter, dataset, synapseList, connectionsList, neuronList, skeletonList, metaInfo, 1.0F, .2D, .8D, true, true, timeStamp);
+        NeuPrintMain.runStandardLoad(neo4jImporter, dataset, synapseList, connectionsList, neuronList, skeletonList, metaInfo, 1.0F, .2D, .8D, 5,true, true, timeStamp);
 
     }
 

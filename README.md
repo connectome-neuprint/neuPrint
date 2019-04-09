@@ -30,12 +30,31 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 
 3. Run the following on the command line:
 ```console
-$ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --synapseJson=mb6_neo4j_inputs/mb6_new_spec_Synapses.json --connectionsJson=mb6_neo4j_inputs/mb6_new_spec_Synaptic_Connections.json --neuronJson=mb6_neo4j_inputs/mb6_new_spec_Neurons.json --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons --metaInfoJson=meta-data/mb6_meta_data.json
+$ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --synapseJson=mb6_neo4j_inputs/mb6_new_spec_Synapses.json --connectionJson=mb6_neo4j_inputs/mb6_new_spec_Synaptic_Connections.json --neuronJson=mb6_neo4j_inputs/mb6_new_spec_Neurons.json --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons --metaInfoJson=meta-data/mb6_meta_data.json
+```
+
+If data from JSON files is too large to fit into memory, neuprint can batch load these files by setting `--neuronBatchSize`, `--connectionBatchSize`, and/or `--synapseBatchSize` to a value greater than 0. Alternatively, one can load multiple json files by repeatedly running the loader as long as all synapses are loaded prior to loading all connections, which are loaded prior to loading all neurons. For example:
+
+```console
+// load all synapses
+java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=test --synapseJson=synapse_1.json
+java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=test --synapseJson=synapse_2.json
+
+// load all connections
+java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=test --connectionJson=connections_1.json
+java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=test --connectionJson=connections_2.json
+
+// load all neurons
+java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=test --neuronJson=neuron_1.json
+java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=test --neuronJson=neuron_2.json
+
+// load skeletons and meta data
+java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=test --skeletonDirectory=test_skeletons --metaInfoJson=meta-data/test_meta_data.json
 ```
 
 ## Load your own connectome data into Neo4j using neuPrint
 
-Follow these [input specifications](jsonspecs.md) to create your own neurons.json, synapses.json, and skeleton files. To create a database on your computer, use [Neo4j Desktop](https://neo4j.com/download/?ref=product).
+Follow these [input specifications](jsonspecs.md) to create your own synapse, connection, and neuron JSON files and skeleton files. To create a database on your computer, use [Neo4j Desktop](https://neo4j.com/download/?ref=product).
 
 ```console
 $ java -jar executables/neuprint.jar --help
@@ -51,7 +70,10 @@ Usage: java -jar neuprint.jar [options]
       and that the weightHP property should be added to all ConnectionSets 
       (true by default).
       Default: true
-    --connectionsJson
+    --connectionBatchSize
+      If > 0, the connection JSON file will be loaded in batches of this size.
+      Default: 0
+    --connectionJson
       Path to JSON file containing synaptic connections.
     --dataModelVersion
       Data model version (required)
@@ -64,6 +86,9 @@ Usage: java -jar neuprint.jar [options]
 
     --metaInfoJson
       JSON file containing meta information for dataset
+    --neuronBatchSize
+      If > 0, the neuron JSON file will be loaded in batches of this size.
+      Default: 0
     --neuronJson
       JSON file containing neuron data to import
     --neuronThreshold
@@ -81,6 +106,9 @@ Usage: java -jar neuprint.jar [options]
       Default: 0.0
     --skeletonDirectory
       Path to directory containing skeleton files for this dataset
+    --synapseBatchSize
+      If > 0, the synapse JSON file will be loaded in batches of this size.
+      Default: 0
     --synapseJson
       JSON file containing body synapse data to import
 

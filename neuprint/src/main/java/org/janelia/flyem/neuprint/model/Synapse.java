@@ -241,6 +241,17 @@ public class Synapse {
         return JsonUtils.GSON.fromJson(jsonString, SYNAPSE_LIST_TYPE);
     }
 
+    /**
+     * Returns a Synapse deserialized from a single JSON object from a synapse JSON file.
+     * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">synapse JSON format</a>.
+     *
+     * @param reader {@link JsonReader}
+     * @return Synapse
+     */
+    public static Synapse fromJsonSingleObject(final JsonReader reader) {
+        return JsonUtils.GSON.fromJson(reader, Synapse.class);
+    }
+
     private static final Type SYNAPSE_LIST_TYPE = new TypeToken<List<Synapse>>() {
     }.getType();
 
