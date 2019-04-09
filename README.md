@@ -52,22 +52,6 @@ $ java -jar executables/neuprint.jar --help
   
 Usage: java -jar neuprint.jar [options]
   Options:
-    --addAutoNames
-      Indicates that automatically generated names should be added for this 
-      dataset. Auto-names are in the format ROIA-ROIB_8 where ROIA is the roi 
-      in which a given neuron has the most inputs (postsynaptic densities) and 
-      ROIB is the roi in which a neuron has the most outputs (presynaptic 
-      densities). The final number renders this name unique per dataset. Names 
-      are only generated for neurons that have greater than the number of 
-      synapses indicated by neuronThreshold. If neurons do not already have a 
-      name, the auto-name is added to the name property. (skip to omit)
-      Default: false
-    --addAutoNamesOnly
-      Indicates that only the autoNames should be added for this dataset. 
-      Requires the existing dataset to be completely loaded into neo4j. Names 
-      are only generated for neurons that have greater than the number of 
-      synapsesindicated by neuronThreshold (omit to skip)
-      Default: false
     --addClusterNames
       Indicates that cluster names should be added to Neuron nodes. (true by 
       default) 
@@ -140,9 +124,7 @@ Usage: java -jar neuprint.jar [options]
     --neuronThreshold
       Integer indicating the number of synaptic densities (>=neuronThreshold/5 
       pre OR >=neuronThreshold post) a neuron should have to be given the 
-      label of :Neuron (all have the :Segment label by default) and an 
-      auto-name. To add auto-names, must have --addAutoName OR 
-      --addAutoNamesOnly enabled.
+      label of :Neuron (all have the :Segment label by default).
       Default: 10
     --postHPThreshold
       Confidence threshold to distinguish high-precision postsynaptic 
