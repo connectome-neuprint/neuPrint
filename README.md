@@ -33,7 +33,7 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 $ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --synapseJson=mb6_neo4j_inputs/mb6_new_spec_Synapses.json --connectionJson=mb6_neo4j_inputs/mb6_new_spec_Synaptic_Connections.json --neuronJson=mb6_neo4j_inputs/mb6_new_spec_Neurons.json --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons --metaInfoJson=meta-data/mb6_meta_data.json
 ```
 
-If data from JSON files is too large to fit into memory, neuprint can batch load these files by setting `--neuronBatchSize`, `--connectionBatchSize`, and/or `--synapseBatchSize` to a value greater than 0. Alternatively, one can load multiple json files by repeatedly running the loader as long as all synapses are loaded prior to loading all connections, which are loaded prior to loading all neurons. For example:
+If data from JSON and/or .swc files is too large to fit into memory, neuprint can batch load these files by setting `--neuronBatchSize`, `--connectionBatchSize`, `--synapseBatchSize`, and/or `--skeletonBatchSize` to a value greater than 0. Alternatively, one can load multiple json files by repeatedly running the loader as long as all synapses are loaded prior to loading all connections, which are loaded prior to loading all neurons. For example:
 
 ```console
 // load all synapses
@@ -104,6 +104,9 @@ Usage: java -jar neuprint.jar [options]
       Confidence threshold to distinguish high-precision presynaptic densities 
       (default is 0.0)
       Default: 0.0
+    --skeletonBatchSize
+      If > 0, the skeleton files will be loaded in batches of this size.
+      Default: 0
     --skeletonDirectory
       Path to directory containing skeleton files for this dataset
     --synapseBatchSize

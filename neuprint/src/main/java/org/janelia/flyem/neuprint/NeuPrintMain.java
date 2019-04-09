@@ -81,6 +81,12 @@ public class NeuPrintMain {
         int neuronBatchSize;
 
         @Parameter(
+                names = "--skeletonBatchSize",
+                description = "If > 0, the skeleton files will be loaded in batches of this size."
+        )
+        int skeletonBatchSize;
+
+        @Parameter(
                 names = "--datasetLabel",
                 description = "Dataset value for all nodes (required)",
                 required = true)
@@ -384,10 +390,59 @@ public class NeuPrintMain {
                 skeleton.fromSwc(reader, associatedBodyId);
                 skeletonList.add(skeleton);
             } catch (Exception e) {
-                e.printStackTrace();
+                LOG.error("Error reading skeleton files: " + e);
+                System.exit(1);
             }
         }
         return skeletonList;
+    }
+
+    public static void loadSkeletonsInBatches(File[] arrayOfSwcFiles,
+                                              int skeletonBatchSize,
+                                              boolean databaseInitialized,
+                                              Neo4jImporter neo4jImporter,
+                                              String dataset,
+                                              float dataModelVersion,
+                                              double preHPThreshold,
+                                              double postHPThreshold,
+                                              boolean addConnectionSetRoiInfoAndWeightHP,
+                                              boolean addClusterNames,
+                                              LocalDateTime timeStamp) {
+
+        Stopwatch timer = Stopwatch.createUnstarted();
+
+        if (!databaseInitialized) {
+            initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, addConnectionSetRoiInfoAndWeightHP, addClusterNames, timeStamp);
+        }
+
+        LOG.info(String.format("Loading skeletons in batches of size %d", skeletonBatchSize));
+
+        int currentFileIndex = 0;
+        while (currentFileIndex < arrayOfSwcFiles.length) {
+            List<Skeleton> skeletonList = new ArrayList<>();
+            int i = 0;
+            while (currentFileIndex < arrayOfSwcFiles.length && i < skeletonBatchSize) {
+                String filepath = arrayOfSwcFiles[currentFileIndex].getAbsolutePath();
+                currentFileIndex++;
+                Long associatedBodyId = setSkeletonAssociatedBodyId(filepath);
+                Skeleton skeleton = new Skeleton();
+                try (BufferedReader reader = new BufferedReader(new FileReader(filepath))) {
+                    skeleton.fromSwc(reader, associatedBodyId);
+                    skeletonList.add(skeleton);
+                    i++;
+                } catch (Exception e) {
+                    LOG.error("Error reading skeleton files: " + e);
+                    System.exit(1);
+                }
+            }
+
+            timer.start();
+            neo4jImporter.addSkeletonNodes(dataset, skeletonList, timeStamp);
+            LOG.info("Loading all Skeleton nodes took: " + timer.stop());
+            timer.reset();
+
+        }
+
     }
 
     /**
@@ -595,25 +650,32 @@ public class NeuPrintMain {
 
             if (parameters.skeletonDirectory != null) {
 
-                // TODO: allow batching here
                 final File folder = new File(parameters.skeletonDirectory);
                 final File[] arrayOfSwcFiles = folder.listFiles((dir, name) -> name.toLowerCase().endsWith(".swc"));
 
                 assert arrayOfSwcFiles != null : "No swc files found.";
                 LOG.info("Reading in " + arrayOfSwcFiles.length + " swc files.");
 
-                final List<Skeleton> skeletonList = createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
-
-                try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                    if (!databaseInitialized) {
-                        initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
+                if (parameters.skeletonBatchSize > 0) {
+                    try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                        loadSkeletonsInBatches(arrayOfSwcFiles, parameters.skeletonBatchSize, databaseInitialized, neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
+                        databaseInitialized = true;
                     }
+                } else {
 
-                    timer.start();
-                    neo4jImporter.addSkeletonNodes(dataset, skeletonList, timeStamp);
-                    LOG.info("Loading all Skeleton nodes took: " + timer.stop());
-                    timer.reset();
+                    final List<Skeleton> skeletonList = createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
+
+                    try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+
+                        if (!databaseInitialized) {
+                            initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
+                        }
+
+                        timer.start();
+                        neo4jImporter.addSkeletonNodes(dataset, skeletonList, timeStamp);
+                        LOG.info("Loading all Skeleton nodes took: " + timer.stop());
+                        timer.reset();
+                    }
                 }
 
             }

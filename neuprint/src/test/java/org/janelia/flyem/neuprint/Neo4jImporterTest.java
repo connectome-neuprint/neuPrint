@@ -463,6 +463,14 @@ public class Neo4jImporterTest {
     }
 
     @Test
+    public void shouldHaveCorrectNumberOfSkeletons() {
+        Session session = driver.session();
+
+        List<Record> skeletons = session.run("MATCH (s:Skeleton:`test-Skeleton`) RETURN s").list();
+        Assert.assertEquals(3, skeletons.size());
+    }
+
+    @Test
     public void skeletonsShouldBeConnectedToAppropriateBody() {
 
         Session session = driver.session();

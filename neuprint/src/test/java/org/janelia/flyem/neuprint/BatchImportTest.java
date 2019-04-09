@@ -63,8 +63,6 @@ public class BatchImportTest {
 
         File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2, swcFile3};
 
-        List<Skeleton> skeletonList = NeuPrintMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
-
         String neuronsJsonPath = "src/test/resources/neuronList.json";
 
         String synapseJsonPath = "src/test/resources/synapseList.json";
@@ -81,11 +79,11 @@ public class BatchImportTest {
 
         NeuPrintMain.loadSynapseJsonInBatches(synapseJsonPath,2,neo4jImporter,dataset,false,1.0F,.2D,.8D,true,true,timeStamp);
 
-        NeuPrintMain.loadConnectionJsonInBatches(connectionsJsonPath,2,neo4jImporter,dataset,false,1.0F,.2D,.8D,true,true,timeStamp);
+        NeuPrintMain.loadConnectionJsonInBatches(connectionsJsonPath,2,neo4jImporter,dataset,true,1.0F,.2D,.8D,true,true,timeStamp);
 
-        NeuPrintMain.loadNeuronJsonInBatches(neuronsJsonPath,2,neo4jImporter,dataset,false,1.0F,.2D,.8D,5,true,true,timeStamp);
+        NeuPrintMain.loadNeuronJsonInBatches(neuronsJsonPath,2,neo4jImporter,dataset,true,1.0F,.2D,.8D,5,true,true,timeStamp);
 
-        neo4jImporter.addSkeletonNodes(dataset, skeletonList, timeStamp);
+        NeuPrintMain.loadSkeletonsInBatches(arrayOfSwcFiles, 2, true, neo4jImporter, dataset, 1.0F,.2D,.8D, true, true, timeStamp);
 
         neo4jImporter.addMetaInfo(dataset, metaInfo, timeStamp);
 
@@ -462,6 +460,14 @@ public class BatchImportTest {
         List<Record> synapseSS_8426959 = session.run("MATCH (n:`test-Segment`{bodyId:8426959})-[:Contains]->(ss:SynapseSet)-[:Contains]->(s) RETURN s").list();
         Assert.assertEquals(5, synapseSS_8426959.size());
 
+    }
+
+    @Test
+    public void shouldHaveCorrectNumberOfSkeletons() {
+        Session session = driver.session();
+
+        List<Record> skeletons = session.run("MATCH (s:Skeleton:`test-Skeleton`) RETURN s").list();
+        Assert.assertEquals(3, skeletons.size());
     }
 
     @Test
