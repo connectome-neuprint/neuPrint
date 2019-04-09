@@ -491,9 +491,9 @@ public class Neo4jImporter implements AutoCloseable {
     /**
      * Adds Segment nodes with properties specified by a <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.
      *
-     * @param dataset                            dataset name
-     * @param neuronList                         list of {@link Neuron} objects
-     * @param timeStamp                          time stamp for load
+     * @param dataset    dataset name
+     * @param neuronList list of {@link Neuron} objects
+     * @param timeStamp  time stamp for load
      */
     public void addSegments(final String dataset,
                             final List<Neuron> neuronList,
@@ -528,7 +528,6 @@ public class Neo4jImporter implements AutoCloseable {
 
         final String metaNodeString = "MATCH (m:Meta{dataset:$dataset}) SET " +
                 "m.lastDatabaseEdit=$timeStamp";
-
 
         try (final TransactionBatch batch = getBatch()) {
             for (final Neuron neuron : neuronList) {
@@ -871,26 +870,6 @@ public class Neo4jImporter implements AutoCloseable {
                 Math.toIntExact(e1.getValue().getPre() == e2.getValue().getPre() ? e1.getKey().compareTo(e2.getKey()) : e2.getValue().getPre() - e1.getValue().getPre());
         return entriesSortedByComparator(roiSynapseCountMap, comparator);
     }
-//
-//    private Set<String> getSuperLevelRoisFromSynapses(List<BodyWithSynapses> bodyList) {
-//
-//        Set<String> superLevelRois = new HashSet<>();
-//
-//        for (final BodyWithSynapses bws : bodyList) {
-//
-//            for (final Synapse synapse : bws.getSynapseSet()) {
-//
-//                Set<String> roiSet = synapse.getRois();
-//                if (roiSet != null && roiSet.size() > 0) {
-//                    superLevelRois.add(roiSet.iterator().next()); // first listed rois are "super" rois
-//                }
-//            }
-//        }
-//
-//        return superLevelRois;
-//    }
-//
 
-    //
     private static final Logger LOG = LoggerFactory.getLogger(Neo4jImporter.class);
 }
