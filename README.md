@@ -10,10 +10,10 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 ## Requirements
 * Neo4j version 3.5.3
 * [apoc version 3.5.0.1](https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/tag/3.5.0.1)<sup>1</sup>
-* neuprint-load-procedures.jar (for loading) OR neuprint-procedures.jar (for integration with neuPrint ecosystem after loading). Both are found in `executables` directory. <sup>2</sup>
+* neuprint-load-procedures.jar (for loading) OR neuprint-procedures.jar (for integration with neuPrint ecosystem after loading). Both are found in `executables` directory. Only one of these should be installed at a time since neuprint-load-procedures is a dependency of neuprint-procedures. <sup>2</sup>
     
 1. Note that to install plugins in neo4j, the .jar files must be copied into the plugins directory of your neo4j database. [This may be helpful.](https://community.neo4j.com/t/how-can-i-install-apoc-library-for-neo4j-version-3-4-6-edition-community/1495)
-2. One of these is required for loading. Triggers in neuprint-procedures.jar may slow down the load, so neuprint-load-procedures.jar is recommended. neuprint-procedures.jar contains the required load procedures as well as custom stored procedures and functions for use with the rest of the neuPrint ecosystem. If using with neuPrintHTTP and neuPrintExplorer, install neuprint-procedures after loading the data.
+2. One of these is required for loading. Triggers in neuprint-procedures.jar may slow down the load, so neuprint-load-procedures.jar is recommended. neuprint-procedures.jar contains the required load procedures as well as custom stored procedures and functions for use with the rest of the neuPrint ecosystem. If using with neuPrintHTTP and neuPrintExplorer, install neuprint-procedures (and delete neuprint-load-procedures) after loading the data.
 
 
 ## Example data
