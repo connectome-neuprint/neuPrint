@@ -161,6 +161,6 @@ Usage: java -jar neuprint.jar [options]
 ## neuPrint Custom Procedures and Functions
 These are found in the neuprint-procedures.jar file:
 * [Graph Update API](graphupdateAPI.md)
-* Analysis Procedures (docs coming soon)
+* Analysis Procedures
       
 
