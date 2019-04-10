@@ -46,6 +46,7 @@ public class Neo4jImporter implements AutoCloseable {
 
     private final Driver driver;
     private final int statementsPerTransaction;
+    private final int connectionInfoStatementsPerTransaction;
 
     /**
      * Class constructor.
@@ -58,6 +59,7 @@ public class Neo4jImporter implements AutoCloseable {
 
             this.driver = null;
             this.statementsPerTransaction = 1;
+            this.connectionInfoStatementsPerTransaction = 1;
 
         } else {
 
@@ -65,6 +67,7 @@ public class Neo4jImporter implements AutoCloseable {
                     AuthTokens.basic(dbConfig.getUser(),
                             dbConfig.getPassword()));
             this.statementsPerTransaction = dbConfig.getStatementsPerTransaction();
+            this.connectionInfoStatementsPerTransaction = dbConfig.getConnectionInfoStatementsPerTransaction();
 
         }
 
@@ -78,6 +81,7 @@ public class Neo4jImporter implements AutoCloseable {
     public Neo4jImporter(final Driver driver) {
         this.driver = driver;
         this.statementsPerTransaction = 20;
+        this.connectionInfoStatementsPerTransaction = 1;
     }
 
     /**
@@ -617,6 +621,7 @@ public class Neo4jImporter implements AutoCloseable {
                 "(ss:`" + dataset + "-SynapseSet`{datasetBodyId:$datasetBodyId})" +
                 " WITH n,ss CALL loader.addPropsAndConnectionInfoToSegment(n, ss, $dataset, $preHPThreshold, $postHPThreshold, $neuronThreshold, $addCSRoiInfoAndWeightHP) RETURN n.bodyId";
         try (final TransactionBatch batch = getBatch()) {
+            int statementCount = 0;
             for (final Neuron neuron : neuronList) {
 
                 batch.addStatement(new Statement(addConnectionDetailsToSegment,
@@ -630,8 +635,13 @@ public class Neo4jImporter implements AutoCloseable {
                                 "addCSRoiInfoAndWeightHP", addConnectionSetRoiInfoAndWeightHP
                         )));
 
-                batch.writeTransaction();
+                statementCount++;
 
+                // This procedure call is more complicated than other statements used during the load, so generally needs a smaller batch size. This can be specified in the properties file or will default to 1/40th of the standard transaction size.
+                if (statementCount == this.connectionInfoStatementsPerTransaction) {
+                    batch.writeTransaction();
+                    statementCount = 0;
+                }
                 //delay to allow transactions to complete to prevent blocking
                 try {
                     TimeUnit.MILLISECONDS.sleep(2);
@@ -640,6 +650,7 @@ public class Neo4jImporter implements AutoCloseable {
                 }
 
             }
+            batch.writeTransaction();
         }
 
     }

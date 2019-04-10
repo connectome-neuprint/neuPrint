@@ -65,6 +65,12 @@ Usage: java -jar neuprint.jar [options]
       Indicates that cluster names should be added to Neuron nodes. (true by 
       default) 
       Default: true
+    --addConnectionInfoOnly
+      If finished adding synapses, synaptic connections, and neuron/segment 
+      nodes, can choose to load connection info (ConnectsTo relationships, 
+      ConnectionSets, neuron/segment properties) separately with this flag. 
+      (omit to skip)
+      Default: false
     --addConnectionSetRoiInfoAndWeightHP
       Indicates that an roiInfo property should be added to each ConnectionSet 
       and that the weightHP property should be added to all ConnectionSets 

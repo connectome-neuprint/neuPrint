@@ -115,6 +115,13 @@ public class NeuPrintMain {
         boolean addConnectionSetRoiInfoAndWeightHP = true;
 
         @Parameter(
+                names = "--addConnectionInfoOnly",
+                description = "If finished adding synapses, synaptic connections, and neuron/segment nodes, can choose to load connection info (ConnectsTo relationships, ConnectionSets, neuron/segment properties) separately with this flag. (omit to skip)",
+                arity = 0
+        )
+        boolean addConnectionInfoOnly;
+
+        @Parameter(
                 names = "--skeletonDirectory",
                 description = "Path to directory containing skeleton files for this dataset")
         String skeletonDirectory;
@@ -216,6 +223,53 @@ public class NeuPrintMain {
                 neo4jImporter.addSegments(dataset, neuronList, timeStamp);
                 LOG.info(String.format("Loading batch of neurons took: %s", timer.stop()));
                 timer.reset();
+
+                timer.start();
+                neo4jImporter.addConnectionInfo(dataset, neuronList, addConnectionSetRoiInfoAndWeightHP, preHPThreshold, postHPThreshold, neuronThreshold);
+                LOG.info(String.format("Loading all connection info for batch took: %s", timer.stop()));
+                timer.reset();
+            }
+
+        } catch (IOException e) {
+            LOG.error("Error reading neurons JSON: " + e);
+            System.exit(1);
+        }
+
+    }
+
+    public static void loadConnectionInfoInBatches(
+            String filepath,
+            int neuronBatchSize,
+            Neo4jImporter neo4jImporter,
+            String dataset,
+            boolean databaseInitialized,
+            float dataModelVersion,
+            double preHPThreshold,
+            double postHPThreshold,
+            long neuronThreshold,
+            boolean addConnectionSetRoiInfoAndWeightHP,
+            boolean addClusterNames,
+            LocalDateTime timeStamp) {
+
+        Stopwatch timer = Stopwatch.createUnstarted();
+
+        if (!databaseInitialized) {
+            initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, addConnectionSetRoiInfoAndWeightHP, addClusterNames, timeStamp);
+
+        }
+
+        LOG.info(String.format("Loading neuron json (connection info only) in batches of size %d", neuronBatchSize));
+
+        try (JsonReader reader = new JsonReader(new FileReader(filepath))) {
+            reader.beginArray();
+            while (reader.hasNext()) {
+                List<Neuron> neuronList = new ArrayList<>();
+                int i = 0;
+                while (reader.hasNext() && i < neuronBatchSize) {
+                    Neuron neuron = Neuron.fromJsonSingleObject(reader);
+                    neuronList.add(neuron);
+                    i++;
+                }
 
                 timer.start();
                 neo4jImporter.addConnectionInfo(dataset, neuronList, addConnectionSetRoiInfoAndWeightHP, preHPThreshold, postHPThreshold, neuronThreshold);
@@ -618,32 +672,62 @@ public class NeuPrintMain {
 
             if (parameters.neuronJson != null) {
 
-                if (parameters.neuronBatchSize > 0) {
-                    try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-                        loadNeuronJsonInBatches(parameters.neuronJson, parameters.neuronBatchSize, neo4jImporter, dataset, databaseInitialized, dataModelVersion, preHPThreshold, postHPThreshold, neuronThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
-                        databaseInitialized = true;
-                    }
-                } else {
-                    timer.start();
-                    List<Neuron> neuronList = readNeuronsJson(parameters.neuronJson);
-                    LOG.info(String.format("Reading in neurons JSON took: %s", timer.stop()));
-                    timer.reset();
+                if (parameters.addConnectionInfoOnly) {
 
-                    try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
-
-                        if (!databaseInitialized) {
-                            initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
+                    if (parameters.neuronBatchSize > 0) {
+                        try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                            loadConnectionInfoInBatches(parameters.neuronJson, parameters.neuronBatchSize, neo4jImporter, dataset, databaseInitialized, dataModelVersion, preHPThreshold, postHPThreshold, neuronThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
                             databaseInitialized = true;
                         }
+                    } else {
                         timer.start();
-                        neo4jImporter.addSegments(dataset, neuronList, timeStamp);
-                        LOG.info(String.format("Loading all neurons took: %s", timer.stop()));
+                        List<Neuron> neuronList = readNeuronsJson(parameters.neuronJson);
+                        LOG.info(String.format("Reading in neurons JSON took: %s", timer.stop()));
                         timer.reset();
 
+                        try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+
+                            if (!databaseInitialized) {
+                                initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
+                                databaseInitialized = true;
+                            }
+
+                            timer.start();
+                            neo4jImporter.addConnectionInfo(dataset, neuronList, parameters.addConnectionSetRoiInfoAndWeightHP, preHPThreshold, postHPThreshold, neuronThreshold);
+                            LOG.info(String.format("Loading all connection info took: %s", timer.stop()));
+                            timer.reset();
+                        }
+                    }
+
+                } else {
+
+                    if (parameters.neuronBatchSize > 0) {
+                        try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+                            loadNeuronJsonInBatches(parameters.neuronJson, parameters.neuronBatchSize, neo4jImporter, dataset, databaseInitialized, dataModelVersion, preHPThreshold, postHPThreshold, neuronThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
+                            databaseInitialized = true;
+                        }
+                    } else {
                         timer.start();
-                        neo4jImporter.addConnectionInfo(dataset, neuronList, parameters.addConnectionSetRoiInfoAndWeightHP, preHPThreshold, postHPThreshold, neuronThreshold);
-                        LOG.info(String.format("Loading all connection info took: %s", timer.stop()));
+                        List<Neuron> neuronList = readNeuronsJson(parameters.neuronJson);
+                        LOG.info(String.format("Reading in neurons JSON took: %s", timer.stop()));
                         timer.reset();
+
+                        try (Neo4jImporter neo4jImporter = new Neo4jImporter(parameters.getDbConfig())) {
+
+                            if (!databaseInitialized) {
+                                initializeDatabase(neo4jImporter, dataset, dataModelVersion, preHPThreshold, postHPThreshold, parameters.addConnectionSetRoiInfoAndWeightHP, parameters.addClusterNames, timeStamp);
+                                databaseInitialized = true;
+                            }
+                            timer.start();
+                            neo4jImporter.addSegments(dataset, neuronList, timeStamp);
+                            LOG.info(String.format("Loading all neurons took: %s", timer.stop()));
+                            timer.reset();
+
+                            timer.start();
+                            neo4jImporter.addConnectionInfo(dataset, neuronList, parameters.addConnectionSetRoiInfoAndWeightHP, preHPThreshold, postHPThreshold, neuronThreshold);
+                            LOG.info(String.format("Loading all connection info took: %s", timer.stop()));
+                            timer.reset();
+                        }
                     }
                 }
             }
