@@ -579,6 +579,8 @@ public class NeuPrintMain {
         final JCommander jCommander = new JCommander(parameters);
         jCommander.setProgramName("java -jar neuprint.jar");
 
+        //TODO: add ability to pick up where it left off during load
+
         boolean parseFailed = true;
         try {
             jCommander.parse(args);
