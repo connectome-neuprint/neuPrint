@@ -18,11 +18,11 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 
 ## Example data
 
-* mb6 : from ["A connectome of a learning and memory center in the adult Drosophila brain"](https://elifesciences.org/articles/26975) (Takemura, et al. 2017)
+* mushroombody (mb6) : from ["A connectome of a learning and memory center in the adult Drosophila brain"](https://elifesciences.org/articles/26975) (Takemura, et al. 2017)
 
-* fib25 : from ["Synaptic circuits and their variations within different columns in the visual system of Drosophila"](https://www.pnas.org/content/112/44/13711) (Takemura, et al. 2015)
+* medulla7column (fib25) : from ["Synaptic circuits and their variations within different columns in the visual system of Drosophila"](https://www.pnas.org/content/112/44/13711) (Takemura, et al. 2015)
 
-## Load mb6 connectome data into Neo4j
+## Load mushroombody (mb6) connectome data into Neo4j
 
 1. After cloning the repository, set uri, user, and password in the example.properties file to match the those of the target database. You can also change the batch size for database transactions in this file (default is 100). Unzip mb6_neo4j_inputs.zip.  
 
@@ -33,7 +33,7 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 $ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --addNeuronsAndSynapses --neuronJson=mb6_neo4j_inputs/mb6_Neurons_with_nt.json --synapseJson=mb6_neo4j_inputs/mb6_Synapses.json --metaInfoJson=meta-data/mb6_meta_data.json
 ```
 
-## Load mb6 skeleton data into Neo4j
+## Load mushroombody (mb6) skeleton data into Neo4j
 
 1. Follow step 1 and 2 above. 
 
