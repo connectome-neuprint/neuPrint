@@ -24,23 +24,24 @@ public class SomaAdapter implements JsonDeserializer<Soma>, JsonSerializer<Soma>
 
         final JsonObject jsonObject = jsonElement.getAsJsonObject();
 
-        if (!jsonObject.has(LOCATION_KEY)) {
+        if (!jsonObject.has(LOCATION_KEY) && !jsonObject.has(RADIUS_KEY)) {
+            return null;
+        } else if (!jsonObject.has(LOCATION_KEY)) {
             throw new JsonParseException("Soma must have 'location' property.");
-        }
-        if (!jsonObject.has(RADIUS_KEY)) {
+        } else if (!jsonObject.has(RADIUS_KEY)) {
             throw new JsonParseException("Soma must have 'radius' property.");
+        } else {
+
+            final Location location = jsonDeserializationContext.deserialize(jsonObject.get(LOCATION_KEY), Location.class);
+
+            Double radius;
+            try {
+                radius = jsonObject.get(RADIUS_KEY).getAsDouble();
+            } catch (NumberFormatException nfe) {
+                throw new JsonParseException("Radius must be a number.");
+            }
+            return new Soma(location, radius);
         }
-
-        final Location location = jsonDeserializationContext.deserialize(jsonObject.get(LOCATION_KEY), Location.class);
-
-        Double radius;
-        try {
-            radius = jsonObject.get(RADIUS_KEY).getAsDouble();
-        } catch (NumberFormatException nfe) {
-            throw new JsonParseException("Radius must be a number.");
-        }
-
-        return new Soma(location, radius);
 
     }
 

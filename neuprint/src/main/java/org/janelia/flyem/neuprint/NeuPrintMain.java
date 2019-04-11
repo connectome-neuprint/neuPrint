@@ -395,6 +395,8 @@ public class NeuPrintMain {
             while (reader.hasNext()) {
                 List<SynapticConnection> connectionsList = new ArrayList<>();
                 int i = 0;
+                // get to start
+
                 while (reader.hasNext() && i < connectionBatchSize) {
                     SynapticConnection synapticConnection = SynapticConnection.fromJsonSingleObject(reader);
                     connectionsList.add(synapticConnection);
