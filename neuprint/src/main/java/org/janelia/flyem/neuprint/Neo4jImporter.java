@@ -152,6 +152,11 @@ public class Neo4jImporter implements AutoCloseable {
 
     }
 
+    /**
+     * Creates index if clusterNames will be added.
+     *
+     * @param dataset dataset for load
+     */
     public void prepDatabaseForClusterNames(final String dataset) {
 
         LOG.info("prepDatabaseForClusterNames: entry");
@@ -166,6 +171,11 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("prepDatabaseForClusterNames: exit");
     }
 
+    /**
+     * Creates an index for each ROI present in the dataset. ROIs are stored as boolean properties (set to true) on Neuron/Segment nodes and Synapse (PreSyn and PostSyn) nodes.
+     *
+     * @param dataset dataset for load
+     */
     public void indexBooleanRoiProperties(String dataset) {
 
         LOG.info("indexBooleanRoiProperties: entry");
@@ -609,7 +619,7 @@ public class Neo4jImporter implements AutoCloseable {
      * @param addConnectionSetRoiInfoAndWeightHP boolean indicating if ConnectionSet nodes should have roiInfo property and weightHP should be added to ConnectsTo relationships
      * @param preHPThreshold                     high-precision threshold for presynaptic densities
      * @param postHPThreshold                    high-precision threshold for postsynaptic densities
-     * @param neuronThreshold                    Neuron must have >=neuronThreshold/5 presynaptic densities or >=neuronThreshold postsynaptic densities to be given a :Neuron label
+     * @param neuronThreshold                    Neuron must have greater than or equal to neuronThreshold/5 presynaptic densities or greater than or equal to neuronThreshold postsynaptic densities to be given a :Neuron label
      */
     public void addConnectionInfo(final String dataset,
                                   final List<Neuron> neuronList,
@@ -755,6 +765,13 @@ public class Neo4jImporter implements AutoCloseable {
         LOG.info("addSkeletonNodes: exit");
     }
 
+    /**
+     * Adds meta information to the Meta node for the provided dataset. Meta information is stored as a MetaInfo object, which is loaded from a json provided during the load.
+     *
+     * @param dataset dataset for load
+     * @param metaInfo MetaInfo object
+     * @param timeStamp time stamp for load
+     */
     public void addMetaInfo(String dataset, MetaInfo metaInfo, final LocalDateTime timeStamp) {
 
         LOG.info("addMetaInfo: enter");

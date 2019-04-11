@@ -9,6 +9,10 @@ import java.io.BufferedReader;
 import java.lang.reflect.Type;
 import java.util.List;
 
+/**
+ * A class representing a synaptic connection between a presynaptic density and a postsynaptic density.
+ * See <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">connection JSON format</a>.
+ */
 public class SynapticConnection {
 
     @SerializedName("pre")

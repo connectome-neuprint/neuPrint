@@ -12,6 +12,9 @@ import org.janelia.flyem.neuprint.model.Soma;
 
 import java.lang.reflect.Type;
 
+/**
+ * Gson adapter for soma json objects.
+ */
 public class SomaAdapter implements JsonDeserializer<Soma>, JsonSerializer<Soma> {
 
     private static final String LOCATION_KEY = "location";

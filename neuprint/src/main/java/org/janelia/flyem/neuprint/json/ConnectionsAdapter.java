@@ -12,6 +12,9 @@ import org.janelia.flyem.neuprint.model.SynapticConnection;
 
 import java.lang.reflect.Type;
 
+/**
+ * Gson adapter for json files describing synaptic connections.
+ */
 public class ConnectionsAdapter implements JsonDeserializer<SynapticConnection>, JsonSerializer<SynapticConnection> {
 
     private static final String PRE_KEY = "pre";

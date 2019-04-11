@@ -31,7 +31,7 @@ import java.util.regex.Pattern;
  * The NeuPrintMain class implements an application that loads neuron and synapse
  * data provided by JSON files into a neo4j database.
  *
- * @see <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron and synapse JSON spec</a>
+ * @see <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron, synapse, and connections JSON spec</a>
  */
 public class NeuPrintMain {
 
@@ -517,6 +517,18 @@ public class NeuPrintMain {
 
     }
 
+    /**
+     * Adds constraints/indices and creates a new Meta node, which is required for the subsequent load.
+     *
+     * @param neo4jImporter
+     * @param dataset
+     * @param dataModelVersion
+     * @param preHPThreshold
+     * @param postHPThreshold
+     * @param addConnectionSetRoiInfoAndWeightHP
+     * @param addClusterNames
+     * @param timeStamp
+     */
     public static void initializeDatabase(Neo4jImporter neo4jImporter,
                                           String dataset,
                                           float dataModelVersion,
@@ -533,6 +545,24 @@ public class NeuPrintMain {
 
     }
 
+    /**
+     * Runs a standard load for testing.
+     *
+     * @param neo4jImporter
+     * @param dataset
+     * @param synapseList
+     * @param connectionsList
+     * @param neuronList
+     * @param skeletonList
+     * @param metaInfo
+     * @param dataModelVersion
+     * @param preHPThreshold
+     * @param postHPThreshold
+     * @param neuronThreshold
+     * @param addConnectionSetRoiInfoAndWeightHP
+     * @param addClusterNames
+     * @param timeStamp
+     */
     public static void runStandardLoad(Neo4jImporter neo4jImporter,
                                        String dataset,
                                        List<Synapse> synapseList,
@@ -552,6 +582,23 @@ public class NeuPrintMain {
         neo4jImporter.addMetaInfo("test", metaInfo, timeStamp);
     }
 
+    /**
+     * Runs a standard load withing adding additional information to the Meta node from a MetaInfo object. Used during testing.
+     *
+     * @param neo4jImporter
+     * @param dataset
+     * @param synapseList
+     * @param connectionsList
+     * @param neuronList
+     * @param skeletonList
+     * @param dataModelVersion
+     * @param preHPThreshold
+     * @param postHPThreshold
+     * @param neuronThreshold
+     * @param addConnectionSetRoiInfoAndWeightHP
+     * @param addClusterNames
+     * @param timeStamp
+     */
     public static void runStandardLoadWithoutMetaInfo(Neo4jImporter neo4jImporter,
                                                       String dataset,
                                                       List<Synapse> synapseList,

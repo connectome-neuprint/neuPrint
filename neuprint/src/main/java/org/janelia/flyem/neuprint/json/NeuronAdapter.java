@@ -16,6 +16,9 @@ import java.lang.reflect.Type;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Gson adapter for json files describing neurons/segments.
+ */
 public class NeuronAdapter implements JsonDeserializer<Neuron>, JsonSerializer<Neuron> {
 
     private static final String ID_KEY = "id";

@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 /**
  * A class representing a neuron, as read from a
- * <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspec.md" target="_blank">neuron JSON file</a>.
+ * <a href="http://github.com/janelia-flyem/neuPrint/blob/master/jsonspecs.md" target="_blank">neuron JSON file</a>.
  * Each neuron must have a unique ID. Optionally, a neuron can have size, name, type, instance, status, ROIs, a soma, and
  * a set of synaptic locations that belong to it.
  */
@@ -57,6 +57,7 @@ public class Neuron {
      * @param status             status
      * @param name               name
      * @param type               neuron type
+     * @param instance           neuron instance
      * @param size               size (in voxels)
      * @param rois               rois associated with this neuron
      * @param soma               soma for this neuron

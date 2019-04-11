@@ -3,9 +3,19 @@ package org.janelia.flyem.neuprint.model;
 import org.neo4j.driver.v1.Values;
 import org.neo4j.driver.v1.types.Point;
 
+/**
+ * A class representing a 3D location.
+ */
 public class Location {
     private Long[] location;
 
+    /**
+     * Class constructor
+     *
+     * @param x x coordinate
+     * @param y y coordinate
+     * @param z z coordinate
+     */
     public Location(Long x, Long y, Long z) {
         this.location = new Long[3];
         this.location[0] = x;
@@ -13,26 +23,47 @@ public class Location {
         this.location[2] = z;
     }
 
+    /**
+     * Class constructor
+     *
+     * @param locationArray location as an array of longs
+     */
     public Location(Long[] locationArray) {
         this.location = locationArray;
     }
 
+    /**
+     * @return x coordinate of location
+     */
     public Long getX() {
         return location[0];
     }
 
+    /**
+     * @return y coordinate of location
+     */
     public Long getY() {
         return location[1];
     }
 
+    /**
+     * @return z coordinate of location
+     */
     public Long getZ() {
         return location[2];
     }
 
+    /**
+     * @return location as array of longs
+     */
     public Long[] getLocation() {
         return location;
     }
 
+    /**
+     *
+     * @return location as neo4j driver Point type for importing data
+     */
     public Point getAsPoint() {
         return Values.point(9157, location[0], location[1], location[2]).asPoint();
     }

@@ -13,6 +13,9 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Gson adapter for 3D locations.
+ */
 public class LocationAdapter implements JsonDeserializer<Location>, JsonSerializer<Location> {
 
     @Override

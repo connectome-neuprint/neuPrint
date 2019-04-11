@@ -15,6 +15,9 @@ import java.lang.reflect.Type;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/**
+ * Gson adapter for json files describing synapses.
+ */
 public class SynapseAdapter implements JsonDeserializer<Synapse>, JsonSerializer<Synapse> {
 
     private static final String TYPE_KEY = "type";
