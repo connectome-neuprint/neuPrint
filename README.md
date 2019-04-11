@@ -30,7 +30,7 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 
 3. Run the following on the command line:
 ```console
-$ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --addNeuronsAndSynapses --neuronJson=mb6_neo4j_inputs/mb6_Neurons_with_nt.json --synapseJson=mb6_neo4j_inputs/mb6_Synapses.json --metaInfoJson=meta-data/mb6_meta_data.json
+$ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mushroombody --addNeuronsAndSynapses --neuronJson=mb6_neo4j_inputs/mb6_Neurons_with_nt.json --synapseJson=mb6_neo4j_inputs/mb6_Synapses.json --metaInfoJson=meta-data/mb6_meta_data.json
 ```
 
 ## Load mushroombody (mb6) skeleton data into Neo4j
@@ -39,7 +39,7 @@ $ java -jar executables/neuprint.jar --dbProperties=example.properties --dataset
 
 2. Run the following on the command line:
 ```console
-$ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mb6 --prepDatabase --addSkeletons --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons
+$ java -jar executables/neuprint.jar --dbProperties=example.properties --datasetLabel=mushroombody --prepDatabase --addSkeletons --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons
 ```
 The ```prepDatabase``` flag ensures that the proper indices and constraints are set in the database. Note that ```--addSkeletons --skeletonDirectory=mb6_neo4j_inputs/mb6_skeletons``` can be added to the previous command to load skeletons with the neuron/synapse data.
 
