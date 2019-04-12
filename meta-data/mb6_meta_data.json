@@ -2,6 +2,6 @@
   "neuroglancerInfo": "{'segmentation':{'host':'https://flyem.dvid.io','uuid':'see meta node','dataType':'groundtruth'},'grayscale':{'host':'https://emdata.janelia.org','uuid':'ee78982c87b14d008bb3f93e9e546c10','dataType':'grayscalejpeg'}}",
   "uuid": "babdf6dbc23e44a69953a66e2260ff0a",
   "dvidServer": "flyem.dvid.io",
-  "meshHost": "",
+  "meshHost": "https://flyem.dvid.io",
   "statusDefinitions": "{'Finalized':'has been fully traced or reconstructed','Leaves':'body leaves the volume','Hard to trace':'proofreaders were not able to trace the body further; reconstruction incomplete','Partially Traced':'body is traced except for regions of the body that leave the volume','Orphan':'the body cannot be traced to a larger parent cell','Traced':''}"
 }
