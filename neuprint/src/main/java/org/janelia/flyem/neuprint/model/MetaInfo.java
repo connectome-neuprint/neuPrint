@@ -31,7 +31,6 @@ public class MetaInfo {
     @SerializedName("info")
     private final String info;
 
-    public MetaInfo(final String neuroglancerInfo, String uuid, String dvidServer, String meshHost, String statusDefinitions, String info) {
     /**
      * Class constructor
      *
@@ -41,7 +40,7 @@ public class MetaInfo {
      * @param meshHost          Host of ROI meshes to be used by the skeleton viewer within neuPrintExplorer
      * @param statusDefinitions Definitions of statuses used for this dataset
      */
-    public MetaInfo(final String neuroglancerInfo, String uuid, String dvidServer, String meshHost, String statusDefinitions) {
+    public MetaInfo(final String neuroglancerInfo, String uuid, String dvidServer, String meshHost, String statusDefinitions, String info) {
         this.neuroglancerInfo = neuroglancerInfo;
         this.uuid = uuid;
         this.dvidServer = dvidServer;

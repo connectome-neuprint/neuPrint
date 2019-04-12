@@ -768,14 +768,10 @@ public class Neo4jImporter implements AutoCloseable {
     /**
      * Adds meta information to the Meta node for the provided dataset. Meta information is stored as a MetaInfo object, which is loaded from a json provided during the load.
      *
-     * @param dataset dataset for load
-     * @param metaInfo MetaInfo object
+     * @param dataset   dataset for load
+     * @param metaInfo  MetaInfo object
      * @param timeStamp time stamp for load
-     * @param dataset                            dataset name
-     * @param dataModelVersion                   version of data model
-     * @param preHPThreshold                     high-precision threshold for presynaptic densities
-     * @param postHPThreshold                    high-precision threshold for postsynaptic densities
-     * @param addConnectionSetRoiInfoAndWeightHP boolean indicating whether or not ConnectionSets should have roiInfo property, ConnectsTo relationships should have weightHP
+     * @param dataset   dataset name
      */
     public void addMetaInfo(String dataset, MetaInfo metaInfo, final LocalDateTime timeStamp) {
 
@@ -787,7 +783,7 @@ public class Neo4jImporter implements AutoCloseable {
                     "uuid", metaInfo.getUuid(),
                     "dvidServer", metaInfo.getDvidServer(),
                     "statusDefinitions", metaInfo.getStatusDefinitions(),
-                    "timeStamp", timeStamp
+                    "timeStamp", timeStamp,
                     "meshHost", metaInfo.getMeshHost(),
                     "info", metaInfo.getInfo()
             )));
