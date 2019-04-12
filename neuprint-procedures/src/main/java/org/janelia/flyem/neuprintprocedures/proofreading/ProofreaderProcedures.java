@@ -94,6 +94,7 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSy
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseSetForNeuron;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.isProtectedLabel;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToRoiInfoWithHP;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addWeightAndWeightHPToConnectsTo;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.removeSynapseFromRoiInfoWithHP;
@@ -1321,6 +1322,49 @@ public class ProofreaderProcedures {
         }
 
         log.info("proofreader.orphanSynapse: exit");
+
+    }
+
+    @Procedure(value = "proofreader.addGenericCollectionToSegment", mode = Mode.WRITE)
+    @Description("proofreader.addGenericCollectionToSegment(bodyId, dataset, collectionLabel, collectionItemJson) ")
+    public void addGenericCollectionToSegment(@Name("bodyId") Long bodyId, @Name("dataset") String dataset, @Name("collectionLabel") String collectionLabel, @Name("collectionItemJson") String collectionItemJson) {
+
+        log.info("proofreader.addGenericCollectionToSegment: entry");
+
+        throw new RuntimeException("proofreader.addGenericCollectionToSegment: Not yet implemented.");
+
+//        try {
+//
+//            if (bodyId == null || dataset == null || collectionLabel == null || collectionItemJson == null) {
+//                log.error("proofreader.addGenericCollectionToSegment: Missing input arguments.");
+//                throw new RuntimeException("proofreader.addGenericCollectionToSegment: Missing input arguments.");
+//            }
+//
+//            // acquire segment
+//            Node segment = getSegment(dbService, bodyId, dataset);
+//            if (segment == null) {
+//                log.error(String.format("proofreader.addGenericCollectionToSegment: No segment with body ID %d found in dataset %s.", bodyId, dataset));
+//                throw new RuntimeException(String.format("proofreader.addGenericCollectionToSegment: No segment with body ID %d found in dataset %s.", bodyId, dataset));
+//            }
+//            acquireWriteLockForNode(segment);
+//
+//            // make sure that node label is valid, will be adding :dataset, :label, and :dataset-label to node
+//            if (collectionLabel.length() == 0 || collectionLabel.equals(dataset) || isProtectedLabel(collectionLabel)) {
+//                log.error();
+//                throw new RuntimeException();
+//            }
+
+            // use "Contains" relationship (make sure updaters clean up all contains relationships)
+
+            // (segment)-[:Contains]->(label)-[:Contains]->(generic items)
+            // Item class/ node type. Item can have location, type, confidence, roi?
+
+//        } catch (Exception e) {
+//            log.error("proofreader.addGenericCollectionToSegment: " + e);
+//            throw new RuntimeException("proofreader.addGenericCollectionToSegment: " + e);
+//        }
+
+//        log.info("proofreader.addGenericCollectionToSegment: exit");
 
     }
 
