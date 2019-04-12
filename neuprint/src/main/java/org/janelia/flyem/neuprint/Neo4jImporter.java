@@ -779,14 +779,15 @@ public class Neo4jImporter implements AutoCloseable {
     public void addMetaInfo(String dataset, MetaInfo metaInfo) {
 
         LOG.info("addMetaInfo: enter");
-        String metaNodeUuidString = "MATCH (m:Meta{dataset:$dataset}) SET m.neuroglancerInfo=$neuroglancerInfo, m.uuid=$uuid, m.dvidServer=$dvidServer, m.statusDefinitions=$statusDefinitions, m.meshHost=$meshHost";
+        String metaNodeUuidString = "MATCH (m:Meta{dataset:$dataset}) SET m.neuroglancerInfo=$neuroglancerInfo, m.uuid=$uuid, m.dvidServer=$dvidServer, m.statusDefinitions=$statusDefinitions, m.meshHost=$meshHost, m.info=$info";
         try (final TransactionBatch batch = getBatch()) {
             batch.addStatement(new Statement(metaNodeUuidString, parameters("dataset", dataset,
                     "neuroglancerInfo", metaInfo.getNeuroglancerInfo(),
                     "uuid", metaInfo.getUuid(),
                     "dvidServer", metaInfo.getDvidServer(),
                     "statusDefinitions", metaInfo.getStatusDefinitions(),
-                    "meshHost", metaInfo.getMeshHost()
+                    "meshHost", metaInfo.getMeshHost(),
+                    "info", metaInfo.getInfo()
             )));
 
             batch.writeTransaction();
