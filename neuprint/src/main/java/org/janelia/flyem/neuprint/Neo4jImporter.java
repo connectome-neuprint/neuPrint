@@ -462,10 +462,10 @@ public class Neo4jImporter implements AutoCloseable {
     }
 
     /**
-     * Adds :Neuron labels to Segment nodes that have greater than neuronThreshold synaptic densities (>=neuronThreshold/5 pre or >=neuronThreshold post).
+     * Adds :Neuron labels to Segment nodes that have greater than neuronThreshold synaptic densities (greater than or equal to neuronThreshold/5 pre or greater than or equal to neuronThreshold post).
      *
      * @param dataset         dataset name
-     * @param neuronThreshold Neuron must have >=neuronThreshold/5 presynaptic densities or >=neuronThreshold postsynaptic densities to be given :Neuron label
+     * @param neuronThreshold Neuron must have greater than or equal to neuronThreshold/5 presynaptic densities or greater than or equal to neuronThreshold postsynaptic densities to be given :Neuron label
      */
     public void addNeuronLabels(final String dataset, int neuronThreshold) {
 
@@ -533,9 +533,12 @@ public class Neo4jImporter implements AutoCloseable {
     /**
      * Adds ConnectionSet nodes to database and connects them to appropriate Segment and Synapse nodes via Contains Relationships.
      *
-     * @param dataset                    dataset name
-     * @param bodyList                   list of BodyWithSynapse objects
-     * @param synapseLocationToBodyIdMap map of synapse locations to body ids
+     * @param dataset                            dataset name
+     * @param bodyList                           list of BodyWithSynapse objects
+     * @param synapseLocationToBodyIdMap         map of synapse locations to body ids
+     * @param preHPThreshold                     high-precision threshold for presynaptic densities
+     * @param postHPThreshold                    high-precision threshold for postsynaptic densities
+     * @param addConnectionSetRoiInfoAndWeightHP boolean indicating whether or not ConnectionSets should have roiInfo property, ConnectsTo relationships should have weightHP
      */
     public void addConnectionSets(final String dataset, final List<BodyWithSynapses> bodyList, final SynapseLocationToBodyIdMap synapseLocationToBodyIdMap, final float preHPThreshold, final float postHPThreshold, boolean addConnectionSetRoiInfoAndWeightHP) {
 
@@ -692,10 +695,11 @@ public class Neo4jImporter implements AutoCloseable {
      * a given dataset. The DataModel node indicates the data model version and links to all Meta nodes in the database with
      * an Is relationship.
      *
-     * @param dataset          dataset name
-     * @param dataModelVersion version of data model
-     * @param preHPThreshold   high-precision threshold for presynaptic densities
-     * @param postHPThreshold  high-precision threshold for postsynaptic densities
+     * @param dataset                            dataset name
+     * @param dataModelVersion                   version of data model
+     * @param preHPThreshold                     high-precision threshold for presynaptic densities
+     * @param postHPThreshold                    high-precision threshold for postsynaptic densities
+     * @param addConnectionSetRoiInfoAndWeightHP boolean indicating whether or not ConnectionSets should have roiInfo property, ConnectsTo relationships should have weightHP
      */
     public void createMetaNodeWithDataModelNode(final String dataset, final float dataModelVersion, final float preHPThreshold, final float postHPThreshold, final boolean addConnectionSetRoiInfoAndWeightHP) {
 
