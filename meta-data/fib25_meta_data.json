@@ -1,7 +1,7 @@
 {
-  "neuroglancerInfo": "{'segmentation':{'host':'https://flyem.dvid.io','uuid':'see meta node','dataType':'groundtruth'},'grayscale':{'host':'http://emdata.janelia.org','uuid':'822524777d3048b8bd520043f90c1d28','dataType':'grayscaleview'}}" ,
+  "neuroglancerInfo": "{'segmentation':{'host':'https://flyem.dvid.io','uuid':'see meta node','dataType':'groundtruth'},'grayscale':{'host':'https://emdata.janelia.org','uuid':'822524777d3048b8bd520043f90c1d28','dataType':'grayscaleview'}}" ,
   "uuid": "2b6d75f1c6e348ce945e1a66eb2f6bf3",
   "dvidServer": "flyem.dvid.io",
-  "meshHost": "",
+  "meshHost": "https://flyem.dvid.io",
   "statusDefinitions": "{'final':'has been fully traced or reconstructed','orphan':'the body cannot be traced to a larger parent cell','leaves':'body leaves the volume','final (irrelevant)':'not a neuron','partially traced':'body is traced except for regions of the body that leave the volume','Not examined':'not proofread/traced','uncorrected':''}"
 }
