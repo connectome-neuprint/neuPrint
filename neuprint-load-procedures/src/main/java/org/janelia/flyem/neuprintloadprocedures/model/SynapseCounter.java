@@ -5,8 +5,8 @@ package org.janelia.flyem.neuprintloadprocedures.model;
  */
 public class SynapseCounter {
 
-    private int pre;
-    private int post;
+    private long pre;
+    private long post;
 
     /**
      * Class constructor. Counter starts at 0 for both pre and post.
@@ -23,7 +23,7 @@ public class SynapseCounter {
      * @param pre  presynaptic density count
      * @param post postsynaptic density count
      */
-    public SynapseCounter(int pre, int post) {
+    public SynapseCounter(long pre, long post) {
         this.pre = pre;
         this.post = post;
     }
@@ -31,14 +31,14 @@ public class SynapseCounter {
     /**
      * @return presynaptic density count
      */
-    public int getPre() {
+    public long getPre() {
         return this.pre;
     }
 
     /**
      * @return postsynaptic density count
      */
-    public int getPost() {
+    public long getPost() {
         return this.post;
     }
 

@@ -6,11 +6,13 @@ import apoc.refactor.GraphRefactoring;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprint.Neo4jImporter;
-import org.janelia.flyem.neuprint.NeuPrinterMain;
-import org.janelia.flyem.neuprint.SynapseMapper;
-import org.janelia.flyem.neuprint.model.BodyWithSynapses;
+import org.janelia.flyem.neuprint.NeuPrintMain;
 import org.janelia.flyem.neuprint.model.Neuron;
-import org.janelia.flyem.neuprint.model.SynapseCounter;
+import org.janelia.flyem.neuprint.model.Skeleton;
+import org.janelia.flyem.neuprint.model.Synapse;
+import org.janelia.flyem.neuprint.model.SynapticConnection;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter;
+import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -20,10 +22,11 @@ import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.harness.junit.Neo4jRule;
 
-import java.util.HashMap;
+import java.io.File;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class InputAndOutputCountsForRoisTest {
 
@@ -31,34 +34,39 @@ public class InputAndOutputCountsForRoisTest {
     public Neo4jRule neo4j = new Neo4jRule()
             .withProcedure(AnalysisProcedures.class)
             .withProcedure(GraphRefactoring.class)
+            .withProcedure(LoadingProcedures.class)
             .withFunction(Json.class)
             .withProcedure(Create.class);
 
     @Test
     public void shouldGetCountsForRois() {
 
-        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
-        SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
-
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
-            Session session = driver.session();
-            String dataset = "test";
+            final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
+            File swcFile1 = new File("src/test/resources/8426959.swc");
+            File swcFile2 = new File("src/test/resources/831744.swc");
+            File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2};
+
+            List<Skeleton> skeletonList = NeuPrintMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
+
+            String neuronsJsonPath = "src/test/resources/neuronList.json";
+            List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
+
+            String synapseJsonPath = "src/test/resources/synapseList.json";
+            List<Synapse> synapseList = NeuPrintMain.readSynapsesJson(synapseJsonPath);
+
+            String connectionsJsonPath = "src/test/resources/connectionsList.json";
+            List<SynapticConnection> connectionsList = NeuPrintMain.readConnectionsJson(connectionsJsonPath);
 
             Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-            neo4jImporter.prepDatabase(dataset);
 
-            neo4jImporter.addSegments(dataset, neuronList);
+            String dataset = "test";
 
-            neo4jImporter.addConnectsTo(dataset, bodyList);
-            neo4jImporter.addSynapsesWithRois(dataset, bodyList);
-            neo4jImporter.addSynapsesTo(dataset, preToPost);
-            neo4jImporter.addSegmentRois(dataset, bodyList);
-            neo4jImporter.addSynapseSets(dataset, bodyList);
-            neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F, true);
-            neo4jImporter.addNeuronLabels(dataset, 0);
+            NeuPrintMain.runStandardLoadWithoutMetaInfo(neo4jImporter, dataset, synapseList, connectionsList, neuronList, skeletonList, 1.0F, .2D, .8D, 5,true, true, timeStamp);
+
+            Session session = driver.session();
 
             String jsonData = session.readTransaction(tx -> tx.run("CALL analysis.getInputAndOutputCountsForRois(8426959,\"test\") YIELD value AS dataJson RETURN dataJson").single().get(0).asString());
 
@@ -75,10 +83,11 @@ public class InputAndOutputCountsForRoisTest {
 
             ClusteringFeatureVector[] clusteringFeatureVectors = gson.fromJson(featureVectorJson, ClusteringFeatureVector[].class);
 
-            long[] expectedInputVector = {0, 3, 1};
-            Assert.assertEquals(expectedInputVector[0], clusteringFeatureVectors[2].getInputFeatureVector()[0]);
-            Assert.assertEquals(expectedInputVector[1], clusteringFeatureVectors[2].getInputFeatureVector()[1]);
-            Assert.assertEquals(expectedInputVector[2], clusteringFeatureVectors[2].getInputFeatureVector()[2]);
+            long[] expectedInputVector = { 0, 3, 1};
+            Assert.assertEquals(expectedInputVector[0], clusteringFeatureVectors[1].getInputFeatureVector()[0]);
+            Assert.assertEquals(expectedInputVector[1], clusteringFeatureVectors[1].getInputFeatureVector()[1]);
+            Assert.assertEquals(expectedInputVector[2], clusteringFeatureVectors[1].getInputFeatureVector()[2]);
+
         }
     }
 }

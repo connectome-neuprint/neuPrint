@@ -1,12 +1,12 @@
 package org.janelia.flyem.neuprint.db;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Properties;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Neo4J database connection parameters that can be loaded from a java
@@ -18,27 +18,30 @@ public class DbConfig {
     private final String user;
     private final String password;
     private final int statementsPerTransaction;
+    private final int connectionInfoStatementsPerTransaction;
 
     /**
      * Class constructor.
      *
-     * @param uri uri for accessing the database
-     * @param user username for database
-     * @param password password for database
+     * @param uri                      uri for accessing the database
+     * @param user                     username for database
+     * @param password                 password for database
      * @param statementsPerTransaction number of statements per database transaction
+     * @param connectionInfoStatementsPerTransaction number of connection info statements per database transaction
      */
     private DbConfig(final String uri,
-                    final String user,
-                    final String password,
-                    final int statementsPerTransaction) {
+                     final String user,
+                     final String password,
+                     final int statementsPerTransaction,
+                     final int connectionInfoStatementsPerTransaction) {
         this.uri = uri;
         this.user = user;
         this.password = password;
         this.statementsPerTransaction = statementsPerTransaction;
+        this.connectionInfoStatementsPerTransaction = connectionInfoStatementsPerTransaction;
     }
 
     /**
-     *
      * @return the uri for the database connection
      */
     public String getUri() {
@@ -46,7 +49,6 @@ public class DbConfig {
     }
 
     /**
-     *
      * @return the user for the database connection
      */
     public String getUser() {
@@ -54,7 +56,6 @@ public class DbConfig {
     }
 
     /**
-     *
      * @return the password for the database connection
      */
     public String getPassword() {
@@ -62,11 +63,18 @@ public class DbConfig {
     }
 
     /**
-     *
      * @return the number of statements per database transaction
      */
     public int getStatementsPerTransaction() {
         return statementsPerTransaction;
+    }
+
+    /**
+     *
+     * @return the number of statements per database transaction for adding connection information (procedure call that adds ConnectsTo relationships, ConnectionSets, etc; more complicated than other statements so generally needs a smaller batch size)
+     */
+    public int getConnectionInfoStatementsPerTransaction() {
+        return connectionInfoStatementsPerTransaction;
     }
 
     /**
@@ -106,21 +114,35 @@ public class DbConfig {
                 } catch (final NumberFormatException nfe) {
                     throw new IllegalArgumentException(
                             "invalid statementsPerTransaction value '" + statementsPerTransactionString +
-                            "' specified in " + file, nfe);
+                                    "' specified in " + file, nfe);
                 }
             }
 
-            if (uri==null) {
+            final String connectionInfoStatementsPerTransactionString = properties.getProperty("connectionInfoStatementsPerTransaction");
+            final int connectionInfoStatementsPerTransaction;
+            if (connectionInfoStatementsPerTransactionString == null) {
+                connectionInfoStatementsPerTransaction = Math.max(1, statementsPerTransaction/40);
+            } else {
+                try {
+                    connectionInfoStatementsPerTransaction = Integer.parseInt(connectionInfoStatementsPerTransactionString);
+                } catch (final NumberFormatException nfe) {
+                    throw new IllegalArgumentException(
+                            "invalid connectionInfoStatementsPerTransaction value '" + connectionInfoStatementsPerTransactionString +
+                                    "' specified in " + file, nfe);
+                }
+            }
+
+            if (uri == null) {
                 throw new IllegalArgumentException("failed to read uri from " + file);
             }
-            if (password==null) {
+            if (password == null) {
                 throw new IllegalArgumentException("failed to read password from " + file);
             }
-            if (user==null) {
+            if (user == null) {
                 throw new IllegalArgumentException("failed to read username from " + file);
             }
 
-            dbConfig = new DbConfig(uri, user, password, statementsPerTransaction);
+            dbConfig = new DbConfig(uri, user, password, statementsPerTransaction, connectionInfoStatementsPerTransaction);
 
         } catch (final Exception e) {
             throw new IllegalArgumentException("failed to load properties from " + path, e);

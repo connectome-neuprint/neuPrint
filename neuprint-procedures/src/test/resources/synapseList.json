@@ -1,0 +1,134 @@
+[
+  {
+    "type": "pre",
+    "location": [
+      4287,
+      2277,
+      1542
+    ],
+    "confidence": 1.0,
+    "rois": [
+      "seven_column_roi",
+      "roiA"
+    ]
+  },
+  {
+    "type": "post",
+    "location": [
+      4222,
+      2402,
+      1688
+    ],
+    "confidence": 1.0,
+    "rois": [
+      "roiA",
+      "roiB"
+    ]
+  },
+  {
+    "type": "pre",
+    "location": [
+      4287,
+      2277,
+      1502
+    ],
+    "confidence": 1.0,
+    "rois": [
+      "seven_column_roi",
+      "roiA"
+    ]
+  },
+  {
+    "type": "post",
+    "location": [
+      8000,
+      7000,
+      6000
+    ],
+    "confidence": 0.90,
+    "rois": [
+      "seven_column_roi",
+      "roiA"
+    ]
+  },
+  {
+    "type": "post",
+    "location": [
+      4000,
+      5000,
+      6000
+    ],
+    "confidence": 0.80,
+    "rois": [
+      "seven_column_roi",
+      "roiA"
+    ]
+  },
+  {
+    "type": "post",
+    "location": [
+      4301,
+      2276,
+      1535
+    ],
+    "confidence": 0.1,
+    "rois": [
+      "seven_column_roi",
+      "roiA"
+    ]
+  },
+  {
+    "type": "pre",
+    "location": [
+      4300,
+      2000,
+      1500
+    ],
+    "confidence": 1.0,
+    "rois": [
+      "seven_column_roi",
+      "roiA"
+    ]
+  },
+  {
+    "type": "post",
+    "location": [
+      4298,
+      2294,
+      1542
+    ],
+    "confidence": 1.0,
+    "rois": [
+      "seven_column_roi",
+      "roiB"
+    ]
+  },
+  {
+    "type": "post",
+    "location": [
+      4292,
+      2261,
+      1542
+    ],
+    "confidence": 1.0,
+    "rois": [
+      "seven_column_roi",
+      "roiA",
+      "roiB",
+      "roi'C"
+    ]
+  },
+  {
+    "type": "pre",
+    "location": [
+      1000,
+      2000,
+      3000
+    ],
+    "confidence": 1.0,
+    "rois": [
+      "seven_column_roi",
+      "roiA"
+    ]
+  }
+]

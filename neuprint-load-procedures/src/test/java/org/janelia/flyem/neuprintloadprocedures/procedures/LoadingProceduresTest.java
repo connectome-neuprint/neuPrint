@@ -34,6 +34,8 @@ public class LoadingProceduresTest {
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
             Session session = driver.session();
 
+            session.writeTransaction(tx -> tx.run("CREATE (n:test:Meta{dataset:'test'}) SET n.roiInfo='{\"roiA\":{\"pre\":0,\"post\":0}}'"));
+
             session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`:Segment:test{bodyId:$preBodyId})-[c:ConnectsTo{weight:1}]->(m:`test-Segment`:Segment:test{bodyId:$postBodyId})",
                     parameters("preBodyId", 8426959, "postBodyId", 26311)));
 

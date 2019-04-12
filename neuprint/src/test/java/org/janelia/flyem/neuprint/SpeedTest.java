@@ -37,7 +37,7 @@
 //
 ////        File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2, swcFile3};
 //
-////        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
+////        List<Skeleton> skeletonList = NeuPrintMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 //
 ////
 ////        String bodiesJsonPath = "/Users/neubarthn/Documents/GitHub/neuPrint/mb6_neo4j_inputs/mb6_Synapses.json";
@@ -54,7 +54,7 @@
 ////        neo4jImporter.addSynapseSets(dataset, bodyList);
 //////        neo4jImporter.addSkeletonNodes(dataset, skeletonList);
 ////        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F);
-////        neo4jImporter.addAutoNamesAndNeuronLabels(dataset, 5);
+////        neo4jImporter.addAutoNames(dataset, 5);
 ////        neo4jImporter.addDvidUuid(dataset, "1234");
 ////        neo4jImporter.addDvidServer(dataset, "test1:23");
 ////        neo4jImporter.addClusterNames(dataset, .1F);
@@ -67,7 +67,7 @@
 //
 //        String neuronsJsonPath = "/Users/neubarthn/Documents/GitHub/neuPrint/mb6_neo4j_inputs/mb6_Neurons_with_nt.json";
 //
-//        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+//        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
 //
 //        String bodiesJsonPath = "/Users/neubarthn/Documents/GitHub/neuPrint/mb6_neo4j_inputs/mb6_Synapses.json";
 //
@@ -97,7 +97,7 @@
 //
 //        String neuronsJsonPath = "/Users/neubarthn/Documents/GitHub/neuPrint/mb6_neo4j_inputs/mb6_Neurons_with_nt.json";
 //
-//        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson(neuronsJsonPath);
+//        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
 //
 //        String dataset = "mb6";
 //

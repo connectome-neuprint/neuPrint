@@ -1,7 +1,9 @@
 package org.janelia.flyem.neuprintloadprocedures.model;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
+import java.lang.reflect.Type;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -189,5 +191,15 @@ public class RoiInfoWithHighPrecisionCounts {
     public String toString() {
         return this.synapseCountsPerRoi.toString();
     }
+
+    public static RoiInfoWithHighPrecisionCounts getRoiInfoHPFromString(String roiInfoString) {
+        Gson gson = new Gson();
+        Map<String, SynapseCounterWithHighPrecisionCounts> roiInfoMap = gson.fromJson(roiInfoString, ROI_INFO_WITH_HP_TYPE);
+        return new RoiInfoWithHighPrecisionCounts(roiInfoMap);
+    }
+
+
+    public static final Type ROI_INFO_WITH_HP_TYPE = new TypeToken<Map<String, SynapseCounterWithHighPrecisionCounts>>() {
+    }.getType();
 
 }

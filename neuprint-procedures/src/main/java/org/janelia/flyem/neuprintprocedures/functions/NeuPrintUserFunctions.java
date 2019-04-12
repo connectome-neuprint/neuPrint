@@ -3,9 +3,10 @@ package org.janelia.flyem.neuprintprocedures.functions;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprint.Neo4jImporter;
-import org.janelia.flyem.neuprint.model.SynapseCounter;
 import org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools;
 import org.janelia.flyem.neuprintloadprocedures.Location;
+import org.janelia.flyem.neuprintloadprocedures.model.RoiInfo;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -37,11 +38,14 @@ import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROI_I
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSES_TO;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE_SET;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getLocationAs3dCartesianPoint;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getMetaNode;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegment;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapse;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseLocationSet;
 import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseSetForNeuron;
-import static org.janelia.flyem.neuprintprocedures.proofreading.ProofreaderProcedures.getRoiInfoAsMap;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.generateClusterName;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.getMetaNodeRoiSet;
+import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.getRoiInfoAsMap;
 
 public class NeuPrintUserFunctions {
 
@@ -107,9 +111,9 @@ public class NeuPrintUserFunctions {
             throw new RuntimeException("Must provide roiInfo, totalPre, totalPost, threshold, and includedRois.");
         }
 
-        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfo);
+        RoiInfo roiInfoObject = RoiInfo.getRoiInfoFromString(roiInfo);
 
-        return Neo4jImporter.generateClusterName(roiInfoMap, totalPre, totalPost, threshold, new HashSet<>(includedRois));
+        return generateClusterName(roiInfoObject, totalPre, totalPost, threshold, new HashSet<>(includedRois));
 
     }
 
@@ -120,7 +124,7 @@ public class NeuPrintUserFunctions {
             throw new RuntimeException("Must provide roiInfo, totalPre, totalPost, threshold, superRois, and subRois.");
         }
 
-        Map<String, SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfo);
+        Map<String, org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter> roiInfoMap = getRoiInfoAsMap(roiInfo);
 
         StringBuilder inputs = new StringBuilder();
         StringBuilder outputs = new StringBuilder();
@@ -187,12 +191,12 @@ public class NeuPrintUserFunctions {
                                         roiInfo = "{}";
                                     }
 
-                                    Map<String, SynapseCounter> roiInfoObject = gson.fromJson(roiInfo, new TypeToken<Map<String, SynapseCounter>>() {
+                                    Map<String, org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter> roiInfoObject = gson.fromJson(roiInfo, new TypeToken<Map<String, SynapseCounter>>() {
                                     }.getType());
 
                                     if (synapseNode.hasLabel(Label.label(PRE_SYN))) {
                                         // if a synapse is pre, get top output ROI for connected neuron
-                                        SortedSet<Map.Entry<String, SynapseCounter>> sortedRois = Neo4jImporter.sortRoisByPreCount(roiInfoObject);
+                                        SortedSet<Map.Entry<String, org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter>> sortedRois = Neo4jImporter.sortRoisByPreCount(roiInfoObject);
                                         String topOutputRoi;
                                         if (!sortedRois.isEmpty()) {
                                             topOutputRoi = sortedRois.first().getKey();
@@ -206,7 +210,7 @@ public class NeuPrintUserFunctions {
 
                                     } else if (synapseNode.hasLabel(Label.label(POST_SYN))) {
                                         // if a synapse is post get top input ROI for connected neuron
-                                        SortedSet<Map.Entry<String, SynapseCounter>> sortedRois = Neo4jImporter.sortRoisByPostCount(roiInfoObject);
+                                        SortedSet<Map.Entry<String, org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter>> sortedRois = Neo4jImporter.sortRoisByPostCount(roiInfoObject);
                                         String topInputRoi;
                                         if (!sortedRois.isEmpty()) {
                                             topInputRoi = sortedRois.first().getKey();
@@ -260,7 +264,12 @@ public class NeuPrintUserFunctions {
         if (synapse == null) {
             throw new RuntimeException(String.format("Synapse not found at location: [%f,%f,%f]", x, y, z));
         }
-        Set<String> synapseRois = GraphTraversalTools.getSynapseRois(synapse);
+        Node metaNode = getMetaNode(dbService, dataset);
+        Set<String> metaNodeRoiSet = new HashSet<>();
+        if (metaNode != null) {
+            metaNodeRoiSet = getMetaNodeRoiSet(metaNode);
+        }
+        Set<String> synapseRois = GraphTraversalTools.getSynapseRois(synapse, metaNodeRoiSet);
         return new ArrayList<>(synapseRois);
     }
 
@@ -274,7 +283,12 @@ public class NeuPrintUserFunctions {
         if (segment == null) {
             throw new RuntimeException(String.format("Segment with bodyId %d not found in dataset %s.", bodyId, dataset));
         }
-        Set<String> segmentRois = GraphTraversalTools.getSegmentRois(segment);
+        Node metaNode = getMetaNode(dbService, dataset);
+        Set<String> metaNodeRoiSet = new HashSet<>();
+        if (metaNode != null) {
+            metaNodeRoiSet = getMetaNodeRoiSet(metaNode);
+        }
+        Set<String> segmentRois = GraphTraversalTools.getSegmentRois(segment, metaNodeRoiSet);
         return new ArrayList<>(segmentRois);
     }
 

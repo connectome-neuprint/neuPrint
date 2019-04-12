@@ -5,12 +5,13 @@ import apoc.create.Create;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprint.Neo4jImporter;
-import org.janelia.flyem.neuprint.NeuPrinterMain;
-import org.janelia.flyem.neuprint.SynapseMapper;
-import org.janelia.flyem.neuprint.model.BodyWithSynapses;
+import org.janelia.flyem.neuprint.NeuPrintMain;
+import org.janelia.flyem.neuprint.json.JsonUtils;
 import org.janelia.flyem.neuprint.model.Neuron;
 import org.janelia.flyem.neuprint.model.Skeleton;
-import org.janelia.flyem.neuprint.model.SynapseCounter;
+import org.janelia.flyem.neuprint.model.Synapse;
+import org.janelia.flyem.neuprint.model.SynapticConnection;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter;
 import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounterWithHighPrecisionCounts;
 import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.janelia.flyem.neuprintprocedures.functions.NeuPrintUserFunctions;
@@ -30,7 +31,8 @@ import org.neo4j.driver.v1.types.Point;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
-import java.util.HashMap;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -62,78 +64,76 @@ public class AddAndUpdateNeuronsTest {
         File swcFile2 = new File("src/test/resources/831744.swc");
         File[] arrayOfSwcFiles = new File[]{swcFile1, swcFile2};
 
-        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
+        List<Skeleton> skeletonList = NeuPrintMain.createSkeletonListFromSwcFileArray(arrayOfSwcFiles);
 
-        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
-        SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
+        final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
+        String neuronsJsonPath = "src/test/resources/neuronList.json";
+        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
+
+        String synapseJsonPath = "src/test/resources/synapseList.json";
+        List<Synapse> synapseList = NeuPrintMain.readSynapsesJson(synapseJsonPath);
+
+        String connectionsJsonPath = "src/test/resources/connectionsList.json";
+        List<SynapticConnection> connectionsList = NeuPrintMain.readConnectionsJson(connectionsJsonPath);
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
+        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+
         String dataset = "test";
 
-        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-        neo4jImporter.prepDatabase(dataset);
-
-        neo4jImporter.addSegments(dataset, neuronList);
-
-        neo4jImporter.addConnectsTo(dataset, bodyList);
-        neo4jImporter.addSynapsesWithRois(dataset, bodyList);
-
-        neo4jImporter.addSynapsesTo(dataset, preToPost);
-        neo4jImporter.addSegmentRois(dataset, bodyList);
-        neo4jImporter.addConnectionSets(dataset, bodyList, mapper.getSynapseLocationToBodyIdMap(), .2F, .8F, true);
-        neo4jImporter.addSynapseSets(dataset, bodyList);
-        neo4jImporter.addSkeletonNodes(dataset, skeletonList);
-        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F, .20F, .80F, true);
-        neo4jImporter.addNeuronLabels(dataset, 1);
+        NeuPrintMain.runStandardLoadWithoutMetaInfo(neo4jImporter, dataset, synapseList, connectionsList, neuronList, skeletonList, 1.0F, .2D, .8D, 5,true, true, timeStamp);
 
         String updateJson =
                 "{" +
-                        "\"Id\": 8426959," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
-                        "\"MutationID\": 1000057479," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
-                        "\"Location\": [14067, 10777, 15040]," +
-                        "\"Radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
+                        "\"id\": 8426959," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
+                        "\"mutationID\": 1000057479," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
+                        "\"location\": [14067, 10777, 15040]," +
+                        "\"radius\": 15040.0 }," +
+                        "\"name\": \"new name\", " +
                         "\"SynapseSources\": [831744,2589725]," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
-                        "\"Location\": [4287, 2277, 1542]," +
-                        "\"Type\": \"pre\"" +
+                        "\"location\": [4287, 2277, 1542]," +
+                        "\"type\": \"pre\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [4222, 2402, 1688]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [4222, 2402, 1688]," +
+                        "\"type\": \"post\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [4287, 2277, 1502]," +
-                        "\"Type\": \"pre\"" +
+                        "\"location\": [4287, 2277, 1502]," +
+                        "\"type\": \"pre\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [8000,7000,6000]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [8000,7000,6000]," +
+                        "\"type\": \"post\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [4000,5000,6000]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [4000,5000,6000]," +
+                        "\"type\": \"post\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [4298, 2294, 1542]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [4298, 2294, 1542]," +
+                        "\"type\": \"post\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [4292, 2261, 1542]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [4292, 2261, 1542]," +
+                        "\"type\": \"post\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [1000, 2000, 3000]," +
-                        "\"Type\": \"pre\"" +
+                        "\"location\": [9000, 8000, 7000]," +
+                        "\"type\": \"post\"" +
+                        "}," +
+                        "{" +
+                        "\"location\": [1000, 2000, 3000]," +
+                        "\"type\": \"pre\"" +
                         "}" +
                         "]" +
                         "}";
@@ -145,13 +145,13 @@ public class AddAndUpdateNeuronsTest {
         for (int i = 0; i < bodyIdsToDelete.length; i++) {
             int finalI = i;
             session.writeTransaction(tx -> tx.run("CALL proofreader.deleteNeuron($bodyId, $dataset)", parameters("bodyId", bodyIdsToDelete[finalI], "dataset", "test")));
+            TimeUnit.SECONDS.sleep(1);
         }
 
-        TimeUnit.SECONDS.sleep(5);
+        TimeUnit.SECONDS.sleep(1);
 
-        Gson gson = new Gson();
-        NeuronAddition neuronAddition = gson.fromJson(updateJson, NeuronAddition.class);
-        String neuronUpdateJson = gson.toJson(neuronAddition);
+        NeuronAddition neuronAddition = JsonUtils.GSON.fromJson(updateJson, NeuronAddition.class);
+        String neuronUpdateJson = JsonUtils.GSON.toJson(neuronAddition);
         session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson, $dataset)", parameters("updateJson", neuronUpdateJson, "dataset", "test")));
 
     }
@@ -207,6 +207,7 @@ public class AddAndUpdateNeuronsTest {
         locationPointSet.add(Values.point(9157, 4298, 2294, 1542).asPoint());
         locationPointSet.add(Values.point(9157, 4292, 2261, 1542).asPoint());
         locationPointSet.add(Values.point(9157, 1000, 2000, 3000).asPoint());
+        locationPointSet.add(Values.point(9157, 9000, 8000, 7000).asPoint());
 
         for (Record synapse : newSynapses) {
             Point synapseLocation = (Point) synapse.get("p").asMap().get("location");
@@ -232,10 +233,10 @@ public class AddAndUpdateNeuronsTest {
         // should have appropriate connects to
 
         int weight_8426959To8426959 = session.readTransaction(tx -> tx.run("MATCH (n:Segment:test:`test-Segment`{bodyId:8426959})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight")).single().get(0).asInt();
-        Assert.assertEquals(3, weight_8426959To8426959);
+        Assert.assertEquals(4, weight_8426959To8426959);
 
         int weight_8426959To26311 = session.readTransaction(tx -> tx.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311})<-[r:ConnectsTo]-(s{bodyId:8426959}) RETURN r.weight")).single().get(0).asInt();
-        Assert.assertEquals(2, weight_8426959To26311);
+        Assert.assertEquals(1, weight_8426959To26311);
 
         int weight_26311To8426959 = session.readTransaction(tx -> tx.run("MATCH (n:Segment:test:`test-Segment`{bodyId:26311})-[r:ConnectsTo]->(s{bodyId:8426959}) RETURN r.weight")).single().get(0).asInt();
         Assert.assertEquals(2, weight_26311To8426959);
@@ -261,14 +262,12 @@ public class AddAndUpdateNeuronsTest {
         // should have appropriate connectionsets
 
         List<Record> synapseCS_8426959_26311 = session.readTransaction(tx -> tx.run("MATCH (t:ConnectionSet:test:`test-ConnectionSet`{datasetBodyIds:\"test:8426959:26311\"})-[:Contains]->(s) RETURN s")).list();
-        Assert.assertEquals(4, synapseCS_8426959_26311.size());
+        Assert.assertEquals(2, synapseCS_8426959_26311.size());
         Set<Node> connectionSet = synapseCS_8426959_26311.stream().map(Record::asMap).map(m -> (Node) m.get("s")).collect(Collectors.toSet());
         Set<Point> locationSet = connectionSet.stream().map(Node::asMap).map(m -> (Point) m.get("location")).collect(Collectors.toSet());
         Set<Point> expectedLocationSet = new HashSet<>();
         expectedLocationSet.add(Values.point(9157, 4287, 2277, 1542).asPoint());
         expectedLocationSet.add(Values.point(9157, 4301, 2276, 1535).asPoint());
-        expectedLocationSet.add(Values.point(9157, 9000, 8000, 7000).asPoint());
-        expectedLocationSet.add(Values.point(9157, 1000, 2000, 3000).asPoint());
 
         Assert.assertEquals(locationSet, expectedLocationSet);
 
@@ -295,10 +294,10 @@ public class AddAndUpdateNeuronsTest {
 
         Assert.assertEquals(1, roiInfo.size());
 
-        Assert.assertEquals(2, roiInfo.get("roiA").getPre());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPre());
         Assert.assertEquals(1, roiInfo.get("roiA").getPreHP());
-        Assert.assertEquals(2, roiInfo.get("roiA").getPost());
-        Assert.assertEquals(1, roiInfo.get("roiA").getPostHP());
+        Assert.assertEquals(1, roiInfo.get("roiA").getPost());
+        Assert.assertEquals(0, roiInfo.get("roiA").getPostHP());
 
     }
 
@@ -336,7 +335,7 @@ public class AddAndUpdateNeuronsTest {
 
         // should have appropriate pre post counts and other props
         Assert.assertEquals(3L, newNeuron.asMap().get("pre"));
-        Assert.assertEquals(5L, newNeuron.asMap().get("post"));
+        Assert.assertEquals(6L, newNeuron.asMap().get("post"));
         Assert.assertEquals(12L, newNeuron.asMap().get("size"));
         Assert.assertEquals("28841c8277e044a7b187dda03e18da13:1000057479:8426959", newNeuron.asMap().get("mutationUuidAndId"));
         Assert.assertEquals("updated", newNeuron.asMap().get("status"));
@@ -362,49 +361,48 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 8426959," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
-                        "\"MutationID\": 1000057479," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
-                        "\"Location\": [14067, 10777, 15040]," +
-                        "\"Radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
-                        "\"SynapseSources\": [831744,2589725]," +
-                        "\"CurrentSynapses\": " +
+                        "\"id\": 8426959," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"28841c8277e044a7b187dda03e18da13\"," +
+                        "\"mutationID\": 1000057479," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
+                        "\"location\": [14067, 10777, 15040]," +
+                        "\"radius\": 15040.0 }," +
+                        "\"name\": \"new name\", " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
-                        "\"Location\": [4287, 2277, 1542]," +
-                        "\"Type\": \"pre\"" +
+                        "\"location\": [4287, 2277, 1542]," +
+                        "\"type\": \"pre\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [4222, 2402, 1688]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [4222, 2402, 1688]," +
+                        "\"type\": \"post\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [4287, 2277, 1502]," +
-                        "\"Type\": \"pre\"" +
+                        "\"location\": [4287, 2277, 1502]," +
+                        "\"type\": \"pre\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [8000,7000,6000]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [8000,7000,6000]," +
+                        "\"type\": \"post\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [4000,5000,6000]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [4000,5000,6000]," +
+                        "\"type\": \"post\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [4298, 2294, 1542]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [4298, 2294, 1542]," +
+                        "\"type\": \"post\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [4292, 2261, 1542]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [4292, 2261, 1542]," +
+                        "\"type\": \"post\"" +
                         "}," +
                         "{" +
-                        "\"Location\": [1000, 2000, 3000]," +
-                        "\"Type\": \"pre\"" +
+                        "\"location\": [1000, 2000, 3000]," +
+                        "\"type\": \"pre\"" +
                         "}" +
                         "]" +
                         "}";
@@ -420,17 +418,16 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 1," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"4\"," +
-                        "\"MutationID\": 4," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
-                        "\"Location\": [14067, 10777, 15040]," +
-                        "\"Radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
-                        "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
+                        "\"id\": 1," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"4\"," +
+                        "\"mutationID\": 4," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
+                        "\"location\": [14067, 10777, 15040]," +
+                        "\"radius\": 15040.0 }," +
+                        "\"name\": \"new name\", " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "]" +
                         "}";
@@ -446,21 +443,21 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 2," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"6\"," +
-                        "\"MutationID\": 6," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
-                        "\"Location\": [14067, 10777, 15040]," +
-                        "\"Radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
+                        "\"id\": 2," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"6\"," +
+                        "\"mutationID\": 6," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
+                        "\"location\": [14067, 10777, 15040]," +
+                        "\"radius\": 15040.0 }," +
+                        "\"name\": \"new name\", " +
                         "\"SynapseSources\": [8426959]," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
-                        "\"Location\": [4,5,6]," +
-                        "\"Type\": \"pre\"" +
+                        "\"location\": [4,5,6]," +
+                        "\"type\": \"pre\"" +
                         "}" +
                         "]" +
                         "}";
@@ -476,17 +473,17 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 8426959," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"67\"," +
-                        "\"MutationID\": 67," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
-                        "\"Location\": [14067, 10777, 15040]," +
-                        "\"Radius\": 15040.0 }," +
-                        "\"Name\": \"new name\", " +
+                        "\"id\": 8426959," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"67\"," +
+                        "\"mutationID\": 67," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
+                        "\"location\": [14067, 10777, 15040]," +
+                        "\"radius\": 15040.0 }," +
+                        "\"name\": \"new name\", " +
                         "\"SynapseSources\": [8426959]," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "]" +
                         "}";
@@ -502,13 +499,13 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 234," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"20\"," +
-                        "\"MutationID\": 21," +
-                        "\"Status\": \"updated\"," +
+                        "\"id\": 234," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"20\"," +
+                        "\"mutationID\": 21," +
+                        "\"status\": \"updated\"," +
                         "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "]" +
                         "}";
@@ -539,7 +536,7 @@ public class AddAndUpdateNeuronsTest {
 
         Session session = driver.session();
 
-        String neuronObjectJson = "{ \"Id\":222, \"Status\":\"Partially Roughly traced\", \"Name\":\"KB(a)\", \"Size\": 346576}";
+        String neuronObjectJson = "{ \"id\":222, \"status\":\"Partially Roughly traced\", \"name\":\"KB(a)\", \"size\": 346576}";
 
         session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`:Segment:test) SET n.bodyId=222, n.pre=2, n.post=5, n.roiInfo=\"{'roiA':{'pre':2,'post':0},'roiB':{'pre':0,'post':5}}\"", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test")));
 
@@ -556,7 +553,7 @@ public class AddAndUpdateNeuronsTest {
         Assert.assertTrue(neuronNode.asMap().containsKey("clusterName"));
 
         //soma addition
-        String neuronObjectJson2 = "{ \"Id\":222, \"Soma\": { \"Location\":[1,2,3],\"Radius\":5.0}}";
+        String neuronObjectJson2 = "{ \"id\":222, \"soma\": { \"location\":[1,2,3],\"radius\":5.0}}";
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson2, "dataset", "test")));
         Node neuronNode2 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) RETURN n")).single().get(0).asNode();
@@ -565,7 +562,7 @@ public class AddAndUpdateNeuronsTest {
         Assert.assertEquals(Values.point(9157, 1, 2, 3).asPoint(), neuronNode2.asMap().get("somaLocation"));
 
         //type addition
-        String neuronObjectJson3 = "{ \"Id\":222, \"NeuronType\": \"testType\"}";
+        String neuronObjectJson3 = "{ \"id\":222, \"type\": \"testType\"}";
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson3, "dataset", "test")));
         Node neuronNode3 = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:222}) RETURN n")).single().get(0).asNode();
@@ -579,7 +576,7 @@ public class AddAndUpdateNeuronsTest {
 
         Session session = driver.session();
 
-        String neuronObjectJson = "{ \"Id\":15, \"Status\":\"Partially Roughly traced\", \"Name\":\"KB(a)\", \"Size\": 346576}";
+        String neuronObjectJson = "{ \"id\":15, \"status\":\"Partially Roughly traced\", \"name\":\"KB(a)\", \"size\": 346576}";
 
         Assert.assertFalse(session.writeTransaction(tx -> tx.run("CALL proofreader.updateProperties($neuronObjectJson,$dataset)", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test"))).hasNext());
 
@@ -592,19 +589,18 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 999," +
-                        "\"Size\": 120," +
-                        "\"MutationUUID\": \"auniqueid\"," +
-                        "\"Status\": \"updated\"," +
-                        "\"Soma\": {" +
-                        "\"Location\": [14067, 10777, 15040]," +
-                        "\"Radius\": 15040.0 }," +
-                        "\"Name\": \"new name\" " +
+                        "\"id\": 999," +
+                        "\"size\": 120," +
+                        "\"mutationUUID\": \"auniqueid\"," +
+                        "\"status\": \"updated\"," +
+                        "\"soma\": {" +
+                        "\"location\": [14067, 10777, 15040]," +
+                        "\"radius\": 15040.0 }," +
+                        "\"name\": \"new name\" " +
                         "}";
 
-        Gson gson = new Gson();
-        NeuronAddition neuronAddition = gson.fromJson(updateJson, NeuronAddition.class);
-        String neuronUpdateJson = gson.toJson(neuronAddition);
+        NeuronAddition neuronAddition = JsonUtils.GSON.fromJson(updateJson, NeuronAddition.class);
+        String neuronUpdateJson = JsonUtils.GSON.toJson(neuronAddition);
         session.writeTransaction(tx -> tx.run("CALL proofreader.addNeuron($updateJson, $dataset)", parameters("updateJson", neuronUpdateJson, "dataset", "test")));
 
         Node synapselessSegment = session.readTransaction(tx -> tx.run("MATCH (n:`test-Segment`{bodyId:999}) RETURN n")).single().get(0).asNode();
@@ -648,17 +644,17 @@ public class AddAndUpdateNeuronsTest {
 
         String updateJson =
                 "{" +
-                        "\"Id\": 678," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"30\"," +
-                        "\"MutationID\": 31," +
-                        "\"Status\": \"updated\"," +
+                        "\"id\": 678," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"30\"," +
+                        "\"mutationID\": 31," +
+                        "\"status\": \"updated\"," +
                         "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
-                        "\"Location\": [1000, 2000, 3000]," +
-                        "\"Type\": \"pre\"" +
+                        "\"location\": [1000, 2000, 3000]," +
+                        "\"type\": \"pre\"" +
                         "}" +
                         "]" +
                         "}";
@@ -675,40 +671,40 @@ public class AddAndUpdateNeuronsTest {
         // tests that synapses created through the addSynapse/addConnection procedures can be added to new neurons
         String updateJson =
                 "{" +
-                        "\"Id\": 1010102," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"30\"," +
-                        "\"MutationID\": 31," +
-                        "\"Status\": \"updated\"," +
+                        "\"id\": 1010102," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"30\"," +
+                        "\"mutationID\": 31," +
+                        "\"status\": \"updated\"," +
                         "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
-                        "\"Location\": [5, 22, 99]," +
-                        "\"Type\": \"post\"" +
+                        "\"location\": [5, 22, 99]," +
+                        "\"type\": \"post\"" +
                         "}" +
                         "]" +
                         "}";
 
         String updateJson2 =
                 "{" +
-                        "\"Id\": 1012," +
-                        "\"Size\": 12," +
-                        "\"MutationUUID\": \"30\"," +
-                        "\"MutationID\": 31," +
-                        "\"Status\": \"updated\"," +
+                        "\"id\": 1012," +
+                        "\"size\": 12," +
+                        "\"mutationUUID\": \"30\"," +
+                        "\"mutationID\": 31," +
+                        "\"status\": \"updated\"," +
                         "\"SynapseSources\": []," +
-                        "\"CurrentSynapses\": " +
+                        "\"currentSynapses\": " +
                         "[" +
                         "{" +
-                        "\"Location\": [5, 22, 9]," +
-                        "\"Type\": \"pre\"" +
+                        "\"location\": [5, 22, 9]," +
+                        "\"type\": \"pre\"" +
                         "}" +
                         "]" +
                         "}";
 
-        String synapseJson = "{ \"Type\": \"post\", \"Location\": [ 5,22,99 ], \"Confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
-        String synapseJson2 = "{ \"Type\": \"pre\", \"Location\": [ 5,22,9 ], \"Confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
+        String synapseJson = "{ \"type\": \"post\", \"location\": [ 5,22,99 ], \"confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
+        String synapseJson2 = "{ \"type\": \"pre\", \"location\": [ 5,22,9 ], \"confidence\": .88, \"rois\": [ \"test1\", \"test2\" ] }";
 
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson, "dataset", "test")));
         session.writeTransaction(tx -> tx.run("CALL proofreader.addSynapse($synapseJson,$dataset)", parameters("synapseJson", synapseJson2, "dataset", "test")));

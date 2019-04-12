@@ -5,11 +5,12 @@ import apoc.create.Create;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import org.janelia.flyem.neuprint.Neo4jImporter;
-import org.janelia.flyem.neuprint.NeuPrinterMain;
-import org.janelia.flyem.neuprint.SynapseMapper;
-import org.janelia.flyem.neuprint.model.BodyWithSynapses;
+import org.janelia.flyem.neuprint.NeuPrintMain;
 import org.janelia.flyem.neuprint.model.Neuron;
-import org.janelia.flyem.neuprint.model.SynapseCounter;
+import org.janelia.flyem.neuprint.model.Synapse;
+import org.janelia.flyem.neuprint.model.SynapticConnection;
+import org.janelia.flyem.neuprintloadprocedures.model.SynapseCounter;
+import org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -23,10 +24,10 @@ import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 public class MetaNodeUpdaterTest {
@@ -38,35 +39,33 @@ public class MetaNodeUpdaterTest {
     static {
         neo4j = new Neo4jRule()
                 .withFunction(Json.class)
+                .withProcedure(LoadingProcedures.class)
                 .withProcedure(Create.class);
     }
 
     @BeforeClass
     public static void before() {
 
-        List<Neuron> neuronList = NeuPrinterMain.readNeuronsJson("src/test/resources/smallNeuronList.json");
-        SynapseMapper mapper = new SynapseMapper();
-        List<BodyWithSynapses> bodyList = mapper.loadAndMapBodies("src/test/resources/smallBodyListWithExtraRois.json");
-        HashMap<String, Set<String>> preToPost = mapper.getPreToPostMap();
+        final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
+
+        String neuronsJsonPath = "src/test/resources/shortestPathNeuronList.json";
+        List<Neuron> neuronList = NeuPrintMain.readNeuronsJson(neuronsJsonPath);
+
+        String synapseJsonPath = "src/test/resources/shortestPathSynapseList.json";
+        List<Synapse> synapseList = NeuPrintMain.readSynapsesJson(synapseJsonPath);
+
+        String connectionsJsonPath = "src/test/resources/shortestPathConnectionsList.json";
+        List<SynapticConnection> connectionsList = NeuPrintMain.readConnectionsJson(connectionsJsonPath);
 
         driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig());
 
+        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
+
         String dataset = "test";
 
-        Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
-        neo4jImporter.prepDatabase(dataset);
+        NeuPrintMain.runStandardLoadWithoutMetaInfo(neo4jImporter, dataset, synapseList, connectionsList, neuronList, new ArrayList<>(), 1.0F, .2D, .8D, 5,true, true, timeStamp);
 
-        neo4jImporter.addSegments(dataset, neuronList);
-
-        neo4jImporter.addConnectsTo(dataset, bodyList);
-        neo4jImporter.addSynapsesWithRois(dataset, bodyList);
-        neo4jImporter.addSynapsesTo(dataset, preToPost);
-        neo4jImporter.addSegmentRois(dataset, bodyList);
-        neo4jImporter.addSynapseSets(dataset, bodyList);
-        neo4jImporter.createMetaNodeWithDataModelNode(dataset, 1.0F,.20F, .80F, true);
-        neo4jImporter.createMetaNodeWithDataModelNode("otherDataset", 1.0F,.20F, .80F, true);
-
-
+        neo4jImporter.createMetaNodeWithDataModelNode("otherDataset", 1.0F, .20F, .80F, true, timeStamp);
     }
 
     @AfterClass
@@ -105,21 +104,22 @@ public class MetaNodeUpdaterTest {
 
         Assert.assertTrue(metaNodeUpdateTimeBefore.isBefore(metaNodeUpdateTimeAfter));
 
-        Assert.assertEquals(7L, metaNodeAfter.asMap().get("totalPostCount"));
-        Assert.assertEquals(4L, metaNodeAfter.asMap().get("totalPreCount"));
+        Assert.assertEquals(15L, metaNodeAfter.asMap().get("totalPostCount"));
+        Assert.assertEquals(6L, metaNodeAfter.asMap().get("totalPreCount"));
 
         String metaSynapseCountPerRoi = (String) metaNodeAfter.asMap().get("roiInfo");
         Gson gson = new Gson();
         Map<String, SynapseCounter> metaSynapseCountPerRoiMap = gson.fromJson(metaSynapseCountPerRoi, new TypeToken<Map<String, SynapseCounter>>() {
         }.getType());
 
-        Assert.assertEquals(4L, metaSynapseCountPerRoiMap.get("roiA").getPre());
-        Assert.assertEquals(6L, metaSynapseCountPerRoiMap.get("roiA").getPost());
+        Assert.assertEquals(6L, metaSynapseCountPerRoiMap.get("roiA").getPre());
+        Assert.assertEquals(10L, metaSynapseCountPerRoiMap.get("roiA").getPost());
 
         Assert.assertEquals(3, metaSynapseCountPerRoiMap.keySet().size());
         Assert.assertTrue(metaSynapseCountPerRoiMap.containsKey("roiA")
                 && metaSynapseCountPerRoiMap.containsKey("roiB")
-                && metaSynapseCountPerRoiMap.containsKey("roi'C"));
+                && metaSynapseCountPerRoiMap.containsKey("roi'C")
+        );
 
         LocalDateTime metaNodeUpdateTimeBefore2 = session.readTransaction(tx -> tx.run("MATCH (n:Meta:test{dataset:\"test\"}) RETURN n.lastDatabaseEdit").single().get(0).asLocalDateTime());
 

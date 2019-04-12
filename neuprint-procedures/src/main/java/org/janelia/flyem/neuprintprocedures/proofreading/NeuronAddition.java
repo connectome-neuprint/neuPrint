@@ -9,28 +9,28 @@ import java.util.Set;
 
 public class NeuronAddition {
 
-    @SerializedName("Id")
+    @SerializedName("id")
     private Long bodyId;
 
-    @SerializedName("Size")
+    @SerializedName("size")
     private Long size;
 
-    @SerializedName("MutationUUID")
+    @SerializedName("mutationUUID")
     private String mutationUuid;
 
-    @SerializedName("MutationID")
+    @SerializedName("mutationID")
     private Long mutationId;
 
-    @SerializedName("Status")
+    @SerializedName("status")
     private String status; // optional
 
-    @SerializedName("Name")
+    @SerializedName("name")
     private String name; // optional
 
-    @SerializedName("Soma")
+    @SerializedName("soma")
     private Soma soma; // optional
 
-    @SerializedName("CurrentSynapses")
+    @SerializedName("currentSynapses")
     private Set<Synapse> currentSynapses;
 
     public Long getBodyId() {

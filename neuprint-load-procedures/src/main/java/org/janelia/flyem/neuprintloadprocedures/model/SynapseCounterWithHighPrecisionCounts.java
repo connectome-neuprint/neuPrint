@@ -5,8 +5,8 @@ package org.janelia.flyem.neuprintloadprocedures.model;
  */
 public class SynapseCounterWithHighPrecisionCounts extends SynapseCounter {
 
-    private int preHP;
-    private int postHP;
+    private long preHP;
+    private long postHP;
 
     /**
      * Class constructor. Counter starts at 0 for all values.
@@ -26,7 +26,7 @@ public class SynapseCounterWithHighPrecisionCounts extends SynapseCounter {
      * @param preHP  high-precision presynaptic density count
      * @param postHP high-precision postsynaptic density count
      */
-    public SynapseCounterWithHighPrecisionCounts(int pre, int post, int preHP, int postHP) {
+    public SynapseCounterWithHighPrecisionCounts(long pre, long post, long preHP, long postHP) {
         super(pre, post);
         this.preHP = preHP;
         this.postHP = postHP;
@@ -35,14 +35,14 @@ public class SynapseCounterWithHighPrecisionCounts extends SynapseCounter {
     /**
      * @return high-precision presynaptic density count
      */
-    public int getPreHP() {
+    public long getPreHP() {
         return this.preHP;
     }
 
     /**
      * @return high-precision postsynaptic density count
      */
-    public int getPostHP() {
+    public long getPostHP() {
         return this.postHP;
     }
 

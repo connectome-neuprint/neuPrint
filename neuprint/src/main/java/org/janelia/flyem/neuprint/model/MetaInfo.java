@@ -7,6 +7,10 @@ import org.janelia.flyem.neuprint.json.JsonUtils;
 import java.io.BufferedReader;
 import java.lang.reflect.Type;
 
+/**
+ * Class representing meta information stored on the Meta node for interaction with neuPrintExplorer. Contains information for neuroglancer, definitons of statuses used in the dataset, host for ROI meshes, and the DVID server/uuid that this dataset maps to.
+ * <a href="https://github.com/connectome-neuprint/neuPrint/tree/master/meta-data" target="_blank">See examples for fib25 and mb6 datasets.</a>
+ */
 public class MetaInfo {
 
     @SerializedName("neuroglancerInfo")
@@ -27,6 +31,15 @@ public class MetaInfo {
     @SerializedName("info")
     private final String info;
 
+    /**
+     * Class constructor
+     *
+     * @param neuroglancerInfo  String containing information for neuroglancer to be used within neuPrintExplorer
+     * @param uuid              UUID of dataset
+     * @param dvidServer        DVID server at which dataset is stored
+     * @param meshHost          Host of ROI meshes to be used by the skeleton viewer within neuPrintExplorer
+     * @param statusDefinitions Definitions of statuses used for this dataset
+     */
     public MetaInfo(final String neuroglancerInfo, String uuid, String dvidServer, String meshHost, String statusDefinitions, String info) {
         this.neuroglancerInfo = neuroglancerInfo;
         this.uuid = uuid;
@@ -54,6 +67,15 @@ public class MetaInfo {
 
     public String getUuid() {
         return uuid;
+    }
+
+    public String toJson() {
+        return JsonUtils.GSON.toJson(this, META_INFO_TYPE);
+    }
+
+    @Override
+    public String toString() {
+        return this.toJson();
     }
 
     public String getInfo() {

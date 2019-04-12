@@ -3,7 +3,7 @@ package org.janelia.flyem.neuprintprocedures.analysis;
 import apoc.create.Create;
 import apoc.refactor.GraphRefactoring;
 import org.janelia.flyem.neuprint.Neo4jImporter;
-import org.janelia.flyem.neuprint.NeuPrinterMain;
+import org.janelia.flyem.neuprint.NeuPrintMain;
 import org.janelia.flyem.neuprint.model.Skeleton;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -16,6 +16,8 @@ import org.neo4j.driver.v1.types.Node;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 public class SkeletonDistanceTest {
@@ -31,7 +33,9 @@ public class SkeletonDistanceTest {
         File swcFile1 = new File("src/test/resources/101.swc");
         File swcFile2 = new File("src/test/resources/102.swc");
 
-        List<Skeleton> skeletonList = NeuPrinterMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1, swcFile2});
+        List<Skeleton> skeletonList = NeuPrintMain.createSkeletonListFromSwcFileArray(new File[]{swcFile1, swcFile2});
+
+        final LocalDateTime timeStamp = LocalDateTime.now().truncatedTo(ChronoUnit.SECONDS);
 
         try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), Config.build().withoutEncryption().toConfig())) {
 
@@ -39,7 +43,7 @@ public class SkeletonDistanceTest {
 
             Neo4jImporter neo4jImporter = new Neo4jImporter(driver);
 
-            neo4jImporter.addSkeletonNodes("test", skeletonList);
+            neo4jImporter.addSkeletonNodes("test", skeletonList, timeStamp);
 
             Long distance = session.readTransaction(tx -> tx.run("MATCH (n:SkelNode{skelNodeId:\"test:101:5464:9385:1248:1\"}), (m:SkelNode{skelNodeId:\"test:101:5328:9385:1368:5\"}) WITH n,m CALL analysis.calculateSkeletonDistance(\"test\",n,m) YIELD value RETURN value").single().get(0).asLong());
 

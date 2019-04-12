@@ -11,20 +11,20 @@ This document describes available procedures for updating a neuPrint graph. Thes
 * **proofreader.addNeuron(\<string\> neuronAdditionJsonObject, \<string\> dataset)**: add a Neuron/Segment with properties, synapses, and connections specified by an input JSON:
 ```
 {
-    "Id": <int64>,
-    "Size": <int64>,
-    "MutationUUID": <string> (from DVID),
-    "MutationID": <int64> (from DVID),
-    "Status": <string>,
-    "Soma": {
-        "Location": [<int>,<int>,<int>],
-        "Radius": <float>
+    "id": <int64>,
+    "size": <int64>,
+    "mutationUUID": <string> (from DVID),
+    "mutationID": <int64> (from DVID),
+    "status": <string>,
+    "soma": {
+        "location": [<int>,<int>,<int>],
+        "radius": <double>
         },
-    "Name": <string>,
-    "CurrentSynapses": [
+    "name": <string>,
+    "currentSynapses": [
         { 
-            "Location": [<int>,<int>,<int>],
-            "Type": <string> (pre or post)
+            "location": [<int>,<int>,<int>],
+            "type": <string> (pre or post)
         },
         ...
     ]
@@ -43,9 +43,9 @@ These procedures will update ROI information for the Neuron/Segment containing t
 * **proofreader.addSynapse(\<string\> synapseJsonObject, \<string\> dataset)**: Add a synapse node to the dataset specified by an input JSON. Will only add the Synapse node, not the connections to other Synapse nodes. Input format:
 ```
 {
-    “Type”: <string> (pre or post),
-    “Confidence”: <float>, (default is 0.0 if not provided)
-    “Location”: [<int>,<int>,<int>],
+    “type”: <string> (pre or post),
+    “confidence”: <double>, (default is 0.0 if not provided)
+    “location”: [<int>,<int>,<int>],
     “rois”: [<string>, <string>, …]
 }
 ```
