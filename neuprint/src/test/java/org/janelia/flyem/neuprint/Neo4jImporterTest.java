@@ -654,6 +654,8 @@ public class Neo4jImporterTest {
         Assert.assertEquals("test neuroglancer info", metaNode.asMap().get("neuroglancerInfo"));
         Assert.assertEquals("test host", metaNode.asMap().get("meshHost"));
         Assert.assertEquals("test definitions", metaNode.asMap().get("statusDefinitions"));
+        Assert.assertEquals("test info", metaNode.asMap().get("info"));
+
 
     }
 

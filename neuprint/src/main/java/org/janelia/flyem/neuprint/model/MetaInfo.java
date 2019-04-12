@@ -28,6 +28,10 @@ public class MetaInfo {
     @SerializedName("statusDefinitions")
     private final String statusDefinitions;
 
+    @SerializedName("info")
+    private final String info;
+
+    public MetaInfo(final String neuroglancerInfo, String uuid, String dvidServer, String meshHost, String statusDefinitions, String info) {
     /**
      * Class constructor
      *
@@ -43,6 +47,7 @@ public class MetaInfo {
         this.dvidServer = dvidServer;
         this.meshHost = meshHost;
         this.statusDefinitions = statusDefinitions;
+        this.info = info;
     }
 
     public String getDvidServer() {
@@ -72,6 +77,10 @@ public class MetaInfo {
     @Override
     public String toString() {
         return this.toJson();
+    }
+
+    public String getInfo() {
+        return info;
     }
 
     public static MetaInfo fromJson(final BufferedReader reader) {

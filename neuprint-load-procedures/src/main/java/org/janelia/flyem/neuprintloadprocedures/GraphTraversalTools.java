@@ -19,6 +19,7 @@ public class GraphTraversalTools {
 
     //Node names
     public static final String META = "Meta";
+    public static final String DATA_MODEL = "DataModel";
     public static final String NEURON = "Neuron";
     public static final String SEGMENT = "Segment";
     public static final String SKELETON = "Skeleton";
@@ -65,6 +66,22 @@ public class GraphTraversalTools {
     public static final String SYNAPSES_TO = "SynapsesTo";
     public static final String TO = "To";
     public static final String FROM = "From";
+
+    public static final Set<String> protectedLabels = new HashSet<String>() {
+        {
+            add(META);
+            add(DATA_MODEL);
+            add(NEURON);
+            add(SEGMENT);
+            add(SKELETON);
+            add(SKEL_NODE);
+            add(CONNECTION_SET);
+            add(SYNAPSE_SET);
+            add(SYNAPSE);
+            add(PRE_SYN);
+            add(POST_SYN);
+        }
+    };
 
     public static Node getSegment(final GraphDatabaseService dbService, final long bodyId, final String dataset) {
         return dbService.findNode(Label.label(dataset + "-" + SEGMENT), BODY_ID, bodyId);
@@ -242,6 +259,10 @@ public class GraphTraversalTools {
     public static Point getLocationAs3dCartesianPoint(final GraphDatabaseService dbService, Double x, Double y, Double z) {
         Map<String, Object> pointQueryResult = dbService.execute("RETURN point({ x:" + x + ", y:" + y + ", z:" + z + ", crs:'cartesian-3D'}) AS point").next();
         return (Point) pointQueryResult.get("point");
+    }
+
+    public static boolean isProtectedLabel(String queriedLabel) {
+        return protectedLabels.contains(queriedLabel);
     }
 
 }

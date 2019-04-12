@@ -179,7 +179,7 @@ public class SkelNode {
     /**
      * Returns this SkelNode's skelNodeId for use in neo4j.
      *
-     * @param dataset dataset
+     * @param dataset relevant dataset
      * @return {@link String} skelNodeId
      */
     public String getSkelNodeId(String dataset) {

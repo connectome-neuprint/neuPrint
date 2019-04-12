@@ -771,19 +771,25 @@ public class Neo4jImporter implements AutoCloseable {
      * @param dataset dataset for load
      * @param metaInfo MetaInfo object
      * @param timeStamp time stamp for load
+     * @param dataset                            dataset name
+     * @param dataModelVersion                   version of data model
+     * @param preHPThreshold                     high-precision threshold for presynaptic densities
+     * @param postHPThreshold                    high-precision threshold for postsynaptic densities
+     * @param addConnectionSetRoiInfoAndWeightHP boolean indicating whether or not ConnectionSets should have roiInfo property, ConnectsTo relationships should have weightHP
      */
     public void addMetaInfo(String dataset, MetaInfo metaInfo, final LocalDateTime timeStamp) {
 
         LOG.info("addMetaInfo: enter");
-        String metaNodeUuidString = "MATCH (m:Meta{dataset:$dataset}) SET m.neuroglancerInfo=$neuroglancerInfo, m.uuid=$uuid, m.dvidServer=$dvidServer, m.statusDefinitions=$statusDefinitions, m.meshHost=$meshHost, m.lastDatabaseEdit=$timeStamp";
+        String metaNodeUuidString = "MATCH (m:Meta{dataset:$dataset}) SET m.neuroglancerInfo=$neuroglancerInfo, m.uuid=$uuid, m.dvidServer=$dvidServer, m.statusDefinitions=$statusDefinitions, m.meshHost=$meshHost, m.info=$info, m.lastDatabaseEdit=$timeStamp";
         try (final TransactionBatch batch = getBatch()) {
             batch.addStatement(new Statement(metaNodeUuidString, parameters("dataset", dataset,
                     "neuroglancerInfo", metaInfo.getNeuroglancerInfo(),
                     "uuid", metaInfo.getUuid(),
                     "dvidServer", metaInfo.getDvidServer(),
                     "statusDefinitions", metaInfo.getStatusDefinitions(),
-                    "meshHost", metaInfo.getMeshHost(),
                     "timeStamp", timeStamp
+                    "meshHost", metaInfo.getMeshHost(),
+                    "info", metaInfo.getInfo()
             )));
 
             batch.writeTransaction();
