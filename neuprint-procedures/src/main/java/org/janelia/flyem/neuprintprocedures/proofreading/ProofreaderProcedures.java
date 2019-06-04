@@ -38,59 +38,9 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.BODY_ID;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CLUSTER_NAME;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONFIDENCE;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONNECTION_SET;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONNECTS_TO;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.CONTAINS;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.DATASET_BODY_ID;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.DATASET_BODY_IDs;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.FROM;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.LINKS_TO;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.LOCATION;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.MUTATION_UUID_ID;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.NAME;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.NEURON;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST_HP_THRESHOLD;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.POST_SYN;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE_HP_THRESHOLD;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.PRE_SYN;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.RADIUS;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROI_INFO;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.ROW_NUMBER;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SEGMENT;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SIZE;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKELETON;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKELETON_ID;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKEL_NODE;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SKEL_NODE_ID;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_LOCATION;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SOMA_RADIUS;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.STATUS;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSES_TO;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.SYNAPSE_SET;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TO;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TOTAL_POST_COUNT;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TOTAL_PRE_COUNT;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.TYPE;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.WEIGHT_HP;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getConnectionSetNode;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getConnectionSetsForSynapse;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getMetaNode;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegment;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSegmentRois;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapse;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseRois;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapseSetForNeuron;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.getSynapsesForConnectionSet;
+import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.*;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addConnectsToRelationship;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToRoiInfo;
-import static org.janelia.flyem.neuprintloadprocedures.GraphTraversalTools.isProtectedLabel;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToRoiInfoWithHP;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.addSynapseToSynapseSet;
 import static org.janelia.flyem.neuprintloadprocedures.procedures.LoadingProcedures.convertSegmentToNeuron;
@@ -154,6 +104,13 @@ public class ProofreaderProcedures {
                     // adding a name makes it a Neuron
                     isNeuron = true;
                     log.info("Updated name for neuron " + neuron.getId() + ".");
+                }
+
+                if (neuron.getInstance() != null) {
+                    neuronNode.setProperty(INSTANCE, neuron.getInstance());
+                    // adding an instance makes it a Neuron
+                    isNeuron = true;
+                    log.info("Updated instance for neuron " + neuron.getId() + ".");
                 }
 
                 if (neuron.getSize() != null) {
@@ -275,6 +232,49 @@ public class ProofreaderProcedures {
         }
 
         log.info("proofreader.deleteName: exit");
+    }
+
+    @Procedure(value = "proofreader.deleteInstance", mode = Mode.WRITE)
+    @Description("proofreader.deleteInstance(bodyId, datasetLabel): Delete instance from Neuron/Segment node.")
+    public void deleteInstance(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.deleteInstance: entry");
+
+        try {
+
+            //TODO: refactor this common logic into shared method
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteInstance: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteInstance: Missing input arguments.");
+            }
+
+            // get the neuron node
+            Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
+
+            if (neuronNode == null) {
+                log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of instance.");
+            } else {
+
+                acquireWriteLockForNode(neuronNode);
+
+                // delete instance
+                neuronNode.removeProperty(INSTANCE);
+
+                // check if it should still be labeled neuron and remove designation if necessary
+                if (shouldNotBeLabeledNeuron(neuronNode)) {
+                    removeNeuronDesignationFromNode(neuronNode, datasetLabel);
+                }
+
+                log.info("Successfully deleted instance information from " + bodyId);
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteInstance: " + e);
+            throw new RuntimeException("Error running proofreader.deleteInstance: " + e);
+        }
+
+        log.info("proofreader.deleteInstance: exit");
     }
 
     @Procedure(value = "proofreader.deleteStatus", mode = Mode.WRITE)
@@ -533,6 +533,11 @@ public class ProofreaderProcedures {
 
             if (neuronAddition.getName() != null) {
                 newNeuron.setProperty(NAME, neuronAddition.getName());
+                isNeuron = true;
+            }
+
+            if (neuronAddition.getInstance() != null) {
+                newNeuron.setProperty(INSTANCE, neuronAddition.getInstance());
                 isNeuron = true;
             }
 
@@ -1806,7 +1811,8 @@ public class ProofreaderProcedures {
         }
 
         // returns true if meets the definition for a neuron
-        return !(preCount >= 2 || postCount >= 10 || neuronNode.hasProperty(NAME) || neuronNode.hasProperty(SOMA_RADIUS) || neuronNode.hasProperty(STATUS));
+        return !(preCount >= 2 || postCount >= 10 || neuronNode.hasProperty(NAME) || neuronNode.hasProperty(INSTANCE) ||
+                 neuronNode.hasProperty(SOMA_RADIUS) || neuronNode.hasProperty(STATUS));
     }
 
     private void removeNeuronDesignationFromNode(Node neuronNode, String datasetLabel) {

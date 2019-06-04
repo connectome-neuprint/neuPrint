@@ -36,6 +36,7 @@ public class GraphTraversalTools {
     public static final String DATASET = "dataset";
     public static final String DATASET_BODY_ID = "datasetBodyId";
     public static final String DATASET_BODY_IDs = "datasetBodyIds";
+    public static final String INSTANCE = "instance";
     public static final String LOCATION = "location";
     public static final String POST = "post";
     public static final String PRE = "pre";

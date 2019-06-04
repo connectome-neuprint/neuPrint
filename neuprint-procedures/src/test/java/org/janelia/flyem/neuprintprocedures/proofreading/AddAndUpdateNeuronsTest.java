@@ -96,6 +96,7 @@ public class AddAndUpdateNeuronsTest {
                         "\"location\": [14067, 10777, 15040]," +
                         "\"radius\": 15040.0 }," +
                         "\"name\": \"new name\", " +
+                        "\"instance\": \"new instance\", " +
                         "\"SynapseSources\": [831744,2589725]," +
                         "\"currentSynapses\": " +
                         "[" +
@@ -340,6 +341,7 @@ public class AddAndUpdateNeuronsTest {
         Assert.assertEquals("28841c8277e044a7b187dda03e18da13:1000057479:8426959", newNeuron.asMap().get("mutationUuidAndId"));
         Assert.assertEquals("updated", newNeuron.asMap().get("status"));
         Assert.assertEquals("new name", newNeuron.asMap().get("name"));
+        Assert.assertEquals("new instance", newNeuron.asMap().get("instance"));
         Assert.assertEquals(15040.0, newNeuron.asMap().get("somaRadius"));
         Assert.assertEquals(Values.point(9157, 14067, 10777, 15040).asPoint(), newNeuron.asMap().get("somaLocation"));
 
@@ -536,7 +538,7 @@ public class AddAndUpdateNeuronsTest {
 
         Session session = driver.session();
 
-        String neuronObjectJson = "{ \"id\":222, \"status\":\"Partially Roughly traced\", \"name\":\"KB(a)\", \"size\": 346576}";
+        String neuronObjectJson = "{ \"id\":222, \"status\":\"Partially Roughly traced\", \"name\":\"KB(a)\", \"instance\":\"KB(a)instance\", \"size\": 346576}";
 
         session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`:Segment:test) SET n.bodyId=222, n.pre=2, n.post=5, n.roiInfo=\"{'roiA':{'pre':2,'post':0},'roiB':{'pre':0,'post':5}}\"", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test")));
 
@@ -546,6 +548,8 @@ public class AddAndUpdateNeuronsTest {
 
         Assert.assertEquals("Partially Roughly traced", neuronNode.asMap().get("status"));
         Assert.assertEquals("KB(a)", neuronNode.asMap().get("name"));
+        Assert.assertEquals("invalid instance property after update",
+                            "KB(a)instance", neuronNode.asMap().get("instance"));
         Assert.assertEquals(346576L, neuronNode.asMap().get("size"));
 
         Assert.assertTrue(neuronNode.hasLabel("Neuron"));

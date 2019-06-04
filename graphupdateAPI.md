@@ -1,9 +1,10 @@
 # neuPrint Graph Update Procedures
 This document describes available procedures for updating a neuPrint graph. These are contained in the neuprint-procedures.jar file and can be called with a Cypher query beginning with the `CALL` keyword. For example, `CALL proofreader.deleteSynapse(1,2,3,'testDataset')`
 ## Neuron/Segment properties
-* **proofreader.updateProperties(\<string\> neuronJsonObject, \<string\> dataset)**: Update properties on a Neuron/Segment node. Supports adding status, type, name, size, and soma (location and radius). Input JSON should follow specifications for "Neurons" JSON file and supply a single Neuron/Segment object as a string: https://github.com/connectome-neuprint/neuPrint/blob/master/jsonspecs.md
+* **proofreader.updateProperties(\<string\> neuronJsonObject, \<string\> dataset)**: Update properties on a Neuron/Segment node. Supports adding status, type, name, instance, size, and soma (location and radius). Input JSON should follow specifications for "Neurons" JSON file and supply a single Neuron/Segment object as a string: https://github.com/connectome-neuprint/neuPrint/blob/master/jsonspecs.md
 * **proofreader.deleteSoma(\<int64\> bodyId, \<string\> dataset)**: Delete soma (radius and location) from Neuron/Segment node.
 * **proofreader.deleteName(\<int64\> bodyId,  \<string\> dataset)**: Delete name from Neuron/Segment node.
+* **proofreader.deleteInstance(\<int64\> bodyId,  \<string\> dataset)**: Delete instance from Neuron/Segment node.
 * **proofreader.deleteStatus(\<int64\> bodyId,  \<string\> dataset)**: Delete status from Neuron/Segment node.
 * **proofreader.deleteType(\<int64\> bodyId,  \<string\> dataset)**: Delete type from Neuron/Segment node.
 
@@ -21,6 +22,7 @@ This document describes available procedures for updating a neuPrint graph. Thes
         "radius": <double>
         },
     "name": <string>,
+    "instance": <string>,
     "currentSynapses": [
         { 
             "location": [<int>,<int>,<int>],

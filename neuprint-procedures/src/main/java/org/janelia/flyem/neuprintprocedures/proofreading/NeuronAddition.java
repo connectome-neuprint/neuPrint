@@ -27,6 +27,9 @@ public class NeuronAddition {
     @SerializedName("name")
     private String name; // optional
 
+    @SerializedName("instance")
+    private String instance; // optional
+
     @SerializedName("soma")
     private Soma soma; // optional
 
@@ -55,6 +58,10 @@ public class NeuronAddition {
 
     public String getName() {
         return name;
+    }
+
+    public String getInstance() {
+        return instance;
     }
 
     public Soma getSoma() {

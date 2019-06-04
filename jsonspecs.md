@@ -42,6 +42,7 @@ Neurons.json
 	"id": <int64> unique indentifier per dataset, (required)
 	"status": <string> status of neuron, (optional)
 	"name": <string> name of neuron, (optional)
+	"instance": <string> instance name of neuron, (optional)
 	"type": <string> type of neuron, (optional)
 	"instance": <string> instance of neuron, (optional)
 	"size": <int64> num voxels in body, (optional)

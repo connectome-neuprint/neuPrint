@@ -48,6 +48,17 @@
     "size": 1756948
   },
   {
+    "id": 100555,
+    "status": "final (irrelevant)",
+    "instance": "testInstance",
+    "size": 1756948
+  },
+  {
+    "id": 100556,
+    "instance": "testInstanceWithoutNameOrStatus",
+    "size": 1234
+  },
+  {
     "id": 100569,
     "status": "final",
     "size": 1031,

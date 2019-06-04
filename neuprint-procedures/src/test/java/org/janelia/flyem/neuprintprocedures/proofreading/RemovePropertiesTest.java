@@ -19,6 +19,7 @@ import org.neo4j.driver.v1.Config;
 import org.neo4j.driver.v1.Driver;
 import org.neo4j.driver.v1.GraphDatabase;
 import org.neo4j.driver.v1.Session;
+import org.neo4j.driver.v1.Value;
 import org.neo4j.harness.junit.Neo4jRule;
 
 import java.io.File;
@@ -81,105 +82,30 @@ public class RemovePropertiesTest {
 
     @Test
     public void shouldRemoveSomaRadiusAndLocation() {
-        Session session = driver.session();
-
-        // get neuron and add Neuron label since has status and soma
-        Map<String, Object> neuronAsMap = session.writeTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=100569 SET n:Neuron, n:`test-Neuron` RETURN n")).single().get(0).asMap();
-
-        Assert.assertTrue(neuronAsMap.containsKey("somaRadius"));
-        Assert.assertTrue(neuronAsMap.containsKey("somaLocation"));
-
-        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteSoma($bodyId,$datasetLabel)", parameters("bodyId", 100569, "datasetLabel", "test")));
-
-        Map<String, Object> neuronAsMapAfterDelete = session.readTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=100569 RETURN n")).single().get(0).asMap();
-
-        Assert.assertFalse(neuronAsMapAfterDelete.containsKey("somaRadius"));
-        Assert.assertFalse(neuronAsMapAfterDelete.containsKey("somaLocation"));
-
-        // should not lose neuron status since still has status
-        int numNeuronsWithBodyId = session.readTransaction(tx -> tx.run("MATCH (n:Neuron) WHERE n.bodyId=100569 RETURN count(n)")).single().get(0).asInt();
-        int numDatasetNeuronsWithBodyId = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`) WHERE n.bodyId=100569 RETURN count(n)")).single().get(0).asInt();
-
-        Assert.assertEquals(1, numNeuronsWithBodyId);
-        Assert.assertEquals(1, numDatasetNeuronsWithBodyId);
-
-        // should skip deletion of soma quietly if the soma doesn't exist
-        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteSoma($bodyId,$datasetLabel)", parameters("bodyId", 100569, "datasetLabel", "test")));
-
+        testPropertyRemoval("deleteSoma", 100569, new String[] {"somaRadius", "somaLocation"}, 1);
     }
 
     @Test
     public void shouldRemoveName() {
-        Session session = driver.session();
+        testPropertyRemoval("deleteName", 100554, new String[] {"name"},1);
+    }
 
-        // get neuron and add Neuron label since has name and status
-        Map<String, Object> neuronAsMap = session.readTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=100554 SET n:Neuron, n:`test-Neuron` RETURN n")).single().get(0).asMap();
+    @Test
+    public void shouldRemoveInstance() {
+        testPropertyRemoval("deleteInstance", 100555, new String[] {"instance"}, 1);
 
-        Assert.assertTrue(neuronAsMap.containsKey("name"));
-
-        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteName($bodyId,$datasetLabel)", parameters("bodyId", 100554, "datasetLabel", "test")));
-
-        Map<String, Object> neuronAsMapAfterDelete = session.readTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=100554 RETURN n")).single().get(0).asMap();
-
-        Assert.assertFalse(neuronAsMapAfterDelete.containsKey("name"));
-
-        // should not lose neuron status since still has status
-        int numNeuronsWithBodyId = session.readTransaction(tx -> tx.run("MATCH (n:Neuron) WHERE n.bodyId=100554 RETURN count(n)")).single().get(0).asInt();
-        int numDatasetNeuronsWithBodyId = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`) WHERE n.bodyId=100554 RETURN count(n)")).single().get(0).asInt();
-
-        Assert.assertEquals(1, numNeuronsWithBodyId);
-        Assert.assertEquals(1, numDatasetNeuronsWithBodyId);
-
-        // should skip deletion of name quietly if name doesn't exist
-        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteName($bodyId,$datasetLabel)", parameters("bodyId", 100554, "datasetLabel", "test")));
-
+        // body 100556 only has an instance property (no status), so removing instance should also remove neuron status
+        testPropertyRemoval("deleteInstance", 100556, new String[] {"instance"},0);
     }
 
     @Test
     public void shouldRemoveStatus() {
-        Session session = driver.session();
-
-        // get neuron and add Neuron label since has status
-        Map<String, Object> neuronAsMap = session.readTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=100541 SET n:Neuron, n:`test-Neuron` RETURN n")).single().get(0).asMap();
-
-        Assert.assertTrue(neuronAsMap.containsKey("status"));
-
-        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteStatus($bodyId,$datasetLabel)", parameters("bodyId", 100541, "datasetLabel", "test")));
-
-        Map<String, Object> neuronAsMapAfterDelete = session.readTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=100541 RETURN n")).single().get(0).asMap();
-
-        Assert.assertFalse(neuronAsMapAfterDelete.containsKey("status"));
-
-        // should lose neuron status
-        int numNeuronsWithBodyId = session.readTransaction(tx -> tx.run("MATCH (n:Neuron) WHERE n.bodyId=100541 RETURN count(n)")).single().get(0).asInt();
-        int numDatasetNeuronsWithBodyId = session.readTransaction(tx -> tx.run("MATCH (n:`test-Neuron`) WHERE n.bodyId=100541 RETURN count(n)")).single().get(0).asInt();
-
-        Assert.assertEquals(0, numNeuronsWithBodyId);
-        Assert.assertEquals(0, numDatasetNeuronsWithBodyId);
-
-        // should skip deletion of status quietly if status doesn't exist
-        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteStatus($bodyId,$datasetLabel)", parameters("bodyId", 100541, "datasetLabel", "test")));
-
+        testPropertyRemoval("deleteStatus", 100541, new String[] {"status"}, 0);
     }
 
     @Test
     public void shouldRemoveType() {
-        Session session = driver.session();
-
-        // get neuron and add Neuron label since has status
-        Map<String, Object> neuronAsMap = session.readTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=8426959 RETURN n")).single().get(0).asMap();
-
-        Assert.assertTrue(neuronAsMap.containsKey("type"));
-
-        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteType($bodyId,$datasetLabel)", parameters("bodyId", 8426959, "datasetLabel", "test")));
-
-        Map<String, Object> neuronAsMapAfterDelete = session.readTransaction(tx -> tx.run("MATCH (n:Segment) WHERE n.bodyId=8426959 RETURN n")).single().get(0).asMap();
-
-        Assert.assertFalse(neuronAsMapAfterDelete.containsKey("type"));
-
-        // should skip deletion of type quietly if type doesn't exist
-        session.writeTransaction(tx -> tx.run("CALL proofreader.deleteStatus($bodyId,$datasetLabel)", parameters("bodyId", 8426959, "datasetLabel", "test")));
-
+        testPropertyRemoval("deleteType", 8426959, new String[] {"type"}, 1);
     }
 
     @Test
@@ -205,4 +131,54 @@ public class RemovePropertiesTest {
         Assert.assertEquals(1, cCount2);
 
     }
+
+    private void testPropertyRemoval(final String procedureName,
+                                     final int testBodyId,
+                                     final String[] propertyNames,
+                                     final int expectedNeuronCount) throws RuntimeException {
+
+        final String procedureContext = "calling " + procedureName + " with bodyId " + testBodyId;
+        final String whereBodyClause = "WHERE n.bodyId=" + testBodyId;
+        final String statement = "CALL proofreader." + procedureName + "($bodyId,$datasetLabel)";
+        final Value bodyIdAndDatasetValues = parameters("bodyId", testBodyId, "datasetLabel", "test");
+
+        // get neuron and add Neuron label
+        final Session session = driver.session();
+        Map<String, Object> neuronAsMap = session.readTransaction(tx -> tx.run("MATCH (n:Segment) " + whereBodyClause +
+                                                                               " SET n:Neuron, n:`test-Neuron` RETURN n")).single().get(0).asMap();
+
+        for (final String propertyName : propertyNames) {
+            Assert.assertTrue(propertyName + " property does not exist before " + procedureContext,
+                              neuronAsMap.containsKey(propertyName));
+        }
+
+        session.writeTransaction(tx -> tx.run(statement, bodyIdAndDatasetValues));
+
+        final Map<String, Object> segmentsAsMapAfterDelete = session.readTransaction(tx -> tx.run(
+                "MATCH (n:Segment) " + whereBodyClause + " RETURN n")).single().get(0).asMap();
+
+        for (final String propertyName : propertyNames) {
+            Assert.assertFalse(propertyName + " property still exists after " + procedureContext,
+                               segmentsAsMapAfterDelete.containsKey(propertyName));
+        }
+
+        // check neuron status after removal ...
+        int numNeuronsWithBodyId = session.readTransaction(tx -> tx.run(
+                "MATCH (n:Neuron) " + whereBodyClause + " RETURN count(n)")).single().get(0).asInt();
+        int numDatasetNeuronsWithBodyId = session.readTransaction(tx -> tx.run(
+                "MATCH (n:`test-Neuron`) " + whereBodyClause + " RETURN count(n)")).single().get(0).asInt();
+
+        Assert.assertEquals("invalid number of neurons after " + procedureContext,
+                            expectedNeuronCount, numNeuronsWithBodyId);
+        Assert.assertEquals("invalid number of dataset neurons after " + procedureContext,
+                            expectedNeuronCount, numDatasetNeuronsWithBodyId);
+
+        // should skip deletion of properties quietly if they don't exist
+        try {
+            session.writeTransaction(tx -> tx.run(statement, bodyIdAndDatasetValues));
+        } catch (final Throwable t) {
+            throw new RuntimeException("exception thrown after " + procedureContext + " second time", t);
+        }
+    }
+
 }
