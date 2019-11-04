@@ -5,7 +5,7 @@
     <parent>
         <artifactId>neuprint-root</artifactId>
         <groupId>org.janelia.flyem</groupId>
-        <version>1.0.1</version>
+        <version>1.0.2</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -47,14 +47,14 @@
         <dependency>
             <groupId>org.janelia.flyem</groupId>
             <artifactId>neuprint</artifactId>
-            <version>1.0</version>
+            <version>1.0.2</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>org.janelia.flyem</groupId>
             <artifactId>neuprint-load-procedures</artifactId>
-            <version>1.0</version>
+            <version>1.0.2</version>
             <scope>compile</scope>
         </dependency>
 

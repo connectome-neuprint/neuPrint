@@ -37,6 +37,11 @@ public class GraphTraversalTools {
     public static final String DATASET_BODY_ID = "datasetBodyId";
     public static final String DATASET_BODY_IDs = "datasetBodyIds";
     public static final String INSTANCE = "instance";
+    public static final String PRIMARY_NEURITE = "primaryNeurite";
+    public static final String MAJOR_INPUT = "majorInput";
+    public static final String MAJOR_OUTPUT = "majorOutput";
+    public static final String CLONAL_UNIT = "clonalUnit";
+    public static final String NEUROTRANSMITTER = "neurotransmitter";
     public static final String LOCATION = "location";
     public static final String POST = "post";
     public static final String PRE = "pre";

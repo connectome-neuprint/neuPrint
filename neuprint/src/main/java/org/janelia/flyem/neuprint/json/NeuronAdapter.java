@@ -26,6 +26,11 @@ public class NeuronAdapter implements JsonDeserializer<Neuron>, JsonSerializer<N
     private static final String NAME_KEY = "name";
     private static final String TYPE_KEY = "type";
     private static final String INSTANCE_KEY = "instance";
+    private static final String PRIMARY_NEURITE_KEY = "primaryNeurite";
+    private static final String MAJOR_INPUT_KEY = "majorInput";
+    private static final String MAJOR_OUTPUT_KEY = "majorOutput";
+    private static final String CLONAL_UNIT_KEY = "clonalUnit";
+    private static final String NEUROTRANSMITTER_KEY = "neurotransmitter";
     private static final String SIZE_KEY = "size";
     private static final String ROIS_KEY = "rois";
     private static final String SOMA_KEY = "soma";
@@ -77,6 +82,31 @@ public class NeuronAdapter implements JsonDeserializer<Neuron>, JsonSerializer<N
             instance = jsonObject.get(INSTANCE_KEY).getAsString();
         }
 
+        String primaryNeurite = null;
+        if (jsonObject.has(PRIMARY_NEURITE_KEY)) {
+            primaryNeurite = jsonObject.get(PRIMARY_NEURITE_KEY).getAsString();
+        }
+
+        String majorInput = null;
+        if (jsonObject.has(MAJOR_INPUT_KEY)) {
+            majorInput = jsonObject.get(MAJOR_INPUT_KEY).getAsString();
+        }
+
+        String majorOutput = null;
+        if (jsonObject.has(MAJOR_OUTPUT_KEY)) {
+            majorOutput = jsonObject.get(MAJOR_OUTPUT_KEY).getAsString();
+        }
+
+        String clonalUnit = null;
+        if (jsonObject.has(CLONAL_UNIT_KEY)) {
+            clonalUnit = jsonObject.get(CLONAL_UNIT_KEY).getAsString();
+        }
+
+        String neurotransmitter = null;
+        if (jsonObject.has(NEUROTRANSMITTER_KEY)) {
+            neurotransmitter = jsonObject.get(NEUROTRANSMITTER_KEY).getAsString();
+        }
+
         Long size = null;
         if (jsonObject.has(SIZE_KEY)) {
             size = jsonObject.get(SIZE_KEY).getAsLong();
@@ -97,7 +127,9 @@ public class NeuronAdapter implements JsonDeserializer<Neuron>, JsonSerializer<N
             }
         }
 
-        return new Neuron(id, status, name, type, instance, size, rois, soma, synapseLocationSet);
+        return new Neuron(id, status, name, type, instance,
+                          primaryNeurite, majorInput, majorOutput, clonalUnit, neurotransmitter,
+                          size, rois, soma, synapseLocationSet);
 
     }
 
@@ -113,6 +145,11 @@ public class NeuronAdapter implements JsonDeserializer<Neuron>, JsonSerializer<N
         jsonObject.addProperty(NAME_KEY, srcNeuron.getName());
         jsonObject.addProperty(TYPE_KEY, srcNeuron.getType());
         jsonObject.addProperty(INSTANCE_KEY, srcNeuron.getInstance());
+        jsonObject.addProperty(PRIMARY_NEURITE_KEY, srcNeuron.getPrimaryNeurite());
+        jsonObject.addProperty(MAJOR_INPUT_KEY, srcNeuron.getMajorInput());
+        jsonObject.addProperty(MAJOR_OUTPUT_KEY, srcNeuron.getMajorOutput());
+        jsonObject.addProperty(CLONAL_UNIT_KEY, srcNeuron.getClonalUnit());
+        jsonObject.addProperty(NEUROTRANSMITTER_KEY, srcNeuron.getNeurotransmitter());
         jsonObject.addProperty(SIZE_KEY, srcNeuron.getSize());
 
         final JsonArray roiArray = new JsonArray();

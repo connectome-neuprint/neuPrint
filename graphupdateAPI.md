@@ -23,6 +23,11 @@ This document describes available procedures for updating a neuPrint graph. Thes
         },
     "name": <string>,
     "instance": <string>,
+    "primaryNeurite": <string>,
+    "majorInput": <string>,
+    "majorOutput": <string>,
+    "clonalUnit": <string>,
+    "neurotransmitter": <string>,
     "currentSynapses": [
         { 
             "location": [<int>,<int>,<int>],

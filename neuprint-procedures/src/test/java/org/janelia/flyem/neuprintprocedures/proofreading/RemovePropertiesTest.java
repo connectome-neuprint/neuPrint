@@ -99,6 +99,46 @@ public class RemovePropertiesTest {
     }
 
     @Test
+    public void shouldRemovePrimaryNeurite() {
+        testPropertyRemoval("deletePrimaryNeurite", 100600, new String[] {"primaryNeurite"}, 1);
+
+        // body 100601 only has a primaryNeurite property (no status), so removing primaryNeurite should also remove neuron status
+        testPropertyRemoval("deletePrimaryNeurite", 100601, new String[] {"primaryNeurite"},0);
+    }
+
+    @Test
+    public void shouldRemoveMajorInput() {
+        testPropertyRemoval("deleteMajorInput", 100602, new String[] {"majorInput"}, 1);
+
+        // body 100603 only has a majorInput property (no status), so removing majorInput should also remove neuron status
+        testPropertyRemoval("deleteMajorInput", 100603, new String[] {"majorInput"},0);
+    }
+
+    @Test
+    public void shouldRemoveMajorOutput() {
+        testPropertyRemoval("deleteMajorOutput", 100604, new String[] {"majorOutput"}, 1);
+
+        // body 100605 only has a majorOutput property (no status), so removing majorOutput should also remove neuron status
+        testPropertyRemoval("deleteMajorOutput", 100605, new String[] {"majorOutput"},0);
+    }
+
+    @Test
+    public void shouldRemoveClonalUnit() {
+        testPropertyRemoval("deleteClonalUnit", 100606, new String[] {"clonalUnit"}, 1);
+
+        // body 100607 only has a clonalUnit property (no status), so removing clonalUnit should also remove neuron status
+        testPropertyRemoval("deleteClonalUnit", 100607, new String[] {"clonalUnit"},0);
+    }
+
+    @Test
+    public void shouldRemoveNeurotransmitter() {
+        testPropertyRemoval("deleteNeurotransmitter", 100608, new String[] {"neurotransmitter"}, 1);
+
+        // body 100609 only has a neurotransmitter property (no status), so removing neurotransmitter should also remove neuron status
+        testPropertyRemoval("deleteNeurotransmitter", 100609, new String[] {"neurotransmitter"},0);
+    }
+    
+    @Test
     public void shouldRemoveStatus() {
         testPropertyRemoval("deleteStatus", 100541, new String[] {"status"}, 0);
     }

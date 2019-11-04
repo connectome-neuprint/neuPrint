@@ -113,6 +113,36 @@ public class ProofreaderProcedures {
                     log.info("Updated instance for neuron " + neuron.getId() + ".");
                 }
 
+                if (neuron.getPrimaryNeurite() != null) {
+                    neuronNode.setProperty(PRIMARY_NEURITE, neuron.getPrimaryNeurite());
+                    isNeuron = true;
+                    log.info("Updated primaryNeurite for neuron " + neuron.getId() + ".");
+                }
+
+                if (neuron.getMajorInput() != null) {
+                    neuronNode.setProperty(MAJOR_INPUT, neuron.getMajorInput());
+                    isNeuron = true;
+                    log.info("Updated majorInput for neuron " + neuron.getId() + ".");
+                }
+
+                if (neuron.getMajorOutput() != null) {
+                    neuronNode.setProperty(MAJOR_OUTPUT, neuron.getMajorOutput());
+                    isNeuron = true;
+                    log.info("Updated majorOutput for neuron " + neuron.getId() + ".");
+                }
+
+                if (neuron.getClonalUnit() != null) {
+                    neuronNode.setProperty(CLONAL_UNIT, neuron.getClonalUnit());
+                    isNeuron = true;
+                    log.info("Updated clonalUnit for neuron " + neuron.getId() + ".");
+                }
+
+                if (neuron.getNeurotransmitter() != null) {
+                    neuronNode.setProperty(NEUROTRANSMITTER, neuron.getNeurotransmitter());
+                    isNeuron = true;
+                    log.info("Updated neurotransmitter for neuron " + neuron.getId() + ".");
+                }
+
                 if (neuron.getSize() != null) {
                     neuronNode.setProperty(SIZE, neuron.getSize());
                     log.info("Updated size for neuron " + neuron.getId() + ".");
@@ -275,6 +305,221 @@ public class ProofreaderProcedures {
         }
 
         log.info("proofreader.deleteInstance: exit");
+    }
+
+    @Procedure(value = "proofreader.deletePrimaryNeurite", mode = Mode.WRITE)
+    @Description("proofreader.deletePrimaryNeurite(bodyId, datasetLabel): Delete primaryNeurite from Neuron/Segment node.")
+    public void deletePrimaryNeurite(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.deletePrimaryNeurite: entry");
+
+        try {
+
+            //TODO: refactor this common logic into shared method
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deletePrimaryNeurite: Missing input arguments.");
+                throw new RuntimeException("proofreader.deletePrimaryNeurite: Missing input arguments.");
+            }
+
+            // get the neuron node
+            Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
+
+            if (neuronNode == null) {
+                log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of primaryNeurite.");
+            } else {
+
+                acquireWriteLockForNode(neuronNode);
+
+                // delete primaryNeurite
+                neuronNode.removeProperty(PRIMARY_NEURITE);
+
+                // check if it should still be labeled neuron and remove designation if necessary
+                if (shouldNotBeLabeledNeuron(neuronNode)) {
+                    removeNeuronDesignationFromNode(neuronNode, datasetLabel);
+                }
+
+                log.info("Successfully deleted primaryNeurite information from " + bodyId);
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deletePrimaryNeurite: " + e);
+            throw new RuntimeException("Error running proofreader.deletePrimaryNeurite: " + e);
+        }
+
+        log.info("proofreader.deletePrimaryNeurite: exit");
+    }
+
+    @Procedure(value = "proofreader.deleteMajorInput", mode = Mode.WRITE)
+    @Description("proofreader.deleteMajorInput(bodyId, datasetLabel): Delete majorInput from Neuron/Segment node.")
+    public void deleteMajorInput(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.deleteMajorInput: entry");
+
+        try {
+
+            //TODO: refactor this common logic into shared method
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteMajorInput: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteMajorInput: Missing input arguments.");
+            }
+
+            // get the neuron node
+            Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
+
+            if (neuronNode == null) {
+                log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of majorInput.");
+            } else {
+
+                acquireWriteLockForNode(neuronNode);
+
+                // delete majorInput
+                neuronNode.removeProperty(MAJOR_INPUT);
+
+                // check if it should still be labeled neuron and remove designation if necessary
+                if (shouldNotBeLabeledNeuron(neuronNode)) {
+                    removeNeuronDesignationFromNode(neuronNode, datasetLabel);
+                }
+
+                log.info("Successfully deleted majorInput information from " + bodyId);
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteMajorInput: " + e);
+            throw new RuntimeException("Error running proofreader.deleteMajorInput: " + e);
+        }
+
+        log.info("proofreader.deleteMajorInput: exit");
+    }
+
+    @Procedure(value = "proofreader.deleteMajorOutput", mode = Mode.WRITE)
+    @Description("proofreader.deleteMajorOutput(bodyId, datasetLabel): Delete majorOutput from Neuron/Segment node.")
+    public void deleteMajorOutput(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.deleteMajorOutput: entry");
+
+        try {
+
+            //TODO: refactor this common logic into shared method
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteMajorOutput: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteMajorOutput: Missing input arguments.");
+            }
+
+            // get the neuron node
+            Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
+
+            if (neuronNode == null) {
+                log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of majorOutput.");
+            } else {
+
+                acquireWriteLockForNode(neuronNode);
+
+                // delete majorOutput
+                neuronNode.removeProperty(MAJOR_OUTPUT);
+
+                // check if it should still be labeled neuron and remove designation if necessary
+                if (shouldNotBeLabeledNeuron(neuronNode)) {
+                    removeNeuronDesignationFromNode(neuronNode, datasetLabel);
+                }
+
+                log.info("Successfully deleted majorOutput information from " + bodyId);
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteMajorOutput: " + e);
+            throw new RuntimeException("Error running proofreader.deleteMajorOutput: " + e);
+        }
+
+        log.info("proofreader.deleteMajorOutput: exit");
+    }
+
+    @Procedure(value = "proofreader.deleteClonalUnit", mode = Mode.WRITE)
+    @Description("proofreader.deleteClonalUnit(bodyId, datasetLabel): Delete clonalUnit from Neuron/Segment node.")
+    public void deleteClonalUnit(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.deleteClonalUnit: entry");
+
+        try {
+
+            //TODO: refactor this common logic into shared method
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteClonalUnit: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteClonalUnit: Missing input arguments.");
+            }
+
+            // get the neuron node
+            Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
+
+            if (neuronNode == null) {
+                log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of clonalUnit.");
+            } else {
+
+                acquireWriteLockForNode(neuronNode);
+
+                // delete clonalUnit
+                neuronNode.removeProperty(CLONAL_UNIT);
+
+                // check if it should still be labeled neuron and remove designation if necessary
+                if (shouldNotBeLabeledNeuron(neuronNode)) {
+                    removeNeuronDesignationFromNode(neuronNode, datasetLabel);
+                }
+
+                log.info("Successfully deleted clonalUnit information from " + bodyId);
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteClonalUnit: " + e);
+            throw new RuntimeException("Error running proofreader.deleteClonalUnit: " + e);
+        }
+
+        log.info("proofreader.deleteClonalUnit: exit");
+    }
+
+    @Procedure(value = "proofreader.deleteNeurotransmitter", mode = Mode.WRITE)
+    @Description("proofreader.deleteNeurotransmitter(bodyId, datasetLabel): Delete neurotransmitter from Neuron/Segment node.")
+    public void deleteNeurotransmitter(@Name("bodyId") Long bodyId, @Name("datasetLabel") String datasetLabel) {
+
+        log.info("proofreader.deleteNeurotransmitter: entry");
+
+        try {
+
+            //TODO: refactor this common logic into shared method
+
+            if (bodyId == null || datasetLabel == null) {
+                log.error("proofreader.deleteNeurotransmitter: Missing input arguments.");
+                throw new RuntimeException("proofreader.deleteNeurotransmitter: Missing input arguments.");
+            }
+
+            // get the neuron node
+            Node neuronNode = getSegment(dbService, bodyId, datasetLabel);
+
+            if (neuronNode == null) {
+                log.warn("Neuron with id " + bodyId + " not found in database. Aborting deletion of neurotransmitter.");
+            } else {
+
+                acquireWriteLockForNode(neuronNode);
+
+                // delete neurotransmitter
+                neuronNode.removeProperty(NEUROTRANSMITTER);
+
+                // check if it should still be labeled neuron and remove designation if necessary
+                if (shouldNotBeLabeledNeuron(neuronNode)) {
+                    removeNeuronDesignationFromNode(neuronNode, datasetLabel);
+                }
+
+                log.info("Successfully deleted neurotransmitter information from " + bodyId);
+            }
+
+        } catch (Exception e) {
+            log.error("Error running proofreader.deleteNeurotransmitter: " + e);
+            throw new RuntimeException("Error running proofreader.deleteNeurotransmitter: " + e);
+        }
+
+        log.info("proofreader.deleteNeurotransmitter: exit");
     }
 
     @Procedure(value = "proofreader.deleteStatus", mode = Mode.WRITE)
@@ -538,6 +783,31 @@ public class ProofreaderProcedures {
 
             if (neuronAddition.getInstance() != null) {
                 newNeuron.setProperty(INSTANCE, neuronAddition.getInstance());
+                isNeuron = true;
+            }
+
+            if (neuronAddition.getPrimaryNeurite() != null) {
+                newNeuron.setProperty(PRIMARY_NEURITE, neuronAddition.getPrimaryNeurite());
+                isNeuron = true;
+            }
+
+            if (neuronAddition.getMajorInput() != null) {
+                newNeuron.setProperty(MAJOR_INPUT, neuronAddition.getMajorInput());
+                isNeuron = true;
+            }
+
+            if (neuronAddition.getMajorOutput() != null) {
+                newNeuron.setProperty(MAJOR_OUTPUT, neuronAddition.getMajorOutput());
+                isNeuron = true;
+            }
+
+            if (neuronAddition.getClonalUnit() != null) {
+                newNeuron.setProperty(CLONAL_UNIT, neuronAddition.getClonalUnit());
+                isNeuron = true;
+            }
+
+            if (neuronAddition.getNeurotransmitter() != null) {
+                newNeuron.setProperty(NEUROTRANSMITTER, neuronAddition.getNeurotransmitter());
                 isNeuron = true;
             }
 
@@ -1812,6 +2082,9 @@ public class ProofreaderProcedures {
 
         // returns true if meets the definition for a neuron
         return !(preCount >= 2 || postCount >= 10 || neuronNode.hasProperty(NAME) || neuronNode.hasProperty(INSTANCE) ||
+                 neuronNode.hasProperty(PRIMARY_NEURITE) || neuronNode.hasProperty(MAJOR_INPUT) ||
+                 neuronNode.hasProperty(MAJOR_OUTPUT) || neuronNode.hasProperty(CLONAL_UNIT) ||
+                 neuronNode.hasProperty(NEUROTRANSMITTER) ||
                  neuronNode.hasProperty(SOMA_RADIUS) || neuronNode.hasProperty(STATUS));
     }
 

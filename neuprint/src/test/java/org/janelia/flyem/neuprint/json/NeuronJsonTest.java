@@ -120,6 +120,11 @@ public class NeuronJsonTest {
         Assert.assertNull(testNeuron.getName());
         Assert.assertNull(testNeuron.getType());
         Assert.assertNull(testNeuron.getInstance());
+        Assert.assertNull(testNeuron.getPrimaryNeurite());
+        Assert.assertNull(testNeuron.getMajorInput());
+        Assert.assertNull(testNeuron.getMajorOutput());
+        Assert.assertNull(testNeuron.getClonalUnit());
+        Assert.assertNull(testNeuron.getNeurotransmitter());
         Assert.assertNull(testNeuron.getSize());
         Assert.assertNull(testNeuron.getSoma());
 

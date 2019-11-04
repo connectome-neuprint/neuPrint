@@ -66,5 +66,60 @@
     "type": "KC",
     "rois": ["roi1","roi2"],
     "soma": { "location":[1,2,3],"radius":5.0}
+  },
+  {
+    "id": 100600,
+    "status": "final (irrelevant2)",
+    "primaryNeurite": "testPrimaryNeurite",
+    "size": 1756948
+  },
+  {
+    "id": 100601,
+    "primaryNeurite": "testPrimaryNeuriteWithoutNameOrStatus",
+    "size": 1234
+  },
+  {
+    "id": 100602,
+    "status": "final (irrelevant)",
+    "majorInput": "testMajorInput",
+    "size": 1756948
+  },
+  {
+    "id": 100603,
+    "majorInput": "testMajorInputWithoutNameOrStatus",
+    "size": 1234
+  },
+  {
+    "id": 100604,
+    "status": "final (irrelevant)",
+    "majorOutput": "testMajorOutput",
+    "size": 1756948
+  },
+  {
+    "id": 100605,
+    "majorOutput": "testMajorOutputWithoutNameOrStatus",
+    "size": 1234
+  },
+  {
+    "id": 100606,
+    "status": "final (irrelevant)",
+    "clonalUnit": "testClonalUnit",
+    "size": 1756948
+  },
+  {
+    "id": 100607,
+    "clonalUnit": "testClonalUnitWithoutNameOrStatus",
+    "size": 1234
+  },
+  {
+    "id": 100608,
+    "status": "final (irrelevant)",
+    "neurotransmitter": "testNeurotransmitter",
+    "size": 1756948
+  },
+  {
+    "id": 100609,
+    "neurotransmitter": "testNeurotransmitterWithoutNameOrStatus",
+    "size": 1234
   }
 ]

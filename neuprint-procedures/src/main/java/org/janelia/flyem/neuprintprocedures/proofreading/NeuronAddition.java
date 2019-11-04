@@ -30,6 +30,21 @@ public class NeuronAddition {
     @SerializedName("instance")
     private String instance; // optional
 
+    @SerializedName("primaryNeurite")
+    private String primaryNeurite; // optional
+
+    @SerializedName("majorInput")
+    private String majorInput; // optional
+
+    @SerializedName("majorOutput")
+    private String majorOutput; // optional
+
+    @SerializedName("clonalUnit")
+    private String clonalUnit; // optional
+
+    @SerializedName("neurotransmitter")
+    private String neurotransmitter; // optional
+
     @SerializedName("soma")
     private Soma soma; // optional
 
@@ -62,6 +77,26 @@ public class NeuronAddition {
 
     public String getInstance() {
         return instance;
+    }
+
+    public String getPrimaryNeurite() {
+        return primaryNeurite;
+    }
+
+    public String getMajorInput() {
+        return majorInput;
+    }
+
+    public String getMajorOutput() {
+        return majorOutput;
+    }
+
+    public String getClonalUnit() {
+        return clonalUnit;
+    }
+
+    public String getNeurotransmitter() {
+        return neurotransmitter;
     }
 
     public Soma getSoma() {

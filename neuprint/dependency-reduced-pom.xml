@@ -3,12 +3,12 @@
   <parent>
     <artifactId>neuprint-root</artifactId>
     <groupId>org.janelia.flyem</groupId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>neuprint</artifactId>
   <name>neuprint</name>
-  <version>1.0</version>
+  <version>1.0.2</version>
   <description>Tools for importing connectome data into neo4j</description>
   <build>
     <plugins>

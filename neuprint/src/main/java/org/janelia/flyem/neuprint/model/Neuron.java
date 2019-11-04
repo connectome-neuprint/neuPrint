@@ -38,6 +38,21 @@ public class Neuron {
     @SerializedName("instance")
     private final String instance;
 
+    @SerializedName("primaryNeurite")
+    private final String primaryNeurite;
+
+    @SerializedName("majorInput")
+    private final String majorInput;
+
+    @SerializedName("majorOutput")
+    private final String majorOutput;
+
+    @SerializedName("clonalUnit")
+    private final String clonalUnit;
+
+    @SerializedName("neurotransmitter")
+    private final String neurotransmitter;
+
     @SerializedName("size")
     private final Long size;
 
@@ -68,6 +83,11 @@ public class Neuron {
                   final String name,
                   final String type,
                   final String instance,
+                  final String primaryNeurite,
+                  final String majorInput,
+                  final String majorOutput,
+                  final String clonalUnit,
+                  final String neurotransmitter,
                   final Long size,
                   final Set<String> rois,
                   final Soma soma,
@@ -77,6 +97,11 @@ public class Neuron {
         this.name = name;
         this.type = type;
         this.instance = instance;
+        this.primaryNeurite = primaryNeurite;
+        this.majorInput = majorInput;
+        this.majorOutput = majorOutput;
+        this.clonalUnit = clonalUnit;
+        this.neurotransmitter = neurotransmitter;
         this.size = size;
         this.rois = rois;
         this.soma = soma;
@@ -116,6 +141,26 @@ public class Neuron {
      */
     public String getInstance() {
         return instance;
+    }
+
+    public String getPrimaryNeurite() {
+        return primaryNeurite;
+    }
+
+    public String getMajorInput() {
+        return majorInput;
+    }
+
+    public String getMajorOutput() {
+        return majorOutput;
+    }
+
+    public String getClonalUnit() {
+        return clonalUnit;
+    }
+
+    public String getNeurotransmitter() {
+        return neurotransmitter;
     }
 
     /**
