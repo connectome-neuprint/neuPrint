@@ -20,8 +20,8 @@ class NeuPrintUpdater:
         self.neuron_pre = neuron_pre
         self.neuron_post = neuron_post
 
-    def merge_neurons(self, bodylist, properties=None, uuid=None, timestamp=None, debug=False):
-        """Merge list of neurons together.
+    def merge_segments(self, bodylist, properties=None, uuid=None, timestamp=None, debug=False):
+        """Merge list of segments together.
         
         Note: an error will result in an exception.  None of the merge will have been performed.
 
@@ -43,7 +43,6 @@ class NeuPrintUpdater:
             # grab node information from both and manually concatenate, then patch with properties
             query_nodeinfo = f"MATCH (n :`{self.dataset}_Segment`) WHERE n.bodyId in {bodylist} return n AS nprop, id(n) AS nid"
             info_df = self.client.query_transaction(query_nodeinfo)
-            raise RuntimeError("test error:")
 
             body2id = {}
             infoarray = []
@@ -193,7 +192,7 @@ class NeuPrintUpdater:
             if uuid is not None:
                 uuidstr = f", m.uuid = {uuid}"
 
-            # !! set meta time stamp (other stats shouldn't change because no ROI change)
+            # set meta time stamp (other stats shouldn't change because no ROI change)
             if timestamp is not None:
                 update_time = f"MATCH (m :`{self.dataset}_Meta`) SET m.lastDatabaseEdit = datetime({{ epochSeconds: {timestamp} }}) {uuidstr}"
             else:
@@ -213,6 +212,465 @@ class NeuPrintUpdater:
         else:
             self.client.commit_transaction()
 
+
+    def split_segment(self, bodyid, synapse_list, properties2,
+            properties1=None, uuid=None, timestamp=None, debug=False):
+        """Split a segment from a list of synapse points
+        
+        Note: an error will result in an exception.  None of the split will have been performed.
+
+        Args:
+            bodyid (int): body id of segment to split
+            synapse_list (list): [(x,y,z), ...]
+            properties2 (dict): properties for the newly split neuron (will inherit properties
+            from the old neuron otherwise); "bodyId" must be specified
+            properties1 (dict): optional properties for original body
+            uuid (str): UUID where modification occurred
+            timestamp (int): number of seconds, unix time when mutation occured
+            debug (boolean): if true, the transaction is not actually saved
+        """
+
+        if len(synapse_list) == 0:
+            raise RuntimeError("no synapses provided")
+
+        if "bodyId" not in properties2:
+            raise RuntimeError("new bodyId is not specified")
+
+        self.client.start_transaction(self.dataset)
+
+        try:
+            # get body information
+
+            # grab meta info
+            query_meta = f"MATCH (m :{self.dataset}_Meta) RETURN m.postHPThreshold AS thresh, keys(apoc.convert.fromJsonMap(m.roiInfo)) as rois"
+            meta_df = self.client.query_transaction(query_meta)
+            syn_thres = meta_df.iloc[0][0]
+            roiset = set(meta_df.iloc[0][1])
+
+            # grab node info
+            query_nodeinfo = f"MATCH (n :{self.dataset}_Segment) WHERE n.bodyId={bodyid} return n AS nprop, id(n) AS nid"
+            info_df = self.client.query_transaction(query_nodeinfo)
+            currentinfo = info_df.iloc[0][0]
+            baseid = info_df.iloc[0][1]
+
+            # grab all relevant synapses
+            synapse_locations = synapselist2points(synapse_list)
+            synapse_set = set(synapse_list)
+            query_synapses = f"MATCH (n :hemibrain_Segment {{bodyId: {bodyid}}})-[:Contains]->(ss1)-[:Contains]->(syn)-[dir :SynapsesTo]-(syn2)<-[:Contains]-(ss2)<-[:Contains]-(m) WHERE syn.location in {synapse_locations} AND (ss1)-[:ConnectsTo]-(ss2) RETURN id(syn) as synid, id(syn2) as synid2, syn as syn, syn2 as syn2, id(ss1) as ss1_id, id(ss2) as ss2_id, id(m) AS targetid, id(startnode(dir))=id(syn) as isout"
+            synapses_df = self.client.query_transaction(query_synapses)
+
+            # compute new roi info per connection, store ss with it
+            # maintain a list of synapse point edges to be deleted
+            # maintain global roi info, pre, and post count
+            synapses_del_edges = [] # (nid syn, nid ss)
+            subgraph_nid = set()
+            subgraph_nid.add(baseid)
+            
+            numpre = 0
+            numpost = 0
+            roiInfo_map = {}
+            output_targets = {} # nid: {weight, weightHP, roiInfo map}, ssid1, ssid2 -- get rid of ssid if nothing left
+            input_targets = {}
+            autapse_info = None
+            base_ss = None
+            synapse_nids = set()
+            synapse_pair = set()
+
+            target_nids = set()
+
+            # prevent double tbar could
+            tbar_found = set()
+
+            # prevent double psds
+            tbar_out = {}
+            tbar_in = {}
+
+
+            # synaspes for different reflexive relationships
+            reflex_in_pre = set()
+            reflex_in_post = set()
+            reflex_out_pre = set()
+            reflex_out_post = set()
+            reflex_same_pre = set()
+            reflex_same_post = set()
+
+            for idx, row in synapses_df.iterrows():
+                synapses_del_edges.append([row["ss1_id"], row["synid"]])
+                synapses_del_edges.append([row["ss2_id"], row["synid2"]])
+                
+                synapse_nids.add(row["synid"])
+                synapse_nids.add(row["synid2"])
+                
+                syn1 = row["syn"]
+                syn2 = row["syn2"]
+                
+                if syn1["type"] == "pre":
+                    synapse_pair.add((row["synid"], row["synid2"]))
+                else:
+                    synapse_pair.add((row["synid2"], row["synid"]))
+
+                if row["targetid"] != baseid:
+                    subgraph_nid.add(row["ss1_id"])
+                    subgraph_nid.add(row["ss2_id"])
+                    subgraph_nid.add(row["targetid"])
+                    target_nids.add(row["targetid"])
+                   
+                loc1 = (syn1["location"]["coordinates"][0], syn1["location"]["coordinates"][1], syn1["location"]["coordinates"][2])
+                loc2 = (syn2["location"]["coordinates"][0], syn2["location"]["coordinates"][1], syn2["location"]["coordinates"][2])
+                typeinfo = {}
+                typeinfo["weight"] = 1
+                typeinfo["weightHP"] = 0
+                typeinfo["roiInfo"] = {}
+                
+                roi_inter = set(syn1.keys()).intersection(roiset)
+                if syn1["type"] == "pre":
+                    prev_tbar = True
+                    prev_tbar_target = True
+                    if loc1 not in tbar_found:
+                        prev_tbar = False
+                        tbar_found.add(loc1)
+                    if row["targetid"] in tbar_out:
+                        if loc1 not in tbar_out[row["targetid"]]:
+                            prev_tbar_target = False
+                            tbar_out[row["targetid"]].add(loc1)    
+                    else:
+                        prev_tbar_target = False
+                        tbar_out[row["targetid"]] = set([loc1])
+                    
+                    if not prev_tbar:
+                        numpre += 1 
+                    for roi in roi_inter:
+                        typeinfo["roiInfo"][roi] = {}
+                        if not prev_tbar_target:
+                            typeinfo["roiInfo"][roi]["pre"] = 1
+                        typeinfo["roiInfo"][roi]["post"] = 1
+                        if roi in roiInfo_map:
+                            if "pre" in roiInfo_map[roi]:
+                                if not prev_tbar:
+                                    roiInfo_map[roi]["pre"] += 1
+                            else:
+                                roiInfo_map[roi]["pre"] = 1
+                        else:
+                            roiInfo_map[roi] = {}
+                            roiInfo_map[roi]["pre"] = 1
+                    if syn2["confidence"] >= syn_thres:
+                        typeinfo["weightHP"] = 1
+                else:
+                    numpost += 1
+                    prev_tbar_target = True
+                    if row["targetid"] in tbar_in:
+                        if loc2 not in tbar_in[row["targetid"]]:
+                            prev_tbar_target = False
+                            tbar_in[row["targetid"]].add(loc2)    
+                    else:
+                        prev_tbar_target = False
+                        tbar_in[row["targetid"]] = set([loc2])
+                        
+                    if syn1["confidence"] >= syn_thres:
+                        typeinfo["weightHP"] = 1
+                    for roi in roi_inter:
+                        typeinfo["roiInfo"][roi] = {}
+                        typeinfo["roiInfo"][roi]["post"] = 1
+                        if not prev_tbar_target:
+                            typeinfo["roiInfo"][roi]["pre"] = 1
+                        if roi in roiInfo_map:
+                            if "post" in roiInfo_map[roi]:
+                                roiInfo_map[roi]["post"] += 1
+                            else:
+                                roiInfo_map[roi]["post"] = 1
+                        else:
+                            roiInfo_map[roi] = {}
+                            roiInfo_map[roi]["post"] = 1        
+                typeinfo["roiInfo"] = json.dumps(typeinfo["roiInfo"])
+                
+                # record ss involved in any autapse
+                if row["targetid"] == baseid:
+                    base_ss = (row["ss1_id"], row["ss2_id"])
+                          
+                # check for autapse (eventually subtract this from connection to baseid)
+                if loc2 in synapse_set:
+                    # only compute for one side of the connection
+                    if syn1["type"] == "pre":
+                        reflex_same_pre.add(row["synid"])
+                        reflex_same_post.add(row["synid2"])
+                        if autapse_info is None:
+                            autapse_info = typeinfo
+                        else:
+                            autapse_info = combine_properties([autapse_info, typeinfo], ["weight", "weightHP"])
+                else:
+                    if row["isout"]:
+                        if row["targetid"] == baseid:
+                            if syn1["type"] == "pre":
+                                reflex_out_pre.add(row["synid"])
+                                reflex_out_post.add(row["synid2"])
+                            else: # should not execute
+                                raise Exception("output is not a pre synapse site")
+                            
+                        if row["targetid"] not in output_targets:
+                            output_targets[row["targetid"]] = (typeinfo, row["ss1_id"], row["ss2_id"])
+                        else:
+                            prev_info, ig1, ig2 = output_targets[row["targetid"]]
+                            output_targets[row["targetid"]] = (combine_properties([prev_info, typeinfo], ["weight", "weightHP"]),
+                                                               row["ss1_id"], row["ss2_id"])
+                    else:
+                        if row["targetid"] == baseid:
+                            if syn1["type"] == "post":
+                                reflex_in_pre.add(row["synid2"])
+                                reflex_in_post.add(row["synid"])
+                            else: # should not execute
+                                raise Exception("input is not a post synapse site")
+                        
+                        if row["targetid"] not in input_targets:
+                            input_targets[row["targetid"]] = (typeinfo, row["ss1_id"], row["ss2_id"])
+                        else:
+                            prev_info, ig1, ig2 = input_targets[row["targetid"]]
+                            input_targets[row["targetid"]] = (combine_properties([prev_info, typeinfo], ["weight", "weightHP"]),
+                                                               row["ss1_id"], row["ss2_id"])
+
+                    
+            # compute old and new body info, merge props
+            body2info = currentinfo.copy()
+            body2info.update(properties2)
+            body2info["pre"] = numpre
+            body2info["post"] = numpost
+            body2info["roiInfo"] = json.dumps(roiInfo_map)
+
+            body1info = currentinfo.copy()
+            body1info["pre"] -= numpre
+            body1info["post"] -= numpost
+            body1info["roiInfo"] = subtract_roiInfo(body1info["roiInfo"], json.dumps(roiInfo_map))
+
+
+            # query type info explicitly for inputs and outputs
+            outs = list(output_targets.keys())
+            # just treat autapse like output if it exists
+            if autapse_info is not None:
+                outs.appnd(baseid)
+            io_query = f"MATCH (n)-[x :ConnectsTo]->(m) WHERE id(n)={baseid} AND id(m) in {outs} RETURN x AS conn, id(m) AS targetid, true AS isoutput UNION MATCH (n)<-[x :ConnectsTo]-(m) WHERE id(n)={baseid} AND id(m) in {list(input_targets.keys())} RETURN x AS conn, id(m) AS targetid, false AS isoutput"
+            io_df = self.client.query_transaction(io_query)
+
+            input_conns = {}
+            output_conns = {}
+            conn_delete_edges = []
+            ss_delete = []
+
+            oldautapse = None
+
+            for idx, row in io_df.iterrows():
+                # subtract_properties
+                
+                # treat autapse specially
+                if row["targetid"] == baseid:
+                    if oldautapse is None:
+                        oldautapse = row["conn"]
+                else:
+                    if row["isoutput"]:
+                        newinfo = subtract_properties(row["conn"], output_targets[row["targetid"]][0], ["weight", "weightHP"])
+                        # delete edges
+                        if newinfo["weight"] == 0:
+                            conn_delete_edges.append([baseid, row["targetid"]])
+                            ss_delete.append(output_targets[row["targetid"]][1])
+                            ss_delete.append(output_targets[row["targetid"]][2])
+                        else:
+                            output_conns[row["targetid"]] = newinfo
+                    else:
+                        newinfo = subtract_properties(row["conn"], input_targets[row["targetid"]][0], ["weight", "weightHP"])
+                        # delete edges
+                        if newinfo["weight"] == 0:
+                            conn_delete_edges.append([row["targetid"], baseid])
+                            ss_delete.append(input_targets[row["targetid"]][1])
+                            ss_delete.append(input_targets[row["targetid"]][2])
+                        else:
+                            input_conns[row["targetid"]] = newinfo
+
+            # update autapse and set to output
+            if oldautapse is not None:
+                if baseid in ouput_targets:
+                    oldautapse = subtract_properties(oldautapse, output_targets[baseid][0], ["weight", "weightHP"])
+                if baseid in input_targets:
+                    oldautapse = subtract_properties(oldautapse, input_targets[baseid][0], ["weight", "weightHP"])
+                if autapse_info is not None:
+                    newinfo = subtract_properties(oldautapse, autapse_info)
+                if newinfo["weight"] == 0:
+                    conn_delete_edges.append([baseid, baseid])
+                    ss_delete.append(base_ss[0])
+                    ss_delete.append(base_ss[1])
+                else:
+                    # just add to output conns (arbitrary)
+                    output_conns[baseid] = newinfo
+
+            # 1. copy network
+
+            # collect all subnetwork nodes
+            comp_graph = subgraph_nid.union(synapse_nids)
+
+            standinlist = list(synapse_nids)
+            standinlist.extend(list(target_nids))
+
+            clone_query = f"MATCH (n) WHERE id(n) in {list(comp_graph)} WITH COLLECT(n) AS nlist MATCH (n) WHERE id(n) in {standinlist} WITH COLLECT([n,n]) AS standlist, nlist CALL apoc.refactor.cloneSubgraph(nlist, [], {{skipProperties:[\"bodyId\"], standinNodes:standlist}}) YIELD input, output, error RETURN input AS old, id(output) AS new"
+            clone_df = self.client.query_transaction(clone_query)
+            newid = clone_df[clone_df["old"] == baseid].iloc[0][1]
+
+            # clean up mess from clone
+
+            # delete extra synapse edge between standin node (is this a bug in the cloner?)
+            synpair = []
+            for (syn1, syn2) in synapse_pair:
+                synpair.append([syn1,syn2])
+            # delete one synapse edge
+            dupsyn_query = f"UNWIND {synpair} AS data MATCH (n)-[x]-(m) WHERE id(n)=data[0] AND id(m)=data[1] WITH n,m,x LIMIT 1 MATCH (n)-[x]-(m) DELETE x"
+            self.client.query_transaction(dupsyn_query)
+
+            # delete :ConnectsTo since new ones will be added
+            dupconn_query = f"MATCH (n)-[x :ConnectsTo]-(m) WHERE id(n)={newid} DELETE x"
+            self.client.query_transaction(dupconn_query)
+
+            # 1b. handle any autapse issues
+
+            # explicitly make relevant SS for autapse or base connection, add synapse links and ss to ss links
+            # create synapse sets and relationships
+            # segment 1, segment 2
+            data = []
+            if len(reflex_in_pre) > 0:
+                data.append[[baseid, newid]]
+            if len(reflex_out_pre) > 0:
+                data.append[[newid, baseid]]
+            if len(reflex_same_pre) > 0:
+                data.append[[newid, newid]]
+
+            if len(data) > 0:
+                new_ss_query = f"UNWIND {data} AS data MATCH (n), (m) WHERE id(n) = data[0] AND id(m) = data[1] CREATE (n)-[:Contains]->(a :SynapseSet)-[r :ConnectsTo]->(b :SynapseSet)<-[:Contains]-(m) RETURN id(n) AS id1, id(m) as id2, id(a) AS ss_pre , id(b) AS ss_post"
+                ss_df = self.client.query_transaction(new_ss_query)
+
+                # link synapses to synaspe sets
+                data = []
+                if len(reflex_in_pre) > 0:
+                    res = ss_df[ss_df["id1"] == baseid and ss_df["id2"] == newid] 
+                    pressid = res["ss_pre"]
+                    postssid = res["ss_post"]
+                    for syn in reflex_in_pre:
+                        data.append([pressid, syn])
+                    for syn in reflex_in_post:
+                        data.append([postssid, syn])
+                if len(reflex_out_pre) > 0:
+                    res = ss_df[ss_df["id1"] == newid and ss_df["id2"] == baseid] 
+                    pressid = res["ss_pre"]
+                    postssid = res["ss_post"]
+                    for syn in reflex_out_pre:
+                        data.append([pressid, syn])
+                    for syn in reflex_out_post:
+                        data.append([postssid, syn])
+                if len(reflex_same_pre) > 0:
+                    res = ss_df[ss_df["id1"] == newid and ss_df["id2"] == newid] 
+                    pressid = res["ss_pre"]
+                    postssid = res["ss_post"]
+                    for syn in reflex_same_pre:
+                        data.append([pressid, syn])
+                    for syn in reflex_same_post:
+                        data.append([postssid, syn])
+                if len(data) > 0:    
+                    link_syn_query = f"UNWIND {data} AS data MATCH (n), (m) WHERE id(n) = data[0] AND id(m) = data[1] CREATE (n)-[:Contains]->(m)"
+                    self.client.query_transaction(link_syn_query)
+
+            # 2. delete synapse links and connectsto, delete obsolete synapse set nodes and relationships
+
+            links2delete = synapses_del_edges.copy()
+            links2delete.extend(conn_delete_edges)
+            links2delete.append([newid, newid]) # delete any autapse that is created
+            linkdel_query = f"UNWIND {links2delete} AS LINK MATCH (n)-[x]->(m) WHERE id(n)=LINK[0] AND id(m)=LINK[1] DELETE x"
+            self.client.query_transaction(linkdel_query)
+            
+            ssdel_query = f"UNWIND {ss_delete} AS ss MATCH (n) WHERE id(n)=ss DETACH DELETE n"
+            self.client.query_transaction(ssdel_query)
+
+            # 3. update old connects to, add new connects to
+            # newid should be set to the new node
+
+            # update old connects to
+            input_props =[]
+            output_props = []
+            for nodeid, prop in input_conns.items():
+                input_props.append({"nid": nodeid, "props": prop})
+            for nodeid, prop in output_conns.items():
+                output_props.append({"nid": nodeid, "props": prop})
+
+            input_propstr = create_propstr(input_props)
+            output_propstr = create_propstr(output_props)
+
+            if len(input_props) > 0:
+                update_in_query = f"UNWIND {input_propstr} AS data MATCH (n)<-[x :ConnectsTo]-(m) WHERE id(n) = {baseid} AND id(m) = data.nid SET x = data.props"
+                self.client.query_transaction(update_in_query)
+            if len(output_props) > 0:
+                update_out_query = f"UNWIND {output_propstr} AS data MATCH (n)-[x :ConnectsTo]->(m) WHERE id(n) = {baseid} AND id(m) = data.nid SET x = data.props"
+                self.client.query_transaction(update_out_query)
+
+            # add new connects to
+            input_props =[]
+            output_props = []
+            for nodeid, prop in input_targets.items():
+                input_props.append({"nid": nodeid, "props": prop[0]})
+            for nodeid, prop in output_targets.items():
+                output_props.append({"nid": nodeid, "props": prop[0]})
+
+            input_propstr = create_propstr(input_props)
+            output_propstr = create_propstr(output_props)
+
+            # using create since it will be easier to delete the old edges first
+            if len(input_props) > 0:
+                add_in_query = f"UNWIND {input_propstr} AS data MATCH (n), (m) WHERE id(n) = {newid} AND id(m) = data.nid CREATE (n)<-[r:ConnectsTo]-(m) SET r = data.props"
+                self.client.query_transaction(add_in_query)
+            if len(output_props) > 0:
+                add_out_query = f"UNWIND {output_propstr} AS data MATCH (n), (m) WHERE id(n) = {newid} AND id(m) = data.nid CREATE (n)-[r:ConnectsTo]->(m) SET r = data.props"
+                self.client.query_transaction(add_out_query)
+
+            # 4. write node properties and meta
+            is_segment = False
+            if body2info["pre"] < self.neuron_pre and body2info["post"] < self.neuron_post:
+                is_segment = True
+           
+            # remove ROI booleans no longer in roi info
+            remove_blank_rois(body1info, roiset)
+            remove_blank_rois(body2info, roiset)
+
+            # format string properly
+            body1info_str = format_prop(body1info)
+            body2info_str = format_prop(body2info)
+
+            # set node props
+            nu_query = f"MATCH (n) WHERE id(n) = {baseid} SET n = {body1info_str}"
+            self.client.query_transaction(nu_query)
+            
+            if is_segment:
+                label_query = f"MATCH (n) WHERE id(n) = {newid} REMOVE n:Neuron:{self.dataset}_Neuron"
+                self.client.query_transaction(label_query)
+            nu_query = f"MATCH (n) WHERE id(n) = {newid} SET n = {body2info_str}"
+            self.client.query_transaction(nu_query)
+
+            # set meta time stamp (other stats shouldn't change because no ROI change)
+            uuidstr = ""
+            if uuid is not None:
+                uuidstr = f", m.uuid = {uuid}"
+
+            # set meta time stamp (other stats shouldn't change because no ROI change)
+            if timestamp is not None:
+                update_time = f"MATCH (m :`{self.dataset}_Meta`) SET m.lastDatabaseEdit = datetime({{ epochSeconds: {timestamp} }}) {uuidstr}"
+            else:
+                update_time = f"MATCH (m :`{self.dataset}_Meta`) SET m.lastDatabaseEdit = datetime() {uuidstr}"
+            self.client.query_transaction(update_time)
+
+        except:
+            try:
+                self.client.kill_transaction()
+                raise
+            except:
+                pass
+            raise
+
+        # don't save merge if in debug mode 
+        if debug:
+            self.client.kill_transaction()
+        else:
+            self.client.commit_transaction()
 
 ####### helper functions #############
 
@@ -253,9 +711,50 @@ def merge_roiInfo(infoarray):
                 currinfo[roi] = val
     return json.dumps(currinfo)
 
+# subtract info2 from info1
+def subtract_roiInfo(info1, info2):
+    info1 = json.loads(info1)
+    info2 = json.loads(info2)
+    currinfo = info1.copy()
+    for roi, val in info2.items():
+        if roi in currinfo:
+            currinfo[roi]["pre"] = dfetch(currinfo[roi], "pre") - dfetch(val, "pre")
+            currinfo[roi]["post"] = dfetch(currinfo[roi], "post") - dfetch(val, "post")
+
+            if currinfo[roi]["pre"] == 0 and currinfo[roi]["post"] == 0:
+                del currinfo[roi] 
+        else:
+            raise("Not possible")
+    return json.dumps(currinfo)
+
+# will mutate calling dict
+def remove_blank_rois(info, allrois):
+    if "roiInfo" in info:
+        rois = set(json.loads(info["roiInfo"]).keys())
+        delist = []
+        for key in info.keys():
+            # any key that is an roi but not in roi info should be deleted
+            if key in allrois and key not in rois:
+                delist.append(key)
+        for key in delist:
+            del info[key]
+
+# subtract info2 from info1
+def subtract_properties(info1, info2, subprops=[], usemap=False):
+    subinfo = info1.copy()
+    for prop in subprops:
+        subinfo[prop] = dfetch(subinfo, prop) - dfetch(info2, prop)
+    
+    if "roiInfo" not in info1:
+        info1["roiInfo"] = "{}"
+    if "roiInfo" not in info2:
+        info2["roiInfo"] = "{}"
+    subinfo["roiInfo"] = subtract_roiInfo(info1["roiInfo"], info2["roiInfo"])
+    return subinfo
+
 # return new property where supplied weights are added and "roiInfo is merged"
 # (first item is the default)
-def combine_properties(infoarray, addedprops=[]):
+def combine_properties(infoarray, addedprops=[], usemap=False):
     # merge all rows in for loop
     mergedinfo = infoarray[0].copy()
     for iter1 in range(len(infoarray)-2, -1, -1):
@@ -267,8 +766,12 @@ def combine_properties(infoarray, addedprops=[]):
             tmpinfo += dfetch(info, prop)
         mergedinfo[prop] = tmpinfo
     
-    mergedinfo["roiInfo"] = merge_roiInfo(infoarray)
+    if usemap:
+        mergedinfo["roiInfo"] = merge_roiInfoMap(infoarray)
+    else:
+        mergedinfo["roiInfo"] = merge_roiInfo(infoarray)       
     return mergedinfo
+
 
 def format_prop(prop):
     keys = prop.keys()
@@ -276,6 +779,13 @@ def format_prop(prop):
     for key in keys:
         prop_str = prop_str.replace("\""+key+"\"", "`"+key+"`")
     return prop_str
+
+def synapselist2points(synapse_list):
+    pointlist = []
+    for (x,y,z) in synapse_list:
+        pointlist.append(f"point({{x: {x}, y: {y}, z: {z}}})")
+    pointliststr = json.dumps(pointlist)
+    return pointliststr.replace("\"","")
 
 # create cypher prop string from array of properties
 def create_propstr(prop_arr):
