@@ -106,7 +106,7 @@ class NeuPrintUpdater:
             conf_outputs = set(new_outputs.keys()).union(idset)
             conf_inputs = set(new_inputs.keys()).union(idset)
 
-            ss_query = f"MATCH (n :`{self.dataset}_Segment`)-[:Contains]->(x)-[:ConnectsTo]->(x2)<-[:Contains]-(m) WHERE id(n) in {list(idset)} AND id(m) in {list(conf_outputs)} RETURN true AS isout, id(m) as id2, id(x) as ss_id, id(x2) as ss_id2 UNION MATCH (n :`{self.dataset}_Segment`)-[:Contains]->(x)<-[:ConnectsTo]-(x2)<-[:Contains]-(m) WHERE id(n) in {list(idset)} AND id(m) in {list(conf_inputs)} RETURN false as isout, id(m) as id2, id(x) as ss_id, id(x2) as ss_id2"
+            ss_query = f"MATCH (n :`{self.dataset}_Segment`)-[:Contains]->(x)-[:ConnectsTo]->(x2)<-[:Contains]-(m) WHERE id(n) in {list(idset)} AND id(m) in {list(conf_outputs)} RETURN true AS isout, id(n) as id1, id(m) as id2, id(x) as ss_id, id(x2) as ss_id2 UNION MATCH (n :`{self.dataset}_Segment`)-[:Contains]->(x)<-[:ConnectsTo]-(x2)<-[:Contains]-(m) WHERE id(n) in {list(idset)} AND id(m) in {list(conf_inputs)} RETURN false as isout, id(n) as id1, id(m) as id2, id(x) as ss_id, id(x2) as ss_id2"
             ss_list_df = self.client.query_transaction(ss_query)
 
             # find synapse sets to collapse
@@ -118,6 +118,8 @@ class NeuPrintUpdater:
                 
                 # autapse goes to unused id
                 if row["id2"] in idset:
+                    if not row["isout"]:
+                        continue # only consider one direction
                     targetid = 9999999999999999999
                 elif row["isout"]: # output and input should get separate index
                     targetid = targetid * -1
@@ -165,14 +167,17 @@ class NeuPrintUpdater:
             for key, ss_list in ss_groups.items():
                 ss1s = []
                 ss2s = []
-                for (item1, item2) in ss_list:
-                    ss1s.append(item1)
-                    ss2s.append(item2)
-                merge_list.append(ss1s)
-                merge_list.append(ss2s)
-
-            merge_query = f"UNWIND {merge_list} AS data MATCH (n) WHERE id(n) in data WITH COLLECT(n) AS nlist, data CALL apoc.refactor.mergeNodes(nlist,{{properties:\"discard\", mergeRels:true}}) yield node return id(node) as id"
-            self.client.query_transaction(merge_query)
+                if len(ss_list) > 1:
+                    for (item1, item2) in ss_list:
+                        ss1s.append(item1)
+                        ss2s.append(item2)
+                    merge_list.append(ss1s)
+                    merge_list.append(ss2s)
+  
+            # only merge ss if there are ss to merge
+            if len(merge_list) > 0:
+                merge_query = f"UNWIND {merge_list} AS data MATCH (n) WHERE id(n) in data WITH COLLECT(n) AS nlist, data CALL apoc.refactor.mergeNodes(nlist,{{properties:\"discard\", mergeRels:true}}) yield node return id(node) as id"
+                self.client.query_transaction(merge_query)
 
             # 4. write node properties and meta
 
