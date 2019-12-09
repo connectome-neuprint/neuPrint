@@ -84,10 +84,10 @@ class NeuPrintUpdater:
 
             for idx, row in body_connections.iterrows():
                 if row["other_nodeid"] in idset:
-                    if autapse_data is None:
+                    if new_autapse is None:
                         new_autapse = row["conn"]
                     else:
-                        new_autapse = combine_properties([autapse_data, row["conn"]], ["weight", "weightHP"])
+                        new_autapse = combine_properties([new_autapse, row["conn"]], ["weight", "weightHP"])
                 else:
                     if row["head"] in idset:
                         # is output
@@ -143,11 +143,11 @@ class NeuPrintUpdater:
             input_props =[]
             output_props = []
             for nodeid, prop in new_inputs.items():
-                input_props.append({"nid": nodeid, "props": prop})
+                input_props.append({"nid": int(nodeid), "props": prop})
             for nodeid, prop in new_outputs.items():
-                output_props.append({"nid": nodeid, "props": prop})
+                output_props.append({"nid": int(nodeid), "props": prop})
             if new_autapse is not None:
-                output_props.append({"nid": baseid, "props": new_autapse})
+                output_props.append({"nid": int(baseid), "props": new_autapse})
 
             input_propstr = create_propstr(input_props)
             output_propstr = create_propstr(output_props)
@@ -294,6 +294,9 @@ class NeuPrintUpdater:
             reflex_same_pre = set()
             reflex_same_post = set()
 
+            # edges to clone
+            all_edges_set = set()
+
             for idx, row in synapses_df.iterrows():
                 synapses_del_edges.append([row["ss1_id"], row["synid"]])
                 synapses_del_edges.append([row["ss2_id"], row["synid2"]])
@@ -314,7 +317,12 @@ class NeuPrintUpdater:
                     subgraph_nid.add(row["ss2_id"])
                     subgraph_nid.add(row["targetid"])
                     target_nids.add(row["targetid"])
-                   
+                    all_edges_set.add((row["ss1_id"], row["ss2_id"]))
+                    all_edges_set.add((baseid, row["ss1_id"]))
+                    all_edges_set.add((row["targetid"], row["ss2_id"]))
+                    all_edges_set.add((row["ss1_id"], row["synid"]))
+                    all_edges_set.add((row["ss2_id"], row["synid2"]))
+
                 loc1 = (syn1["location"]["coordinates"][0], syn1["location"]["coordinates"][1], syn1["location"]["coordinates"][2])
                 loc2 = (syn2["location"]["coordinates"][0], syn2["location"]["coordinates"][1], syn2["location"]["coordinates"][2])
                 typeinfo = {}
@@ -445,7 +453,7 @@ class NeuPrintUpdater:
             outs = list(output_targets.keys())
             # just treat autapse like output if it exists
             if autapse_info is not None:
-                outs.appnd(baseid)
+                outs.append(baseid)
             io_query = f"MATCH (n)-[x :ConnectsTo]->(m) WHERE id(n)={baseid} AND id(m) in {outs} RETURN x AS conn, id(m) AS targetid, true AS isoutput UNION MATCH (n)<-[x :ConnectsTo]-(m) WHERE id(n)={baseid} AND id(m) in {list(input_targets.keys())} RETURN x AS conn, id(m) AS targetid, false AS isoutput"
             io_df = self.client.query_transaction(io_query)
 
@@ -485,19 +493,19 @@ class NeuPrintUpdater:
 
             # update autapse and set to output
             if oldautapse is not None:
-                if baseid in ouput_targets:
+                if baseid in output_targets:
                     oldautapse = subtract_properties(oldautapse, output_targets[baseid][0], ["weight", "weightHP"])
                 if baseid in input_targets:
                     oldautapse = subtract_properties(oldautapse, input_targets[baseid][0], ["weight", "weightHP"])
                 if autapse_info is not None:
-                    newinfo = subtract_properties(oldautapse, autapse_info)
-                if newinfo["weight"] == 0:
+                    oldautapse = subtract_properties(oldautapse, autapse_info, ["weight", "weightHP"])
+                if oldautapse["weight"] == 0:
                     conn_delete_edges.append([baseid, baseid])
                     ss_delete.append(base_ss[0])
                     ss_delete.append(base_ss[1])
                 else:
                     # just add to output conns (arbitrary)
-                    output_conns[baseid] = newinfo
+                    output_conns[baseid] = oldautapse
 
             # 1. copy network
 
@@ -507,10 +515,15 @@ class NeuPrintUpdater:
             standinlist = list(synapse_nids)
             standinlist.extend(list(target_nids))
 
-            clone_query = f"MATCH (n) WHERE id(n) in {list(comp_graph)} WITH COLLECT(n) AS nlist MATCH (n) WHERE id(n) in {standinlist} WITH COLLECT([n,n]) AS standlist, nlist CALL apoc.refactor.cloneSubgraph(nlist, [], {{skipProperties:[\"bodyId\"], standinNodes:standlist}}) YIELD input, output, error RETURN input AS old, id(output) AS new"
-            clone_df = self.client.query_transaction(clone_query)
-            newid = clone_df[clone_df["old"] == baseid].iloc[0][1]
+            all_edges = []
+            for edge in all_edges_set:
+                all_edges.append([edge[0],edge[1]])
 
+            clone_query = f"MATCH (n) WHERE id(n) in {list(comp_graph)} WITH COLLECT(n) AS nlist MATCH (n) WHERE id(n) in {standinlist} WITH COLLECT([n,n]) AS standlist, nlist UNWIND {all_edges} AS data MATCH (n)-[x]-(m) WHERE id(n)=data[0] AND id(m)=data[1] WITH collect(x) AS elist, standlist, nlist CALL apoc.refactor.cloneSubgraph(nlist, elist, {{skipProperties:[\"bodyId\"], standinNodes:standlist}}) YIELD input, output, error RETURN input AS old, id(output) AS new"
+            clone_df = self.client.query_transaction(clone_query)
+            newid = int(clone_df[clone_df["old"] == baseid].iloc[0][1])
+
+            """
             # clean up mess from clone
 
             # delete extra synapse edge between standin node (is this a bug in the cloner?)
@@ -524,6 +537,7 @@ class NeuPrintUpdater:
             # delete :ConnectsTo since new ones will be added
             dupconn_query = f"MATCH (n)-[x :ConnectsTo]-(m) WHERE id(n)={newid} DELETE x"
             self.client.query_transaction(dupconn_query)
+            """
 
             # 1b. handle any autapse issues
 
@@ -532,38 +546,38 @@ class NeuPrintUpdater:
             # segment 1, segment 2
             data = []
             if len(reflex_in_pre) > 0:
-                data.append[[baseid, newid]]
+                data.append([baseid, newid])
             if len(reflex_out_pre) > 0:
-                data.append[[newid, baseid]]
+                data.append([newid, baseid])
             if len(reflex_same_pre) > 0:
-                data.append[[newid, newid]]
+                data.append([newid, newid])
 
             if len(data) > 0:
-                new_ss_query = f"UNWIND {data} AS data MATCH (n), (m) WHERE id(n) = data[0] AND id(m) = data[1] CREATE (n)-[:Contains]->(a :SynapseSet)-[r :ConnectsTo]->(b :SynapseSet)<-[:Contains]-(m) RETURN id(n) AS id1, id(m) as id2, id(a) AS ss_pre , id(b) AS ss_post"
+                new_ss_query = f"UNWIND {data} AS data MATCH (n), (m) WHERE id(n) = data[0] AND id(m) = data[1] CREATE (n)-[:Contains]->(a :`{self.dataset}_SynapseSet`:SynapseSet)-[r :ConnectsTo]->(b :`{self.dataset}_SynapseSet`:SynapseSet)<-[:Contains]-(m) RETURN id(n) AS id1, id(m) as id2, id(a) AS ss_pre , id(b) AS ss_post"
                 ss_df = self.client.query_transaction(new_ss_query)
 
                 # link synapses to synaspe sets
                 data = []
                 if len(reflex_in_pre) > 0:
-                    res = ss_df[ss_df["id1"] == baseid and ss_df["id2"] == newid] 
-                    pressid = res["ss_pre"]
-                    postssid = res["ss_post"]
+                    res = ss_df[(ss_df["id1"] == baseid) & (ss_df["id2"] == newid)] 
+                    pressid = res.iloc[0]["ss_pre"]
+                    postssid = res.iloc[0]["ss_post"]
                     for syn in reflex_in_pre:
                         data.append([pressid, syn])
                     for syn in reflex_in_post:
                         data.append([postssid, syn])
                 if len(reflex_out_pre) > 0:
-                    res = ss_df[ss_df["id1"] == newid and ss_df["id2"] == baseid] 
-                    pressid = res["ss_pre"]
-                    postssid = res["ss_post"]
+                    res = ss_df[(ss_df["id1"] == newid) & (ss_df["id2"] == baseid)] 
+                    pressid = res.iloc[0]["ss_pre"]
+                    postssid = res.iloc[0]["ss_post"]
                     for syn in reflex_out_pre:
                         data.append([pressid, syn])
                     for syn in reflex_out_post:
                         data.append([postssid, syn])
                 if len(reflex_same_pre) > 0:
-                    res = ss_df[ss_df["id1"] == newid and ss_df["id2"] == newid] 
-                    pressid = res["ss_pre"]
-                    postssid = res["ss_post"]
+                    res = ss_df[(ss_df["id1"] == newid) & (ss_df["id2"] == newid)] 
+                    pressid = res.iloc[0]["ss_pre"]
+                    postssid = res.iloc[0]["ss_post"]
                     for syn in reflex_same_pre:
                         data.append([pressid, syn])
                     for syn in reflex_same_post:
@@ -571,7 +585,6 @@ class NeuPrintUpdater:
                 if len(data) > 0:    
                     link_syn_query = f"UNWIND {data} AS data MATCH (n), (m) WHERE id(n) = data[0] AND id(m) = data[1] CREATE (n)-[:Contains]->(m)"
                     self.client.query_transaction(link_syn_query)
-
             # 2. delete synapse links and connectsto, delete obsolete synapse set nodes and relationships
 
             links2delete = synapses_del_edges.copy()
@@ -590,9 +603,9 @@ class NeuPrintUpdater:
             input_props =[]
             output_props = []
             for nodeid, prop in input_conns.items():
-                input_props.append({"nid": nodeid, "props": prop})
+                input_props.append({"nid": int(nodeid), "props": prop})
             for nodeid, prop in output_conns.items():
-                output_props.append({"nid": nodeid, "props": prop})
+                output_props.append({"nid": int(nodeid), "props": prop})
 
             input_propstr = create_propstr(input_props)
             output_propstr = create_propstr(output_props)
@@ -608,10 +621,14 @@ class NeuPrintUpdater:
             input_props =[]
             output_props = []
             for nodeid, prop in input_targets.items():
-                input_props.append({"nid": nodeid, "props": prop[0]})
+                input_props.append({"nid": int(nodeid), "props": prop[0]})
             for nodeid, prop in output_targets.items():
-                output_props.append({"nid": nodeid, "props": prop[0]})
+                output_props.append({"nid": int(nodeid), "props": prop[0]})
 
+            # add autapse
+            if autapse_info is not None:
+                output_props.append({"nid": int(newid), "props": autapse_info})
+            
             input_propstr = create_propstr(input_props)
             output_propstr = create_propstr(output_props)
 
