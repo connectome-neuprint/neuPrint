@@ -694,6 +694,67 @@ class NeuPrintUpdater:
         else:
             self.client.commit_transaction()
 
+
+    def update_segment_properties(self, bodyid, properties, uuid=None, timestamp=None, debug=False):
+        """Set properties for the given body.
+        
+        Note: an error will result in an exception.  None of the properties wi set.
+
+        Args:
+            bodyid (int): body id 
+            properties (dict): custom properties to overwrite current properties
+            uuid (str): UUID where modification occurred
+            timestamp (int): number of seconds, unix time when mutation occured
+            debug (boolean): if true, the transaction is not actually saved
+        """
+
+        self.client.start_transaction(self.dataset)
+
+        try:
+            query_nodeinfo = f"MATCH (n :`{self.dataset}_Segment` {{bodyId: {bodyid}}}) return n AS nprop, id(n) AS nid"
+            info_df = self.client.query_transaction(query_nodeinfo)
+
+            if len(info_df) != 1:
+                raise RuntimeError("segment could not be found")
+            currprops = info_df.iloc[0][0]
+            bid  = info_df.iloc[0][1]
+
+            currprops.update(properties)
+            # write node properties and meta
+
+            # format string properly
+            properties_str = format_prop(currprops)
+
+            # set node props
+            nu_query = f"MATCH (n :`{self.dataset}_Segment`) WHERE id(n) = {bid} SET n = {properties_str}"
+            self.client.query_transaction(nu_query)
+
+            uuidstr = ""
+            if uuid is not None:
+                uuidstr = f", m.uuid = {uuid}"
+
+            # set meta time stamp (other stats shouldn't change because no ROI change)
+            if timestamp is not None:
+                update_time = f"MATCH (m :`{self.dataset}_Meta`) SET m.lastDatabaseEdit = datetime({{ epochSeconds: {timestamp} }}) {uuidstr}"
+            else:
+                update_time = f"MATCH (m :`{self.dataset}_Meta`) SET m.lastDatabaseEdit = datetime() {uuidstr}"
+            self.client.query_transaction(update_time)
+        except:
+            try:
+                self.client.kill_transaction()
+                raise
+            except:
+                pass
+            raise
+
+        # don't save merge if in debug mode 
+        if debug:
+            self.client.kill_transaction()
+        else:
+            self.client.commit_transaction()
+
+
+
 ####### helper functions #############
 
 # conditional fetch from dictionary

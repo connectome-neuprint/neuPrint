@@ -8,10 +8,13 @@
 
 ## Incrementally updating neo4j
 
-merge and split segment operations have been implemented.  A NeuPrintUpdater object first
+merge and split segment operations have been implemented, as well as a function to update
+segment properties.  A NeuPrintUpdater object first
 needs to be created with the location of neuprint http server and the datset.
 Multiple transactions can be executed for the same updater.  For all functions,
 an optional debug variable, when true, will prevent the database from being written.
+Note: any update to the node currently results in an automatic update to a
+timestamp property stored in the :Segment.
 
 ### Split
 
@@ -31,7 +34,7 @@ print(time.time()-start)
 
 ### Merge
 
-Merging two segments together (undoing the previous operation)
+Merging two segments together (undoing the previous operation):
 
 ```python
 import incremental_update as up
@@ -40,7 +43,22 @@ import time
 updater = up.NeuPrintUpdater("localhost:13000", "hemibrain", verify=False)
 
 start = time.time()
-#updater.merge_segments([5901232424,5813024885], debug=True)
 updater.merge_segments([5901220939,926345671224568], debug=False)
+print(time.time()-start)
+```
+### Update segment properties
+The following sets properties for a given node (setting "type" and deleting
+"test").  This will not affect
+properties not specified.  If a property is given a value of None, the property
+will be deleted.
+ 
+```python
+import incremental_update as up
+import time
+
+updater = up.NeuPrintUpdater("localhost:13000", "hemibrain", verify=False)
+
+start = time.time()
+updater.update_segment_properties(359438162, {"type": "Blah", "test": None}, debug=False)
 print(time.time()-start)
 ```
