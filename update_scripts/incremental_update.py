@@ -251,6 +251,7 @@ class NeuPrintUpdater:
             meta_df = self.client.query_transaction(query_meta)
             syn_thres = meta_df.iloc[0][0]
             roiset = set(meta_df.iloc[0][1])
+            roiset.add("None")
 
             # grab node info
             query_nodeinfo = f"MATCH (n :{self.dataset}_Segment) WHERE n.bodyId={bodyid} return n AS nprop, id(n) AS nid"
