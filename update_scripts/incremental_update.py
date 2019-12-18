@@ -10,6 +10,10 @@ import json
 
 class NeuPrintUpdater:
     """Manages updates to a given dataset and server.
+
+    Note: POINT() properties cannot be set with this interface currently.
+    For splits, the main body will keep somaLocation.  For merges,
+    only one somaLocation will be kept from the list of merged bodies.
     """
 
     def __init__(self, server, dataset, neuron_pre=2, neuron_post=10, verify=True):
@@ -186,8 +190,16 @@ class NeuPrintUpdater:
             if mergedinfo["pre"] >= self.neuron_pre or mergedinfo["post"] >= self.neuron_post:
                 labelstr = f", n:`{self.dataset}_Neuron`, n:Neuron"
 
+
+            # handle somaLocation point issue
+            if "somaLocation" in mergedinfo:
+                coords = mergedinfo["somaLocation"]["coordinates"]
+                mergedinfo["somaLocation"] = f"POINT( {{ x: {coords[0]}, y: {coords[1]}, z: {coords[2]} }} )POINT"
+
             # format string properly
             mergedinfo_str = format_prop(mergedinfo)
+            mergedinfo_str = mergedinfo_str.replace("\"POINT(", "POINT(")
+            mergedinfo_str = mergedinfo_str.replace(")POINT\"", ")")
 
             # set node props
             nu_query = f"MATCH (n) WHERE id(n) = {baseid} SET n = {mergedinfo_str} {labelstr}"
@@ -444,6 +456,13 @@ class NeuPrintUpdater:
                     
             # compute old and new body info, merge props
             body2info = currentinfo.copy()
+            
+            # do not copy over soma information
+            if "somaLocation" in body2info:
+                del body2info["somaLocation"]
+            if "somaRadius" in body2info:
+                del body2info["somaRadius"]
+
             body2info.update(properties2)
             body2info["pre"] = numpre
             body2info["post"] = numpost
@@ -655,8 +674,16 @@ class NeuPrintUpdater:
             remove_blank_rois(body1info, roiset)
             remove_blank_rois(body2info, roiset)
 
+            # handle somaLocation point issue
+            if "somaLocation" in body1info:
+                coords = body1info["somaLocation"]["coordinates"]
+                body1info["somaLocation"] = f"POINT( {{ x: {coords[0]}, y: {coords[1]}, z: {coords[2]} }} )POINT"
+
             # format string properly
             body1info_str = format_prop(body1info)
+            body1info_str = body1info_str.replace("\"POINT(", "POINT(")
+            body1info_str = body1info_str.replace(")POINT\"", ")")
+            
             body2info_str = format_prop(body2info)
 
             # set node props
@@ -862,6 +889,16 @@ def format_prop(prop):
     prop_str = json.dumps(prop)
     for key in keys:
         prop_str = prop_str.replace("\""+key+"\"", "`"+key+"`")
+
+    """
+    # find any remaining "something": examples
+    import re
+    keys = re.findall('\"\w+\":', prop_str)
+
+    for key in keys:
+        key2 = key.replace("\"", "`")
+        prop_str = prop_str.replace(key, key2)
+    """
     return prop_str
 
 def synapselist2points(synapse_list):
@@ -881,7 +918,17 @@ def create_propstr(prop_arr):
     propstr = json.dumps(prop_arr)
 
     for key in keys:
-        propstr = propstr.replace("\""+key+"\"", key)
+        propstr = propstr.replace("\""+key+"\"", "`"+key+"`")
+
+    """
+    # find any remaining "something": examples
+    import re
+    keys = re.findall('\"\w+\":', propstr)
+
+    for key in keys:
+        key2 = key.replace("\"", "`")
+        propstr = propstr.replace(key, key2)
+    """
     return propstr
 
 
