@@ -86,6 +86,9 @@ class NeuPrintUpdater:
             new_inputs = {}
             new_autapse = None
 
+            new_outputs_counts = {}
+            new_inputs_counts = {}
+
             for idx, row in body_connections.iterrows():
                 if row["other_nodeid"] in idset:
                     if new_autapse is None:
@@ -97,13 +100,24 @@ class NeuPrintUpdater:
                         # is output
                         if row["other_nodeid"] not in new_outputs:
                             new_outputs[row["other_nodeid"]] = row["conn"]
+                            new_outputs_counts[row["other_nodeid"]] = 1
                         else:
                             new_outputs[row["other_nodeid"]] = combine_properties([new_outputs[row["other_nodeid"]], row["conn"]], ["weight", "weightHP"])
+                            new_outputs_counts[row["other_nodeid"]] += 1
                     else:
                         if row["other_nodeid"] not in new_inputs:
                             new_inputs[row["other_nodeid"]] = row["conn"]
+                            new_inputs_counts[row["other_nodeid"]] = 1
                         else:
                             new_inputs[row["other_nodeid"]] = combine_properties([new_inputs[row["other_nodeid"]], row["conn"]], ["weight", "weightHP"])
+                            new_inputs_counts[row["other_nodeid"]] += 1
+
+            for target, count in new_inputs_counts.items():
+                if count == 1:
+                    del new_inputs[target]
+            for target, count in new_outputs_counts.items():
+                if count == 1:
+                    del new_outputs[target]
 
             # grab synapse set ids from conflict list
             # also add internal connections as a special case
