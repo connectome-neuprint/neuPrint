@@ -91,10 +91,12 @@ class NeuPrintUpdater:
 
             for idx, row in body_connections.iterrows():
                 if row["other_nodeid"] in idset:
-                    if new_autapse is None:
-                        new_autapse = row["conn"]
-                    else:
-                        new_autapse = combine_properties([new_autapse, row["conn"]], ["weight", "weightHP"])
+                    if row["head"] == row["other_nodeid"]:
+                        # only consider one direction since both directions will be seen
+                        if new_autapse is None:
+                            new_autapse = row["conn"]
+                        else:
+                            new_autapse = combine_properties([new_autapse, row["conn"]], ["weight", "weightHP"])
                 else:
                     if row["head"] in idset:
                         # is output
