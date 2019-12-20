@@ -766,6 +766,12 @@ class NeuPrintUpdater:
             currprops.update(properties)
             # write node properties and meta
 
+
+            # handle somaLocation point issue
+            if "somaLocation" in currprops: 
+                coords = currprops["somaLocation"]["coordinates"]
+                currprops["somaLocation"] = f"POINT( {{ x: {coords[0]}, y: {coords[1]}, z: {coords[2]} }} )POINT"
+
             # format string properly
             properties_str = format_prop(currprops)
 
