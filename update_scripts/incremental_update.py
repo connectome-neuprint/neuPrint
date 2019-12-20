@@ -774,6 +774,8 @@ class NeuPrintUpdater:
 
             # format string properly
             properties_str = format_prop(currprops)
+            properties_str = properties_str.replace("\"POINT(", "POINT(")
+            properties_str = properties_str.replace(")POINT\"", ")")
 
             # set node props
             nu_query = f"MATCH (n :`{self.dataset}_Segment`) WHERE id(n) = {bid} SET n = {properties_str}"
