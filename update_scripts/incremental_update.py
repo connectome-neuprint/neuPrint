@@ -16,10 +16,11 @@ class NeuPrintUpdater:
     only one somaLocation will be kept from the list of merged bodies.
     """
 
-    def __init__(self, server, dataset, neuron_pre=2, neuron_post=10, verify=True):
+    def __init__(self, server, dataset, tag="", neuron_pre=2, neuron_post=10, verify=True):
         self.client = neu.Client(server, verify=verify)
         self.dataset = dataset
-        
+        self.tag = tag
+
         # criteria for Segment to be a Neuron
         self.neuron_pre = neuron_pre
         self.neuron_post = neuron_post
@@ -41,7 +42,10 @@ class NeuPrintUpdater:
             raise RuntimeError("require at least 2 bodies to be merged")
 
         bodyset = set(bodylist)
-        self.client.start_transaction(self.dataset)
+        if self.tag == "":
+            self.client.start_transaction(self.dataset)
+        else:
+            self.client.start_transaction(self.dataset + ":" + self.tag)
 
         try:
             # grab node information from both and manually concatenate, then patch with properties
@@ -269,7 +273,10 @@ class NeuPrintUpdater:
         if "bodyId" not in properties2:
             raise RuntimeError("new bodyId is not specified")
 
-        self.client.start_transaction(self.dataset)
+        if self.tag == "":
+            self.client.start_transaction(self.dataset)
+        else:
+            self.client.start_transaction(self.dataset + ":" + self.tag)
 
         try:
             # get body information
@@ -334,7 +341,7 @@ class NeuPrintUpdater:
             for idx, row in synapses_df.iterrows():
                 synapses_del_edges.append([row["ss1_id"], row["synid"]])
                 synapses_del_edges.append([row["ss2_id"], row["synid2"]])
-                
+               
                 synapse_nids.add(row["synid"])
                 synapse_nids.add(row["synid2"])
                 
@@ -469,7 +476,7 @@ class NeuPrintUpdater:
                             input_targets[row["targetid"]] = (combine_properties([prev_info, typeinfo], ["weight", "weightHP"]),
                                                                row["ss1_id"], row["ss2_id"])
 
-                    
+
             # compute old and new body info, merge props
             body2info = currentinfo.copy()
             
@@ -752,7 +759,10 @@ class NeuPrintUpdater:
             debug (boolean): if true, the transaction is not actually saved
         """
 
-        self.client.start_transaction(self.dataset)
+        if self.tag == "":
+            self.client.start_transaction(self.dataset)
+        else:
+            self.client.start_transaction(self.dataset + ":" + self.tag)
 
         try:
             query_nodeinfo = f"MATCH (n :`{self.dataset}_Segment` {{bodyId: {bodyid}}}) return n AS nprop, id(n) AS nid"
