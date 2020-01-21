@@ -18,10 +18,13 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 * medulla7column (fib25) : from ["Synaptic circuits and their variations within different columns in the visual system of Drosophila"](https://www.pnas.org/content/112/44/13711) (Takemura, et al. 2015)
 
 ## Load mushroombody (mb6) connectome data into Neo4j
+Coming Soon
 
 ## Load your own connectome data into Neo4j using neuPrint
+Coming Soon
 
 ## neuPrint Property Graph Model
+Coming Soon
 
 ## neuPrint Custom Procedures and Functions
 
