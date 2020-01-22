@@ -3,6 +3,7 @@ This is a step-by-step guide on how to create the mushroombody(mb6) neuPrint gra
 
 1. Download [neo4j desktop](https://neo4j.com/download-center/#desktop).
 2. Download and unzip mb6_neo4j_inputs.zip from this github repository. There should be 10 csv files.
+![MB6 Load1](images/mb6_load1.png)
 3. Start Neo4J Desktop and create a new project, in this example we'll call it mushroombody.
 4. Create a new graph by clicking on "Add Graph", then select "Create a Local Graph".
 5. Enter a password when prompted and click on "Create".
