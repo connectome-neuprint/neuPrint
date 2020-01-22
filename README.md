@@ -12,13 +12,14 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 * [apoc version 3.5.0.1](https://github.com/neo4j-contrib/neo4j-apoc-procedures/releases/tag/3.5.0.1)<sup>1</sup>
 
 ## Example data
+* hemibrain (hemibrain v1.0) : from ["A Connectome of the Adult Drosophila Central Brain"](https://www.biorxiv.org/content/10.1101/2020.01.21.911859v1) (C. Shan Xu, et al. 2020)
 
 * mushroombody (mb6) : from ["A connectome of a learning and memory center in the adult Drosophila brain"](https://elifesciences.org/articles/26975) (Takemura, et al. 2017)
 
 * medulla7column (fib25) : from ["Synaptic circuits and their variations within different columns in the visual system of Drosophila"](https://www.pnas.org/content/112/44/13711) (Takemura, et al. 2015)
 
 ## Hemibrain, mushroombody, and medulla7column Data sets 
-* Hemibrain, mushroombody, and	medulla7column connectome data sets are available to [download on our Google Bucket](https://console.cloud.google.com/storage/browser/hemibrain-release/neuprint/?project=janelia-flyem). Format of these files are csv and can be imported into neo4j to generate a neuPrint database.
+* Hemibrain, mushroombody, and	medulla7column connectome data sets are available to [download on Google Bucket](https://console.cloud.google.com/storage/browser/hemibrain-release/neuprint/?project=janelia-flyem). Format of these files are csv and can be imported into neo4j to generate a neuPrint database.
 
 ## Load mushroombody (mb6) connectome data into Neo4j
 Coming Soon
