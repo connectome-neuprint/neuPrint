@@ -10,6 +10,7 @@ This is a step-by-step guide on how to create the mushroombody(mb6) neuPrint gra
 5. Enter a password when prompted and click on "Create".
 ![MB6 Load3](images/mb6_load3.png)
 6. Once the Graph is created. Click on "Manage".
+![MB6 Load3b](images/mb6_load3b.png)
 7. On the Graph Management Interface. Click the pull down on "Open Folder" and select the first option "Import".
 8. This will open the import directory. Copy all 10 csv files from your mb6_neo4j_inputs folder to the import directory.
 ![MB6 Load4](images/mb6_load4.png)
