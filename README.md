@@ -23,7 +23,7 @@ A blueprint of the brain. A set of tools for loading and analyzing connectome da
 gs://hemibrain-release/neuprint/hemibrain_v1.0_neo4j_inputs.zip```. Format of these files are csv and can be imported into neo4j to generate a neuPrint database.
 
 ## Load mushroombody (mb6) connectome data into Neo4j
-Coming Soon
+Instructions on how to create a neuPrint instance of the [mushroombody(mb6)](neo4j_desktop_load.md).
 
 ## Load your own connectome data into Neo4j using neuPrint
 Coming Soon
