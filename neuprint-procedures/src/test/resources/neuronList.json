@@ -121,5 +121,16 @@
     "id": 100609,
     "neurotransmitter": "testNeurotransmitterWithoutNameOrStatus",
     "size": 1234
+  },
+  {
+    "id": 100610,
+    "status": "final (irrelevant)",
+    "property": "testProperty",
+    "size": 1756948
+  },
+  {
+    "id": 100611,
+    "property": "testPropertyWithoutNameOrStatus",
+    "size": 1234
   }
 ]

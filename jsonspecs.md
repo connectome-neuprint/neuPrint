@@ -50,6 +50,7 @@ Neurons.json
 	"majorOutput": <string> major output, (optional)
 	"clonalUnit": <string> clonal unit, (optional)
 	"neurotransmitter": <string> neurotransmitter, (optional)
+	"property": <string> property, (optional)
 	"size": <int64> num voxels in body, (optional)
 	"rois": [<string> roi1, <string> roi2 …], (optional; we use rois from synapses to add rois to neurons)
 	"soma": { (optional)

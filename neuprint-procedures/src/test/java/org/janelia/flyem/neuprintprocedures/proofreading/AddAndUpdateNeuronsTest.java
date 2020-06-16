@@ -102,6 +102,7 @@ public class AddAndUpdateNeuronsTest {
                         "\"majorOutput\": \"new majorOutput\", " +
                         "\"clonalUnit\": \"new clonalUnit\", " +
                         "\"neurotransmitter\": \"new neurotransmitter\", " +
+                        "\"property\": \"new property\", " +
                         "\"SynapseSources\": [831744,2589725]," +
                         "\"currentSynapses\": " +
                         "[" +
@@ -352,6 +353,7 @@ public class AddAndUpdateNeuronsTest {
         Assert.assertEquals("new majorOutput", newNeuron.asMap().get("majorOutput"));
         Assert.assertEquals("new clonalUnit", newNeuron.asMap().get("clonalUnit"));
         Assert.assertEquals("new neurotransmitter", newNeuron.asMap().get("neurotransmitter"));
+        Assert.assertEquals("new property", newNeuron.asMap().get("property"));
         Assert.assertEquals(15040.0, newNeuron.asMap().get("somaRadius"));
         Assert.assertEquals(Values.point(9157, 14067, 10777, 15040).asPoint(), newNeuron.asMap().get("somaLocation"));
 
@@ -554,6 +556,7 @@ public class AddAndUpdateNeuronsTest {
                                   "\"majorOutput\":\"KB(a)majorOutput\", " +
                                   "\"clonalUnit\":\"KB(a)clonalUnit\", " +
                                   "\"neurotransmitter\":\"KB(a)neurotransmitter\", " +
+                                  "\"property\":\"KB(a)property\", " +
                                   "\"size\": 346576}";
 
         session.writeTransaction(tx -> tx.run("CREATE (n:`test-Segment`:Segment:test) SET n.bodyId=222, n.pre=2, n.post=5, n.roiInfo=\"{'roiA':{'pre':2,'post':0},'roiB':{'pre':0,'post':5}}\"", parameters("neuronObjectJson", neuronObjectJson, "dataset", "test")));
@@ -576,6 +579,8 @@ public class AddAndUpdateNeuronsTest {
                             "KB(a)clonalUnit", neuronNode.asMap().get("clonalUnit"));
         Assert.assertEquals("invalid neurotransmitter property after update",
                             "KB(a)neurotransmitter", neuronNode.asMap().get("neurotransmitter"));
+        Assert.assertEquals("invalid property property after update",
+                            "KB(a)property", neuronNode.asMap().get("property"));
         Assert.assertEquals(346576L, neuronNode.asMap().get("size"));
 
         Assert.assertTrue(neuronNode.hasLabel("Neuron"));

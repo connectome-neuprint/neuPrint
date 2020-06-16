@@ -42,6 +42,7 @@ public class GraphTraversalTools {
     public static final String MAJOR_OUTPUT = "majorOutput";
     public static final String CLONAL_UNIT = "clonalUnit";
     public static final String NEUROTRANSMITTER = "neurotransmitter";
+    public static final String PROPERTY = "property";
     public static final String LOCATION = "location";
     public static final String POST = "post";
     public static final String PRE = "pre";

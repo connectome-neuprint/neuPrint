@@ -137,7 +137,15 @@ public class RemovePropertiesTest {
         // body 100609 only has a neurotransmitter property (no status), so removing neurotransmitter should also remove neuron status
         testPropertyRemoval("deleteNeurotransmitter", 100609, new String[] {"neurotransmitter"},0);
     }
-    
+
+    @Test
+    public void shouldRemoveProperty() {
+        testPropertyRemoval("deleteProperty", 100610, new String[] {"property"}, 1);
+
+        // body 100611 only has a property property (no status), so removing property should also remove neuron status
+        testPropertyRemoval("deleteProperty", 100611, new String[] {"property"},0);
+    }
+
     @Test
     public void shouldRemoveStatus() {
         testPropertyRemoval("deleteStatus", 100541, new String[] {"status"}, 0);

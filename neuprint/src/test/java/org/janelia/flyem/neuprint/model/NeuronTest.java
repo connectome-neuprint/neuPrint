@@ -34,15 +34,15 @@ public class NeuronTest {
 
         Neuron neuron1 = new Neuron(85L, x.getStatus(), x.getName(), x.getType(), x.getInstance(),
                                     x.getPrimaryNeurite(), x.getMajorInput(), x.getMajorOutput(),
-                                    x.getClonalUnit(), x.getNeurotransmitter(),
+                                    x.getClonalUnit(), x.getNeurotransmitter(), x.getProperty(),
                                     x.getSize(), x.getRois(), x.getSoma(), x.getSynapseLocationSet());
         Neuron neuron2 = new Neuron(85L, y.getStatus(), y.getName(), y.getType(), y.getInstance(),
                                     y.getPrimaryNeurite(), y.getMajorInput(), y.getMajorOutput(),
-                                    y.getClonalUnit(), y.getNeurotransmitter(),
+                                    y.getClonalUnit(), y.getNeurotransmitter(), y.getProperty(),
                                     y.getSize(), y.getRois(), y.getSoma(), y.getSynapseLocationSet());
         Neuron neuron3 = new Neuron(85L, z.getStatus(), z.getName(), z.getType(), z.getInstance(),
                                     z.getPrimaryNeurite(), z.getMajorInput(), z.getMajorOutput(),
-                                    z.getClonalUnit(), z.getNeurotransmitter(),
+                                    z.getClonalUnit(), z.getNeurotransmitter(), z.getProperty(),
                                     z.getSize(), z.getRois(), z.getSoma(), z.getSynapseLocationSet());
 
         //reflexive
@@ -73,6 +73,7 @@ public class NeuronTest {
             "\"majorOutput\": \"testMajorOutput1\"," +
             "\"clonalUnit\": \"testClonalUnit1\"," +
             "\"neurotransmitter\": \"testNeurotransmitter1\"," +
+            "\"property\": \"testProperty1\"," +
             "\"size\": 808080," +
             "\"rois\": [\"roiA\",\"roiB\"]," +
             "\"soma\": {\"location\":[8,8,8], \"radius\":5.0}," +

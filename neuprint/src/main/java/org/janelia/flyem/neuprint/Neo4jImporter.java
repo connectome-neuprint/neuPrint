@@ -528,6 +528,7 @@ public class Neo4jImporter implements AutoCloseable {
                 " n.majorOutput = $majorOutput," +
                 " n.clonalUnit = $clonalUnit," +
                 " n.neurotransmitter = $neurotransmitter," +
+                " n.property = $property," +
                 " n.status = $status," +
                 " n.size = $size," +
                 " n.somaLocation = $somaLocation," +
@@ -568,6 +569,7 @@ public class Neo4jImporter implements AutoCloseable {
                                         "majorOutput", neuron.getMajorOutput(),
                                         "clonalUnit", neuron.getClonalUnit(),
                                         "neurotransmitter", neuron.getNeurotransmitter(),
+                                        "property", neuron.getProperty(),
                                         "status", neuron.getStatus(),
                                         "size", neuron.getSize(),
                                         "somaLocation", neuron.getSomaLocation(),

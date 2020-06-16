@@ -53,6 +53,9 @@ public class Neuron {
     @SerializedName("neurotransmitter")
     private final String neurotransmitter;
 
+    @SerializedName("property")
+    private final String property;
+
     @SerializedName("size")
     private final Long size;
 
@@ -88,6 +91,7 @@ public class Neuron {
                   final String majorOutput,
                   final String clonalUnit,
                   final String neurotransmitter,
+                  final String property,
                   final Long size,
                   final Set<String> rois,
                   final Soma soma,
@@ -102,6 +106,7 @@ public class Neuron {
         this.majorOutput = majorOutput;
         this.clonalUnit = clonalUnit;
         this.neurotransmitter = neurotransmitter;
+        this.property = property;
         this.size = size;
         this.rois = rois;
         this.soma = soma;
@@ -161,6 +166,10 @@ public class Neuron {
 
     public String getNeurotransmitter() {
         return neurotransmitter;
+    }
+
+    public String getProperty() {
+        return property;
     }
 
     /**

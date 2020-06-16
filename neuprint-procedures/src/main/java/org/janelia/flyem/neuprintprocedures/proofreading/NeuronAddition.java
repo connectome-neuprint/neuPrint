@@ -45,6 +45,9 @@ public class NeuronAddition {
     @SerializedName("neurotransmitter")
     private String neurotransmitter; // optional
 
+    @SerializedName("property")
+    private String property; // optional
+
     @SerializedName("soma")
     private Soma soma; // optional
 
@@ -97,6 +100,10 @@ public class NeuronAddition {
 
     public String getNeurotransmitter() {
         return neurotransmitter;
+    }
+
+    public String getProperty() {
+        return property;
     }
 
     public Soma getSoma() {

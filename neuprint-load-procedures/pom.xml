@@ -8,11 +8,11 @@
     <parent>
         <artifactId>neuprint-root</artifactId>
         <groupId>org.janelia.flyem</groupId>
-        <version>1.0.2</version>
+        <version>1.0.3</version>
     </parent>
 
     <artifactId>neuprint-load-procedures</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
     <packaging>jar</packaging>
     <name>neuprint-load-procedures</name>
     <description>Neo4j stored procedures to assist neuprint load</description>
