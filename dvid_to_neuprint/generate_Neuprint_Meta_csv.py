@@ -12,7 +12,7 @@ import re
 if __name__ == '__main__':
     synapses_csv = sys.argv[1]
     uuid = sys.argv[2]
-    dataset = "hemibrain"
+    dataset = sys.argv[3]
 
     #header = ":START_ID,pre:int,post:int"
     #print(header)
@@ -107,7 +107,8 @@ if __name__ == '__main__':
             syn_counts["post"] = post_count 
             roiInfo[roi] = syn_counts
 
-    roi_desc = json.loads(open("/groups/flyem/home/flyem/bin/create_neuprint_imports/np_roiInfo.json", 'rt').read())
+    #roi descriptions
+    roi_desc = json.loads(open("np_roiInfo.json", 'rt').read())
 
     for roiName in roi_desc:
         roi_desc_data = roi_desc[roiName]
@@ -130,18 +131,20 @@ if __name__ == '__main__':
     #roiInfo_tmp = json.dumps(roiInfo)
     #roiInfo = roiInfo_tmp.replace('"','""')
     
-    #roiHierarchy
-    roi_hier = json.loads(open("/groups/flyem/home/flyem/bin/create_neuprint_imports/np_roiHierarchy.json", 'rt').read())
+    #load roiHierarchy
+    roi_hier = json.loads(open("np_roiHierarchy.json", 'rt').read())
     roi_hier_tmp = json.dumps(roi_hier)
     roiHier_str = roi_hier_tmp.replace('"','""')
 
-    superLevelrois = json.loads(open("/groups/flyem/home/flyem/bin/create_neuprint_imports/superLevelROIs.json", 'rt').read())    
+    #load all the superlevel/toplevel ROIs
+    superLevelrois = json.loads(open("superLevelROIs.json", 'rt').read())    
     superLevelrois_str = ""
     for slROI in superLevelrois:
         superLevelrois_str = superLevelrois_str + ';' + slROI    
     superLevelrois_str = re.sub(r'^;','',superLevelrois_str)
 
-    nonHierarchicalROIs = json.loads(open("/groups/flyem/home/flyem/bin/create_neuprint_imports/nonHierarchicalROIs.json", 'rt').read())
+    #load all misc ROIs
+    nonHierarchicalROIs = json.loads(open("nonHierarchicalROIs.json", 'rt').read())
     nonHierarchicalROIs_str = ""
     for nhROI in nonHierarchicalROIs:
         nonHierarchicalROIs_str = nonHierarchicalROIs_str + ';' + nhROI
@@ -158,13 +161,7 @@ if __name__ == '__main__':
     neuroglancerInfo_tmp = '{"segmentation":{"host":"https://hemibrain-dvid.janelia.org/","uuid":"' + uuid + '","dataType":"segmentation"},"grayscale":{"host":"https://hemibrain-dvid.janelia.org/","uuid":"a89eb3af216a46cdba81204d8f954786","dataType":"grayscalejpeg"}}'
     neuroglancerInfo = neuroglancerInfo_tmp.replace('"','""')
 
-    #neuroglancerMeta_tmp = '[{"host": "https://hemibrain-dvid.janelia.org/","uuid": "a89eb3af216a46cdba81204d8f954786","dataInstance": "grayscalejpeg","dataType": "image"},{"host": "https://hemibrain-dvid.janelia.org/","uuid": "' + uuid + '","dataInstance": "segmentation","dataType": "segmentation"},{"host": "https://hemibrain-dvid.janelia.org/","uuid": "845fd4873a3748bd9cc27fcc9a83d0a2","dataInstance": "public_annotations","dataType": "annotation","linkedSegmentationLayer": true,"tool": "annotatePoint"},{"host": "https://hemibrain-dvid.janelia.org","uuid": "' + uuid + '","dataInstance":"synapses","dataType": "annotation","linkedSegmentationLayer": true}]'
-
-    #NGtmp = '[{"host": "https://hemibrain-dvid.janelia.org", "source":"precomputed://gs://neuroglancer-janelia-flyem-hemibrain/emdata/clahe_yz/jpeg", "name":"grayscale", "dataInstance": "grayscalejpeg", "dataType": "image"}, {"host": "https://hemibrain-dvid.janelia.org","source":"precomputed://gs://neuroglancer-janelia-flyem-hemibrain/segmentation_52a13","name":"segmentation","dataInstance": "segmentation","dataType": "segmentation"},{"host": "https://hemibrain-dvid.janelia.org","uuid": "61c8", "dataInstance": "public_annotations", "dataType": "annotation", "tool": "annotatePoint","annotationColor": "#ff0000"},{ "host": "https://hemibrain-dvid.janelia.org","source":"precomputed://gs://neuroglancer-janelia-flyem-hemibrain/synapses_52a13","name":"synapses","dataInstance":"synapses","dataType": "annotation","linkedSegmentationLayer": true}]'
-
-    #NGtmp = '[{"host": "https://hemibrain-dvid.janelia.org", "source":"precomputed://gs://neuroglancer-janelia-flyem-hemibrain/emdata/clahe_yz/jpeg", "name":"grayscale", "dataInstance": "grayscalejpeg", "dataType": "image"}, {"host": "https://hemibrain-dvid.janelia.org","source":"precomputed://gs://neuroglancer-janelia-flyem-hemibrain/v1.1/segmentation","name":"segmentation","dataInstance": "segmentation","dataType": "segmentation"},{"host": "https://hemibrain-dvid.janelia.org","uuid": "61c8", "dataInstance": "public_annotations", "dataType": "annotation", "tool": "annotatePoint","annotationColor": "#ff0000"},{ "host": "https://hemibrain-dvid.janelia.org","source":"precomputed://gs://neuroglancer-janelia-flyem-hemibrain/v1.1/synapses","name":"synapses","dataInstance":"synapses","dataType": "annotation","linkedSegmentationLayer": true}]'
-
-    NGloaded = json.loads(open("/groups/flyem/home/flyem/bin/create_neuprint_imports/neuroglancer_meta_updated.json", 'rt').read())
+    NGloaded = json.loads(open("neuroglancer_meta_updated.json", 'rt').read())
     #NGloaded = json.loads(NGtmp)
     NGMeta = json.dumps(NGloaded)
     
@@ -173,12 +170,12 @@ if __name__ == '__main__':
     statusDefinitions_tmp = '{"Roughly traced":"neuron high-level shape correct and validated by biological expert", "Prelim Roughly traced": "neuron high-level shape most likely correct or nearly complete, not yet validated by biological expert", "Anchor":"Big segment that has not been roughly traced", "0.5assign":"Segment fragment that is within the set required for a 0.5 connectome"}'
     statusDefinitions = statusDefinitions_tmp.replace('"','""')
 
-    latestMutationId = sys.argv[3]
+    latestMutationId = sys.argv[4]
 
     totalPreCount = tot_pre_count
     totalPostCount = tot_post_count
 
-    lastDatabaseEdit = sys.argv[4]
+    lastDatabaseEdit = sys.argv[5]
     
     logo = "https://www.janelia.org/sites/default/files/Project%20Teams/Fly%20EM/hemibrain_logo.png"
     info = "https://www.janelia.org/project-team/flyem/hemibrain"
