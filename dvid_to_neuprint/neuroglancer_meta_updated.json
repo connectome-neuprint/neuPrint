@@ -1,0 +1,32 @@
+[
+    {
+	"host": "https://hemibrain-dvid.janelia.org",
+	"name": "grayscale",
+	"source": "precomputed://gs://neuroglancer-janelia-flyem-hemibrain/emdata/clahe_yz/jpeg",
+	"dataInstance": "grayscalejpeg",
+	"dataType": "image"
+    },
+    {
+	"host": "https://hemibrain-dvid.janelia.org",
+	"name": "segmentation",
+	"source": "precomputed://gs://neuroglancer-janelia-flyem-hemibrain/v1.1/segmentation",
+	"dataInstance": "segmentation",
+	"dataType": "segmentation"
+    },
+    {
+	"host": "https://hemibrain-dvid.janelia.org",
+	"uuid": "61c8",
+	"dataInstance": "public_annotations",
+	"tool": "annotatePoint",
+	"annotationColor": "#ff0000",
+	"dataType": "annotation"
+    },
+    {
+	"host": "https://hemibrain-dvid.janelia.org",
+	"name": "synapses",
+	"linkedSegmentationLayer": true,
+	"source": "precomputed://gs://neuroglancer-janelia-flyem-hemibrain/v1.1/synapses",
+	"dataInstance": "synapses",
+	"dataType": "annotation"
+    }
+]
