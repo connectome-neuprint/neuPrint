@@ -48,15 +48,15 @@ if __name__ == '__main__':
         dns_roiInfo = json.loads(dns_roiInfo_str)
         downstream_roiInfo_lookup[bodyId] = dns_roiInfo
 
-    somaFile = "/groups/flyem/home/flyem/bin/identify_soma/soma_bodies_" + dvid_uuid + ".txt"
-    somaList = open(somaFile,'r')
+    #somaFile = "/groups/flyem/home/flyem/bin/identify_soma/soma_bodies_" + dvid_uuid + ".txt"
+    #somaList = open(somaFile,'r')
     soma_lookup = {}
-    for line in somaList:
-        data_str = line.rstrip('\n')
-        data = data_str.split(",")
-        soma_bodyID = data[0]
-        soma_data = data[1].split(" ")
-        soma_lookup[str(soma_bodyID)] = soma_data
+    #for line in somaList:
+    #    data_str = line.rstrip('\n')
+    #    data = data_str.split(",")
+    #    soma_bodyID = data[0]
+    #    soma_data = data[1].split(" ")
+    #    soma_lookup[str(soma_bodyID)] = soma_data
 
     sizes_csv = "neuron_sizes.csv"
     size_lookup = {}
