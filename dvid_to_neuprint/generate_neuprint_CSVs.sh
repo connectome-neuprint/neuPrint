@@ -14,7 +14,7 @@ python get_json_all_synapses_dvid.py emdata4:8900 a7835 synapses
 
 # If you choose to map synapses to multiple levels of ROI instances
 # top level instance
-python map_toplevel_roi_for_csv.py emdata4:8900 a7835 ../synapses-a7835-dvid.csv synapses-a7835-superlevel-rois.csv
+python map_toplevel_roi_for_csv.py emdata4:8900 a7835 synapses-a7835-dvid.csv synapses-a7835-superlevel-rois.csv
 # prep file for next level of subregion map
 ./clean_toplevel.pl synapses-a7835-superlevel-rois.csv > clean-synapses-a7835-superlevel-rois.csv
 
