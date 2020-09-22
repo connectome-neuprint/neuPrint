@@ -92,4 +92,5 @@ python get_body_sizes_batch.py emdata4:8900 bodyIds_only.csv neuron_sizes.csv a7
 python generate_Neurons_csv.py emdata4:8900 a7835 synapse_bodies_a7835.csv hemibrain > Neuprint_Neurons_a7835.csv
 
 # generate hemiBrain Meta
-python generate_Neuprint_Meta_csv.py synIDs_synapses-a7835-rois-bodyIDs.csv a783551a946a4472a6f9bfaa2a009e44 1009308192 "2020-09-18 22:00:01" > Neuprint_Meta_a7835.csv
+# arguments are synpase csv, dvid uuid, last dvid segmentation mutationID, last dvid mutation date change 
+python generate_Neuprint_Meta_csv.py synIDs_synapses-a7835-rois-bodyIDs.csv a783551a946a4472a6f9bfaa2a009e44 hemibrain 1009308192 "2020-09-18 22:00:01" > Neuprint_Meta_a7835.csv
