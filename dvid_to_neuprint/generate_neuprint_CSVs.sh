@@ -45,7 +45,7 @@ python map_csv_to_segmentation.py emdata4:8900 a7835 segmentation clean-synapses
 
 
 # generate list of all bodyIDs with pre and post counts
-python get_Neuron_list.py synIDs_synapses-a7835-rois-bodyIDs.csv > synapse_bodies_a7835.csv
+python generate_Neurons_list.py synIDs_synapses-a7835-rois-bodyIDs.csv > synapse_bodies_a7835.csv
 
 # generate Neuprint Synapse file. specify dataset name to be used in neuprint "hemibrain"
 python generate_Neuprint_Synapses_csv.py synIDs_synapses-a7835-rois-bodyIDs.csv hemibrain > Neuprint_Synapses_a7835.csv
@@ -62,7 +62,7 @@ python detect_downstream_synapses.py Sorted_All_Neuprint_Synapse_Connections_a78
 python detect_downstream_roiInfo.py Sorted_All_Neuprint_Synapse_Connections_a7835.csv > downstream_synapses_roiInfo.csv
 
 # Create Synapse Connections csv
-python ~/bin/create_neuprint_imports/generate_Synapse_Connections.py Sorted_All_Neuprint_Synapse_Connections_a7835.csv > Neuprint_Synapse_Connections_a7835.csv
+python generate_Synapse_Connections.py Sorted_All_Neuprint_Synapse_Connections_a7835.csv > Neuprint_Synapse_Connections_a7835.csv
 
 # generate Neurons connections file
 python generate_Neuron_connections.py Sorted_All_Neuprint_Synapse_Connections_a7835.csv > Neuprint_Neuron_Connections_a7835.csv
@@ -87,7 +87,7 @@ python generate_SynapseSet_to_SynapseSet.py Sorted_All_Neuprint_Synapse_Connecti
 
 # get all body sizes
 cat synapse_bodies_a7835.csv | perl -ne 'chomp(); if ($_=~/^\d+/) { @t=split(/\;/,$_); print "$t[0]\n"; }' > bodyIds_only.csv
-python get_body_sizes_batch.py emdata4:8900 bodyIds_only.csv neuron_sizes.csv a7835
+python get_body_sizes_batch.py emdata4:8900 a7835 segmentation bodyIds_only.csv neuron_sizes.csv
 # generate Neurons file
 python generate_Neurons_csv.py emdata4:8900 a7835 synapse_bodies_a7835.csv hemibrain > Neuprint_Neurons_a7835.csv
 
