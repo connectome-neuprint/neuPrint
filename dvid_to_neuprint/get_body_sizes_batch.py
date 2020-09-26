@@ -8,12 +8,14 @@ from neuclease.util import compute_parallel, read_csv_col
 from neuclease.dvid import find_master, fetch_sizes
 
 dvid_server = sys.argv[1]
-bodyid_csv = sys.argv[2]
-out_file = sys.argv[3]
-uuid = sys.argv[4]
+uuid = sys.argv[2]
+label_inst = sys.argv[3]
+bodyid_csv = sys.argv[4]
+out_file = sys.argv[5]
+
 
 #master_seg = (prod, find_master(prod), 'segmentation')
-master_seg = (dvid_server, uuid, 'segmentation')
+master_seg = (dvid_server, uuid, label_inst)
 
 #bodies = read_csv_col(bodyid_csv)
 # chunk body list into groups of 1000
