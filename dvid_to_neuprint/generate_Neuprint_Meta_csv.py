@@ -154,11 +154,11 @@ if __name__ == '__main__':
     preHPThreshold = 0.0
     postHPThreshold = 0.7
 
-    meshHost = "https://hemibrain-dvid.janelia.org"
+    meshHost = "http://example.meshhost.org"
 
     #uuid = "a89eb3af216a46cdba81204d8f954786"
 
-    neuroglancerInfo_tmp = '{"segmentation":{"host":"https://hemibrain-dvid.janelia.org/","uuid":"' + uuid + '","dataType":"segmentation"},"grayscale":{"host":"https://hemibrain-dvid.janelia.org/","uuid":"a89eb3af216a46cdba81204d8f954786","dataType":"grayscalejpeg"}}'
+    neuroglancerInfo_tmp = '{"segmentation":{"host":"http://http://wasptrace.flatironinstitute.org/","uuid":"' + uuid + '","dataType":"labels"},"grayscale":{"host":"http://wasptrace.flatironinstitute.org/","uuid":"bfeeeb2b98bb4b2aa9b5e38256c6f1f1","dataType":"grayscalejpeg"}}'
     neuroglancerInfo = neuroglancerInfo_tmp.replace('"','""')
 
     NGloaded = json.loads(open("neuroglancer_meta_updated.json", 'rt').read())
@@ -183,7 +183,7 @@ if __name__ == '__main__':
     header = "voxelSize:float[],voxelUnits:string,info:string,logo:string,postHighAccuracyThreshold:float,preHPThreshold:float,postHPThreshold:float,meshHost:string,uuid:string,neuroglancerInfo:string,neuroglancerMeta:string,statusDefinitions:string,latestMutationId:int,totalPreCount:int,totalPostCount:int,lastDatabaseEdit:string,superLevelRois:string[],primaryRois:string[],nonHierarchicalROIs:string[],roiInfo:string,roiHierarchy:string,dataset:string,:LABEL"
     #print(roiInfo)
     print(header)
-    print( '"8.0;8.0;8.0","nanometers",' + '"' + str(info) + '","' + str(logo) + '",' + str(postHighAccuracyThreshold) + ',' + str(preHPThreshold) + ',' + str(postHPThreshold) + ',"' + meshHost + '","' + uuid + '","' + neuroglancerInfo + '","' + neuroglancerMeta + '","' + statusDefinitions + '",' + str(latestMutationId) + ',' + str(totalPreCount) + ',' + str(totalPostCount) + ',"' + lastDatabaseEdit + '","' + superLevelrois_str + '","' + superLevelrois_str + '","' + nonHierarchicalROIs_str + '","' + roiInfo + '","' + roiHier_str + '",hemibrain,Meta;hemibrain_Meta' )
+    print( '"8.0;8.0;8.0","nanometers",' + '"' + str(info) + '","' + str(logo) + '",' + str(postHighAccuracyThreshold) + ',' + str(preHPThreshold) + ',' + str(postHPThreshold) + ',"' + meshHost + '","' + uuid + '","' + neuroglancerInfo + '","' + neuroglancerMeta + '","' + statusDefinitions + '",' + str(latestMutationId) + ',' + str(totalPreCount) + ',' + str(totalPostCount) + ',"' + lastDatabaseEdit + '","' + superLevelrois_str + '","' + superLevelrois_str + '","' + nonHierarchicalROIs_str + '","' + roiInfo + '","' + roiHier_str + '",' + dataset + ',Meta;' + dataset + '_Meta' )
 
 #    header = "tag:string,info:string,logo:string,postHighAccuracyThreshold:float,preHPThreshold:float,postHPThreshold:float,meshHost:string,uuid:string,neuroglancerInfo:string,neuroglancerMeta:string,statusDefinitions:string,latestMutationId:int,totalPreCount:int,totalPostCount:int,lastDatabaseEdit:string,superLevelRois:string[],primaryRois:string[],nonHierarchicalRois:string[],roiInfo:string,roiHierarchy:string,dataset:string,:LABEL"
 #    print(header)
