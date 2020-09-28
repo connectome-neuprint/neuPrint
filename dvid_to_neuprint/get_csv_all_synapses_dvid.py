@@ -22,7 +22,7 @@ annotation = sys.argv[3]
 master = (server, uuid)
 
 #Dimensions of your volume to get all the synapses
-box_zyx = [(896,1792,0), (41408,39552,34432)]
+box_zyx = [(0,0,0), (41408,39552,34432)]
 
 # get as pandas dataframe
 synapses_df, partners_df = fetch_synapses_in_batches(*master, annotation, box_zyx, format='pandas')
