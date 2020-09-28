@@ -14,7 +14,6 @@ from libdvid import DVIDNodeService, ConnectionMethod
 
 if __name__ == '__main__':
     dvid_server = sys.argv[1]
-    #dvid_uuid = find_master(dvid_server,"28841") 
     dvid_uuid = sys.argv[2]
     bodies_syn_file =  sys.argv[3] #csv file
     dataset = sys.argv[4]
@@ -73,18 +72,22 @@ if __name__ == '__main__':
 
     
 
-    keyvalue = "segmentation_annotations"
+    #keyvalue = "segmentation_annotations"
+    keyvalue = sys.argv[5]
+
     node = (dvid_server, dvid_uuid)
     all_keys = fetch_keys(*node, keyvalue)
     seg_annot_count = len(all_keys)
     #print("Number of segmentation_annotations entries:", seg_annot_count)
     #sys.exit()
-    all_values = {}
+    #all_values = {}
     #for start in trange(0,300_000,100_000): #v1.0
-    for start in trange(0,400_000,100_000): #old head
+    #for start in trange(0,400_000,100_000): #old head
     #for start in trange(0,500_000,100_000): # head
-        values = fetch_keyvalues(*node, keyvalue, all_keys[start:start+100_000], as_json=True)
-        all_values.update(values)
+    #    values = fetch_keyvalues(*node, keyvalue, all_keys[start:start+100_000], as_json=True)
+    #    all_values.update(values)
+    all_values = fetch_keyvalues(*node, keyvalue, all_keys, as_json=True)
+
 
     #superLevelrois = ["ME(R)","AME(R)","LO(R)","LOP(R)","CA(R)","CA(L)","PED(R)","a'L(R)","a'L(L)","aL(R)","aL(L)","gL(R)","gL(L)","b'L(R)","b'L(L)","bL(R)","bL(L)","FB","AB(R)","AB(L)","EB","PB","NO", "BU(R)","BU(L)","LAL(R)","LAL(L)","AOTU(R)","AVLP(R)","PVLP(R)","PLP(R)","WED(R)","LH(R)","SLP(R)","SIP(R)","SIP(L)","SMP(R)","SMP(L)","CRE(R)","CRE(L)","ROB(R)","SCL(R)","SCL(L)","ICL(R)","ICL(L)","IB","ATL(R)","ATL(L)","AL(R)","AL(L)","VES(R)","VES(L)","EPA(R)","EPA(L)","GOR(R)","GOR(L)","SPS(R)","SPS(L)","IPS(R)","SAD","FLA(R)","CAN(R)","PRW","GNG"]
 
