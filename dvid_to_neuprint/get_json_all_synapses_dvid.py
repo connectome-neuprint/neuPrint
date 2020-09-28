@@ -21,7 +21,7 @@ uuid = sys.argv[2]
 master = (server, uuid)
 
 #Dimension of your volume to get all 
-box_zyx = [(896,1792,0), (41408,39552,34432)]
+box_zyx = [(0,0,0), (41408,39552,34432)]
 
 annotation = sys.argv[3]
 synapses_json = fetch_synapses_in_batches(*master, annotation, box_zyx, format='json')
