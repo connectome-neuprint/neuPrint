@@ -165,7 +165,6 @@ class NeuPrintUpdater:
         merge_query = f"MATCH (n) WHERE id(n) in {list(idset)} WITH collect(n) AS nlist call apoc.refactor.mergeNodes(nlist,{{properties:\"discard\", mergeRels:true}}) yield node return id(node) as id"
         merge_df = txn.query(merge_query)
         if len(merge_df) != 1:
-            txn.kill()
             raise RuntimeError("node was not proeprly created")
 
         # grab result id from result
