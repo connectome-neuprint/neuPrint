@@ -28,7 +28,7 @@ python map_csv_to_segmentation.py emdata4:8900 a7835 segmentation clean-synapses
 python generate_Neurons_list.py synIDs_synapses-a7835-rois-bodyIDs.csv > synapse_bodies_a7835.csv
 
 # generate Neuprint Synapse file. specify dataset name to be used in neuprint "hemibrain"
-python generate_Neuprint_Synapses_csv.py synIDs_synapses-a7835-rois-bodyIDs.csv hemibrain > Neuprint_Synapses_a7835.csv
+python generate_Neuprint_Synapses_csv.py synIDs_synapses-a7835-rois-bodyIDs.csv hemibrain all_ROIs.txt > Neuprint_Synapses_a7835.csv
 
 # generate Synapse Connections file for all bodies
 python generate_Synapse_Connections_All.py synIDs_synapses-a7835-rois-bodyIDs.csv synapses-dvid-a7835.json > All_Neuprint_Synapse_Connections_a7835.csv

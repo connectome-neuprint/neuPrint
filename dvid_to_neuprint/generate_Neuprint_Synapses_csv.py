@@ -10,9 +10,9 @@ import time
 
 if __name__ == '__main__':
     synapses_csv = sys.argv[1]
-    dataset = sys.argv[2]
-
-    all_rois_csv = "all_ROIs.txt"
+    dataset = sys.argv[2]    
+    all_rois_csv = sys.argv[3]
+    
     all_rois = []
     allRoisList = open(all_rois_csv,'r')
     for line in allRoisList:
@@ -53,7 +53,7 @@ if __name__ == '__main__':
             sub1_roi = synData[7]
             sub2_roi = synData[8].replace("|",",")
             sub3_roi = synData[9]
-            #syn_id = 1000000000 + id_count
+            
             location = "\"{x:" + x + ", y:" + y + ", z:" + z + "}\""
             syn_line = str(syn_id) + "," + syn_type + "," + confidence + "," + location + ",Synapse;" + dataset + "_Synapse"
             for roi_name in all_rois:
