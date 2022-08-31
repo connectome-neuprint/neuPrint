@@ -14,35 +14,15 @@ python get_json_all_synapses_dvid.py emdata4:8900 a7835 synapses
 
 # If you choose to map synapses to multiple levels of ROI instances
 # top level instance
-python map_toplevel_roi_for_csv.py emdata4:8900 a7835 synapses-a7835-dvid.csv synapses-a7835-superlevel-rois.csv
+python map_synapses_to_rois.py emdata4:8900 a7835 all_ROIs.txt synapses-a7835-dvid.csv synapses-a7835-superlevel-rois.csv
 # prep file for next level of subregion map
-./clean_toplevel.pl synapses-a7835-superlevel-rois.csv > clean-synapses-a7835-superlevel-rois.csv
-
-# Add sub1 rois
-python map_sub1_roi_for_csv.py emdata4:8900 a7835 clean-synapses-a7835-superlevel-rois.csv synapses-a7835-sub1-rois-added.csv
-
-# Clean up sub1 rois file before mapping sub2 ROIs
-./clean_sub1.pl synapses-a7835-sub1-rois-added.csv > clean-synapses-a7835-sub1-roi-added.csv
-
-# Add sub2 rois
-python map_sub2_roi_for_csv.py emdata4:8900 a7835 clean-synapses-a7835-sub1-roi-added.csv synapses-a7835-sub2-rois-added.csv
-
-# Clean up sub2 rois file before mapping sub3 ROIs
-./clean_sub2.pl synapses-a7835-sub2-rois-added.csv > clean-synapses-a7835-sub2-roi-added.csv
-
-# Add sub3 rois
-python map_sub3_roi_for_csv.py emdata4:8900 a7835 clean-synapses-a7835-sub2-roi-added.csv synapses-a7835-sub3-rois-added.csv
-
-# Clean up sub3 rois file before mapping to neurons
-./clean_sub3.pl synapses-a7835-sub3-rois-added.csv > clean-synapses-a7835-sub3-roi-added.csv
-
+./clean_synapse_roi_map.pl synapses-a7835-superlevel-rois.csv > clean-synapses-a7835-superlevel-rois.csv
 
 # map neuron bodyID to all synapses using labelmap instance name "segmentation"
-python map_csv_to_segmentation.py emdata4:8900 a7835 segmentation clean-synapses-a7835-sub3-roi-added.csv synIDs_synapses-a7835-rois-bodyIDs-v1.csv
+python map_csv_to_segmentation.py emdata4:8900 a7835 segmentation clean-synapses-a7835-superlevel-rois.csv synIDs_synapses-a7835-rois-bodyIDs-v1.csv
 
 # Option step to remove all synapses that map to areas with no segmentation (bodyID 0)
-#./remove_0_label_syns.pl synIDs_synapses-a7835-rois-bodyIDs-v1.csv > synIDs_synapses-a7835-rois-bodyIDs.csv
-
+./remove_0_label_syns.pl synIDs_synapses-a7835-rois-bodyIDs-v1.csv > synIDs_synapses-a7835-rois-bodyIDs.csv
 
 # generate list of all bodyIDs with pre and post counts
 python generate_Neurons_list.py synIDs_synapses-a7835-rois-bodyIDs.csv > synapse_bodies_a7835.csv
