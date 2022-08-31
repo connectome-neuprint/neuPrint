@@ -1,7 +1,5 @@
 #!/bin/env
 
-# python /groups/flyem/home/flyem/bin/create_neuprint_imports/sort_synapse_set.py All_Neuprint_Synapse_Connections_6f2cb.csv
-
 import os
 import sys
 import logging
