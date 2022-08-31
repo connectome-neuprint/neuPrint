@@ -14,7 +14,6 @@ from libdvid import DVIDNodeService, ConnectionMethod
 
 if __name__ == '__main__':
     synapses_csv = sys.argv[1]
-    #dvid_uuid = find_master(dvid_server,"28841") 
     
     all_bodies_syn = {}
     bodies_pre = {}
@@ -22,8 +21,6 @@ if __name__ == '__main__':
     all_neuron_roi_keys = {}
     neuron_roi_pre = {}
     neuron_roi_post = {}
-
-    #superLevelrois = json.loads(open("superLevelROIs.json", 'rt').read())
 
     synapseList = open(synapses_csv,'r')
     for line in synapseList:
