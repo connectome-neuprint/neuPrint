@@ -7,8 +7,6 @@ import sys
 import os
 import io
 import time
-#import numpy as np
-#import pandas as pd
 
 if __name__ == '__main__':
     synapses_connect_csv = sys.argv[1]
@@ -65,32 +63,6 @@ if __name__ == '__main__':
                     else:
                         neuron_downstream_roi[neuron_roi_3] = 1
 
- #           elif connect_type =="PostSynTo":
- #               if len(from_super_roi) > 0:
- #                   neuron_roi_0 = from_bodyId + "_" + from_super_roi
- #                   if neuron_roi_0 in neuron_upstream_roi:
- #                       neuron_upstream_roi[neuron_roi_0] += 1
- #                   else:
- #                       neuron_upstream_roi[neuron_roi_0] = 1
- #               if len(from_sub1_roi) > 0:
- #                   neuron_roi_1 = from_bodyId + "_" + from_sub1_roi
- #                   if neuron_roi_1 in neuron_upstream_roi:
- #                       neuron_upstream_roi[neuron_roi_1] += 1
- #                   else:
- #                       neuron_upstream_roi[neuron_roi_1] = 1
- #               if len(from_sub2_roi) > 0:
- #                   neuron_roi_2 = from_bodyId + "_" + from_sub2_roi
- #                   if neuron_roi_2 in neuron_upstream_roi:
- #                       neuron_upstream_roi[neuron_roi_2] += 1
- #                   else:
- #                       neuron_upstream_roi[neuron_roi_2] = 1
- #               if len(from_sub3_roi) > 0:
- #                   neuron_roi_3 = from_bodyId + "_" + from_sub3_roi
- #                   if neuron_roi_3 in neuron_upstream_roi:
- #                       neuron_upstream_roi[neuron_roi_3] += 1
- #                   else:
- #                       neuron_upstream_roi[neuron_roi_3] = 1
-
     neuron_ups_dns_roi = {}
 
     for neuron_roi_key in neuron_downstream_roi:
@@ -113,28 +85,6 @@ if __name__ == '__main__':
             ups_dns_dict["downstream"] = int(downstream_num)
             ups_dns_roiInfo[roi] = ups_dns_dict
             neuron_ups_dns_roi[bodyId] = ups_dns_roiInfo
-
-#    for neuron_roi_key in neuron_upstream:
-#        upstream_num = neuron_upstream[neuron_roi_key]
-#        neuron_roi_data = neuron_roi_key.split("_")
-#        bodyId = neuron_roi_data[0]
-#        roi = neuron_roi_data[1]
-#        if bodyId in neuron_ups_dns_roi:
-#            ups_dns_roiInfo = neuron_ups_dns_roi[bodyId]
-#            if roi in ups_dns_roiInfo:
-#                ups_dns_dict = ups_dns_roiInfo[roi]
-#                ups_dns_dict["upstream"] = int(upstream_num)
-#            else:
-#                ups_dns_dict = {}
-#                ups_dns_dict["upstream"] = int(upstream_num)
-#                ups_dns_roiInfo[roi] = ups_dns_dict
-#        else:
-#            ups_dns_roiInfo = {}
-#            ups_dns_dict = {}
-#            ups_dns_dict["upstream"] = int(upstream_num)
-#            ups_dns_roiInfo[roi] = ups_dns_dict
-#            neuron_ups_dns_roi[bodyId] = ups_dns_roiInfo
-
 
     for bodyId in neuron_ups_dns_roi:
         ups_dns_roiInfo = neuron_ups_dns_roi[bodyId]

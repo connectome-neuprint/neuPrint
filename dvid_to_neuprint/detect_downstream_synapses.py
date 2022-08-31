@@ -7,8 +7,6 @@ import sys
 import os
 import io
 import time
-#import numpy as np
-#import pandas as pd
 
 if __name__ == '__main__':
     synapses_connect_csv = sys.argv[1]
