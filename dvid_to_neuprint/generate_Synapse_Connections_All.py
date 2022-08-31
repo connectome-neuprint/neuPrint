@@ -47,9 +47,6 @@ if __name__ == '__main__':
             synapse_sub3_roi[synapse_key] = sub3_roi
             synapse_ids[synapse_key] = synID
 
-    #for key in synapse_body_lookup:
-    #    print(key, synapse_body_lookup[key])
-
     # open json connections
     all_synapses = json.loads(open(synapse_connect_json, 'rt').read())
     
@@ -58,8 +55,6 @@ if __name__ == '__main__':
     for syn in all_synapses:
         pos = syn["Pos"]
         kind = syn["Kind"]
-        #if kind != "PreSyn":
-        #    continue
         from_x = str(pos[0])
         from_y = str(pos[1])
         from_z = str(pos[2])
@@ -136,7 +131,5 @@ if __name__ == '__main__':
 
                 if rel_syn_key in synapse_sub3_roi:
                     to_sub3_roi = synapse_sub3_roi[rel_syn_key]
-
-                #print(from_synId + "," + kind + "," + to_synId)
-                #print(from_synId + "," + to_synId)
+                
                 print(from_synId + "," + from_x + "," + from_y + "," + from_z + ","  + from_conf + "," + from_super_roi + "," + from_sub1_roi + "," + from_sub2_roi + "," + from_sub3_roi + "," + from_bodyId + "," + connection + "," + to_synId + "," + to_x + "," + to_y + "," + to_z + "," + to_conf + "," + to_super_roi + "," + to_sub1_roi + "," + to_sub2_roi + "," + to_sub3_roi + "," + to_bodyId)
