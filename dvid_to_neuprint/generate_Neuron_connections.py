@@ -1,6 +1,4 @@
 #!/bin/env
-
-# python generate_Neuron_connections.py Sorted_All_Neuprint_Synapse_Connections_6f2cb.csv > Neuprint_Neuron_Connections_6f2cb.csv
 # ------------------------- imports -------------------------
 import json
 import sys
@@ -12,6 +10,8 @@ import pandas as pd
 
 if __name__ == '__main__':
     synapses_connect_csv = sys.argv[1]
+    pre_HP_cutoff = float(sys.argv[2])
+    post_HP_cutoff = float(sys.argv[3])
     
     synapse_connect = {}
     synapse_connect_hp = {}
@@ -19,7 +19,6 @@ if __name__ == '__main__':
     syn_connect_post = []
     neuron_conn_roi_pre = {}
     neuron_conn_roi_post = {}
-    HP_cuttoff = 0.7
     all_neuron_conn_roi_keys = {}
     
     synapseList = open(synapses_connect_csv,'r')
@@ -108,13 +107,12 @@ if __name__ == '__main__':
                 else:
                     synapse_connect[dict_key] = 1
                 
-                if from_conf > HP_cuttoff:
-                    if to_conf > HP_cuttoff:
+                if from_conf > pre_HP_cutoff:
+                    if to_conf > post_HP_cutoff:
                         if dict_key in synapse_connect_hp:
                             synapse_connect_hp[dict_key] += 1
                         else:
                             synapse_connect_hp[dict_key] = 1
-
 
     roiInfo_lookup = {}
     for neuron_conn_roi_key in all_neuron_conn_roi_keys:
@@ -140,6 +138,11 @@ if __name__ == '__main__':
             neuron_roiInfo_dict[roiName] = neuron_roiInfo_counts
             roiInfo_lookup[neuron_conn_id] = neuron_roiInfo_dict
 
+    #superLevelrois
+    #superLevelrois = json.loads(open("superLevelROIs.json", 'rt').read())
+    
+    #superLevelrois = ["ME(R)","AME(R)","LO(R)","LOP(R)","CA(R)","CA(L)","PED(R)","a'L(R)","a'L(L)","aL(R)","aL(L)","gL(R)","gL(L)","b'L(R)","b'L(L)","bL(R)","bL(L)","FB","AB(R)","AB(L)","EB","PB","NO", "BU(R)","BU(L)","LAL(R)","LAL(L)","AOTU(R)","AVLP(R)","PVLP(R)","PLP(R)","WED(R)","LH(R)","SLP(R)","SIP(R)","SIP(L)","SMP(R)","SMP(L)","CRE(R)","CRE(L)","ROB(R)","SCL(R)","SCL(L)","ICL(R)","ICL(L)","IB","ATL(R)","ATL(L)","AL(R)","AL(L)","VES(R)","VES(L)","EPA(R)","EPA(L)","GOR(R)","GOR(L)","SPS(R)","SPS(L)","IPS(R)","SAD","FLA(R)","CAN(R)","PRW","GNG"]
+
     print (":START_ID(Body-ID),weight:int,weightHP:int,:END_ID(Body-ID),roiInfo:string")
     for connect_key in synapse_connect:
         connect_weight = synapse_connect[connect_key]
@@ -154,11 +157,11 @@ if __name__ == '__main__':
             roiInfo = roiInfoTmp2.replace('"','""')
             
         bodyData = connect_key.split(':')
-        from_bodyID = bodyData[0]
-        to_bodyID = bodyData[1]
+        from_bodyID = int(bodyData[0])
+        to_bodyID = int(bodyData[1])
 
         
         connect_weightHP = 0
         if connect_key in synapse_connect_hp:
             connect_weightHP = synapse_connect_hp[connect_key]
-        print(from_bodyID + "," + str(connect_weight) + "," + str(connect_weightHP) + "," + to_bodyID + ",\"" + roiInfo + "\"" )
+        print(str(from_bodyID) + "," + str(connect_weight) + "," + str(connect_weightHP) + "," + str(to_bodyID) + ",\"" + roiInfo + "\"" )
