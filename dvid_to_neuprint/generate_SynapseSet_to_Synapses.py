@@ -13,12 +13,7 @@ import pandas as pd
 if __name__ == '__main__':
     synapses_connect_csv = sys.argv[1]
     
-    #synapse_connect = {}
-    #synapse_connect_hp = {}
-
     synapse_sets = {}
-
-    HP_cuttoff = 0.5
     
     synapseList = open(synapses_connect_csv,'r')
     for line in synapseList:
@@ -36,7 +31,6 @@ if __name__ == '__main__':
 
             
             if connect_type == "PreSynTo":
-                #dict_key = from_bodyId + ":" + to_bodyId
                 synSet_ID1 = from_bodyId + "_" + to_bodyId + "_pre" 
                 synSet_ID2 = to_bodyId + "_" + from_bodyId + "_post"
 
@@ -56,16 +50,6 @@ if __name__ == '__main__':
                     synSet_synIDs_new[to_synID] = 1
                     synapse_sets[synSet_ID2] = synSet_synIDs_new
 
-                #if dict_key in synapse_connect:
-                #    synapse_connect[dict_key] += 1
-                #else:
-                #    synapse_connect[dict_key] = 1                
-                #if from_conf > HP_cuttoff:
-                #    if to_conf > HP_cuttoff:
-                #        if dict_key in synapse_connect_hp:
-                #            synapse_connect_hp[dict_key] += 1
-                #        else:
-                #            synapse_connect_hp[dict_key] = 1
 
     print (":START_ID,:END_ID(Syn-ID)")
     for synapse_set_id in synapse_sets:
@@ -73,13 +57,3 @@ if __name__ == '__main__':
         for syn_Id in synSet_synIDs:
             print(synapse_set_id + "," + syn_Id)
 
-
-#    for connect_key in synapse_connect:
-#        bodyData = connect_key.split(':')
-#        from_bodyID = bodyData[0]
-#        to_bodyID = bodyData[1]
-#        connect_weight = synapse_connect[connect_key]
-#        connect_weightHP = 0
-#        if connect_key in synapse_connect_hp:
-#            connect_weightHP = synapse_connect_hp[connect_key]
-#        print(from_bodyID + "," + str(connect_weight) + "," + str(connect_weightHP) + "," + to_bodyID + ",ConnectsTo")
