@@ -103,16 +103,6 @@ if __name__ == '__main__':
                 else:
                     neuron_conn_roi_post[dict_key_to_sub3_roi] = 1
 
-                #if dict_key in syn_connect_pre:
-                #    syn_connect_pre[dict_key] += 1
-                #else:
-                #    syn_connect_pre[dict_key] = 1
-
-                #if dict_key in syn_connect_post:
-                #    syn_connect_post[dict_key] += 1
-                #else:
-                #    syn_connect_post[dict_key] = 1
-
                 if dict_key in synapse_connect:
                     synapse_connect[dict_key] += 1
                 else:
@@ -124,9 +114,7 @@ if __name__ == '__main__':
                             synapse_connect_hp[dict_key] += 1
                         else:
                             synapse_connect_hp[dict_key] = 1
-            #elif connect_type == "PostSynTo":
-            #    dict_key = from_bodyId + ":" + to_bodyId
-            #    continue
+
 
     roiInfo_lookup = {}
     for neuron_conn_roi_key in all_neuron_conn_roi_keys:
@@ -151,11 +139,6 @@ if __name__ == '__main__':
             neuron_roiInfo_dict = {}
             neuron_roiInfo_dict[roiName] = neuron_roiInfo_counts
             roiInfo_lookup[neuron_conn_id] = neuron_roiInfo_dict
-
-    #superLevelrois
-    #superLevelrois = json.loads(open("superLevelROIs.json", 'rt').read())
-    
-    #superLevelrois = ["ME(R)","AME(R)","LO(R)","LOP(R)","CA(R)","CA(L)","PED(R)","a'L(R)","a'L(L)","aL(R)","aL(L)","gL(R)","gL(L)","b'L(R)","b'L(L)","bL(R)","bL(L)","FB","AB(R)","AB(L)","EB","PB","NO", "BU(R)","BU(L)","LAL(R)","LAL(L)","AOTU(R)","AVLP(R)","PVLP(R)","PLP(R)","WED(R)","LH(R)","SLP(R)","SIP(R)","SIP(L)","SMP(R)","SMP(L)","CRE(R)","CRE(L)","ROB(R)","SCL(R)","SCL(L)","ICL(R)","ICL(L)","IB","ATL(R)","ATL(L)","AL(R)","AL(L)","VES(R)","VES(L)","EPA(R)","EPA(L)","GOR(R)","GOR(L)","SPS(R)","SPS(L)","IPS(R)","SAD","FLA(R)","CAN(R)","PRW","GNG"]
 
     print (":START_ID(Body-ID),weight:int,weightHP:int,:END_ID(Body-ID),roiInfo:string")
     for connect_key in synapse_connect:
