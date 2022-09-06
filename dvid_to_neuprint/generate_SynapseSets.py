@@ -16,8 +16,6 @@ if __name__ == '__main__':
 
     synapse_connect = {}
     synapse_connect_hp = {}
-    #neuron_conn_roi_pre = {}
-    #neuron_conn_roi_post = {}
     neuron_conn_roi ={}
     HP_cuttoff = 0.5
     all_neuron_conn_roi_keys = {}
@@ -61,7 +59,7 @@ if __name__ == '__main__':
 
 
     track_synapseSet = {}
-    print (":ID,:Label")
+    print (":ID(SynSet-ID),:Label")
     for connect_key in synapse_connect:
         if connect_key in track_synapseSet:
             continue

@@ -51,7 +51,7 @@ if __name__ == '__main__':
                     synapse_sets[synSet_ID2] = synSet_synIDs_new
 
 
-    print (":START_ID,:END_ID(Syn-ID)")
+    print (":START_ID(SynSet-ID),:END_ID(Syn-ID)")
     for synapse_set_id in synapse_sets:
         synSet_synIDs = synapse_sets[synapse_set_id]
         for syn_Id in synSet_synIDs:
