@@ -15,7 +15,6 @@ out_file = sys.argv[5]
 
 master_seg = (dvid_server, uuid, label_inst)
 
-#bodies = read_csv_col(bodyid_csv)
 # chunk body list into groups of 1000
 body_groups = []
 bodyList = open(bodyid_csv,'r')
