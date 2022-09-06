@@ -13,8 +13,6 @@ label_inst = sys.argv[3]
 bodyid_csv = sys.argv[4]
 out_file = sys.argv[5]
 
-
-#master_seg = (prod, find_master(prod), 'segmentation')
 master_seg = (dvid_server, uuid, label_inst)
 
 #bodies = read_csv_col(bodyid_csv)

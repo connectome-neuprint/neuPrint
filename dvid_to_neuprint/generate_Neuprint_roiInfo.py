@@ -1,7 +1,7 @@
 #!/bin/env
 
 # Use python 3.6 or greater
-# Script that counts the number of pre and post synapses in each mapped ROI
+# QC script that counts the number of pre and post synapses in each mapped ROI
 
 # ------------------------- imports -------------------------
 import json
@@ -14,9 +14,6 @@ import re
 if __name__ == '__main__':
     synapses_csv = sys.argv[1]
     
-    #header = ":START_ID,pre:int,post:int"
-    #print(header)
-
     all_rois = {}
     rois_pre_count = {}
     rois_post_count = {}
@@ -100,7 +97,6 @@ if __name__ == '__main__':
             pre_count = rois_pre_count[roi]
         if roi in rois_post_count:
             post_count = rois_post_count[roi]
-        #print(roi + "," + str(pre_count) + "," + str(post_count))
         if roi != "":
             syn_counts = {}
             syn_counts["pre"] = pre_count
@@ -111,20 +107,4 @@ if __name__ == '__main__':
 
     print (roiInfo_str)
 
-    #roi_desc = json.loads(open("/groups/flyem/home/flyem/bin/create_neuprint_imports/np_roiInfo.json", 'rt').read())
-
-    #for roiName in roi_desc:
-    #    roi_desc_data = roi_desc[roiName]
-    #    if roiName in roiInfo:
-    #        syn_counts = roiInfo[roiName]
-    #        if "pre" in syn_counts:
-    #            roi_desc_data["pre"] = syn_counts["pre"]
-    #        if "post" in syn_counts:
-    #            roi_desc_data["post"] = syn_counts["post"]
-    #    if roiName == "hemibrain":
-    #        roi_desc_data["pre"] = tot_pre_count
-    #        roi_desc_data["post"] = tot_post_count
-
-    #roiInfo_tmp = json.dumps(roi_desc)
-    #prbint(roiInfo_tmp)
     sys.exit()
