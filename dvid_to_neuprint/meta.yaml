@@ -1,0 +1,17 @@
+dvid_uuid: a783551a946a4472a6f9bfaa2a009e44
+dataset: hemibrain
+postHighAccuracyThreshold: 0.5 
+preHPThreshold: 0.0
+postHPThreshold: 0.7
+last_mutation_id: 1009308192
+last_mutation_datetime: 2020-09-18 22:00:01
+np_roiInfo: np_roiInfo.json
+np_roiHierarchy: np_roiHierarchy.json
+np_superLevelROIs: np_superLevelROIs.json
+np_nonHierarchicalROIs: np_nonHierarchicalROIs.json
+neuroglancer_meta: np_neuroglancer_meta_updated.json
+meshHost: https://hemibrain-dvid.janelia.org
+np_logo_link: https://www.janelia.org/sites/default/files/Project%20Teams/Fly%20EM/hemibrain_logo.png
+np_info_link: https://www.janelia.org/project-team/flyem/hemibrain
+voxel_units: nanometers
+voxel_size: 8.0;8.0;8.0

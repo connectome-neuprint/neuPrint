@@ -1,6 +1,5 @@
 #!/bin/env
-
-# python generate_Neurons_csv.py emdata4:8900 6f2cb9f1d4514d64bf4bd788106ad8ab synapse_bodies_6f2cb.csv hemibrain > Neuprint_Neurons_6f2cb.csv
+# python generate_Neurons_csv.py synapse_bodies_a7835.csv neurons.yaml > Neuprint_Neurons_a7835.csv
 # ------------------------- imports -------------------------
 import json
 import sys
@@ -11,14 +10,23 @@ import numpy as np
 from tqdm import trange
 from neuclease.dvid import *
 from libdvid import DVIDNodeService, ConnectionMethod
+import yaml
+
+def parse_config (config_file):
+    with open(config_file) as f:
+        config_data = yaml.load(f, Loader=yaml.FullLoader)
+    return config_data
 
 if __name__ == '__main__':
-    dvid_server = sys.argv[1]
-    dvid_uuid = sys.argv[2]
-    bodies_syn_file =  sys.argv[3] #csv file
-    dataset = sys.argv[4]
+    bodies_syn_file =  sys.argv[1] #csv file
+    config_yaml_file = sys.argv[2]
+    config_data = parse_config(config_yaml_file)
+    
+    dvid_server = config_data['dvid_server']
+    dvid_uuid = config_data['dvid_uuid']
+    dataset = config_data['dataset']
 
-    all_rois_csv = "all_ROIs.txt"
+    all_rois_csv = config_data['all_rois_csv']    
     all_rois = []
     allRoisList = open(all_rois_csv,'r')
     for line in allRoisList:
@@ -27,7 +35,7 @@ if __name__ == '__main__':
         all_rois.append(roi_name)
 
     downstream_lookup = {}
-    downstream_csv = "downstream_synapses.csv"
+    downstream_csv = config_data['downstream_csv']    
     allDownStream = open(downstream_csv,'r')
     for line in allDownStream:
         clean_line = line.rstrip('\n')
@@ -37,7 +45,7 @@ if __name__ == '__main__':
         downstream_lookup[bodyId] = downstream_count
 
     downstream_roiInfo_lookup = {}
-    downstream_roiInfo = "downstream_synapses_roiInfo.csv"
+    downstream_roiInfo = config_data['downstream_roiInfo']
     allDownStreamRoiInfo = open(downstream_roiInfo,'r')
     for line in allDownStreamRoiInfo:
         clean_line = line.rstrip('\n')
@@ -57,11 +65,9 @@ if __name__ == '__main__':
     #    soma_data = data[1].split(" ")
     #    soma_lookup[str(soma_bodyID)] = soma_data
 
-    sizes_csv = "neuron_sizes.csv"
+    sizes_csv = config_data['neuron_sizes_csv']
     size_lookup = {}
-
     sizeList = open(sizes_csv,'r')
-
     for line in sizeList:
         if line[0].isdigit():
             data_str = line.rstrip('\n')
@@ -72,8 +78,7 @@ if __name__ == '__main__':
 
     
 
-    #keyvalue = "segmentation_annotations"
-    keyvalue = sys.argv[5]
+    keyvalue = config_data['neuron_annot_keyvalue']
 
     node = (dvid_server, dvid_uuid)
     all_keys = fetch_keys(*node, keyvalue)
@@ -88,12 +93,8 @@ if __name__ == '__main__':
     #    all_values.update(values)
     all_values = fetch_keyvalues(*node, keyvalue, all_keys, as_json=True)
 
-
-    #superLevelrois = ["ME(R)","AME(R)","LO(R)","LOP(R)","CA(R)","CA(L)","PED(R)","a'L(R)","a'L(L)","aL(R)","aL(L)","gL(R)","gL(L)","b'L(R)","b'L(L)","bL(R)","bL(L)","FB","AB(R)","AB(L)","EB","PB","NO", "BU(R)","BU(L)","LAL(R)","LAL(L)","AOTU(R)","AVLP(R)","PVLP(R)","PLP(R)","WED(R)","LH(R)","SLP(R)","SIP(R)","SIP(L)","SMP(R)","SMP(L)","CRE(R)","CRE(L)","ROB(R)","SCL(R)","SCL(L)","ICL(R)","ICL(L)","IB","ATL(R)","ATL(L)","AL(R)","AL(L)","VES(R)","VES(L)","EPA(R)","EPA(L)","GOR(R)","GOR(L)","SPS(R)","SPS(L)","IPS(R)","SAD","FLA(R)","CAN(R)","PRW","GNG"]
-
     bodiesList = open(bodies_syn_file,'r')
 
-    #print (":ID,bodyId:long,pre:int,post:int,status:string,instance:string,type:string,primaryNeurite:string,majorInput:string,majorOutput:string,neurotransmitter:string,clonalUnit:string,somaLocation:point{srid:9157},somaRadius:float,size:long,:LABEL")
     header = '":ID(Body-ID)","bodyId:long","pre:int","post:int","upstream:int","downstream:int","status:string","statusLabel:string","cropped:boolean","instance:string","notes:string","type:string","cellBodyFiber:string","somaLocation:point{srid:9157}","somaRadius:float","size:long","roiInfo:string",":LABEL"'
     for roi in all_rois:
         header = header + ',"' + roi + ':boolean"'

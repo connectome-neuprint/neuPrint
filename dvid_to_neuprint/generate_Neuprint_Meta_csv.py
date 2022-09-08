@@ -1,6 +1,6 @@
 #!/bin/env
 
-# python generate_Neuprint_Meta_csv.py synIDs_synapses-6f2cb-rois-bodyIDs.csv 6f2cb9f1d4514d64bf4bd788106ad8ab 1009257516 "2020-08-07 23:37:41" > Neuprint_Meta_6f2cb.csv
+# python generate_Neuprint_Meta_csv.py synIDs_synapses-a7835-rois-bodyIDs.csv meta.yaml > Neuprint_Meta_a7835.csv
 # ------------------------- imports -------------------------
 import json
 import sys

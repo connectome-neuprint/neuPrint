@@ -1,0 +1,8 @@
+dvid_server: emdata4:8900
+dvid_uuid: a783551a946a4472a6f9bfaa2a009e44
+dataset: hemibrain
+all_rois_csv: all_ROIs.txt
+downstream_csv: downstream_synapses.csv
+downstream_roiInfo: downstream_synapses_roiInfo.csv
+neuron_sizes_csv: neuron_sizes.csv
+neuron_annot_keyvalue: segmentation_annotations
