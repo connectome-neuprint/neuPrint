@@ -8,15 +8,21 @@ import os
 import io
 import time
 import re
+import yaml
+
+def parse_config (config_file):
+    with open(config_file) as f:
+        config_data = yaml.load(f, Loader=yaml.FullLoader)
+    return config_data
 
 if __name__ == '__main__':
     synapses_csv = sys.argv[1]
-    uuid = sys.argv[2]
-    dataset = sys.argv[3]
+    config_yaml_file = sys.argv[2]
+    config_data = parse_config(config_yaml_file)
 
-    #header = ":START_ID,pre:int,post:int"
-    #print(header)
-
+    uuid = config_data['dvid_uuid']
+    dataset = config_data['dataset']
+    
     all_rois = {}
     rois_pre_count = {}
     rois_post_count = {}
@@ -170,12 +176,12 @@ if __name__ == '__main__':
     statusDefinitions_tmp = '{"Roughly traced":"neuron high-level shape correct and validated by biological expert", "Prelim Roughly traced": "neuron high-level shape most likely correct or nearly complete, not yet validated by biological expert", "Anchor":"Big segment that has not been roughly traced", "0.5assign":"Segment fragment that is within the set required for a 0.5 connectome"}'
     statusDefinitions = statusDefinitions_tmp.replace('"','""')
 
-    latestMutationId = sys.argv[4]
+    latestMutationId = config_data['last_mutation_id']
 
     totalPreCount = tot_pre_count
     totalPostCount = tot_post_count
 
-    lastDatabaseEdit = sys.argv[5]
+    lastDatabaseEdit = config_data['last_mutation_datetime']
     
     logo = "https://www.janelia.org/sites/default/files/Project%20Teams/Fly%20EM/hemibrain_logo.png"
     info = "https://www.janelia.org/project-team/flyem/hemibrain"
