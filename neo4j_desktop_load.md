@@ -1,7 +1,7 @@
 # Creating a Mushroombody(mb6) neuPrint into neo4J Desktop
 This is a step-by-step guide on how to create the mushroombody(mb6) neuPrint graph database using neo4J Desktop application.
 
-1. Download [neo4j desktop](https://neo4j.com/download-center/#desktop) and the mushroom body dataset to import into neo4j.
+1. Download [neo4j desktop](https://neo4j.com/download-center/#desktop) and the [mushroom body dataset](https://storage.cloud.google.com/hemibrain-release/neuprint/mb6_neo4j_inputs.zip) to import into neo4j.
 2. Download and unzip mb6_neo4j_inputs.zip from this github repository. There should be 10 csv files.
 ![MB6 Load1](images/mb6_load1.png)
 3. Start Neo4J Desktop and create a new project, in this example we'll call it mushroombody.
